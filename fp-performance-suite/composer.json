@@ -1,0 +1,11 @@
+{
+    "name": "fp/performance-suite",
+    "description": "FP Performance Suite WordPress plugin",
+    "type": "wordpress-plugin",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "FP\\PerfSuite\\": "src/"
+        }
+    }
+}

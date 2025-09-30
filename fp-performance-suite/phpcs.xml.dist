@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ruleset name="FP Performance Suite">
+    <description>WordPress VIP compliant coding standards</description>
+    <rule ref="WordPressVIPMinimum" />
+    <file>src</file>
+</ruleset>

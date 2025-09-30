@@ -1,0 +1,20 @@
+name: Build Plugin Zip
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Prepare build
+        run: |
+          cd fp-performance-suite
+          zip -r ../build/fp-performance-suite.zip . -x '*.git*'
+      - uses: actions/upload-artifact@v3
+        with:
+          name: fp-performance-suite
+          path: build/fp-performance-suite.zip
