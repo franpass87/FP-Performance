@@ -171,7 +171,14 @@ if (!function_exists('wp_cache_get_cookies_values')) {
 if (!function_exists('home_url')) {
     function home_url($path = '')
     {
-        return 'https://example.com' . $path;
+        $base = $GLOBALS['__home_url'] ?? 'https://example.com';
+        $base = rtrim((string) $base, '/');
+
+        if ('' === $path) {
+            return $base;
+        }
+
+        return $base . '/' . ltrim((string) $path, '/');
     }
 }
 
@@ -189,6 +196,82 @@ if (!function_exists('trailingslashit')) {
     }
 }
 
+if (!function_exists('wp_register_style')) {
+    function wp_register_style($handle, $src, $deps = [], $ver = false, $media = 'all')
+    {
+        $GLOBALS['__registered_styles'][$handle] = [
+            'handle' => $handle,
+            'src' => $src,
+            'deps' => $deps,
+            'ver' => $ver,
+            'media' => $media,
+        ];
+
+        return true;
+    }
+}
+
+if (!function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style($handle)
+    {
+        $GLOBALS['__enqueued_styles'][] = $handle;
+    }
+}
+
+if (!function_exists('wp_dequeue_style')) {
+    function wp_dequeue_style($handle)
+    {
+        $GLOBALS['__dequeued_styles'][] = $handle;
+        return true;
+    }
+}
+
+if (!function_exists('wp_register_script')) {
+    function wp_register_script($handle, $src, $deps = [], $ver = false, $in_footer = false)
+    {
+        $GLOBALS['__registered_scripts'][$handle] = [
+            'handle' => $handle,
+            'src' => $src,
+            'deps' => $deps,
+            'ver' => $ver,
+            'in_footer' => $in_footer,
+        ];
+
+        return true;
+    }
+}
+
+if (!function_exists('wp_enqueue_script')) {
+    function wp_enqueue_script($handle)
+    {
+        $GLOBALS['__enqueued_scripts'][] = $handle;
+    }
+}
+
+if (!function_exists('wp_dequeue_script')) {
+    function wp_dequeue_script($handle)
+    {
+        $GLOBALS['__dequeued_scripts'][] = $handle;
+        return true;
+    }
+}
+
+if (!function_exists('wp_upload_dir')) {
+    function wp_upload_dir()
+    {
+        $base = sys_get_temp_dir() . '/fp-performance-suite-uploads';
+
+        if (!is_dir($base)) {
+            mkdir($base, 0777, true);
+        }
+
+        return [
+            'basedir' => $base,
+            'baseurl' => 'https://example.com/wp-content/uploads',
+        ];
+    }
+}
+
 if (!function_exists('wp_mkdir_p')) {
     function wp_mkdir_p($dir)
     {
@@ -196,6 +279,66 @@ if (!function_exists('wp_mkdir_p')) {
             mkdir($dir, 0777, true);
         }
         return true;
+    }
+}
+
+if (!class_exists('WP_Dependencies')) {
+    class WP_Dependencies
+    {
+        /** @var array<int,string> */
+        public $queue = [];
+
+        /** @var array<string,object> */
+        public $registered = [];
+
+        /** @var string */
+        public $base_url = '';
+
+        /** @var string */
+        public $default_version = '';
+
+        /** @var string */
+        public $content_url = '';
+    }
+}
+
+if (!class_exists('_WP_Dependency')) {
+    class _WP_Dependency
+    {
+        /** @var string */
+        public $handle;
+
+        /** @var string */
+        public $src;
+
+        /** @var array<int,string> */
+        public $deps;
+
+        /** @var mixed */
+        public $ver;
+
+        /** @var array<string,mixed> */
+        public $extra = [];
+
+        public function __construct(string $handle, string $src = '', array $deps = [], $ver = false)
+        {
+            $this->handle = $handle;
+            $this->src = $src;
+            $this->deps = $deps;
+            $this->ver = $ver;
+        }
+    }
+}
+
+if (!class_exists('WP_Styles')) {
+    class WP_Styles extends WP_Dependencies
+    {
+    }
+}
+
+if (!class_exists('WP_Scripts')) {
+    class WP_Scripts extends WP_Dependencies
+    {
     }
 }
 

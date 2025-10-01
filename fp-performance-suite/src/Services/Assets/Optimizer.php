@@ -4,28 +4,66 @@ namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Semaphore;
 use function __;
+use function array_column;
 use function array_key_exists;
+use function array_flip;
 use function esc_url_raw;
+use function file_exists;
+use function file_get_contents;
+use function file_put_contents;
+use function filemtime;
+use function filesize;
 use function filter_var;
+use function function_exists;
+use function home_url;
+use function implode;
+use function in_array;
 use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
+use function is_object;
+use function is_readable;
 use function is_string;
+use function ltrim;
+use function md5;
+use function md5_file;
+use function count;
 use function parse_url;
 use function pathinfo;
 use function preg_split;
+use function rtrim;
+use function array_unique;
+use function array_values;
+use function strpos;
+use function strlen;
+use function substr;
+use function strtok;
+use function sprintf;
 use function strtolower;
 use function trim;
+use function wp_mkdir_p;
+use function wp_parse_url;
+use function wp_upload_dir;
+use function trailingslashit;
+use const PHP_URL_SCHEME;
 use const FILTER_NULL_ON_FAILURE;
 use const FILTER_VALIDATE_BOOLEAN;
 use const PATHINFO_EXTENSION;
+use const LOCK_EX;
 
 class Optimizer
 {
     private const OPTION = 'fp_ps_assets';
+    private const COMBINED_STYLE_HANDLE = 'fp-ps-combined-styles';
+    private const COMBINED_SCRIPT_HANDLE = 'fp-ps-combined-scripts';
+    private const COMBINED_FOOTER_SCRIPT_HANDLE = 'fp-ps-combined-scripts-footer';
+
     private Semaphore $semaphore;
     private bool $bufferStarted = false;
+    private bool $stylesCombined = false;
+    /** @var array{head:bool,footer:bool} */
+    private array $scriptsCombined = ['head' => false, 'footer' => false];
 
     public function __construct(Semaphore $semaphore)
     {
@@ -48,6 +86,9 @@ class Optimizer
             }
             if (!empty($settings['preload'])) {
                 add_filter('wp_resource_hints', [$this, 'preloadResources'], 10, 2);
+            }
+            if (!empty($settings['combine_css']) || !empty($settings['combine_js'])) {
+                add_action('wp_enqueue_scripts', [$this, 'applyCombination'], PHP_INT_MAX);
             }
         }
 
@@ -107,6 +148,479 @@ class Optimizer
             'combine_js' => $this->resolveFlag($settings, 'combine_js', $current['combine_js']),
         ];
         update_option(self::OPTION, $new);
+    }
+
+    public function applyCombination(): void
+    {
+        if (is_admin()) {
+            return;
+        }
+
+        $settings = $this->settings();
+
+        if (!empty($settings['combine_css'])) {
+            $this->combineStyles();
+        }
+
+        if (!empty($settings['combine_js'])) {
+            $this->combineScripts(false);
+            $this->combineScripts(true);
+        }
+    }
+
+    private function combineStyles(): void
+    {
+        if ($this->stylesCombined) {
+            return;
+        }
+
+        if (!function_exists('wp_register_style') || !function_exists('wp_enqueue_style') || !function_exists('wp_dequeue_style')) {
+            return;
+        }
+
+        global $wp_styles;
+
+        if (!($wp_styles instanceof \WP_Styles)) {
+            return;
+        }
+
+        $result = $this->combineDependencyGroup($wp_styles, 'css', null);
+
+        if (null === $result) {
+            return;
+        }
+
+        wp_register_style(self::COMBINED_STYLE_HANDLE, $result['url'], [], null);
+        wp_enqueue_style(self::COMBINED_STYLE_HANDLE);
+
+        $this->replaceDependencies($wp_styles, $result['handles'], self::COMBINED_STYLE_HANDLE);
+
+        foreach ($result['handles'] as $handle) {
+            wp_dequeue_style($handle);
+        }
+
+        $this->stylesCombined = true;
+    }
+
+    private function combineScripts(bool $footer): void
+    {
+        $key = $footer ? 'footer' : 'head';
+
+        if ($this->scriptsCombined[$key]) {
+            return;
+        }
+
+        if (!function_exists('wp_register_script') || !function_exists('wp_enqueue_script') || !function_exists('wp_dequeue_script')) {
+            return;
+        }
+
+        global $wp_scripts;
+
+        if (!($wp_scripts instanceof \WP_Scripts)) {
+            return;
+        }
+
+        $result = $this->combineDependencyGroup($wp_scripts, 'js', $footer ? 1 : 0);
+
+        if (null === $result) {
+            return;
+        }
+
+        $handle = $footer ? self::COMBINED_FOOTER_SCRIPT_HANDLE : self::COMBINED_SCRIPT_HANDLE;
+        wp_register_script($handle, $result['url'], [], null, $footer);
+        wp_enqueue_script($handle);
+
+        $this->replaceDependencies($wp_scripts, $result['handles'], $handle);
+
+        foreach ($result['handles'] as $handleToRemove) {
+            wp_dequeue_script($handleToRemove);
+        }
+
+        $this->scriptsCombined[$key] = true;
+    }
+
+    /**
+     * @param \WP_Dependencies $collection
+     * @return array{handles:array<int,string>,url:string}|null
+     */
+    private function combineDependencyGroup($collection, string $type, ?int $group): ?array
+    {
+        if (!is_object($collection) || empty($collection->queue) || empty($collection->registered)) {
+            return null;
+        }
+
+        $queue = is_array($collection->queue) ? $collection->queue : (array) $collection->queue;
+        if (empty($queue)) {
+            return null;
+        }
+
+        $positions = [];
+        foreach (array_values($queue) as $index => $handle) {
+            if (!is_string($handle) || '' === $handle) {
+                continue;
+            }
+            if (!isset($positions[$handle])) {
+                $positions[$handle] = $index;
+            }
+        }
+
+        $candidates = [];
+        foreach ($queue as $handle) {
+            if (!is_string($handle) || '' === $handle) {
+                continue;
+            }
+            if (!isset($collection->registered[$handle])) {
+                continue;
+            }
+
+            $item = $collection->registered[$handle];
+
+            if (!is_object($item)) {
+                continue;
+            }
+
+            if (!$this->matchesGroup($item, $type, $group)) {
+                continue;
+            }
+
+            if (!$this->isDependencyCombinable($item)) {
+                continue;
+            }
+
+            $source = $this->resolveDependencySource($collection, $item);
+
+            if (null === $source) {
+                continue;
+            }
+
+            $depsProperty = $item->deps ?? [];
+            $deps = is_array($depsProperty) ? $depsProperty : (array) $depsProperty;
+            $deps = array_values(array_filter($deps, static function ($dep) {
+                return is_string($dep) && '' !== trim($dep);
+            }));
+
+            $candidates[$handle] = [
+                'handle' => $handle,
+                'path' => $source['path'],
+                'url' => $source['url'],
+                'deps' => $deps,
+            ];
+        }
+
+        if (count($candidates) < 2) {
+            return null;
+        }
+
+        $queueLookup = [];
+        foreach ($queue as $queuedHandle) {
+            if (is_string($queuedHandle) && '' !== $queuedHandle) {
+                $queueLookup[$queuedHandle] = true;
+            }
+        }
+
+        do {
+            $changed = false;
+            foreach ($candidates as $handle => $data) {
+                foreach ($data['deps'] as $dependency) {
+                    if (!isset($queueLookup[$dependency])) {
+                        continue;
+                    }
+                    if (!isset($candidates[$dependency])) {
+                        unset($candidates[$handle]);
+                        $changed = true;
+                        continue 3;
+                    }
+                }
+            }
+        } while ($changed);
+
+        if (count($candidates) < 2) {
+            return null;
+        }
+
+        $indegree = [];
+        $edges = [];
+        foreach ($candidates as $handle => $data) {
+            $indegree[$handle] = 0;
+        }
+
+        foreach ($candidates as $handle => $data) {
+            foreach ($data['deps'] as $dependency) {
+                if (!isset($candidates[$dependency])) {
+                    continue;
+                }
+                $edges[$dependency][] = $handle;
+                $indegree[$handle]++;
+            }
+        }
+
+        $available = [];
+        foreach ($indegree as $handle => $count) {
+            if (0 === $count) {
+                $available[] = $handle;
+            }
+        }
+
+        if (empty($available)) {
+            return null;
+        }
+
+        $sortByPosition = static function (string $a, string $b) use ($positions): int {
+            $posA = $positions[$a] ?? PHP_INT_MAX;
+            $posB = $positions[$b] ?? PHP_INT_MAX;
+            return $posA <=> $posB;
+        };
+
+        usort($available, $sortByPosition);
+
+        $ordered = [];
+        while (!empty($available)) {
+            $current = array_shift($available);
+            $ordered[] = $current;
+
+            foreach ($edges[$current] ?? [] as $next) {
+                $indegree[$next]--;
+                if (0 === $indegree[$next]) {
+                    $available[] = $next;
+                }
+            }
+
+            if (!empty($available)) {
+                usort($available, $sortByPosition);
+            }
+        }
+
+        if (count($ordered) !== count($candidates)) {
+            return null;
+        }
+
+        $files = [];
+        foreach ($ordered as $handle) {
+            $files[] = [
+                'handle' => $handle,
+                'path' => $candidates[$handle]['path'],
+                'url' => $candidates[$handle]['url'],
+            ];
+        }
+
+        if (count($files) < 2) {
+            return null;
+        }
+
+        return $this->writeCombinedAsset($files, $type);
+    }
+
+    private function matchesGroup(object $item, string $type, ?int $group): bool
+    {
+        if ('js' !== $type) {
+            return true;
+        }
+
+        $itemGroup = 0;
+
+        if (isset($item->extra) && is_array($item->extra) && isset($item->extra['group'])) {
+            $itemGroup = (int) $item->extra['group'];
+        }
+
+        if (null === $group) {
+            return 0 === $itemGroup;
+        }
+
+        return $itemGroup === $group;
+    }
+
+    private function isDependencyCombinable(object $item): bool
+    {
+        if (!isset($item->src) || !is_string($item->src) || '' === trim($item->src)) {
+            return false;
+        }
+
+        $extra = [];
+        if (isset($item->extra) && is_array($item->extra)) {
+            $extra = $item->extra;
+        }
+
+        if (!empty($extra['conditional']) || !empty($extra['data']) || !empty($extra['before']) || !empty($extra['after'])) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param \WP_Dependencies $collection
+     * @return array{path:string,url:string}|null
+     */
+    private function resolveDependencySource($collection, object $item): ?array
+    {
+        $src = is_string($item->src ?? null) ? trim($item->src) : '';
+
+        if ('' === $src) {
+            return null;
+        }
+
+        $url = $src;
+
+        if (0 === strpos($url, '//')) {
+            $scheme = wp_parse_url(home_url(), PHP_URL_SCHEME) ?: 'https';
+            $url = $scheme . ':' . $url;
+        } elseif (false === strpos($url, '://')) {
+            $base = is_string($collection->base_url ?? null) ? $collection->base_url : '';
+            if ('' !== $base) {
+                $url = rtrim($base, '/') . '/' . ltrim($url, '/');
+            } else {
+                $url = home_url('/' . ltrim($url, '/'));
+            }
+        }
+
+        $sanitized = strtok($url, '?') ?: $url;
+        $parsed = wp_parse_url($sanitized);
+
+        if (!is_array($parsed) || empty($parsed['path'])) {
+            return null;
+        }
+
+        $home = wp_parse_url(home_url());
+        if (!empty($parsed['host']) && !empty($home['host'])) {
+            if (strtolower($parsed['host']) !== strtolower((string) $home['host'])) {
+                return null;
+            }
+        }
+
+        $path = $parsed['path'];
+
+        $home = wp_parse_url(home_url());
+        if (is_array($home) && !empty($home['path'])) {
+            $homePath = rtrim((string) $home['path'], '/');
+            if ('' !== $homePath) {
+                if ($path === $homePath) {
+                    $path = '';
+                } elseif (0 === strpos($path, $homePath . '/')) {
+                    $path = substr($path, strlen($homePath));
+                }
+            }
+        }
+
+        if ('' === $path) {
+            return null;
+        }
+
+        $path = ABSPATH . ltrim($path, '/');
+
+        if (!file_exists($path) || !is_readable($path)) {
+            return null;
+        }
+
+        return [
+            'path' => $path,
+            'url' => $sanitized,
+        ];
+    }
+
+    /**
+     * @param array<int,array{handle:string,path:string,url:string}> $files
+     * @return array{handles:array<int,string>,url:string}|null
+     */
+    private function writeCombinedAsset(array $files, string $type): ?array
+    {
+        if (!function_exists('wp_upload_dir') || !function_exists('wp_mkdir_p')) {
+            return null;
+        }
+
+        $uploads = wp_upload_dir();
+
+        if (!is_array($uploads) || empty($uploads['basedir']) || empty($uploads['baseurl'])) {
+            return null;
+        }
+
+        $targetDir = trailingslashit($uploads['basedir']) . 'fp-performance-suite';
+
+        if (!wp_mkdir_p($targetDir)) {
+            return null;
+        }
+
+        $hashParts = [];
+        $contents = '';
+
+        foreach ($files as $file) {
+            $mtime = @filemtime($file['path']);
+            $size = @filesize($file['path']);
+            $hashParts[] = $file['url'] . '|' . ($mtime ?: 0) . '|' . ($size ?: 0);
+            $asset = file_get_contents($file['path']);
+
+            if (false === $asset) {
+                return null;
+            }
+
+            $contents .= '/* ' . $file['handle'] . " */\n" . $asset . "\n";
+        }
+
+        $hash = md5(implode('|', $hashParts));
+        $extension = 'css' === $type ? 'css' : 'js';
+        $filename = sprintf('combined-%s-%s.%s', $type, $hash, $extension);
+        $fullPath = trailingslashit($targetDir) . $filename;
+
+        $handles = array_column($files, 'handle');
+        $url = trailingslashit($uploads['baseurl']) . 'fp-performance-suite/' . $filename;
+        $contentsHash = md5($contents);
+
+        if (file_exists($fullPath)) {
+            $existingHash = md5_file($fullPath);
+
+            if (is_string($existingHash) && $existingHash === $contentsHash) {
+                return [
+                    'handles' => $handles,
+                    'url' => $url,
+                ];
+            }
+        }
+
+        $bytesWritten = file_put_contents($fullPath, $contents, LOCK_EX);
+
+        if (false === $bytesWritten) {
+            return null;
+        }
+
+        return [
+            'handles' => $handles,
+            'url' => $url,
+        ];
+    }
+
+    /**
+     * @param \WP_Dependencies $collection
+     * @param array<int, string> $replacedHandles
+     */
+    private function replaceDependencies($collection, array $replacedHandles, string $replacement): void
+    {
+        if (!is_object($collection) || empty($collection->registered) || empty($replacedHandles)) {
+            return;
+        }
+
+        $lookup = array_flip($replacedHandles);
+
+        foreach ($collection->registered as $handle => $item) {
+            if (!is_object($item) || isset($lookup[$handle])) {
+                continue;
+            }
+
+            $depsProperty = $item->deps ?? [];
+            $deps = is_array($depsProperty) ? $depsProperty : (array) $depsProperty;
+            $updated = false;
+
+            foreach ($deps as &$dependency) {
+                if (isset($lookup[$dependency]) && $dependency !== $replacement) {
+                    $dependency = $replacement;
+                    $updated = true;
+                }
+            }
+
+            unset($dependency);
+
+            if ($updated) {
+                $item->deps = array_values(array_unique($deps));
+            }
+        }
     }
 
     public function startBuffer(): void
@@ -408,6 +922,8 @@ class Optimizer
             'async_js' => !empty($settings['async_js']),
             'remove_emojis' => !empty($settings['remove_emojis']),
             'heartbeat_admin' => (int) $settings['heartbeat_admin'],
+            'combine_css' => !empty($settings['combine_css']),
+            'combine_js' => !empty($settings['combine_js']),
         ];
     }
 

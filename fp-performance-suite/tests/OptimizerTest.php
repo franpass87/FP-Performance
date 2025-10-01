@@ -12,6 +12,30 @@ final class OptimizerTest extends TestCase
     {
         parent::setUp();
         $GLOBALS['__wp_options'] = [];
+        $GLOBALS['__registered_styles'] = [];
+        $GLOBALS['__enqueued_styles'] = [];
+        $GLOBALS['__dequeued_styles'] = [];
+        $GLOBALS['__registered_scripts'] = [];
+        $GLOBALS['__enqueued_scripts'] = [];
+        $GLOBALS['__dequeued_scripts'] = [];
+        $GLOBALS['__home_url'] = 'https://example.com';
+        unset($GLOBALS['wp_styles'], $GLOBALS['wp_scripts']);
+
+        $uploads = wp_upload_dir();
+        if (!empty($uploads['basedir'])) {
+            $target = $uploads['basedir'] . '/fp-performance-suite';
+            if (is_dir($target)) {
+                $files = glob($target . '/*');
+                if (is_array($files)) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) {
+                            unlink($file);
+                        }
+                    }
+                }
+                rmdir($target);
+            }
+        }
     }
 
     public function testSettingsCoerceStringListsToArrays(): void
@@ -160,5 +184,264 @@ final class OptimizerTest extends TestCase
         $this->assertTrue($stored['remove_emojis']);
         $this->assertTrue($stored['combine_css']);
         $this->assertTrue($stored['combine_js']);
+    }
+
+    public function testApplyCombinationCombinesEligibleStyles(): void
+    {
+        wp_mkdir_p(WP_CONTENT_DIR . '/plugins/test');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/one.css', 'body{color:#f00;}');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/two.css', 'body{background:#000;}');
+
+        $styleOne = new _WP_Dependency('one', 'plugins/test/one.css');
+        $styleTwo = new _WP_Dependency('two', 'plugins/test/two.css', ['one']);
+        $dependent = new _WP_Dependency('dependent', 'https://cdn.example.com/dependent.css', ['two']);
+        $external = new _WP_Dependency('external', 'https://cdn.example.com/external.css');
+
+        $GLOBALS['wp_styles'] = new WP_Styles();
+        $GLOBALS['wp_styles']->base_url = 'https://example.com/wp-content/';
+        $GLOBALS['wp_styles']->queue = ['one', 'two', 'dependent', 'external'];
+        $GLOBALS['wp_styles']->registered = [
+            'one' => $styleOne,
+            'two' => $styleTwo,
+            'dependent' => $dependent,
+            'external' => $external,
+        ];
+
+        update_option('fp_ps_assets', [
+            'combine_css' => true,
+            'combine_js' => false,
+        ]);
+
+        $optimizer = new Optimizer(new Semaphore());
+        $optimizer->applyCombination();
+
+        $this->assertArrayHasKey('fp-ps-combined-styles', $GLOBALS['__registered_styles']);
+        $this->assertContains('fp-ps-combined-styles', $GLOBALS['__enqueued_styles']);
+        $this->assertSame(['one', 'two'], $GLOBALS['__dequeued_styles']);
+
+        $registered = $GLOBALS['__registered_styles']['fp-ps-combined-styles'];
+        $uploads = wp_upload_dir();
+        $filename = basename($registered['src']);
+        $path = $uploads['basedir'] . '/fp-performance-suite/' . $filename;
+
+        $this->assertFileExists($path);
+        $contents = file_get_contents($path);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString('/* one */', $contents);
+        $this->assertStringContainsString('/* two */', $contents);
+
+        $this->assertSame(['fp-ps-combined-styles'], $GLOBALS['wp_styles']->registered['dependent']->deps);
+    }
+
+    public function testApplyCombinationCombinesStylesWhenSiteInSubdirectory(): void
+    {
+        $previousHome = $GLOBALS['__home_url'];
+        $GLOBALS['__home_url'] = 'https://example.com/site';
+
+        try {
+            wp_mkdir_p(WP_CONTENT_DIR . '/plugins/test');
+            file_put_contents(WP_CONTENT_DIR . '/plugins/test/sub-one.css', 'body{color:#0ff;}');
+            file_put_contents(WP_CONTENT_DIR . '/plugins/test/sub-two.css', 'body{background:#333;}');
+
+            $styleOne = new _WP_Dependency('sub-one', 'plugins/test/sub-one.css');
+            $styleTwo = new _WP_Dependency('sub-two', 'plugins/test/sub-two.css', ['sub-one']);
+
+            $GLOBALS['wp_styles'] = new WP_Styles();
+            $GLOBALS['wp_styles']->base_url = 'https://example.com/site/wp-content/';
+            $GLOBALS['wp_styles']->queue = ['sub-one', 'sub-two'];
+            $GLOBALS['wp_styles']->registered = [
+                'sub-one' => $styleOne,
+                'sub-two' => $styleTwo,
+            ];
+
+            update_option('fp_ps_assets', [
+                'combine_css' => true,
+                'combine_js' => false,
+            ]);
+
+            $optimizer = new Optimizer(new Semaphore());
+            $optimizer->applyCombination();
+
+            $this->assertArrayHasKey('fp-ps-combined-styles', $GLOBALS['__registered_styles']);
+            $this->assertContains('fp-ps-combined-styles', $GLOBALS['__enqueued_styles']);
+            $this->assertSame(['sub-one', 'sub-two'], $GLOBALS['__dequeued_styles']);
+
+            $registered = $GLOBALS['__registered_styles']['fp-ps-combined-styles'];
+            $uploads = wp_upload_dir();
+            $filename = basename($registered['src']);
+            $path = $uploads['basedir'] . '/fp-performance-suite/' . $filename;
+
+            $this->assertFileExists($path);
+            $contents = file_get_contents($path);
+            $this->assertIsString($contents);
+            $this->assertStringContainsString('/* sub-one */', $contents);
+            $this->assertStringContainsString('/* sub-two */', $contents);
+        } finally {
+            $GLOBALS['__home_url'] = $previousHome;
+        }
+    }
+
+    public function testApplyCombinationReusesExistingBundleWhenSourcesAreUnchanged(): void
+    {
+        wp_mkdir_p(WP_CONTENT_DIR . '/plugins/test');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/one.css', 'body{color:#f00;}');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/two.css', 'body{background:#000;}');
+
+        $setupStyles = static function (): void {
+            $styleOne = new _WP_Dependency('one', 'plugins/test/one.css');
+            $styleTwo = new _WP_Dependency('two', 'plugins/test/two.css', ['one']);
+            $dependent = new _WP_Dependency('dependent', 'https://cdn.example.com/dependent.css', ['two']);
+
+            $GLOBALS['wp_styles'] = new WP_Styles();
+            $GLOBALS['wp_styles']->base_url = 'https://example.com/wp-content/';
+            $GLOBALS['wp_styles']->queue = ['one', 'two', 'dependent'];
+            $GLOBALS['wp_styles']->registered = [
+                'one' => $styleOne,
+                'two' => $styleTwo,
+                'dependent' => $dependent,
+            ];
+        };
+
+        update_option('fp_ps_assets', [
+            'combine_css' => true,
+            'combine_js' => false,
+        ]);
+
+        $setupStyles();
+        $optimizer = new Optimizer(new Semaphore());
+        $optimizer->applyCombination();
+
+        $this->assertArrayHasKey('fp-ps-combined-styles', $GLOBALS['__registered_styles']);
+        $firstSrc = $GLOBALS['__registered_styles']['fp-ps-combined-styles']['src'];
+        $uploads = wp_upload_dir();
+        $filename = basename($firstSrc);
+        $path = $uploads['basedir'] . '/fp-performance-suite/' . $filename;
+
+        $this->assertFileExists($path);
+        $firstMtime = filemtime($path);
+        $this->assertIsInt($firstMtime);
+
+        usleep(1100000);
+
+        $GLOBALS['__registered_styles'] = [];
+        $GLOBALS['__enqueued_styles'] = [];
+        $GLOBALS['__dequeued_styles'] = [];
+        unset($GLOBALS['wp_styles']);
+
+        $setupStyles();
+        $optimizerSecond = new Optimizer(new Semaphore());
+        $optimizerSecond->applyCombination();
+
+        $this->assertArrayHasKey('fp-ps-combined-styles', $GLOBALS['__registered_styles']);
+        $this->assertSame($firstSrc, $GLOBALS['__registered_styles']['fp-ps-combined-styles']['src']);
+
+        clearstatcache(true, $path);
+        $secondMtime = filemtime($path);
+        $this->assertIsInt($secondMtime);
+        $this->assertSame($firstMtime, $secondMtime);
+    }
+
+    public function testApplyCombinationOrdersBundleUsingDependenciesRatherThanQueue(): void
+    {
+        wp_mkdir_p(WP_CONTENT_DIR . '/plugins/test');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/alpha.css', 'body{color:#0f0;}');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/beta.css', 'body{color:#00f;}');
+
+        $alpha = new _WP_Dependency('alpha', 'plugins/test/alpha.css');
+        $beta = new _WP_Dependency('beta', 'plugins/test/beta.css', ['alpha']);
+        $dependent = new _WP_Dependency('after-beta', 'https://cdn.example.com/app.css', ['beta']);
+
+        $GLOBALS['wp_styles'] = new WP_Styles();
+        $GLOBALS['wp_styles']->base_url = 'https://example.com/wp-content/';
+        $GLOBALS['wp_styles']->queue = ['after-beta', 'beta', 'alpha'];
+        $GLOBALS['wp_styles']->registered = [
+            'alpha' => $alpha,
+            'beta' => $beta,
+            'after-beta' => $dependent,
+        ];
+
+        update_option('fp_ps_assets', [
+            'combine_css' => true,
+            'combine_js' => false,
+        ]);
+
+        $optimizer = new Optimizer(new Semaphore());
+        $optimizer->applyCombination();
+
+        $this->assertArrayHasKey('fp-ps-combined-styles', $GLOBALS['__registered_styles']);
+        $this->assertContains('fp-ps-combined-styles', $GLOBALS['__enqueued_styles']);
+        $this->assertContains('alpha', $GLOBALS['__dequeued_styles']);
+        $this->assertContains('beta', $GLOBALS['__dequeued_styles']);
+
+        $registered = $GLOBALS['__registered_styles']['fp-ps-combined-styles'];
+        $uploads = wp_upload_dir();
+        $filename = basename($registered['src']);
+        $path = $uploads['basedir'] . '/fp-performance-suite/' . $filename;
+
+        $this->assertFileExists($path);
+        $contents = file_get_contents($path);
+        $this->assertIsString($contents);
+        $this->assertStringContainsString('/* alpha */', $contents);
+        $this->assertStringContainsString('/* beta */', $contents);
+        $this->assertLessThan(
+            strpos((string) $contents, '/* beta */'),
+            strpos((string) $contents, '/* alpha */'),
+            'Alpha should appear before beta in the bundle.'
+        );
+
+        $this->assertSame(['fp-ps-combined-styles'], $GLOBALS['wp_styles']->registered['after-beta']->deps);
+    }
+
+    public function testApplyCombinationCombinesHeaderAndFooterScripts(): void
+    {
+        wp_mkdir_p(WP_CONTENT_DIR . '/plugins/test');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/one.js', 'console.log("one");');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/two.js', 'console.log("two");');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/footer-a.js', 'console.log("footer a");');
+        file_put_contents(WP_CONTENT_DIR . '/plugins/test/footer-b.js', 'console.log("footer b");');
+
+        $headerOne = new _WP_Dependency('one', 'plugins/test/one.js');
+        $headerTwo = new _WP_Dependency('two', 'plugins/test/two.js', ['one']);
+        $headerDependent = new _WP_Dependency('child-header', 'https://cdn.example.com/header.js', ['two']);
+        $footerOne = new _WP_Dependency('footer-a', 'plugins/test/footer-a.js');
+        $footerOne->extra['group'] = 1;
+        $footerTwo = new _WP_Dependency('footer-b', 'plugins/test/footer-b.js', ['footer-a']);
+        $footerTwo->extra['group'] = 1;
+        $footerDependent = new _WP_Dependency('child-footer', 'https://cdn.example.com/footer.js', ['footer-b']);
+        $footerDependent->extra['group'] = 1;
+        $external = new _WP_Dependency('external', 'https://cdn.example.com/app.js');
+
+        $GLOBALS['wp_scripts'] = new WP_Scripts();
+        $GLOBALS['wp_scripts']->base_url = 'https://example.com/wp-content/';
+        $GLOBALS['wp_scripts']->queue = ['one', 'two', 'child-header', 'footer-a', 'footer-b', 'child-footer', 'external'];
+        $GLOBALS['wp_scripts']->registered = [
+            'one' => $headerOne,
+            'two' => $headerTwo,
+            'child-header' => $headerDependent,
+            'footer-a' => $footerOne,
+            'footer-b' => $footerTwo,
+            'child-footer' => $footerDependent,
+            'external' => $external,
+        ];
+
+        update_option('fp_ps_assets', [
+            'combine_css' => false,
+            'combine_js' => true,
+        ]);
+
+        $optimizer = new Optimizer(new Semaphore());
+        $optimizer->applyCombination();
+
+        $this->assertArrayHasKey('fp-ps-combined-scripts', $GLOBALS['__registered_scripts']);
+        $this->assertArrayHasKey('fp-ps-combined-scripts-footer', $GLOBALS['__registered_scripts']);
+        $this->assertContains('fp-ps-combined-scripts', $GLOBALS['__enqueued_scripts']);
+        $this->assertContains('fp-ps-combined-scripts-footer', $GLOBALS['__enqueued_scripts']);
+        $this->assertContains('one', $GLOBALS['__dequeued_scripts']);
+        $this->assertContains('two', $GLOBALS['__dequeued_scripts']);
+        $this->assertContains('footer-a', $GLOBALS['__dequeued_scripts']);
+        $this->assertContains('footer-b', $GLOBALS['__dequeued_scripts']);
+
+        $this->assertSame(['fp-ps-combined-scripts'], $GLOBALS['wp_scripts']->registered['child-header']->deps);
+        $this->assertSame(['fp-ps-combined-scripts-footer'], $GLOBALS['wp_scripts']->registered['child-footer']->deps);
     }
 }
