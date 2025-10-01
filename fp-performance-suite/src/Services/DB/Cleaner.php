@@ -8,12 +8,16 @@ use function __;
 use function add_action;
 use function add_filter;
 use function apply_filters;
+use function delete_site_transient;
+use function delete_transient;
 use function get_option;
 use function has_filter;
 use function sanitize_key;
 use function time;
 use function update_option;
 use function wp_clear_scheduled_hook;
+use function wp_delete_comment;
+use function wp_delete_post;
 use function wp_next_scheduled;
 use function wp_schedule_event;
 
@@ -148,7 +152,7 @@ class Cleaner
                     $results['trash_posts'] = $this->cleanupPosts($wpdb, "post_status = 'trash'", $dryRun, $batch);
                     break;
                 case 'spam_comments':
-                    $results['spam_comments'] = $this->cleanupComments($wpdb, ["comment_approved = 'spam'", "comment_approved = 'trash'"] , $dryRun, $batch);
+                    $results['spam_comments'] = $this->cleanupComments($wpdb, ['spam', 'trash'], $dryRun, $batch);
                     break;
                 case 'expired_transients':
                     $results['expired_transients'] = $this->cleanupTransients($wpdb, $dryRun, $batch);
@@ -181,8 +185,9 @@ class Cleaner
         $ids = $wpdb->get_col($sql);
         $count = count($ids);
         if (!$dryRun && $count > 0) {
-            $placeholders = implode(',', array_fill(0, $count, '%d'));
-            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE ID IN ({$placeholders})", $ids));
+            foreach ($ids as $id) {
+                wp_delete_post((int) $id, true);
+            }
         }
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
@@ -200,8 +205,9 @@ class Cleaner
         $ids = $wpdb->get_col($query);
         $count = count($ids);
         if (!$dryRun && $count > 0) {
-            $placeholders = implode(',', array_fill(0, $count, '%d'));
-            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE comment_ID IN ({$placeholders})", $ids));
+            foreach ($ids as $id) {
+                wp_delete_comment((int) $id, true);
+            }
         }
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
@@ -212,13 +218,36 @@ class Cleaner
         $sql = $wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d LIMIT %d", '_transient_timeout_%', $time, $batch);
         $names = $wpdb->get_col($sql);
         $count = count($names);
+        $deleted = 0;
         if (!$dryRun && $count > 0) {
             foreach ($names as $name) {
                 $key = str_replace('_transient_timeout_', '', $name);
                 delete_transient($key);
+                $deleted++;
             }
         }
-        return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
+
+        $siteCount = 0;
+        $siteDeleted = 0;
+        if ($this->env->isMultisite()) {
+            $siteSql = $wpdb->prepare("SELECT meta_key FROM {$wpdb->sitemeta} WHERE meta_key LIKE %s AND meta_value < %d LIMIT %d", '_site_transient_timeout_%', $time, $batch);
+            $siteNames = $wpdb->get_col($siteSql);
+            $siteCount = count($siteNames);
+            if (!$dryRun && $siteCount > 0) {
+                foreach ($siteNames as $metaKey) {
+                    $key = str_replace('_site_transient_timeout_', '', $metaKey);
+                    delete_site_transient($key);
+                    $siteDeleted++;
+                }
+            }
+        }
+
+        return [
+            'found' => $count + $siteCount,
+            'deleted' => $dryRun ? 0 : $deleted + $siteDeleted,
+            'site_found' => $siteCount,
+            'site_deleted' => $dryRun ? 0 : $siteDeleted,
+        ];
     }
 
     private function cleanupMeta(wpdb $wpdb, string $metaTable, string $parentTable, string $foreignKey, string $parentKey, bool $dryRun, int $batch): array
@@ -235,14 +264,17 @@ class Cleaner
 
     private function optimizeTables(wpdb $wpdb, bool $dryRun): array
     {
-        $tables = $wpdb->get_col('SHOW TABLES');
+        $tables = array_filter(
+            (array) $wpdb->get_col('SHOW TABLES'),
+            static function ($table) use ($wpdb) {
+                return is_string($table) && strpos($table, $wpdb->prefix) === 0;
+            }
+        );
         $run = [];
         foreach ($tables as $table) {
-            if ($dryRun) {
-                $run[] = $table;
-                continue;
+            if (!$dryRun) {
+                $wpdb->query("OPTIMIZE TABLE `{$table}`");
             }
-            $wpdb->query("OPTIMIZE TABLE {$table}");
             $run[] = $table;
         }
         return ['tables' => $run];

@@ -12,10 +12,10 @@ use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Utils\Capabilities;
 use function add_action;
 use function add_menu_page;
 use function add_submenu_page;
-use function get_option;
 use function __;
 
 class Menu
@@ -35,8 +35,7 @@ class Menu
     public function register(): void
     {
         $pages = $this->pages();
-        $settings = get_option('fp_ps_settings', ['allowed_role' => 'administrator']);
-        $capability = $settings['allowed_role'] === 'editor' ? 'edit_pages' : 'manage_options';
+        $capability = Capabilities::required();
 
         add_menu_page(
             __('FP Performance Suite', 'fp-performance-suite'),

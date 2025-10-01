@@ -13,15 +13,16 @@ use function esc_attr_e;
 use function esc_html;
 use function esc_html_e;
 use function esc_textarea;
+use function esc_url_raw;
+use function is_array;
 use function json_decode;
 use function json_encode;
+use function sanitize_key;
+use function sprintf;
 use function wp_json_encode;
 use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
-use function is_array;
-use function sprintf;
-use function update_option;
 
 class Tools extends AbstractPage
 {
@@ -37,7 +38,7 @@ class Tools extends AbstractPage
 
     public function capability(): string
     {
-        return 'manage_options';
+        return $this->requiredCapability();
     }
 
     public function view(): string
@@ -70,6 +71,8 @@ class Tools extends AbstractPage
                 $json = wp_unslash($_POST['settings_json'] ?? '');
                 $data = json_decode($json, true);
                 if (is_array($data)) {
+                    $prepared = [];
+                    $valid = true;
                     $allowed = [
                         'fp_ps_page_cache',
                         'fp_ps_browser_cache',
@@ -78,11 +81,94 @@ class Tools extends AbstractPage
                         'fp_ps_db',
                     ];
                     foreach ($allowed as $option) {
-                        if (array_key_exists($option, $data)) {
-                            update_option($option, $data[$option]);
+                        if (!array_key_exists($option, $data)) {
+                            continue;
+                        }
+                        if (!is_array($data[$option])) {
+                            $valid = false;
+                            break;
+                        }
+                        switch ($option) {
+                            case 'fp_ps_page_cache':
+                                $prepared[$option] = [
+                                    'enabled' => !empty($data[$option]['enabled']),
+                                    'ttl' => isset($data[$option]['ttl']) ? (int) $data[$option]['ttl'] : $pageCache->settings()['ttl'],
+                                ];
+                                break;
+                            case 'fp_ps_browser_cache':
+                                $prepared[$option] = [
+                                    'enabled' => !empty($data[$option]['enabled']),
+                                    'headers' => [
+                                        'Cache-Control' => isset($data[$option]['headers']['Cache-Control'])
+                                            ? (string) $data[$option]['headers']['Cache-Control']
+                                            : $headers->settings()['headers']['Cache-Control'],
+                                    ],
+                                    'expires_ttl' => isset($data[$option]['expires_ttl'])
+                                        ? (int) $data[$option]['expires_ttl']
+                                        : $headers->settings()['expires_ttl'],
+                                    'htaccess' => (string) ($data[$option]['htaccess'] ?? $headers->settings()['htaccess']),
+                                ];
+                                break;
+                            case 'fp_ps_assets':
+                                $assetDefaults = $optimizer->settings();
+                                $incoming = $data[$option];
+                                $prepared[$option] = [
+                                    'minify_html' => !empty($incoming['minify_html']),
+                                    'defer_js' => !empty($incoming['defer_js']),
+                                    'async_js' => !empty($incoming['async_js']),
+                                    'remove_emojis' => !empty($incoming['remove_emojis']),
+                                    'dns_prefetch' => array_filter(array_map('esc_url_raw', (array) ($incoming['dns_prefetch'] ?? $assetDefaults['dns_prefetch']))),
+                                    'preload' => array_filter(array_map('esc_url_raw', (array) ($incoming['preload'] ?? $assetDefaults['preload']))),
+                                    'heartbeat_admin' => isset($incoming['heartbeat_admin']) ? (int) $incoming['heartbeat_admin'] : $assetDefaults['heartbeat_admin'],
+                                    'combine_css' => !empty($incoming['combine_css']),
+                                    'combine_js' => !empty($incoming['combine_js']),
+                                ];
+                                break;
+                            case 'fp_ps_webp':
+                                $webpDefaults = $webp->settings();
+                                $incoming = $data[$option];
+                                $quality = isset($incoming['quality']) ? (int) $incoming['quality'] : $webpDefaults['quality'];
+                                $quality = max(1, min(100, $quality));
+                                $prepared[$option] = [
+                                    'enabled' => !empty($incoming['enabled']),
+                                    'quality' => $quality,
+                                    'keep_original' => array_key_exists('keep_original', $incoming)
+                                        ? (bool) $incoming['keep_original']
+                                        : $webpDefaults['keep_original'],
+                                    'lossy' => array_key_exists('lossy', $incoming)
+                                        ? (bool) $incoming['lossy']
+                                        : $webpDefaults['lossy'],
+                                ];
+                                break;
+                            case 'fp_ps_db':
+                                $prepared[$option] = [
+                                    'schedule' => sanitize_key($data[$option]['schedule'] ?? $cleaner->settings()['schedule']),
+                                    'batch' => isset($data[$option]['batch']) ? (int) $data[$option]['batch'] : $cleaner->settings()['batch'],
+                                ];
+                                break;
                         }
                     }
-                    $importStatus = __('Settings imported successfully.', 'fp-performance-suite');
+
+                    if ($valid) {
+                        if (isset($prepared['fp_ps_page_cache'])) {
+                            $pageCache->update($prepared['fp_ps_page_cache']);
+                        }
+                        if (isset($prepared['fp_ps_browser_cache'])) {
+                            $headers->update($prepared['fp_ps_browser_cache']);
+                        }
+                        if (isset($prepared['fp_ps_assets'])) {
+                            $optimizer->update($prepared['fp_ps_assets']);
+                        }
+                        if (isset($prepared['fp_ps_webp'])) {
+                            $webp->update($prepared['fp_ps_webp']);
+                        }
+                        if (isset($prepared['fp_ps_db'])) {
+                            $cleaner->update($prepared['fp_ps_db']);
+                        }
+                        $importStatus = __('Settings imported successfully.', 'fp-performance-suite');
+                    } else {
+                        $importStatus = __('Invalid JSON payload.', 'fp-performance-suite');
+                    }
                 } else {
                     $importStatus = __('Invalid JSON payload.', 'fp-performance-suite');
                 }

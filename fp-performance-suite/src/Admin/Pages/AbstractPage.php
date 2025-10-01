@@ -4,6 +4,8 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 
+use FP\PerfSuite\Utils\Capabilities;
+
 abstract class AbstractPage
 {
     protected ServiceContainer $container;
@@ -17,7 +19,10 @@ abstract class AbstractPage
 
     abstract public function title(): string;
 
-    abstract public function capability(): string;
+    public function capability(): string
+    {
+        return $this->requiredCapability();
+    }
 
     abstract public function view(): string;
 
@@ -44,5 +49,10 @@ abstract class AbstractPage
     protected function data(): array
     {
         return [];
+    }
+
+    protected function requiredCapability(): string
+    {
+        return Capabilities::required();
     }
 }

@@ -12,11 +12,20 @@
             headers,
             body: body ? JSON.stringify(body) : null,
             credentials: 'same-origin'
-        }).then((response) => {
-            if (!response.ok) {
-                throw new Error('Request failed');
+        }).then(async (response) => {
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = null;
             }
-            return response.json();
+            if (!response.ok) {
+                const error = data && (data.message || data.error);
+                const err = new Error(error || 'Request failed');
+                err.data = data;
+                throw err;
+            }
+            return data;
         });
     }
 
@@ -76,11 +85,16 @@
                 }
                 btn.disabled = true;
                 request(fpPerfSuite.restUrl + 'preset/apply', 'POST', { id: preset }, nonce)
-                    .then(() => {
+                    .then((response) => {
+                        if (!response || !response.success) {
+                            const message = response && (response.message || response.error);
+                            throw new Error(message || messages.presetError || 'Unable to apply preset.');
+                        }
                         btn.dispatchEvent(new CustomEvent('fp:preset:applied', { bubbles: true }));
                     })
-                    .catch(() => {
-                        alert(messages.presetError || 'Unable to apply preset.');
+                    .catch((error) => {
+                        const message = (error && error.message) ? error.message : (messages.presetError || 'Unable to apply preset.');
+                        alert(message);
                     })
                     .finally(() => {
                         btn.disabled = false;

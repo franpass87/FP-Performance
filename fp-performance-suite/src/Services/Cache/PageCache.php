@@ -4,6 +4,11 @@ namespace FP\PerfSuite\Services\Cache;
 
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
+use function error_log;
+use function headers_list;
+use function is_user_logged_in;
+use function wp_cache_get_cookies_values;
+use function wp_mkdir_p;
 
 class PageCache
 {
@@ -31,7 +36,7 @@ class PageCache
 
     public function isEnabled(): bool
     {
-        $settings = get_option(self::OPTION, ['enabled' => false]);
+        $settings = $this->settings();
         return !empty($settings['enabled']);
     }
 
@@ -44,14 +49,31 @@ class PageCache
             'enabled' => false,
             'ttl' => 3600,
         ];
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        $options = wp_parse_args(get_option(self::OPTION, []), $defaults);
+        $ttl = isset($options['ttl']) ? (int) $options['ttl'] : $defaults['ttl'];
+        if ($ttl > 0 && $ttl < 60) {
+            $ttl = 60;
+        }
+        $enabled = !empty($options['enabled']) && $ttl > 0;
+
+        return [
+            'enabled' => $enabled,
+            'ttl' => $enabled ? $ttl : ($ttl > 0 ? $ttl : 60),
+        ];
     }
 
     public function update(array $settings): void
     {
+        $ttl = isset($settings['ttl']) ? max(0, (int) $settings['ttl']) : 3600;
+        if ($ttl > 0 && $ttl < 60) {
+            $ttl = 60;
+        }
+
+        $enabled = !empty($settings['enabled']) && $ttl > 0;
+
         update_option(self::OPTION, [
-            'enabled' => !empty($settings['enabled']),
-            'ttl' => isset($settings['ttl']) ? (int) $settings['ttl'] : 3600,
+            'enabled' => $enabled,
+            'ttl' => $ttl > 0 ? $ttl : 0,
         ]);
     }
 
@@ -66,7 +88,11 @@ class PageCache
 
     public function clear(): void
     {
-        $this->fs->delete($this->cacheDir());
+        try {
+            $this->fs->delete($this->cacheDir());
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Failed to clear page cache: ' . $e->getMessage());
+        }
     }
 
     public function maybeServeCache(): void
@@ -80,12 +106,30 @@ class PageCache
             return;
         }
 
+        if ($this->hasPrivateCookies()) {
+            return;
+        }
+
         $meta = @json_decode((string) @file_get_contents($file . '.meta'), true);
         $ttl = isset($meta['ttl']) ? (int) $meta['ttl'] : 3600;
-        if ($ttl > 0 && filemtime($file) + $ttl < time()) {
-            unlink($file);
+        if ($ttl <= 0) {
+            @unlink($file);
             @unlink($file . '.meta');
             return;
+        }
+        if ($ttl > 0 && filemtime($file) + $ttl < time()) {
+            @unlink($file);
+            @unlink($file . '.meta');
+            return;
+        }
+
+        header('X-FP-Page-Cache: HIT');
+        if ($this->isHeadRequest()) {
+            $size = @filesize($file);
+            if (!headers_sent() && $size !== false) {
+                header('Content-Length: ' . $size);
+            }
+            exit;
         }
 
         $contents = file_get_contents($file);
@@ -93,14 +137,19 @@ class PageCache
             return;
         }
 
-        header('X-FP-Page-Cache: HIT');
         echo $contents;
         exit;
     }
 
     public function startBuffering(): void
     {
+        if ($this->isHeadRequest()) {
+            return;
+        }
         if (!$this->isCacheableRequest()) {
+            return;
+        }
+        if ($this->hasPrivateCookies()) {
             return;
         }
 
@@ -121,15 +170,50 @@ class PageCache
 
     public function saveBuffer(): void
     {
+        if ($this->isHeadRequest()) {
+            $this->finishBuffering();
+            return;
+        }
         if (!$this->isCacheableRequest()) {
             return;
         }
-        if (headers_sent()) {
+        if ($this->hasPrivateCookies()) {
+            $this->finishBuffering();
             return;
+        }
+        if (headers_sent()) {
+            $this->finishBuffering();
+            return;
+        }
+
+        if (function_exists('http_response_code') && http_response_code() !== 200) {
+            $this->finishBuffering();
+            return;
+        }
+        if ((function_exists('is_404') && is_404()) || (function_exists('is_search') && is_search()) ||
+            (function_exists('is_feed') && is_feed()) || (function_exists('is_preview') && is_preview())) {
+            $this->finishBuffering();
+            return;
+        }
+
+        if (function_exists('headers_list')) {
+            foreach (headers_list() as $header) {
+                if (stripos($header, 'set-cookie:') === 0) {
+                    $this->finishBuffering();
+                    return;
+                }
+            }
         }
 
         $buffer = ob_get_contents();
         if ($buffer === false || $buffer === '') {
+            $this->finishBuffering();
+            return;
+        }
+
+        $settings = $this->settings();
+        if (empty($settings['enabled']) || $settings['ttl'] <= 0) {
+            $this->finishBuffering();
             return;
         }
 
@@ -139,15 +223,16 @@ class PageCache
             wp_mkdir_p($dir);
         }
 
-        $this->fs->putContents($file, $buffer);
-        $this->fs->putContents($file . '.meta', wp_json_encode([
-            'ttl' => $this->settings()['ttl'],
-            'time' => time(),
-        ]));
-        $this->started = false;
-        if (ob_get_level() > 0) {
-            ob_end_flush();
+        try {
+            $this->fs->putContents($file, $buffer);
+            $this->fs->putContents($file . '.meta', wp_json_encode([
+                'ttl' => $settings['ttl'],
+                'time' => time(),
+            ]));
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Failed to save page cache file: ' . $e->getMessage());
         }
+        $this->finishBuffering();
     }
 
     private function isCacheableRequest(): bool
@@ -157,6 +242,10 @@ class PageCache
         }
 
         if (!is_main_query() || is_user_logged_in() || is_admin() || defined('DONOTCACHEPAGE')) {
+            return false;
+        }
+
+        if ($this->hasPrivateCookies()) {
             return false;
         }
 
@@ -184,11 +273,54 @@ class PageCache
     public function status(): array
     {
         $dir = $this->cacheDir();
-        $files = glob($dir . '/*.html');
-        $count = is_array($files) ? count($files) : 0;
+        $count = 0;
+        if (is_dir($dir)) {
+            try {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+                );
+                foreach ($iterator as $fileInfo) {
+                    /** @var \SplFileInfo $fileInfo */
+                    if ($fileInfo->isFile() && strtolower($fileInfo->getExtension()) === 'html') {
+                        $count++;
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('[FP Performance Suite] Unable to read cache directory: ' . $e->getMessage());
+                $count = 0;
+            }
+        }
         return [
             'enabled' => $this->isEnabled(),
             'files' => $count,
         ];
+    }
+
+    private function finishBuffering(): void
+    {
+        $this->started = false;
+        if (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+    }
+
+    private function isHeadRequest(): bool
+    {
+        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD';
+    }
+
+    private function hasPrivateCookies(): bool
+    {
+        if (function_exists('wp_cache_get_cookies_values') && wp_cache_get_cookies_values() !== '') {
+            return true;
+        }
+
+        foreach ($_COOKIE as $name => $value) {
+            if (is_string($name) && strpos($name, 'comment_author_') === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

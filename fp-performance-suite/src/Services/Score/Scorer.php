@@ -141,7 +141,36 @@ class Scorer
 
     private function gzipScore(): array
     {
-        $enabled = (bool) ini_get('zlib.output_compression') || function_exists('ob_gzhandler');
+        $enabled = false;
+        if (function_exists('ini_get')) {
+            $outputCompression = ini_get('zlib.output_compression');
+            if ($outputCompression && (int) $outputCompression === 1) {
+                $enabled = true;
+            }
+            if (!$enabled) {
+                $handler = ini_get('output_handler');
+                if (is_string($handler) && stripos($handler, 'ob_gzhandler') !== false) {
+                    $enabled = true;
+                }
+            }
+        }
+
+        if (!$enabled && function_exists('headers_list')) {
+            foreach (headers_list() as $header) {
+                if (stripos($header, 'content-encoding:') === 0) {
+                    $enabled = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$enabled && function_exists('apache_get_modules')) {
+            $modules = apache_get_modules();
+            if (is_array($modules) && (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true))) {
+                $enabled = true;
+            }
+        }
+
         if ($enabled) {
             return [10, null];
         }
