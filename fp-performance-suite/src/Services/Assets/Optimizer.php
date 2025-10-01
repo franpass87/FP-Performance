@@ -4,6 +4,15 @@ namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Semaphore;
 use function __;
+use function esc_url_raw;
+use function is_array;
+use function is_string;
+use function parse_url;
+use function pathinfo;
+use function preg_split;
+use function strtolower;
+use function trim;
+use const PATHINFO_EXTENSION;
 
 class Optimizer
 {
@@ -71,8 +80,8 @@ class Optimizer
             'combine_js' => false,
         ];
         $options = get_option(self::OPTION, []);
-        $options['dns_prefetch'] = array_filter(array_map('esc_url_raw', $options['dns_prefetch'] ?? []));
-        $options['preload'] = array_filter(array_map('esc_url_raw', $options['preload'] ?? []));
+        $options['dns_prefetch'] = $this->sanitizeUrlList($options['dns_prefetch'] ?? []);
+        $options['preload'] = $this->sanitizeUrlList($options['preload'] ?? []);
         return wp_parse_args($options, $defaults);
     }
 
@@ -84,8 +93,8 @@ class Optimizer
             'defer_js' => !empty($settings['defer_js']),
             'async_js' => !empty($settings['async_js']),
             'remove_emojis' => !empty($settings['remove_emojis']),
-            'dns_prefetch' => array_filter(array_map('esc_url_raw', $settings['dns_prefetch'] ?? $current['dns_prefetch'])),
-            'preload' => array_filter(array_map('esc_url_raw', $settings['preload'] ?? $current['preload'])),
+            'dns_prefetch' => $this->sanitizeUrlList($settings['dns_prefetch'] ?? $current['dns_prefetch']),
+            'preload' => $this->sanitizeUrlList($settings['preload'] ?? $current['preload']),
             'heartbeat_admin' => isset($settings['heartbeat_admin']) ? (int) $settings['heartbeat_admin'] : $current['heartbeat_admin'],
             'combine_css' => !empty($settings['combine_css']),
             'combine_js' => !empty($settings['combine_js']),
@@ -158,17 +167,19 @@ class Optimizer
     }
 
     /**
-     * @param array<int,string> $hints
+     * @param array<int,mixed> $hints
      * @param string $relation
-     * @return array<int,string>
+     * @return array<int,array<string,mixed>>
      */
     public function preloadResources(array $hints, string $relation): array
     {
         if ('preload' !== $relation) {
             return $hints;
         }
+
         $settings = $this->settings();
-        return array_unique(array_merge($hints, $settings['preload']));
+
+        return $this->mergePreloadHints($hints, $this->formatPreloadHints($settings['preload']));
     }
 
     /**
@@ -180,6 +191,157 @@ class Optimizer
         $current = $this->settings();
         $settings['interval'] = max(15, (int) $current['heartbeat_admin']);
         return $settings;
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<int, string>
+     */
+    private function sanitizeUrlList($value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\r\n,]+/', $value) ?: [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $urls = [];
+        foreach ($value as $entry) {
+            if (is_array($entry)) {
+                $entry = $entry['href'] ?? $entry['url'] ?? null;
+            }
+
+            if (!is_string($entry)) {
+                continue;
+            }
+            $trimmed = trim($entry);
+            if ($trimmed === '') {
+                continue;
+            }
+            $sanitized = esc_url_raw($trimmed);
+            if ($sanitized === '') {
+                continue;
+            }
+            $urls[] = $sanitized;
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    /**
+     * @param array<int, string> $urls
+     * @return array<int, array<string, mixed>>
+     */
+    private function formatPreloadHints(array $urls): array
+    {
+        $formatted = [];
+
+        foreach ($urls as $url) {
+            if (!is_string($url) || $url === '') {
+                continue;
+            }
+
+            $formatted[] = [
+                'href' => $url,
+                'as' => $this->guessPreloadType($url),
+            ];
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * @param array<int, mixed> $existing
+     * @param array<int, array<string, mixed>> $additional
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergePreloadHints(array $existing, array $additional): array
+    {
+        $merged = [];
+        $seen = [];
+
+        foreach (array_merge($existing, $additional) as $hint) {
+            if (is_array($hint) && isset($hint['href'])) {
+                $href = (string) $hint['href'];
+                if ($href === '') {
+                    continue;
+                }
+
+                $as = isset($hint['as']) && is_string($hint['as']) && $hint['as'] !== ''
+                    ? strtolower($hint['as'])
+                    : $this->guessPreloadType($href);
+
+                $key = strtolower($href) . '|' . $as;
+                $extras = array_diff_key($hint, ['href' => true, 'as' => true]);
+                $entry = ['href' => $href, 'as' => $as] + $extras;
+                if (isset($seen[$key])) {
+                    $index = $seen[$key];
+                    $currentExtras = array_diff_key($merged[$index], ['href' => true, 'as' => true]);
+                    if (!empty($extras) && empty($currentExtras)) {
+                        $merged[$index] = $entry;
+                    }
+                    continue;
+                }
+                $seen[$key] = count($merged);
+
+                $merged[] = $entry;
+                continue;
+            }
+
+            if (is_string($hint) && $hint !== '') {
+                $href = $hint;
+                $as = $this->guessPreloadType($href);
+                $key = strtolower($href) . '|' . $as;
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = count($merged);
+
+                $merged[] = ['href' => $href, 'as' => $as];
+            }
+        }
+
+        return $merged;
+    }
+
+    private function guessPreloadType(string $url): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+
+        switch ($extension) {
+            case 'css':
+                return 'style';
+            case 'js':
+            case 'mjs':
+            case 'cjs':
+                return 'script';
+            case 'woff':
+            case 'woff2':
+            case 'ttf':
+            case 'otf':
+                return 'font';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'webp':
+            case 'avif':
+            case 'svg':
+                return 'image';
+            case 'mp4':
+            case 'webm':
+            case 'mov':
+                return 'video';
+            case 'mp3':
+            case 'ogg':
+            case 'wav':
+                return 'audio';
+            default:
+                return 'fetch';
+        }
     }
 
     private function disableEmojis(): void

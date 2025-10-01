@@ -9,6 +9,22 @@ use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
 use function __;
+use function apache_get_modules;
+use function apply_filters;
+use function file_exists;
+use function filemtime;
+use function filesize;
+use function function_exists;
+use function get_option;
+use function has_action;
+use function headers_list;
+use function in_array;
+use function ini_get;
+use function is_array;
+use function is_string;
+use function stripos;
+use function strtotime;
+use function trim;
 
 class Scorer
 {
@@ -142,15 +158,23 @@ class Scorer
     private function gzipScore(): array
     {
         $enabled = false;
+        $hasEvidence = false;
+
+        if (in_array(PHP_SAPI, ['cli', 'phpdbg'], true)) {
+            return [10, null];
+        }
+
         if (function_exists('ini_get')) {
             $outputCompression = ini_get('zlib.output_compression');
             if ($outputCompression && (int) $outputCompression === 1) {
                 $enabled = true;
+                $hasEvidence = true;
             }
             if (!$enabled) {
                 $handler = ini_get('output_handler');
                 if (is_string($handler) && stripos($handler, 'ob_gzhandler') !== false) {
                     $enabled = true;
+                    $hasEvidence = true;
                 }
             }
         }
@@ -159,21 +183,29 @@ class Scorer
             foreach (headers_list() as $header) {
                 if (stripos($header, 'content-encoding:') === 0) {
                     $enabled = true;
+                    $hasEvidence = true;
                     break;
                 }
             }
         }
 
-        if (!$enabled && function_exists('apache_get_modules')) {
+        if (function_exists('apache_get_modules')) {
             $modules = apache_get_modules();
-            if (is_array($modules) && (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true))) {
-                $enabled = true;
+            if (is_array($modules)) {
+                $hasEvidence = true;
+                if (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true)) {
+                    $enabled = true;
+                }
             }
         }
 
-        if ($enabled) {
+        $enabled = (bool) apply_filters('fp_ps_gzip_enabled', $enabled);
+        $hasEvidence = (bool) apply_filters('fp_ps_gzip_detection_evidence', $hasEvidence);
+
+        if ($enabled || !$hasEvidence) {
             return [10, null];
         }
+
         return [0, __('Enable GZIP or Brotli compression via server configuration.', 'fp-performance-suite')];
     }
 
@@ -264,9 +296,13 @@ class Scorer
     private function criticalCssScore(): array
     {
         $critical = get_option('fp_ps_critical_css', '');
-        if (!empty($critical)) {
+        $hasCritical = is_string($critical) && trim($critical) !== '';
+        $required = (bool) apply_filters('fp_ps_require_critical_css', false);
+
+        if ($hasCritical || !$required) {
             return [5, null];
         }
+
         return [0, __('Add critical CSS placeholder for above-the-fold styles.', 'fp-performance-suite')];
     }
 

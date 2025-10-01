@@ -20,11 +20,14 @@ use function wp_delete_comment;
 use function wp_delete_post;
 use function wp_next_scheduled;
 use function wp_schedule_event;
+use function wp_parse_args;
 
 class Cleaner
 {
     private const OPTION = 'fp_ps_db';
     public const CRON_HOOK = 'fp_ps_db_cleanup';
+    private const ALLOWED_SCHEDULES = ['manual', 'weekly', 'monthly'];
+
     private Env $env;
 
     public function __construct(Env $env)
@@ -56,17 +59,23 @@ class Cleaner
             'schedule' => 'manual',
             'batch' => 200,
         ];
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        $options = wp_parse_args(get_option(self::OPTION, []), $defaults);
+        $options['schedule'] = $this->normalizeSchedule($options['schedule'] ?? $defaults['schedule'], $defaults['schedule']);
+        $options['batch'] = max(50, (int) ($options['batch'] ?? $defaults['batch']));
+
+        return $options;
     }
 
     public function update(array $settings): void
     {
         $current = $this->settings();
-        $new = [
-            'schedule' => sanitize_key($settings['schedule'] ?? $current['schedule']),
-            'batch' => isset($settings['batch']) ? max(50, (int) $settings['batch']) : $current['batch'],
-        ];
-        update_option(self::OPTION, $new);
+        $schedule = $this->normalizeSchedule($settings['schedule'] ?? null, $current['schedule']);
+        $batch = isset($settings['batch']) ? max(50, (int) $settings['batch']) : $current['batch'];
+
+        update_option(self::OPTION, [
+            'schedule' => $schedule,
+            'batch' => $batch,
+        ]);
     }
 
     /**
@@ -178,7 +187,10 @@ class Cleaner
     /**
      * @return array<string,int>
      */
-    private function cleanupPosts(wpdb $wpdb, string $where, bool $dryRun, int $batch): array
+    /**
+     * @param wpdb $wpdb
+     */
+    private function cleanupPosts($wpdb, string $where, bool $dryRun, int $batch): array
     {
         $table = $wpdb->posts;
         $sql = $wpdb->prepare("SELECT ID FROM {$table} WHERE {$where} LIMIT %d", $batch);
@@ -196,7 +208,10 @@ class Cleaner
      * @param array<int,string> $statuses
      * @return array<string,int>
      */
-    private function cleanupComments(wpdb $wpdb, array $statuses, bool $dryRun, int $batch): array
+    /**
+     * @param wpdb $wpdb
+     */
+    private function cleanupComments($wpdb, array $statuses, bool $dryRun, int $batch): array
     {
         $table = $wpdb->comments;
         $placeholders = implode(',', array_fill(0, count($statuses), '%s'));
@@ -212,7 +227,10 @@ class Cleaner
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
 
-    private function cleanupTransients(wpdb $wpdb, bool $dryRun, int $batch): array
+    /**
+     * @param wpdb $wpdb
+     */
+    private function cleanupTransients($wpdb, bool $dryRun, int $batch): array
     {
         $time = time();
         $sql = $wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d LIMIT %d", '_transient_timeout_%', $time, $batch);
@@ -250,7 +268,10 @@ class Cleaner
         ];
     }
 
-    private function cleanupMeta(wpdb $wpdb, string $metaTable, string $parentTable, string $foreignKey, string $parentKey, bool $dryRun, int $batch): array
+    /**
+     * @param wpdb $wpdb
+     */
+    private function cleanupMeta($wpdb, string $metaTable, string $parentTable, string $foreignKey, string $parentKey, bool $dryRun, int $batch): array
     {
         $sql = $wpdb->prepare("SELECT m.meta_id FROM {$metaTable} m LEFT JOIN {$parentTable} p ON m.{$foreignKey} = p.{$parentKey} WHERE p.{$parentKey} IS NULL LIMIT %d", $batch);
         $ids = $wpdb->get_col($sql);
@@ -262,7 +283,10 @@ class Cleaner
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
 
-    private function optimizeTables(wpdb $wpdb, bool $dryRun): array
+    /**
+     * @param wpdb $wpdb
+     */
+    private function optimizeTables($wpdb, bool $dryRun): array
     {
         $tables = array_filter(
             (array) $wpdb->get_col('SHOW TABLES'),
@@ -302,5 +326,26 @@ class Cleaner
             'last_run' => isset($report['time']) ? (int) $report['time'] : 0,
             'last_scope' => $report['scope'] ?? [],
         ];
+    }
+
+    private function normalizeSchedule($schedule, string $fallback): string
+    {
+        if (!is_string($schedule) || $schedule === '') {
+            return $fallback;
+        }
+
+        $sanitized = sanitize_key($schedule);
+
+        if ($sanitized === 'fp_ps_weekly') {
+            $sanitized = 'weekly';
+        } elseif ($sanitized === 'fp_ps_monthly') {
+            $sanitized = 'monthly';
+        }
+
+        if (!in_array($sanitized, self::ALLOWED_SCHEDULES, true)) {
+            return $fallback;
+        }
+
+        return $sanitized;
     }
 }

@@ -93,6 +93,31 @@ if (!function_exists('sanitize_text_field')) {
     }
 }
 
+if (!function_exists('wp_unslash')) {
+    function wp_unslash($value)
+    {
+        if (is_array($value)) {
+            return array_map('wp_unslash', $value);
+        }
+
+        return stripslashes((string) $value);
+    }
+}
+
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url)
+    {
+        return trim((string) $url);
+    }
+}
+
+if (!function_exists('is_admin')) {
+    function is_admin()
+    {
+        return false;
+    }
+}
+
 if (!function_exists('update_option')) {
     function update_option($name, $value)
     {
@@ -122,10 +147,78 @@ if (!function_exists('wp_json_encode')) {
     }
 }
 
+if (!function_exists('is_main_query')) {
+    function is_main_query()
+    {
+        return true;
+    }
+}
+
+if (!function_exists('is_user_logged_in')) {
+    function is_user_logged_in()
+    {
+        return false;
+    }
+}
+
+if (!function_exists('wp_cache_get_cookies_values')) {
+    function wp_cache_get_cookies_values()
+    {
+        return '';
+    }
+}
+
+if (!function_exists('home_url')) {
+    function home_url($path = '')
+    {
+        return 'https://example.com' . $path;
+    }
+}
+
+if (!function_exists('wp_parse_url')) {
+    function wp_parse_url($url, $component = -1)
+    {
+        return parse_url($url, $component);
+    }
+}
+
+if (!function_exists('trailingslashit')) {
+    function trailingslashit($string)
+    {
+        return rtrim($string, "/\\") . '/';
+    }
+}
+
+if (!function_exists('wp_mkdir_p')) {
+    function wp_mkdir_p($dir)
+    {
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        return true;
+    }
+}
+
 if (!function_exists('delete_transient')) {
     function delete_transient($name)
     {
         unset($GLOBALS['__transients'][$name]);
+    }
+}
+
+if (!function_exists('wp_delete_post')) {
+    function wp_delete_post($post_id, $force_delete = false)
+    {
+        $GLOBALS['__deleted_posts'][] = ['id' => (int) $post_id, 'force' => (bool) $force_delete];
+        return true;
+    }
+}
+
+if (!function_exists('wp_delete_comment')) {
+    function wp_delete_comment($comment_id, $force_delete = false)
+    {
+        $GLOBALS['__deleted_comments'][] = ['id' => (int) $comment_id, 'force' => (bool) $force_delete];
+        return true;
     }
 }
 

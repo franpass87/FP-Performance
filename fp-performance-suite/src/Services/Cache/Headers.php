@@ -6,6 +6,8 @@ use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Htaccess;
 use function headers_list;
 use function is_admin;
+use function is_array;
+use function is_string;
 use function is_user_logged_in;
 use function wp_cache_get_cookies_values;
 use function wp_unslash;
@@ -94,11 +96,22 @@ class Headers
         ];
 
         $options = get_option(self::OPTION, []);
-        $cacheControl = (string) ($options['headers']['Cache-Control'] ?? $defaults['cache_control']);
+        $storedHeaders = $options['headers'] ?? [];
+        if (!is_array($storedHeaders)) {
+            $storedHeaders = is_string($storedHeaders) && $storedHeaders !== ''
+                ? ['Cache-Control' => $storedHeaders]
+                : [];
+        }
+
+        if ($storedHeaders === [] && isset($options['cache_control']) && is_string($options['cache_control'])) {
+            $storedHeaders['Cache-Control'] = $options['cache_control'];
+        }
+
+        $cacheControl = (string) ($storedHeaders['Cache-Control'] ?? $defaults['cache_control']);
         $ttl = isset($options['expires_ttl']) ? (int) $options['expires_ttl'] : null;
 
         if ($ttl === null) {
-            $legacy = $options['headers']['Expires'] ?? null;
+            $legacy = $storedHeaders['Expires'] ?? null;
             if (is_numeric($legacy)) {
                 $ttl = (int) $legacy;
             } elseif (is_string($legacy)) {
