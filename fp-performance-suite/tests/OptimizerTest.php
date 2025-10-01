@@ -66,6 +66,29 @@ final class OptimizerTest extends TestCase
         $this->assertSame(['https://cdn.test/app.js', 'https://cdn.test/asset.css'], $stored['preload']);
     }
 
+    public function testUpdateCoercesStringBooleans(): void
+    {
+        $optimizer = new Optimizer(new Semaphore());
+
+        $optimizer->update([
+            'minify_html' => 'false',
+            'defer_js' => 'no',
+            'async_js' => '0',
+            'remove_emojis' => '',
+            'combine_css' => 'yes',
+            'combine_js' => 'off',
+        ]);
+
+        $stored = get_option('fp_ps_assets');
+
+        $this->assertFalse($stored['minify_html']);
+        $this->assertFalse($stored['defer_js']);
+        $this->assertFalse($stored['async_js']);
+        $this->assertFalse($stored['remove_emojis']);
+        $this->assertTrue($stored['combine_css']);
+        $this->assertFalse($stored['combine_js']);
+    }
+
     public function testPreloadResourcesProvideStructuredHints(): void
     {
         update_option('fp_ps_assets', [
@@ -110,5 +133,32 @@ final class OptimizerTest extends TestCase
         $this->assertSame([
             ['href' => 'https://cdn.test/app.js', 'as' => 'script', 'crossorigin' => 'use-credentials'],
         ], $result);
+    }
+
+    public function testUpdatePreservesExistingFlagsWhenOmitted(): void
+    {
+        $optimizer = new Optimizer(new Semaphore());
+
+        $optimizer->update([
+            'minify_html' => true,
+            'defer_js' => true,
+            'async_js' => true,
+            'remove_emojis' => true,
+            'combine_css' => true,
+            'combine_js' => true,
+        ]);
+
+        $optimizer->update([
+            'dns_prefetch' => ['https://cdn.test'],
+        ]);
+
+        $stored = get_option('fp_ps_assets');
+
+        $this->assertTrue($stored['minify_html']);
+        $this->assertTrue($stored['defer_js']);
+        $this->assertTrue($stored['async_js']);
+        $this->assertTrue($stored['remove_emojis']);
+        $this->assertTrue($stored['combine_css']);
+        $this->assertTrue($stored['combine_js']);
     }
 }
