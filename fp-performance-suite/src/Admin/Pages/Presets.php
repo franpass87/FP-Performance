@@ -28,7 +28,7 @@ class Presets extends AbstractPage
 
     public function capability(): string
     {
-        return 'manage_options';
+        return $this->requiredCapability();
     }
 
     public function view(): string

@@ -12,7 +12,6 @@ use function esc_html_e;
 use function esc_textarea;
 use function printf;
 use function sanitize_text_field;
-use function sanitize_textarea_field;
 use function wp_nonce_field;
 use function wp_unslash;
 
@@ -30,7 +29,7 @@ class Cache extends AbstractPage
 
     public function capability(): string
     {
-        return 'manage_options';
+        return $this->requiredCapability();
     }
 
     public function view(): string
@@ -51,23 +50,32 @@ class Cache extends AbstractPage
         $pageCache = $this->container->get(PageCache::class);
         $headers = $this->container->get(Headers::class);
         $message = '';
+        $headerSettings = $headers->settings();
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_cache_nonce']), 'fp-ps-cache')) {
             if (isset($_POST['fp_ps_page_cache'])) {
+                $enabledRequested = !empty($_POST['page_cache_enabled']);
+                $ttlRequested = (int) ($_POST['page_cache_ttl'] ?? 3600);
                 $pageCache->update([
-                    'enabled' => !empty($_POST['page_cache_enabled']),
-                    'ttl' => (int) ($_POST['page_cache_ttl'] ?? 3600),
+                    'enabled' => $enabledRequested,
+                    'ttl' => $ttlRequested,
                 ]);
                 $message = __('Page cache settings saved.', 'fp-performance-suite');
+                $currentSettings = $pageCache->settings();
+                if ($enabledRequested && !$currentSettings['enabled']) {
+                    $message .= ' ' . __('Caching was disabled because the cache lifetime must be greater than zero.', 'fp-performance-suite');
+                } elseif ($enabledRequested && $ttlRequested > 0 && $ttlRequested !== $currentSettings['ttl']) {
+                    $message .= ' ' . __('Cache lifetime adjusted to the minimum of 60 seconds.', 'fp-performance-suite');
+                }
             }
             if (isset($_POST['fp_ps_browser_cache'])) {
                 $headers->update([
                     'enabled' => !empty($_POST['browser_cache_enabled']),
                     'headers' => [
                         'Cache-Control' => sanitize_text_field($_POST['cache_control'] ?? 'public, max-age=31536000'),
-                        'Expires' => sanitize_text_field($_POST['expires_header'] ?? ''),
                     ],
-                    'htaccess' => sanitize_textarea_field($_POST['htaccess_rules'] ?? ''),
+                    'expires_ttl' => isset($_POST['expires_ttl']) ? (int) $_POST['expires_ttl'] : $headerSettings['expires_ttl'],
+                    'htaccess' => wp_unslash($_POST['htaccess_rules'] ?? ''),
                 ]);
                 $message = __('Browser cache settings saved.', 'fp-performance-suite');
             }
@@ -127,8 +135,9 @@ class Cache extends AbstractPage
                     <input type="text" name="cache_control" id="cache_control" value="<?php echo esc_attr($headerSettings['headers']['Cache-Control']); ?>" class="regular-text" />
                 </p>
                 <p>
-                    <label for="expires_header"><?php esc_html_e('Expires header', 'fp-performance-suite'); ?></label>
-                    <input type="text" name="expires_header" id="expires_header" value="<?php echo esc_attr($headerSettings['headers']['Expires'] ?? ''); ?>" class="regular-text" />
+                    <label for="expires_ttl"><?php esc_html_e('Expires header TTL (seconds)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="expires_ttl" id="expires_ttl" value="<?php echo esc_attr((string) $headerSettings['expires_ttl']); ?>" class="regular-text" min="0" step="60" />
+                    <span class="description"><?php printf(esc_html__('Current Expires header will resolve to: %s', 'fp-performance-suite'), esc_html($headerSettings['headers']['Expires'])); ?></span>
                 </p>
                 <p>
                     <label for="htaccess_rules"><?php esc_html_e('.htaccess rules', 'fp-performance-suite'); ?></label>

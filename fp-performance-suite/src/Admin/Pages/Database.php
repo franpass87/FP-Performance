@@ -13,6 +13,7 @@ use function esc_html;
 use function esc_html_e;
 use function number_format_i18n;
 use function printf;
+use function sprintf;
 use function sanitize_text_field;
 use function selected;
 use function wp_nonce_field;
@@ -33,7 +34,7 @@ class Database extends AbstractPage
 
     public function capability(): string
     {
-        return 'manage_options';
+        return $this->requiredCapability();
     }
 
     public function view(): string
@@ -154,8 +155,29 @@ class Database extends AbstractPage
                     <?php foreach ($results as $task => $data) : ?>
                         <tr>
                             <td><?php echo esc_html($tasks[$task] ?? $task); ?></td>
-                            <td><?php echo esc_html((string) ($data['found'] ?? 0)); ?></td>
-                            <td><?php echo esc_html((string) ($data['deleted'] ?? ($data['tables'] ?? '-'))); ?></td>
+                            <td>
+                                <?php
+                                $found = $data['found'] ?? 0;
+                                if (!empty($data['site_found'])) {
+                                    $found .= sprintf(' (+%d site)', (int) $data['site_found']);
+                                }
+                                echo esc_html((string) $found);
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                if (isset($data['tables']) && is_array($data['tables'])) {
+                                    $tableList = implode(', ', $data['tables']);
+                                    echo esc_html($tableList !== '' ? $tableList : '-');
+                                } else {
+                                    $deleted = $data['deleted'] ?? '-';
+                                    if (!empty($data['site_deleted'])) {
+                                        $deleted .= sprintf(' (+%d site)', (int) $data['site_deleted']);
+                                    }
+                                    echo esc_html((string) $deleted);
+                                }
+                                ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

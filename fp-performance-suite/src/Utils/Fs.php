@@ -20,7 +20,21 @@ class Fs
         }
 
         WP_Filesystem();
-        $this->fs = $wp_filesystem;
+        if ($wp_filesystem instanceof WP_Filesystem_Base) {
+            $this->fs = $wp_filesystem;
+            return $this->fs;
+        }
+
+        if (!class_exists('\WP_Filesystem_Direct')) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+            require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+        }
+
+        $direct = new \WP_Filesystem_Direct(new \stdClass());
+        if (!$direct instanceof WP_Filesystem_Base) {
+            throw new \RuntimeException('Unable to initialize filesystem access');
+        }
+        $this->fs = $direct;
 
         return $this->fs;
     }

@@ -4,10 +4,22 @@ namespace FP\PerfSuite\Services\Media;
 
 use FP\PerfSuite\Utils\Fs;
 use WP_Query;
+use function delete_post_meta;
+use function error_log;
+use function get_attached_file;
+use function get_post_meta;
+use function path_join;
+use function update_attached_file;
+use function update_post_meta;
+use function wp_get_attachment_metadata;
+use function wp_update_attachment_metadata;
 
 class WebPConverter
 {
     private const OPTION = 'fp_ps_webp';
+    private const CONVERSION_META = '_fp_ps_webp_generated';
+    private const SETTINGS_META = '_fp_ps_webp_settings';
+    private const WEBP_MIME = 'image/webp';
     private Fs $fs;
 
     public function __construct(Fs $fs)
@@ -42,9 +54,11 @@ class WebPConverter
     public function update(array $settings): void
     {
         $current = $this->settings();
+        $quality = isset($settings['quality']) ? (int) $settings['quality'] : $current['quality'];
+        $quality = max(1, min(100, $quality));
         $new = [
             'enabled' => !empty($settings['enabled']),
-            'quality' => isset($settings['quality']) ? (int) $settings['quality'] : $current['quality'],
+            'quality' => $quality,
             'keep_original' => !empty($settings['keep_original']),
             'lossy' => !empty($settings['lossy']),
         ];
@@ -63,61 +77,73 @@ class WebPConverter
             return $metadata;
         }
 
-        $file = get_attached_file($attachment_id);
-        if (!$file || !file_exists($file)) {
-            return $metadata;
-        }
-
-        $this->convert($file, $settings);
-        if (!empty($metadata['sizes'])) {
-            foreach ($metadata['sizes'] as $size) {
-                if (!empty($size['file'])) {
-                    $path = path_join(dirname($file), $size['file']);
-                    $this->convert($path, $settings);
-                }
-            }
-        }
-        return $metadata;
+        $result = $this->processAttachment($attachment_id, $metadata, $settings);
+        return $result['metadata'];
     }
 
     /**
      * @param string $file
      * @param array<string, mixed> $settings
+     * @return bool True when a WebP file was newly created or updated.
      */
-    public function convert(string $file, array $settings): void
+    public function convert(string $file, array $settings, bool $force = false): bool
     {
         $info = pathinfo($file);
         $ext = strtolower($info['extension'] ?? '');
         if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
-            return;
+            return false;
         }
 
-        $webpFile = $info['dirname'] . '/' . $info['filename'] . '.webp';
-        if (file_exists($webpFile)) {
-            return;
-        }
+        $webpFile = $this->webpPath($file);
+        $existingTime = file_exists($webpFile) ? @filemtime($webpFile) : false;
+        $sourceTime = @filemtime($file);
+        $needsConversion = $force || !$existingTime || !$sourceTime || $sourceTime > $existingTime;
 
-        if (class_exists('Imagick')) {
-            $imagick = new \Imagick($file);
-            if ($settings['lossy']) {
-                $imagick->setImageCompressionQuality($settings['quality']);
+        $converted = false;
+
+        if ($needsConversion && class_exists('Imagick')) {
+            try {
+                $imagick = new \Imagick($file);
+                if ($settings['lossy']) {
+                    $imagick->setImageCompressionQuality($settings['quality']);
+                }
+                $imagick->setImageFormat('webp');
+                $converted = (bool) $imagick->writeImage($webpFile);
+            } catch (\ImagickException $e) {
+                error_log('[FP Performance Suite] Imagick failed to convert to WebP: ' . $e->getMessage());
+            } catch (\Throwable $e) {
+                error_log('[FP Performance Suite] Imagick runtime error: ' . $e->getMessage());
+            } finally {
+                if (isset($imagick) && $imagick instanceof \Imagick) {
+                    $imagick->clear();
+                    $imagick->destroy();
+                }
             }
-            $imagick->setImageFormat('webp');
-            $imagick->writeImage($webpFile);
-            $imagick->clear();
-            $imagick->destroy();
-        } elseif (function_exists('imagecreatefromstring') && function_exists('imagewebp')) {
-            $image = imagecreatefromstring((string) file_get_contents($file));
-            if ($image !== false) {
-                imagepalettetotruecolor($image);
-                imagewebp($image, $webpFile, $settings['quality']);
+        }
+
+        if (!$converted && $needsConversion && function_exists('imagewebp')) {
+            $image = $this->createImageResource($file, $ext);
+            if ($image !== null) {
+                if (function_exists('imagepalettetotruecolor')) {
+                    imagepalettetotruecolor($image);
+                }
+                if ($ext === 'png') {
+                    if (function_exists('imagealphablending')) {
+                        imagealphablending($image, false);
+                    }
+                    if (function_exists('imagesavealpha')) {
+                        imagesavealpha($image, true);
+                    }
+                }
+                $converted = imagewebp($image, $webpFile, $settings['quality']);
                 imagedestroy($image);
+                if (!$converted) {
+                    error_log('[FP Performance Suite] GD failed to convert to WebP for ' . $file);
+                }
             }
         }
 
-        if (!$settings['keep_original'] && file_exists($webpFile)) {
-            unlink($file);
-        }
+        return $converted;
     }
 
     public function bulkConvert(int $limit = 20, int $offset = 0): array
@@ -135,8 +161,14 @@ class WebPConverter
 
         foreach ($query->posts as $attachment_id) {
             $metadata = wp_get_attachment_metadata($attachment_id);
-            $this->generateWebp($metadata ?: [], (int) $attachment_id);
-            $converted++;
+            $metadata = is_array($metadata) ? $metadata : [];
+            $result = $this->processAttachment((int) $attachment_id, $metadata, $settings);
+            if (!empty($result['converted'])) {
+                $converted++;
+            }
+            if ($metadata !== $result['metadata']) {
+                wp_update_attachment_metadata($attachment_id, $result['metadata']);
+            }
         }
 
         return [
@@ -145,15 +177,121 @@ class WebPConverter
         ];
     }
 
+    /**
+     * @param array<string,mixed> $metadata
+     */
+    private function processAttachment(int $attachmentId, array $metadata, array $settings): array
+    {
+        $converted = false;
+        $hasWebp = false;
+        $file = get_attached_file($attachmentId);
+        $baseDir = '';
+
+        $settingsSignature = [
+            'quality' => (int) $settings['quality'],
+            'lossy' => (bool) $settings['lossy'],
+        ];
+        $storedSignature = get_post_meta($attachmentId, self::SETTINGS_META, true);
+        $force = !is_array($storedSignature)
+            || (int) ($storedSignature['quality'] ?? -1) !== $settingsSignature['quality']
+            || (bool) ($storedSignature['lossy'] ?? true) !== $settingsSignature['lossy'];
+
+        if ($file && file_exists($file)) {
+            $baseDir = dirname($file);
+            if ($this->convert($file, $settings, $force)) {
+                $converted = true;
+            }
+            $webpFile = $this->webpPath($file);
+            if (file_exists($webpFile)) {
+                $hasWebp = true;
+                if (!$settings['keep_original']) {
+                    if (!empty($metadata['file'])) {
+                        $metadata['file'] = $this->withWebpExtension($metadata['file']);
+                    }
+                    if (!empty($metadata['original_image'])) {
+                        $metadata['original_image'] = $this->withWebpExtension($metadata['original_image']);
+                    }
+                    $filesize = $this->safeFilesize($webpFile);
+                    if ($filesize !== null) {
+                        $metadata['filesize'] = $filesize;
+                        if (isset($metadata['original_image_filesize'])) {
+                            $metadata['original_image_filesize'] = $filesize;
+                        }
+                    }
+                    $metadata['mime-type'] = self::WEBP_MIME;
+                    if (file_exists($file)) {
+                        @unlink($file);
+                    }
+                }
+            }
+        }
+
+        if (!empty($metadata['sizes']) && is_array($metadata['sizes'])) {
+            foreach ($metadata['sizes'] as $sizeKey => $sizeData) {
+                if (empty($sizeData['file'])) {
+                    continue;
+                }
+                $path = $baseDir !== '' ? path_join($baseDir, $sizeData['file']) : '';
+                if ($path === '' || !file_exists($path)) {
+                    continue;
+                }
+                if ($this->convert($path, $settings, $force)) {
+                    $converted = true;
+                }
+                $sizeWebp = $this->webpPath($path);
+                if (file_exists($sizeWebp)) {
+                    $hasWebp = true;
+                    if (!$settings['keep_original']) {
+                        $metadata['sizes'][$sizeKey]['file'] = $this->withWebpExtension($sizeData['file']);
+                        $metadata['sizes'][$sizeKey]['mime-type'] = self::WEBP_MIME;
+                        if (isset($metadata['sizes'][$sizeKey]['filesize'])) {
+                            $sizeFilesize = $this->safeFilesize($sizeWebp);
+                            if ($sizeFilesize !== null) {
+                                $metadata['sizes'][$sizeKey]['filesize'] = $sizeFilesize;
+                            }
+                        }
+                        if (file_exists($path)) {
+                            @unlink($path);
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($hasWebp) {
+            update_post_meta($attachmentId, self::CONVERSION_META, '1');
+            update_post_meta($attachmentId, self::SETTINGS_META, $settingsSignature);
+            if (!$settings['keep_original'] && !empty($metadata['file'])) {
+                update_attached_file($attachmentId, $metadata['file']);
+            }
+        } else {
+            delete_post_meta($attachmentId, self::CONVERSION_META);
+            delete_post_meta($attachmentId, self::SETTINGS_META);
+        }
+
+        return ['metadata' => $metadata, 'converted' => $converted];
+    }
+
     public function coverage(): float
     {
-        $count = (int) wp_count_attachments('image')['inherit'] ?? 0;
+        $attachments = wp_count_attachments('image');
+        $count = 0;
+        if (is_object($attachments) && property_exists($attachments, 'inherit')) {
+            $count = (int) $attachments->inherit;
+        }
         if ($count === 0) {
             return 100.0;
         }
         global $wpdb;
-        $like = $wpdb->esc_like('.webp');
-        $webp = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value LIKE '%$like'");
+        $query = $wpdb->prepare(
+            "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
+            self::CONVERSION_META,
+            '1'
+        );
+        if ($query === false) {
+            return 0.0;
+        }
+        $webp = (int) $wpdb->get_var($query);
         return min(100.0, ($webp / $count) * 100);
     }
 
@@ -165,5 +303,57 @@ class WebPConverter
             'quality' => $settings['quality'],
             'coverage' => $this->coverage(),
         ];
+    }
+
+    /**
+     * @return resource|null
+     */
+    private function createImageResource(string $file, string $extension)
+    {
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                if (function_exists('imagecreatefromjpeg')) {
+                    $resource = @imagecreatefromjpeg($file);
+                    return $resource !== false ? $resource : null;
+                }
+                break;
+            case 'png':
+                if (function_exists('imagecreatefrompng')) {
+                    $resource = @imagecreatefrompng($file);
+                    return $resource !== false ? $resource : null;
+                }
+                break;
+        }
+        return null;
+    }
+
+    private function webpPath(string $file): string
+    {
+        $info = pathinfo($file);
+        $dir = $info['dirname'] ?? '';
+        $filename = $info['filename'] ?? '';
+        return ($dir !== '' ? $dir . '/' : '') . $filename . '.webp';
+    }
+
+    private function withWebpExtension(string $file): string
+    {
+        $info = pathinfo($file);
+        $dirname = $info['dirname'] ?? '';
+        $filename = $info['filename'] ?? '';
+        $replacement = $filename . '.webp';
+        if ($dirname !== '' && $dirname !== '.') {
+            return $dirname . '/' . $replacement;
+        }
+        return $replacement;
+    }
+
+    private function safeFilesize(string $file): ?int
+    {
+        $size = @filesize($file);
+        if ($size === false) {
+            return null;
+        }
+        return (int) $size;
     }
 }
