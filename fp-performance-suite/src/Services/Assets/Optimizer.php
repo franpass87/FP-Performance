@@ -540,19 +540,11 @@ class Optimizer
         }
 
         $hashParts = [];
-        $contents = '';
 
         foreach ($files as $file) {
             $mtime = @filemtime($file['path']);
             $size = @filesize($file['path']);
             $hashParts[] = $file['url'] . '|' . ($mtime ?: 0) . '|' . ($size ?: 0);
-            $asset = file_get_contents($file['path']);
-
-            if (false === $asset) {
-                return null;
-            }
-
-            $contents .= '/* ' . $file['handle'] . " */\n" . $asset . "\n";
         }
 
         $hash = md5(implode('|', $hashParts));
@@ -562,17 +554,28 @@ class Optimizer
 
         $handles = array_column($files, 'handle');
         $url = trailingslashit($uploads['baseurl']) . 'fp-performance-suite/' . $filename;
-        $contentsHash = md5($contents);
 
-        if (file_exists($fullPath)) {
-            $existingHash = md5_file($fullPath);
+        if (file_exists($fullPath) && is_readable($fullPath)) {
+            return [
+                'handles' => $handles,
+                'url' => $url,
+            ];
+        }
 
-            if (is_string($existingHash) && $existingHash === $contentsHash) {
-                return [
-                    'handles' => $handles,
-                    'url' => $url,
-                ];
+        $contents = '';
+
+        foreach ($files as $file) {
+            if (!is_readable($file['path'])) {
+                return null;
             }
+
+            $asset = file_get_contents($file['path']);
+
+            if (false === $asset) {
+                return null;
+            }
+
+            $contents .= '/* ' . $file['handle'] . " */\n" . $asset . "\n";
         }
 
         $bytesWritten = file_put_contents($fullPath, $contents, LOCK_EX);

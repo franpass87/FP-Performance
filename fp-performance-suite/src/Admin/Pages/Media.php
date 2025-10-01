@@ -64,7 +64,11 @@ class Media extends AbstractPage
                 $limit = (int) ($_POST['bulk_limit'] ?? 20);
                 $offset = (int) ($_POST['bulk_offset'] ?? 0);
                 $bulkResult = $converter->bulkConvert($limit, $offset);
-                $message = __('Bulk conversion completed.', 'fp-performance-suite');
+                if (!empty($bulkResult['queued'])) {
+                    $message = __('Bulk conversion queued in the background.', 'fp-performance-suite');
+                } else {
+                    $message = __('Bulk conversion completed.', 'fp-performance-suite');
+                }
             }
         }
         $settings = $converter->settings();
@@ -128,7 +132,11 @@ class Media extends AbstractPage
                 </p>
             </form>
             <?php if ($bulkResult) : ?>
-                <p><?php printf(esc_html__('%1$d items processed out of %2$d.', 'fp-performance-suite'), (int) $bulkResult['converted'], (int) $bulkResult['total']); ?></p>
+                <?php if (!empty($bulkResult['queued'])) : ?>
+                    <p><?php printf(esc_html__('%d items queued for background conversion.', 'fp-performance-suite'), (int) ($bulkResult['total'] ?? 0)); ?></p>
+                <?php else : ?>
+                    <p><?php printf(esc_html__('%1$d items processed out of %2$d.', 'fp-performance-suite'), (int) $bulkResult['converted'], (int) $bulkResult['total']); ?></p>
+                <?php endif; ?>
             <?php endif; ?>
         </section>
         <?php

@@ -4,14 +4,20 @@ namespace FP\PerfSuite\Services\Media;
 
 use FP\PerfSuite\Utils\Fs;
 use WP_Query;
+use function add_action;
+use function delete_option;
 use function delete_post_meta;
 use function error_log;
 use function get_attached_file;
+use function get_option;
 use function get_post_meta;
 use function path_join;
 use function update_attached_file;
 use function update_post_meta;
+use function update_option;
 use function wp_get_attachment_metadata;
+use function wp_next_scheduled;
+use function wp_schedule_single_event;
 use function wp_update_attachment_metadata;
 
 class WebPConverter
@@ -20,6 +26,9 @@ class WebPConverter
     private const CONVERSION_META = '_fp_ps_webp_generated';
     private const SETTINGS_META = '_fp_ps_webp_settings';
     private const WEBP_MIME = 'image/webp';
+    private const QUEUE_OPTION = 'fp_ps_webp_queue';
+    private const CRON_HOOK = 'fp_ps_webp_process_batch';
+    private const CRON_CHUNK = 5;
     private Fs $fs;
 
     public function __construct(Fs $fs)
@@ -29,6 +38,8 @@ class WebPConverter
 
     public function register(): void
     {
+        add_action(self::CRON_HOOK, [$this, 'runQueue']);
+
         if (!$this->settings()['enabled']) {
             return;
         }
@@ -146,35 +157,149 @@ class WebPConverter
         return $converted;
     }
 
+    /**
+     * @return array{converted:int,total:int,queued:bool}
+     */
     public function bulkConvert(int $limit = 20, int $offset = 0): array
+    {
+        $limit = max(1, $limit);
+        $offset = max(0, $offset);
+
+        $total = $this->queuedTotal($offset, $limit);
+
+        if ($total <= 0) {
+            delete_option(self::QUEUE_OPTION);
+
+            return [
+                'converted' => 0,
+                'total' => 0,
+                'queued' => false,
+            ];
+        }
+
+        $state = [
+            'limit' => $limit,
+            'offset' => $offset,
+            'processed' => 0,
+            'converted' => 0,
+            'total' => $total,
+        ];
+
+        update_option(self::QUEUE_OPTION, $state, false);
+
+        if (!wp_next_scheduled(self::CRON_HOOK)) {
+            wp_schedule_single_event(time() + 1, self::CRON_HOOK);
+        }
+
+        return [
+            'converted' => 0,
+            'total' => $total,
+            'queued' => true,
+        ];
+    }
+
+    private function queuedTotal(int $offset, int $limit): int
     {
         $query = new WP_Query([
             'post_type' => 'attachment',
             'post_status' => 'inherit',
             'post_mime_type' => ['image/jpeg', 'image/png'],
-            'posts_per_page' => $limit,
+            'posts_per_page' => 1,
             'offset' => $offset,
             'fields' => 'ids',
+            'no_found_rows' => false,
         ]);
-        $settings = $this->settings();
+
+        $total = (int) $query->found_posts;
+
+        if ($total <= $offset) {
+            return 0;
+        }
+
+        return min($limit, $total - $offset);
+    }
+
+    /**
+     * Process a queued WebP conversion batch.
+     */
+    public function runQueue(): void
+    {
+        $state = get_option(self::QUEUE_OPTION);
+
+        if (!is_array($state)) {
+            return;
+        }
+
+        $limit = max(1, (int) ($state['limit'] ?? 0));
+        $offset = max(0, (int) ($state['offset'] ?? 0));
+        $processed = max(0, (int) ($state['processed'] ?? 0));
+        $convertedSoFar = max(0, (int) ($state['converted'] ?? 0));
+
+        $remaining = $limit - $processed;
+
+        if ($remaining <= 0) {
+            delete_option(self::QUEUE_OPTION);
+            return;
+        }
+
+        $chunk = min($remaining, self::CRON_CHUNK);
+        $batchOffset = $offset + $processed;
+
+        $query = new WP_Query([
+            'post_type' => 'attachment',
+            'post_status' => 'inherit',
+            'post_mime_type' => ['image/jpeg', 'image/png'],
+            'posts_per_page' => $chunk,
+            'offset' => $batchOffset,
+            'fields' => 'ids',
+            'no_found_rows' => true,
+        ]);
+
+        if (empty($query->posts)) {
+            delete_option(self::QUEUE_OPTION);
+            return;
+        }
+
+        $ids = array_map('intval', $query->posts);
+        $converted = $this->convertBatch($ids, $this->settings());
+
+        $processedThisRun = count($ids);
+        $state['processed'] = $processed + $processedThisRun;
+        $state['converted'] = $convertedSoFar + $converted;
+
+        if ($state['processed'] >= $limit || $processedThisRun < $chunk) {
+            delete_option(self::QUEUE_OPTION);
+            return;
+        }
+
+        update_option(self::QUEUE_OPTION, $state, false);
+
+        if (!wp_next_scheduled(self::CRON_HOOK)) {
+            wp_schedule_single_event(time() + 1, self::CRON_HOOK);
+        }
+    }
+
+    /**
+     * @param array<int, int> $attachmentIds
+     * @return int
+     */
+    private function convertBatch(array $attachmentIds, array $settings): int
+    {
         $converted = 0;
 
-        foreach ($query->posts as $attachment_id) {
-            $metadata = wp_get_attachment_metadata($attachment_id);
+        foreach ($attachmentIds as $attachmentId) {
+            $metadata = wp_get_attachment_metadata($attachmentId);
             $metadata = is_array($metadata) ? $metadata : [];
-            $result = $this->processAttachment((int) $attachment_id, $metadata, $settings);
+            $result = $this->processAttachment($attachmentId, $metadata, $settings);
             if (!empty($result['converted'])) {
                 $converted++;
             }
             if ($metadata !== $result['metadata']) {
-                wp_update_attachment_metadata($attachment_id, $result['metadata']);
+                wp_update_attachment_metadata($attachmentId, $result['metadata']);
             }
         }
 
-        return [
-            'converted' => $converted,
-            'total' => (int) $query->found_posts,
-        ];
+        return $converted;
     }
 
     /**

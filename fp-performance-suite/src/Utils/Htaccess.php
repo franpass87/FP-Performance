@@ -9,6 +9,7 @@ class Htaccess
     private Fs $fs;
 
     private const LOG_PREFIX = '[FP Performance Suite] ';
+    private const MAX_BACKUPS = 3;
 
     public function __construct(Fs $fs)
     {
@@ -42,12 +43,40 @@ class Htaccess
             if (!$this->fs->exists($file)) {
                 return null;
             }
+            $this->pruneBackups($file);
             $backup = $file . '.bak-' . gmdate('YmdHis');
             $this->fs->copy($file, $backup, true);
             return $backup;
         } catch (\Throwable $e) {
             error_log(self::LOG_PREFIX . 'Failed to back up .htaccess: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    private function pruneBackups(string $file): void
+    {
+        $pattern = $file . '.bak-*';
+        $backups = glob($pattern);
+
+        if (!is_array($backups)) {
+            return;
+        }
+
+        sort($backups);
+
+        while (count($backups) >= self::MAX_BACKUPS) {
+            $oldest = array_shift($backups);
+
+            if (!is_string($oldest) || '' === $oldest) {
+                continue;
+            }
+
+            try {
+                $this->fs->delete($oldest);
+            } catch (\Throwable $e) {
+                error_log(self::LOG_PREFIX . 'Failed to prune .htaccess backup: ' . $e->getMessage());
+                break;
+            }
         }
     }
 

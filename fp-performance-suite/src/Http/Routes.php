@@ -182,10 +182,16 @@ class Routes
     public function progress(): WP_REST_Response
     {
         $file = FP_PERF_SUITE_DIR . '/../.codex-state.json';
-        if (!file_exists($file)) {
+        if (!file_exists($file) || !is_readable($file)) {
             return rest_ensure_response([]);
         }
-        $data = json_decode((string) file_get_contents($file), true);
+        $contents = file_get_contents($file);
+
+        if (false === $contents || '' === $contents) {
+            return rest_ensure_response([]);
+        }
+
+        $data = json_decode($contents, true);
         if (!is_array($data)) {
             $data = [];
         }
