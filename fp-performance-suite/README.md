@@ -18,7 +18,7 @@ FP Performance Suite is a modular performance optimization plugin tailored for s
 ## Requirements
 
 - WordPress 6.2+
-- PHP 7.4 – 8.3
+- PHP 8.0 – 8.3
 - Shared hosting compatible (no external services required)
 
 ## Development
@@ -45,3 +45,11 @@ phpunit --bootstrap tests/bootstrap.php tests
 ## Uninstall
 
 Uninstalling the plugin removes all plugin-specific options.
+
+## Release process
+
+Refer to [README-BUILD.md](README-BUILD.md) for the complete packaging workflow. The typical release steps are:
+
+1. Run `bash build.sh --bump=patch` (or `--set-version=1.2.3`) to update the plugin version and generate a clean ZIP in `build/`.
+2. Review the generated archive and commit the version bump and build artefacts.
+3. Push a tag like `v1.2.3` to trigger the GitHub Action that uploads the packaged plugin as a workflow artifact.
