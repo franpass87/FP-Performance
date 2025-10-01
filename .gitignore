@@ -1,2 +1,4 @@
 /vendor/
 /build/*.zip
+fp-performance-suite/build/fp-performance-suite/
+fp-performance-suite/build/*.zip

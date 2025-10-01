@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FP Performance Suite
  * Description: Optimize performance for shared hosting with modular services.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: FP Engineering
  * Text Domain: fp-performance-suite
  * Domain Path: /languages
@@ -11,7 +11,7 @@
 defined('ABSPATH') || exit;
 
 $autoload = __DIR__ . '/vendor/autoload.php';
-if (file_exists($autoload)) {
+if (is_readable($autoload)) {
     require_once $autoload;
 } else {
     spl_autoload_register(static function ($class) {
@@ -26,7 +26,7 @@ if (file_exists($autoload)) {
     });
 }
 
-define('FP_PERF_SUITE_VERSION', '1.0.0');
+define('FP_PERF_SUITE_VERSION', '1.0.1');
 define('FP_PERF_SUITE_DIR', __DIR__);
 
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
