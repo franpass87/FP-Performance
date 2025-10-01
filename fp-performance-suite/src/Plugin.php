@@ -18,6 +18,7 @@ use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Semaphore;
+use function get_file_data;
 use function wp_clear_scheduled_hook;
 
 class Plugin
@@ -104,7 +105,14 @@ class Plugin
 
     public static function onActivate(): void
     {
-        update_option('fp_perfsuite_version', '1.0.0');
+        $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
+
+        if (!is_string($version) || '' === $version) {
+            $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
+            $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
+        }
+
+        update_option('fp_perfsuite_version', $version);
         $cleaner = new Cleaner(new Env());
         $cleaner->primeSchedules();
         $cleaner->maybeSchedule(true);

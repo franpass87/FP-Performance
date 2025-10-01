@@ -13,6 +13,7 @@ jobs:
       - name: Prepare build
         run: |
           cd fp-performance-suite
+          mkdir -p ../build
           zip -r ../build/fp-performance-suite.zip . -x '*.git*'
       - uses: actions/upload-artifact@v3
         with:
