@@ -4,14 +4,21 @@ namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Semaphore;
 use function __;
+use function array_key_exists;
 use function esc_url_raw;
+use function filter_var;
 use function is_array;
+use function is_bool;
+use function is_float;
+use function is_int;
 use function is_string;
 use function parse_url;
 use function pathinfo;
 use function preg_split;
 use function strtolower;
 use function trim;
+use const FILTER_NULL_ON_FAILURE;
+use const FILTER_VALIDATE_BOOLEAN;
 use const PATHINFO_EXTENSION;
 
 class Optimizer
@@ -89,15 +96,15 @@ class Optimizer
     {
         $current = $this->settings();
         $new = [
-            'minify_html' => !empty($settings['minify_html']),
-            'defer_js' => !empty($settings['defer_js']),
-            'async_js' => !empty($settings['async_js']),
-            'remove_emojis' => !empty($settings['remove_emojis']),
+            'minify_html' => $this->resolveFlag($settings, 'minify_html', $current['minify_html']),
+            'defer_js' => $this->resolveFlag($settings, 'defer_js', $current['defer_js']),
+            'async_js' => $this->resolveFlag($settings, 'async_js', $current['async_js']),
+            'remove_emojis' => $this->resolveFlag($settings, 'remove_emojis', $current['remove_emojis']),
             'dns_prefetch' => $this->sanitizeUrlList($settings['dns_prefetch'] ?? $current['dns_prefetch']),
             'preload' => $this->sanitizeUrlList($settings['preload'] ?? $current['preload']),
             'heartbeat_admin' => isset($settings['heartbeat_admin']) ? (int) $settings['heartbeat_admin'] : $current['heartbeat_admin'],
-            'combine_css' => !empty($settings['combine_css']),
-            'combine_js' => !empty($settings['combine_js']),
+            'combine_css' => $this->resolveFlag($settings, 'combine_css', $current['combine_css']),
+            'combine_js' => $this->resolveFlag($settings, 'combine_js', $current['combine_js']),
         ];
         update_option(self::OPTION, $new);
     }
@@ -109,6 +116,43 @@ class Optimizer
         }
         ob_start([$this, 'minifyHtml']);
         $this->bufferStarted = true;
+    }
+
+    private function resolveFlag(array $settings, string $key, bool $current): bool
+    {
+        if (!array_key_exists($key, $settings)) {
+            return $current;
+        }
+
+        return $this->interpretFlag($settings[$key], $current);
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function interpretFlag($value, bool $fallback): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (bool) $value;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed === '') {
+                return false;
+            }
+
+            $filtered = filter_var($trimmed, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($filtered !== null) {
+                return $filtered;
+            }
+        }
+
+        return $fallback;
     }
 
     public function endBuffer(): void
