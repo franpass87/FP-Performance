@@ -17,6 +17,13 @@ class Htaccess
 
     public function isSupported(): bool
     {
+        if (!function_exists('got_mod_rewrite')) {
+            $helper = ABSPATH . 'wp-admin/includes/misc.php';
+            if (is_readable($helper)) {
+                require_once $helper;
+            }
+        }
+
         if (!function_exists('got_mod_rewrite') || !got_mod_rewrite()) {
             return false;
         }

@@ -13,9 +13,11 @@ use function wp_mkdir_p;
 class PageCache
 {
     private const OPTION = 'fp_ps_page_cache';
+    private const DEFAULT_TTL = 3600;
     private Fs $fs;
     private Env $env;
     private bool $started = false;
+    private int $bufferLevel = 0;
 
     public function __construct(Fs $fs, Env $env)
     {
@@ -47,7 +49,7 @@ class PageCache
     {
         $defaults = [
             'enabled' => false,
-            'ttl' => 3600,
+            'ttl' => self::DEFAULT_TTL,
         ];
         $options = wp_parse_args(get_option(self::OPTION, []), $defaults);
         $ttl = isset($options['ttl']) ? (int) $options['ttl'] : $defaults['ttl'];
@@ -56,20 +58,35 @@ class PageCache
         }
         $enabled = !empty($options['enabled']) && $ttl > 0;
 
+        $normalizedTtl = $ttl > 0 ? $ttl : 0;
+
         return [
             'enabled' => $enabled,
-            'ttl' => $enabled ? $ttl : ($ttl > 0 ? $ttl : 60),
+            'ttl' => $normalizedTtl,
         ];
     }
 
     public function update(array $settings): void
     {
-        $ttl = isset($settings['ttl']) ? max(0, (int) $settings['ttl']) : 3600;
+        $current = $this->settings();
+
+        $ttl = array_key_exists('ttl', $settings)
+            ? max(0, (int) $settings['ttl'])
+            : $current['ttl'];
+
+        $enabledFlag = array_key_exists('enabled', $settings)
+            ? !empty($settings['enabled'])
+            : $current['enabled'];
+
+        if ($enabledFlag && $ttl <= 0) {
+            $ttl = $current['ttl'] > 0 ? $current['ttl'] : self::DEFAULT_TTL;
+        }
+
         if ($ttl > 0 && $ttl < 60) {
             $ttl = 60;
         }
 
-        $enabled = !empty($settings['enabled']) && $ttl > 0;
+        $enabled = $enabledFlag && $ttl > 0;
 
         update_option(self::OPTION, [
             'enabled' => $enabled,
@@ -111,7 +128,7 @@ class PageCache
         }
 
         $meta = @json_decode((string) @file_get_contents($file . '.meta'), true);
-        $ttl = isset($meta['ttl']) ? (int) $meta['ttl'] : 3600;
+        $ttl = isset($meta['ttl']) ? (int) $meta['ttl'] : self::DEFAULT_TTL;
         if ($ttl <= 0) {
             @unlink($file);
             @unlink($file . '.meta');
@@ -157,10 +174,15 @@ class PageCache
             return;
         }
 
-        if (!ob_start([$this, 'maybeFilterOutput'])) {
-            ob_start();
+        $started = ob_start([$this, 'maybeFilterOutput']);
+        if (!$started) {
+            $started = ob_start();
         }
-        $this->started = true;
+
+        if ($started) {
+            $this->started = true;
+            $this->bufferLevel = ob_get_level();
+        }
     }
 
     public function maybeFilterOutput(string $buffer): string
@@ -175,6 +197,7 @@ class PageCache
             return;
         }
         if (!$this->isCacheableRequest()) {
+            $this->finishBuffering();
             return;
         }
         if ($this->hasPrivateCookies()) {
@@ -298,10 +321,21 @@ class PageCache
 
     private function finishBuffering(): void
     {
+        if (!$this->started) {
+            return;
+        }
+
         $this->started = false;
-        if (ob_get_level() > 0) {
+
+        if ($this->bufferLevel > 0) {
+            while (ob_get_level() >= $this->bufferLevel && ob_get_level() > 0) {
+                ob_end_flush();
+            }
+        } elseif (ob_get_level() > 0) {
             ob_end_flush();
         }
+
+        $this->bufferLevel = 0;
     }
 
     private function isHeadRequest(): bool

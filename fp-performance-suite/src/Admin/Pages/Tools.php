@@ -13,12 +13,13 @@ use function esc_attr_e;
 use function esc_html;
 use function esc_html_e;
 use function esc_textarea;
-use function esc_url_raw;
 use function is_array;
 use function json_decode;
 use function json_encode;
+use function is_string;
 use function sanitize_key;
 use function sprintf;
+use function trim;
 use function wp_json_encode;
 use function wp_nonce_field;
 use function wp_unslash;
@@ -63,6 +64,7 @@ class Tools extends AbstractPage
         $cleaner = $this->container->get(Cleaner::class);
         $message = '';
         $importStatus = '';
+        $headerDefaults = $headers->settings();
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_tools_nonce'])) {
             $nonce = wp_unslash($_POST['fp_ps_tools_nonce']);
             if (!is_string($nonce) || !wp_verify_nonce($nonce, 'fp-ps-tools')) {
@@ -96,18 +98,10 @@ class Tools extends AbstractPage
                                 ];
                                 break;
                             case 'fp_ps_browser_cache':
-                                $prepared[$option] = [
-                                    'enabled' => !empty($data[$option]['enabled']),
-                                    'headers' => [
-                                        'Cache-Control' => isset($data[$option]['headers']['Cache-Control'])
-                                            ? (string) $data[$option]['headers']['Cache-Control']
-                                            : $headers->settings()['headers']['Cache-Control'],
-                                    ],
-                                    'expires_ttl' => isset($data[$option]['expires_ttl'])
-                                        ? (int) $data[$option]['expires_ttl']
-                                        : $headers->settings()['expires_ttl'],
-                                    'htaccess' => (string) ($data[$option]['htaccess'] ?? $headers->settings()['htaccess']),
-                                ];
+                                $prepared[$option] = $this->normalizeBrowserCacheImport(
+                                    $data[$option],
+                                    $headerDefaults
+                                );
                                 break;
                             case 'fp_ps_assets':
                                 $assetDefaults = $optimizer->settings();
@@ -117,8 +111,8 @@ class Tools extends AbstractPage
                                     'defer_js' => !empty($incoming['defer_js']),
                                     'async_js' => !empty($incoming['async_js']),
                                     'remove_emojis' => !empty($incoming['remove_emojis']),
-                                    'dns_prefetch' => array_filter(array_map('esc_url_raw', (array) ($incoming['dns_prefetch'] ?? $assetDefaults['dns_prefetch']))),
-                                    'preload' => array_filter(array_map('esc_url_raw', (array) ($incoming['preload'] ?? $assetDefaults['preload']))),
+                                    'dns_prefetch' => $incoming['dns_prefetch'] ?? $assetDefaults['dns_prefetch'],
+                                    'preload' => $incoming['preload'] ?? $assetDefaults['preload'],
                                     'heartbeat_admin' => isset($incoming['heartbeat_admin']) ? (int) $incoming['heartbeat_admin'] : $assetDefaults['heartbeat_admin'],
                                     'combine_css' => !empty($incoming['combine_css']),
                                     'combine_js' => !empty($incoming['combine_js']),
@@ -218,5 +212,60 @@ class Tools extends AbstractPage
         </section>
         <?php
         return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<string, mixed> $incoming
+     * @param array<string, mixed> $defaults
+     * @return array{enabled:bool,headers:array{Cache-Control:string},expires_ttl:int,htaccess:string}
+     */
+    protected function normalizeBrowserCacheImport(array $incoming, array $defaults): array
+    {
+        $defaultHeaders = [];
+        if (isset($defaults['headers']) && is_array($defaults['headers'])) {
+            $defaultHeaders = $defaults['headers'];
+        }
+
+        $defaultCacheControl = isset($defaultHeaders['Cache-Control']) && is_string($defaultHeaders['Cache-Control'])
+            ? trim($defaultHeaders['Cache-Control'])
+            : 'public, max-age=31536000';
+
+        $defaultTtl = isset($defaults['expires_ttl']) ? (int) $defaults['expires_ttl'] : 31536000;
+        $defaultHtaccess = isset($defaults['htaccess']) && is_string($defaults['htaccess'])
+            ? $defaults['htaccess']
+            : '';
+
+        $headerValue = $incoming['headers'] ?? [];
+        if (is_string($headerValue)) {
+            $headerValue = ['Cache-Control' => $headerValue];
+        }
+
+        $cacheControl = $defaultCacheControl;
+        if (is_array($headerValue) && isset($headerValue['Cache-Control']) && is_string($headerValue['Cache-Control'])) {
+            $trimmed = trim($headerValue['Cache-Control']);
+            if ($trimmed !== '') {
+                $cacheControl = $trimmed;
+            }
+        }
+
+        $ttl = $defaultTtl;
+        if (isset($incoming['expires_ttl'])) {
+            $ttl = (int) $incoming['expires_ttl'];
+            if ($ttl < 0) {
+                $ttl = $defaultTtl;
+            }
+        }
+
+        $htaccess = $defaultHtaccess;
+        if (isset($incoming['htaccess']) && is_string($incoming['htaccess'])) {
+            $htaccess = $incoming['htaccess'];
+        }
+
+        return [
+            'enabled' => !empty($incoming['enabled']),
+            'headers' => ['Cache-Control' => $cacheControl],
+            'expires_ttl' => $ttl,
+            'htaccess' => $htaccess,
+        ];
     }
 }

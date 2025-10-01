@@ -98,11 +98,38 @@ final class CleanerTest extends TestCase
         $this->assertSame(2, $result['revisions']['deleted']);
     }
 
+    public function testUpdateRejectsInvalidSchedule(): void
+    {
+        $cleaner = new Cleaner(new Env());
+        $cleaner->update(['schedule' => 'daily', 'batch' => 10]);
+
+        $stored = get_option('fp_ps_db');
+        $this->assertSame('manual', $stored['schedule']);
+        $this->assertSame(50, $stored['batch']);
+
+        $cleaner->update(['schedule' => 'weekly']);
+        $stored = get_option('fp_ps_db');
+        $this->assertSame('weekly', $stored['schedule']);
+    }
+
     public function testOverheadCalculation(): void
     {
         $cleaner = new Cleaner(new Env());
         $overhead = $cleaner->overhead();
         $this->assertGreaterThan(0, $overhead);
+    }
+
+    public function testSettingsNormalizeLegacySchedules(): void
+    {
+        update_option('fp_ps_db', ['schedule' => 'fp_ps_weekly', 'batch' => 200]);
+        $cleaner = new Cleaner(new Env());
+        $settings = $cleaner->settings();
+
+        $this->assertSame('weekly', $settings['schedule']);
+
+        $cleaner->update(['schedule' => 'fp_ps_monthly']);
+        $stored = get_option('fp_ps_db');
+        $this->assertSame('monthly', $stored['schedule']);
     }
 
     public function testPrimeSchedulesAddsIntervalsOnce(): void
