@@ -10,7 +10,7 @@ const AUTHOR = {
 };
 
 const applyFromEnv = (() => {
-  const value = process.env.APPLY || process.env.apply;
+  const value = process.env.APPLY;
   return typeof value === 'string' && ['1', 'true', 'yes'].includes(value.toLowerCase());
 })();
 
