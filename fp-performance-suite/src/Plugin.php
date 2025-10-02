@@ -2,6 +2,13 @@
 
 namespace FP\PerfSuite;
 
+/**
+ * Boots FP Performance Suite services and admin integrations.
+ *
+ * @author Francesco Passeri
+ * @link https://francescopasseri.com
+ */
+
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
 use FP\PerfSuite\Http\Routes;
