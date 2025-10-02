@@ -118,7 +118,20 @@ function normaliseReadmeTxt(content) {
   });
 
   const description = 'Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.';
-  updated = updated.replace(/\n\n== Description ==\n\n[\s\S]*?\n\n= Features =/, `\n\n== Description ==\n\nFP Performance Suite delivers a modular control center for WordPress administrators on shared hosting. It combines page caching, browser cache headers, asset optimization, WebP conversion, database cleanup, debug toggles, realtime log viewing, and hosting-specific presets behind a unified dashboard with safety guards.\n\n= Features =`);
+  // Replace the Description section in a more robust way
+  const descStart = updated.indexOf('== Description ==');
+  const featuresStart = updated.indexOf('= Features =');
+  if (descStart !== -1 && featuresStart !== -1 && featuresStart > descStart) {
+    // Find the end of the "== Description ==" heading
+    const beforeDesc = updated.slice(0, descStart);
+    const afterDescHeadingIdx = updated.indexOf('\n', descStart + '== Description =='.length);
+    const afterDescHeading = updated.slice(afterDescHeadingIdx + 1, featuresStart);
+    const afterFeatures = updated.slice(featuresStart);
+    updated = beforeDesc
+      + '== Description ==\n\n'
+      + 'FP Performance Suite delivers a modular control center for WordPress administrators on shared hosting. It combines page caching, browser cache headers, asset optimization, WebP conversion, database cleanup, debug toggles, realtime log viewing, and hosting-specific presets behind a unified dashboard with safety guards.\n\n'
+      + afterFeatures;
+  }
   updated = updated.replace(/\n\nModular performance suite[^\n]*\n/, `\n\n${description}\n`);
 
   return { content: updated, fields };
