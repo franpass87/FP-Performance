@@ -1,9 +1,11 @@
 <?php
 /**
  * Plugin Name: FP Performance Suite
- * Description: Optimize performance for shared hosting with modular services.
+ * Plugin URI: https://francescopasseri.com
+ * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
  * Version: 1.0.1
- * Author: FP Engineering
+ * Author: Francesco Passeri
+ * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
  * Domain Path: /languages
  */
