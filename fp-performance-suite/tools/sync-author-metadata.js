@@ -89,7 +89,7 @@ function normaliseReadmeMd(content) {
   });
 
   const description = 'Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.';
-  updated = updated.replace(/> .*\n\n/, `> ${description}\n\n`);
+  updated = updated.replace(/^> .*\n\n/m, `> ${description}\n\n`);
 
   return { content: updated, fields };
 }
