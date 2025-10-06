@@ -21,14 +21,46 @@ FP Performance Suite delivers a modular control center for WordPress administrat
 
 ## Features
 
-- Filesystem page cache with instant purge controls and cache warmers.
-- Browser cache headers manager with `.htaccess` automation when available.
-- Asset optimizer for minification, defer/async loading, DNS prefetch, preload directives, and heartbeat throttling.
-- WebP converter supporting GD and Imagick with lossy/lossless profiles, bulk actions, and coverage reporting.
-- Database cleaner with dry-run mode, transient cleanup, scheduled maintenance, and table optimization.
-- Debug toggler with wp-config backups and realtime log viewer with filtering and tail controls.
-- Hosting presets for General, IONOS, and Aruba environments plus a technical performance scorecard.
-- Import/export of configuration, multisite-aware options, and accessibility-minded confirmations.
+### Core Performance
+- **Filesystem Page Cache** - Instant purge controls and cache warmers with intelligent invalidation
+- **Browser Cache Headers** - Manager with `.htaccess` automation when available
+- **Asset Optimizer** - Minification, defer/async loading, DNS prefetch, preload directives, and heartbeat throttling
+- **WebP Converter** - GD and Imagick support with lossy/lossless profiles, bulk actions, and coverage reporting
+- **Database Cleaner** - Dry-run mode, transient cleanup, scheduled maintenance, and table optimization
+- **Debug Toggler** - wp-config backups and realtime log viewer with filtering and tail controls
+- **Hosting Presets** - Optimized settings for General, IONOS, and Aruba environments
+
+### Advanced Features (NEW in v1.1.0)
+- **Critical CSS** - Inline critical CSS for above-the-fold optimization
+- **CDN Integration** - Multi-provider CDN support (CloudFlare, BunnyCDN, StackPath, Custom)
+  - Automatic URL rewriting for assets
+  - Domain sharding support
+  - API-based cache purging
+- **Performance Monitoring** - Track page load times, queries, and memory usage over time
+  - Real-time metrics collection
+  - 7-day and 30-day trend analysis
+  - Sample-based monitoring to reduce overhead
+- **Scheduled Reports** - Automated email reports with performance scores and suggestions
+  - Daily, weekly, or monthly frequency
+  - Beautiful HTML email templates
+  - Customizable content sections
+- **WordPress Site Health** - Native integration with WordPress Site Health
+  - 4 custom health checks (Cache, WebP, Database, Assets)
+  - Detailed diagnostic information
+- **Query Monitor Integration** - Deep performance insights when Query Monitor is active
+  - Cache hit/miss tracking
+  - Memory and timing breakdowns
+  - Custom metrics support
+
+### Developer Experience
+- **WP-CLI Commands** - Full command-line interface for automation
+- **Centralized Logging** - Advanced logging system with levels and context
+- **Rate Limiting** - Protection against abuse of resource-intensive operations
+- **Event System** - Extensible event dispatcher with 15+ events
+- **Repository Pattern** - Clean data access layer with WpOptionsRepository and TransientRepository
+- **Value Objects** - Immutable objects for type safety (CacheSettings, PerformanceScore, etc.)
+- **Enums** - Type-safe enumerations for hosting presets, cache types, log levels
+- **Interfaces** - Contract-based architecture for better testability
 
 ## Installation
 
@@ -48,13 +80,47 @@ FP Performance Suite delivers a modular control center for WordPress administrat
 
 ## Hooks & Filters
 
-- `fp_perfsuite_container_ready`: Fires after the dependency container has been built.
-- `fp_ps_required_capability`: Filter the capability required to view the admin pages.
-- `fp_ps_defer_skip_handles`: Filter script handles excluded from automatic deferral.
-- `fp_ps_db_scheduled_scope`: Filter the scope of scheduled database cleanups.
-- `fp_ps_gzip_enabled`: Filter the detected gzip compression status in the scorecard.
-- `fp_ps_gzip_detection_evidence`: Filter the evidence used for gzip detection scoring.
-- `fp_ps_require_critical_css`: Filter whether critical CSS is considered mandatory by the scorecard.
+### Core Hooks
+- `fp_perfsuite_container_ready`: Fires after the dependency container has been built
+- `fp_ps_required_capability`: Filter the capability required to view the admin pages
+- `fp_ps_defer_skip_handles`: Filter script handles excluded from automatic deferral
+- `fp_ps_db_scheduled_scope`: Filter the scope of scheduled database cleanups
+- `fp_ps_gzip_enabled`: Filter the detected gzip compression status in the scorecard
+- `fp_ps_gzip_detection_evidence`: Filter the evidence used for gzip detection scoring
+- `fp_ps_require_critical_css`: Filter whether critical CSS is considered mandatory by the scorecard
+
+### New Hooks (v1.1.0)
+
+#### Lifecycle
+- `fp_ps_plugin_activated` - Plugin activation
+- `fp_ps_plugin_deactivated` - Plugin deactivation
+
+#### Cache Events
+- `fp_ps_cache_cleared` - After cache clear
+
+#### WebP Events
+- `fp_ps_webp_bulk_start` - Bulk conversion start
+- `fp_ps_webp_converted` - Single image converted
+
+#### Database Events
+- `fp_ps_db_cleanup_complete` - Cleanup finished
+
+#### .htaccess Events
+- `fp_ps_htaccess_updated` - Rules injected
+- `fp_ps_htaccess_section_removed` - Section removed
+
+#### Logging Events
+- `fp_ps_log_error`, `fp_ps_log_warning`, `fp_ps_log_info`, `fp_ps_log_debug` - Logging hooks
+
+#### Rate Limiting
+- `fp_ps_rate_limit_exceeded` - Rate limit exceeded
+
+#### CDN Events
+- `fp_ps_cdn_settings_updated` - CDN settings changed
+- `fp_ps_cdn_purge_all` - CDN purge all
+- `fp_ps_cdn_purge_file` - CDN purge file
+
+**Complete Reference**: See [docs/HOOKS.md](docs/HOOKS.md) for detailed documentation and examples.
 
 ## Support
 
@@ -63,11 +129,48 @@ FP Performance Suite delivers a modular control center for WordPress administrat
 
 ## Development
 
-- Install dependencies with `composer install`.
-- Run automated author metadata updates with `composer sync:author` (set `APPLY=1` to persist changes).
-- Synchronize documentation placeholders with `composer sync:docs`.
-- Generate changelog boilerplate with `composer changelog:from-git`.
-- Execute unit tests via `./vendor/bin/phpunit` (bootstrap under `tests/bootstrap.php`).
+### Setup
+```bash
+composer install
+```
+
+### Available Commands
+```bash
+# Testing
+./vendor/bin/phpunit                    # Run all tests
+./vendor/bin/phpunit tests/LoggerTest.php    # Run specific test
+
+# Code Quality
+./vendor/bin/phpcs                      # Check coding standards
+./vendor/bin/phpstan analyse            # Static analysis
+
+# Documentation
+composer sync:author                    # Update author metadata
+composer sync:docs                      # Sync documentation
+composer changelog:from-git             # Generate changelog
+```
+
+### WP-CLI Commands (when installed)
+```bash
+wp fp-performance cache clear           # Clear page cache
+wp fp-performance db cleanup --dry-run  # Database cleanup
+wp fp-performance webp convert          # Convert images to WebP
+wp fp-performance score                 # Show performance score
+wp fp-performance info                  # Plugin information
+```
+
+### Testing
+- Unit tests in `tests/` directory
+- Test coverage for core utilities (Logger, RateLimiter, ServiceContainer)
+- Value Objects tests (CacheSettings, PerformanceScore)
+- Integration tests for services
+
+### Architecture
+- **PSR-4 Autoloading** - `FP\PerfSuite\` namespace
+- **Dependency Injection** - ServiceContainer with lazy loading
+- **Repository Pattern** - Clean data access layer
+- **Event-Driven** - EventDispatcher with typed events
+- **Interface-Based** - Contracts for testability
 
 ## Changelog
 

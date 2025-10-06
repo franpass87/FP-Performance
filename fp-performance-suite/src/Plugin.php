@@ -55,11 +55,19 @@ class Plugin
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
+            
+            // Core services
             $container->get(PageCache::class)->register();
             $container->get(Headers::class)->register();
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // New services
+            $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
+            $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
+            $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
         });
 
         // Register WP-CLI commands
@@ -127,6 +135,12 @@ class Plugin
         $container->set(Env::class, static fn() => new Env());
         $container->set(Semaphore::class, static fn() => new Semaphore());
         $container->set(RateLimiter::class, static fn() => new RateLimiter());
+
+        // New services
+        $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
+        $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
+        $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, static fn() => \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance());
+        $container->set(\FP\PerfSuite\Services\Reports\ScheduledReports::class, static fn() => new \FP\PerfSuite\Services\Reports\ScheduledReports());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
