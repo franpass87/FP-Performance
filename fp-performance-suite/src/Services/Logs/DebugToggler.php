@@ -41,8 +41,17 @@ class DebugToggler
     public function toggle(bool $enabled, bool $log = true): bool
     {
         $config = ABSPATH . 'wp-config.php';
+        $lockFile = WP_CONTENT_DIR . '/fp-ps-config.lock';
+        $lock = null;
 
         try {
+            // Acquire lock to prevent concurrent modifications
+            $lock = fopen($lockFile, 'c+');
+            if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+                error_log('[FP Performance Suite] Failed to acquire lock for wp-config.php modification');
+                return false;
+            }
+            
             if (!$this->fs->exists($config)) {
                 return false;
             }
@@ -82,6 +91,13 @@ class DebugToggler
         } catch (\Throwable $e) {
             error_log('[FP Performance Suite] Failed to toggle debug mode: ' . $e->getMessage());
             return false;
+        } finally {
+            // Always release lock
+            if ($lock) {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+                @unlink($lockFile);
+            }
         }
     }
 

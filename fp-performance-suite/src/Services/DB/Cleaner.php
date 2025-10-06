@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Services\DB;
 
 use FP\PerfSuite\Utils\Env;
+use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\RateLimiter;
 use wpdb;
 use function __;
 use function add_action;
@@ -29,10 +31,12 @@ class Cleaner
     private const ALLOWED_SCHEDULES = ['manual', 'weekly', 'monthly'];
 
     private Env $env;
+    private RateLimiter $rateLimiter;
 
-    public function __construct(Env $env)
+    public function __construct(Env $env, ?RateLimiter $rateLimiter = null)
     {
         $this->env = $env;
+        $this->rateLimiter = $rateLimiter ?? new RateLimiter();
     }
 
     public function register(): void
@@ -145,9 +149,23 @@ class Cleaner
      */
     public function cleanup(array $scope, bool $dryRun = true, ?int $batch = null): array
     {
+        // Rate limiting for actual cleanup (not dry run)
+        if (!$dryRun && !$this->rateLimiter->isAllowed('db_cleanup', 5, 3600)) {
+            Logger::warning('Database cleanup rate limit exceeded');
+            return [
+                'error' => __('Too many cleanup operations. Please try again in 1 hour.', 'fp-performance-suite'),
+            ];
+        }
+
         global $wpdb;
         $batch = $batch ?: $this->settings()['batch'];
         $results = [];
+        
+        Logger::info('Database cleanup started', [
+            'scope' => $scope,
+            'dryRun' => $dryRun,
+            'batch' => $batch,
+        ]);
 
         foreach ($scope as $task) {
             switch ($task) {
@@ -180,6 +198,14 @@ class Cleaner
                     break;
             }
         }
+
+        $totalDeleted = array_sum(array_column($results, 'deleted'));
+        Logger::info('Database cleanup completed', [
+            'totalDeleted' => $totalDeleted,
+            'dryRun' => $dryRun,
+        ]);
+        
+        do_action('fp_ps_db_cleanup_complete', $results, $dryRun);
 
         return $results;
     }

@@ -3,11 +3,12 @@
 namespace FP\PerfSuite\Services\Media;
 
 use FP\PerfSuite\Utils\Fs;
+use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\RateLimiter;
 use WP_Query;
 use function add_action;
 use function delete_option;
 use function delete_post_meta;
-use function error_log;
 use function get_attached_file;
 use function get_option;
 use function get_post_meta;
@@ -30,10 +31,12 @@ class WebPConverter
     private const CRON_HOOK = 'fp_ps_webp_process_batch';
     private const CRON_CHUNK = 5;
     private Fs $fs;
+    private RateLimiter $rateLimiter;
 
-    public function __construct(Fs $fs)
+    public function __construct(Fs $fs, ?RateLimiter $rateLimiter = null)
     {
         $this->fs = $fs;
+        $this->rateLimiter = $rateLimiter ?? new RateLimiter();
     }
 
     public function register(): void
@@ -121,9 +124,9 @@ class WebPConverter
                 $imagick->setImageFormat('webp');
                 $converted = (bool) $imagick->writeImage($webpFile);
             } catch (\ImagickException $e) {
-                error_log('[FP Performance Suite] Imagick failed to convert to WebP: ' . $e->getMessage());
+                Logger::error('Imagick failed to convert to WebP', $e);
             } catch (\Throwable $e) {
-                error_log('[FP Performance Suite] Imagick runtime error: ' . $e->getMessage());
+                Logger::error('Imagick runtime error during WebP conversion', $e);
             } finally {
                 if (isset($imagick) && $imagick instanceof \Imagick) {
                     $imagick->clear();
@@ -149,9 +152,14 @@ class WebPConverter
                 $converted = imagewebp($image, $webpFile, $settings['quality']);
                 imagedestroy($image);
                 if (!$converted) {
-                    error_log('[FP Performance Suite] GD failed to convert to WebP for ' . $file);
+                    Logger::warning("GD failed to convert to WebP: {$file}");
                 }
             }
+        }
+
+        if ($converted) {
+            Logger::debug('WebP conversion successful', ['file' => basename($file)]);
+            do_action('fp_ps_webp_converted', $file);
         }
 
         return $converted;
@@ -162,6 +170,16 @@ class WebPConverter
      */
     public function bulkConvert(int $limit = 20, int $offset = 0): array
     {
+        // Rate limiting: max 3 bulk conversions per 30 minutes
+        if (!$this->rateLimiter->isAllowed('webp_bulk_convert', 3, 1800)) {
+            return [
+                'error' => __('Too many bulk conversions. Please try again in 30 minutes.', 'fp-performance-suite'),
+                'converted' => 0,
+                'total' => 0,
+                'queued' => false,
+            ];
+        }
+
         $limit = max(1, $limit);
         $offset = max(0, $offset);
 
@@ -169,6 +187,7 @@ class WebPConverter
 
         if ($total <= 0) {
             delete_option(self::QUEUE_OPTION);
+            Logger::info('No images to convert to WebP');
 
             return [
                 'converted' => 0,
@@ -176,6 +195,9 @@ class WebPConverter
                 'queued' => false,
             ];
         }
+        
+        Logger::info("Starting WebP bulk conversion: {$total} images");
+        do_action('fp_ps_webp_bulk_start', $total);
 
         $state = [
             'limit' => $limit,

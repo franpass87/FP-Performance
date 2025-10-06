@@ -24,6 +24,8 @@ use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Htaccess;
+use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -42,6 +44,7 @@ class Plugin
         self::register($container);
         self::$container = $container;
 
+        Logger::debug('Plugin initialized', ['version' => FP_PERF_SUITE_VERSION]);
         do_action('fp_perfsuite_container_ready', $container);
 
         $container->get(Menu::class)->boot();
@@ -76,12 +79,13 @@ class Plugin
 
         $container->set(Env::class, static fn() => new Env());
         $container->set(Semaphore::class, static fn() => new Semaphore());
+        $container->set(RateLimiter::class, static fn() => new RateLimiter());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
         $container->set(Optimizer::class, static fn(ServiceContainer $c) => new Optimizer($c->get(Semaphore::class)));
-        $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class)));
-        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class)));
+        $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class), $c->get(RateLimiter::class)));
+        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {
@@ -120,13 +124,18 @@ class Plugin
         }
 
         update_option('fp_perfsuite_version', $version);
-        $cleaner = new Cleaner(new Env());
+        $cleaner = new Cleaner(new Env(), new RateLimiter());
         $cleaner->primeSchedules();
         $cleaner->maybeSchedule(true);
+        
+        Logger::info('Plugin activated', ['version' => $version]);
+        do_action('fp_ps_plugin_activated', $version);
     }
 
     public static function onDeactivate(): void
     {
         wp_clear_scheduled_hook(Cleaner::CRON_HOOK);
+        Logger::info('Plugin deactivated');
+        do_action('fp_ps_plugin_deactivated');
     }
 }

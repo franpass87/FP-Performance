@@ -2,15 +2,16 @@
 
 namespace FP\PerfSuite\Services\Cache;
 
+use FP\PerfSuite\Contracts\CacheInterface;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
-use function error_log;
+use FP\PerfSuite\Utils\Logger;
 use function headers_list;
 use function is_user_logged_in;
 use function wp_cache_get_cookies_values;
 use function wp_mkdir_p;
 
-class PageCache
+class PageCache implements CacheInterface
 {
     private const OPTION = 'fp_ps_page_cache';
     private const DEFAULT_TTL = 3600;
@@ -107,8 +108,10 @@ class PageCache
     {
         try {
             $this->fs->delete($this->cacheDir());
+            Logger::info('Page cache cleared successfully');
+            do_action('fp_ps_cache_cleared');
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Failed to clear page cache: ' . $e->getMessage());
+            Logger::error('Failed to clear page cache', $e);
         }
     }
 
@@ -252,8 +255,9 @@ class PageCache
                 'ttl' => $settings['ttl'],
                 'time' => time(),
             ]));
+            Logger::debug('Page cache file saved', ['file' => basename($file)]);
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Failed to save page cache file: ' . $e->getMessage());
+            Logger::error('Failed to save page cache file', $e);
         }
         $this->finishBuffering();
     }
@@ -309,7 +313,7 @@ class PageCache
                     }
                 }
             } catch (\Throwable $e) {
-                error_log('[FP Performance Suite] Unable to read cache directory: ' . $e->getMessage());
+                Logger::error('Unable to read cache directory', $e);
                 $count = 0;
             }
         }
