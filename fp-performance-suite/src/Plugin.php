@@ -11,7 +11,9 @@ namespace FP\PerfSuite;
 
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
+use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
+use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -64,6 +66,12 @@ class Plugin
         if (defined('WP_CLI') && WP_CLI) {
             self::registerCliCommands();
         }
+
+        // Register Site Health checks
+        HealthCheck::register();
+
+        // Register Query Monitor integration if available
+        QueryMonitor::register();
     }
 
     /**
