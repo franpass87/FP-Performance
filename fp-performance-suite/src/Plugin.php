@@ -59,6 +59,45 @@ class Plugin
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
         });
+
+        // Register WP-CLI commands
+        if (defined('WP_CLI') && WP_CLI) {
+            self::registerCliCommands();
+        }
+    }
+
+    /**
+     * Register WP-CLI commands
+     */
+    private static function registerCliCommands(): void
+    {
+        if (!class_exists('WP_CLI')) {
+            return;
+        }
+
+        require_once FP_PERF_SUITE_DIR . '/src/Cli/Commands.php';
+        
+        \WP_CLI::add_command('fp-performance cache', [Cli\Commands::class, 'cache'], [
+            'shortdesc' => 'Manage page cache',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance db', [Cli\Commands::class, 'db'], [
+            'shortdesc' => 'Database cleanup operations',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance webp', [Cli\Commands::class, 'webp'], [
+            'shortdesc' => 'WebP conversion operations',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance score', [Cli\Commands::class, 'score'], [
+            'shortdesc' => 'Calculate performance score',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance info', [Cli\Commands::class, 'info'], [
+            'shortdesc' => 'Show plugin information',
+        ]);
+
+        Logger::debug('WP-CLI commands registered');
     }
 
     private static function register(ServiceContainer $container): void
