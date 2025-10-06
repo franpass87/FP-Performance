@@ -9,6 +9,7 @@ use FP\PerfSuite\Services\Logs\RealtimeLog;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Capabilities;
+use FP\PerfSuite\Utils\Logger;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -84,6 +85,36 @@ class Routes
             'methods' => 'POST',
             'callback' => [$this, 'dbCleanup'],
             'permission_callback' => [$this, 'permissionCheck'],
+            'args' => [
+                'scope' => [
+                    'required' => true,
+                    'type' => 'array',
+                    'validate_callback' => function($param) {
+                        if (!is_array($param) || empty($param)) {
+                            return new WP_Error('invalid_scope', __('Scope must be a non-empty array', 'fp-performance-suite'));
+                        }
+                        $allowed = ['revisions', 'auto_drafts', 'trash_posts', 'spam_comments', 'expired_transients', 'orphan_postmeta', 'orphan_termmeta', 'orphan_usermeta', 'optimize_tables'];
+                        foreach ($param as $item) {
+                            if (!in_array($item, $allowed, true)) {
+                                return new WP_Error('invalid_scope_item', sprintf(__('Invalid scope item: %s', 'fp-performance-suite'), $item));
+                            }
+                        }
+                        return true;
+                    },
+                ],
+                'dryRun' => [
+                    'default' => true,
+                    'type' => 'boolean',
+                ],
+                'batch' => [
+                    'default' => 200,
+                    'type' => 'integer',
+                    'validate_callback' => function($param) {
+                        $value = (int) $param;
+                        return $value >= 50 && $value <= 1000;
+                    },
+                ],
+            ],
         ]);
 
         register_rest_route('fp-ps/v1', '/score', [
@@ -103,13 +134,18 @@ class Routes
     {
         $requiredCapability = Capabilities::required();
         if (!current_user_can($requiredCapability)) {
+            Logger::warning('REST API permission denied: insufficient capabilities');
             return false;
         }
         $nonce = $request->get_header('X-WP-Nonce');
         if (!$nonce) {
             $nonce = (string) $request->get_param('_wpnonce');
         }
-        return (bool) wp_verify_nonce($nonce, 'wp_rest');
+        $verified = (bool) wp_verify_nonce($nonce, 'wp_rest');
+        if (!$verified) {
+            Logger::warning('REST API permission denied: invalid nonce');
+        }
+        return $verified;
     }
 
     public function logsTail(WP_REST_Request $request)
@@ -168,8 +204,20 @@ class Routes
         $dry = $dry === null ? true : $dry;
         $batch = $request->get_param('batch');
         $batch = $batch ? (int) $batch : null;
+        
+        Logger::info('DB cleanup requested via REST API', [
+            'scope' => $scope,
+            'dryRun' => $dry,
+            'batch' => $batch,
+        ]);
+        
         $cleaner = $this->container->get(Cleaner::class);
         $result = $cleaner->cleanup($scope, $dry, $batch);
+        
+        if (isset($result['error'])) {
+            return new WP_Error('cleanup_failed', $result['error'], ['status' => 429]);
+        }
+        
         return rest_ensure_response($result);
     }
 

@@ -11,7 +11,9 @@ namespace FP\PerfSuite;
 
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
+use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
+use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -24,6 +26,8 @@ use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Htaccess;
+use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -42,6 +46,7 @@ class Plugin
         self::register($container);
         self::$container = $container;
 
+        Logger::debug('Plugin initialized', ['version' => FP_PERF_SUITE_VERSION]);
         do_action('fp_perfsuite_container_ready', $container);
 
         $container->get(Menu::class)->boot();
@@ -50,12 +55,65 @@ class Plugin
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
+            
+            // Core services
             $container->get(PageCache::class)->register();
             $container->get(Headers::class)->register();
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // New services
+            $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
+            $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
+            $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
         });
+
+        // Register WP-CLI commands
+        if (defined('WP_CLI') && WP_CLI) {
+            self::registerCliCommands();
+        }
+
+        // Register Site Health checks
+        HealthCheck::register();
+
+        // Register Query Monitor integration if available
+        QueryMonitor::register();
+    }
+
+    /**
+     * Register WP-CLI commands
+     */
+    private static function registerCliCommands(): void
+    {
+        if (!class_exists('WP_CLI')) {
+            return;
+        }
+
+        require_once FP_PERF_SUITE_DIR . '/src/Cli/Commands.php';
+        
+        \WP_CLI::add_command('fp-performance cache', [Cli\Commands::class, 'cache'], [
+            'shortdesc' => 'Manage page cache',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance db', [Cli\Commands::class, 'db'], [
+            'shortdesc' => 'Database cleanup operations',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance webp', [Cli\Commands::class, 'webp'], [
+            'shortdesc' => 'WebP conversion operations',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance score', [Cli\Commands::class, 'score'], [
+            'shortdesc' => 'Calculate performance score',
+        ]);
+        
+        \WP_CLI::add_command('fp-performance info', [Cli\Commands::class, 'info'], [
+            'shortdesc' => 'Show plugin information',
+        ]);
+
+        Logger::debug('WP-CLI commands registered');
     }
 
     private static function register(ServiceContainer $container): void
@@ -76,12 +134,19 @@ class Plugin
 
         $container->set(Env::class, static fn() => new Env());
         $container->set(Semaphore::class, static fn() => new Semaphore());
+        $container->set(RateLimiter::class, static fn() => new RateLimiter());
+
+        // New services
+        $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
+        $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
+        $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, static fn() => \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance());
+        $container->set(\FP\PerfSuite\Services\Reports\ScheduledReports::class, static fn() => new \FP\PerfSuite\Services\Reports\ScheduledReports());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
         $container->set(Optimizer::class, static fn(ServiceContainer $c) => new Optimizer($c->get(Semaphore::class)));
-        $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class)));
-        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class)));
+        $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class), $c->get(RateLimiter::class)));
+        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {
@@ -120,13 +185,18 @@ class Plugin
         }
 
         update_option('fp_perfsuite_version', $version);
-        $cleaner = new Cleaner(new Env());
+        $cleaner = new Cleaner(new Env(), new RateLimiter());
         $cleaner->primeSchedules();
         $cleaner->maybeSchedule(true);
+        
+        Logger::info('Plugin activated', ['version' => $version]);
+        do_action('fp_ps_plugin_activated', $version);
     }
 
     public static function onDeactivate(): void
     {
         wp_clear_scheduled_hook(Cleaner::CRON_HOOK);
+        Logger::info('Plugin deactivated');
+        do_action('fp_ps_plugin_deactivated');
     }
 }

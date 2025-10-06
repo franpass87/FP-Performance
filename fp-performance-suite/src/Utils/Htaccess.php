@@ -2,13 +2,9 @@
 
 namespace FP\PerfSuite\Utils;
 
-use function error_log;
-
 class Htaccess
 {
     private Fs $fs;
-
-    private const LOG_PREFIX = '[FP Performance Suite] ';
     private const MAX_BACKUPS = 3;
 
     public function __construct(Fs $fs)
@@ -46,9 +42,10 @@ class Htaccess
             $this->pruneBackups($file);
             $backup = $file . '.bak-' . gmdate('YmdHis');
             $this->fs->copy($file, $backup, true);
+            Logger::info('.htaccess backup created', ['backup' => basename($backup)]);
             return $backup;
         } catch (\Throwable $e) {
-            error_log(self::LOG_PREFIX . 'Failed to back up .htaccess: ' . $e->getMessage());
+            Logger::error('Failed to back up .htaccess', $e);
             return null;
         }
     }
@@ -74,7 +71,7 @@ class Htaccess
             try {
                 $this->fs->delete($oldest);
             } catch (\Throwable $e) {
-                error_log(self::LOG_PREFIX . 'Failed to prune .htaccess backup: ' . $e->getMessage());
+                Logger::error('Failed to prune .htaccess backup', $e);
                 break;
             }
         }
@@ -106,9 +103,14 @@ class Htaccess
             }
 
             $this->backup($file);
-            return $this->fs->putContents($file, $updated);
+            $result = $this->fs->putContents($file, $updated);
+            if ($result) {
+                Logger::info('.htaccess rules injected', ['section' => $section]);
+                do_action('fp_ps_htaccess_updated', $section, $rules);
+            }
+            return $result;
         } catch (\Throwable $e) {
-            error_log(self::LOG_PREFIX . 'Failed to inject .htaccess rules: ' . $e->getMessage());
+            Logger::error('Failed to inject .htaccess rules', $e);
             return false;
         }
     }
@@ -129,9 +131,14 @@ class Htaccess
             }
             $updated = preg_replace($pattern, '', $existing, 1);
             $this->backup($file);
-            return $this->fs->putContents($file, (string) $updated);
+            $result = $this->fs->putContents($file, (string) $updated);
+            if ($result) {
+                Logger::info('.htaccess section removed', ['section' => $section]);
+                do_action('fp_ps_htaccess_section_removed', $section);
+            }
+            return $result;
         } catch (\Throwable $e) {
-            error_log(self::LOG_PREFIX . 'Failed to remove .htaccess section: ' . $e->getMessage());
+            Logger::error('Failed to remove .htaccess section', $e);
             return false;
         }
     }
@@ -149,7 +156,7 @@ class Htaccess
             $pattern = sprintf('/%s\s*.*?\s*%s/s', preg_quote($markerStart, '/'), preg_quote($markerEnd, '/'));
             return preg_match($pattern, $contents) === 1;
         } catch (\Throwable $e) {
-            error_log(self::LOG_PREFIX . 'Failed to read .htaccess: ' . $e->getMessage());
+            Logger::error('Failed to read .htaccess', $e);
             return false;
         }
     }
