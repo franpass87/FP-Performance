@@ -136,6 +136,13 @@ class Plugin
         $container->set(Semaphore::class, static fn() => new Semaphore());
         $container->set(RateLimiter::class, static fn() => new RateLimiter());
 
+        // Asset optimization modular components
+        $container->set(\FP\PerfSuite\Services\Assets\HtmlMinifier::class, static fn() => new \FP\PerfSuite\Services\Assets\HtmlMinifier());
+        $container->set(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ScriptOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\WordPressOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager());
+        $container->set(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class, static fn() => new \FP\PerfSuite\Services\Assets\Combiners\DependencyResolver());
+
         // New services
         $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
         $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
@@ -144,7 +151,16 @@ class Plugin
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
-        $container->set(Optimizer::class, static fn(ServiceContainer $c) => new Optimizer($c->get(Semaphore::class)));
+        $container->set(Optimizer::class, static function (ServiceContainer $c) {
+            return new Optimizer(
+                $c->get(Semaphore::class),
+                $c->get(\FP\PerfSuite\Services\Assets\HtmlMinifier::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)
+            );
+        });
         $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class), $c->get(RateLimiter::class)));
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
