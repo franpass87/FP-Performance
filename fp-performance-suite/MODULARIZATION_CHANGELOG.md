@@ -2,6 +2,65 @@
 
 ## [Unreleased] - 2025-10-07
 
+### 🎉 Modularizzazione Fase 2 - WebP Converter
+
+#### ✨ Aggiunto
+
+**Services/Media/WebP/**
+- `WebPImageConverter.php` - Motore conversione immagini (Imagick/GD)
+- `WebPQueue.php` - Gestione coda conversioni bulk
+- `WebPBatchProcessor.php` - Processamento batch via cron
+- `WebPAttachmentProcessor.php` - Processamento attachment WordPress
+- `WebPPathHelper.php` - Utilità manipolazione path WebP
+
+**Documentazione**
+- `src/Services/Media/WebP/README.md` - Guida moduli WebP
+
+#### 🔄 Modificato
+
+**Services/Media/WebPConverter.php**
+- **Ridotto da 506 a 239 righe** (-53%)
+- Convertito da classe monolitica a orchestratore
+- Aggiunto supporto dependency injection per tutti i moduli
+- Aggiunti metodi getter per accedere ai componenti modulari:
+  - `getImageConverter()`
+  - `getQueue()`
+  - `getBatchProcessor()`
+  - `getAttachmentProcessor()`
+  - `getPathHelper()`
+- Mantenuta piena retrocompatibilità con API esistente
+
+**src/Plugin.php**
+- Aggiornato `ServiceContainer` per registrare nuovi moduli WebP
+- Modificata registrazione `WebPConverter::class` per usare dependency injection
+- Aggiunte registrazioni per:
+  - `WebPImageConverter::class`
+  - `WebPQueue::class`
+  - `WebPBatchProcessor::class`
+  - `WebPAttachmentProcessor::class`
+  - `WebPPathHelper::class`
+
+#### 🗑️ Deprecato
+
+```php
+/**
+ * @deprecated Use WebPImageConverter::convert() directly
+ */
+public function convert(string $file, array $settings, bool $force = false): bool
+```
+
+#### 📊 Metriche Modularizzazione WebP
+
+| Metrica | Prima | Dopo | Δ |
+|---------|-------|------|---|
+| File WebPConverter.php | 506 righe | 239 righe | -53% |
+| Classi modulo WebP | 1 | 6 | +500% |
+| Responsabilità/classe | Molte | 1 | SRP ✅ |
+
+---
+
+## [Modularizzazione Fase 1] - 2025-10-07
+
 ### ✨ Aggiunto
 
 #### Nuove Classi Modulari
