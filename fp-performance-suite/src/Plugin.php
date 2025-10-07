@@ -136,6 +136,30 @@ class Plugin
         $container->set(Semaphore::class, static fn() => new Semaphore());
         $container->set(RateLimiter::class, static fn() => new RateLimiter());
 
+        // Asset optimization modular components
+        $container->set(\FP\PerfSuite\Services\Assets\HtmlMinifier::class, static fn() => new \FP\PerfSuite\Services\Assets\HtmlMinifier());
+        $container->set(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ScriptOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\WordPressOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager());
+        $container->set(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class, static fn() => new \FP\PerfSuite\Services\Assets\Combiners\DependencyResolver());
+
+        // WebP conversion modular components
+        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPPathHelper());
+        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPImageConverter());
+        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Media\WebP\WebPQueue($c->get(RateLimiter::class)));
+        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor(
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
+            );
+        });
+        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor(
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)
+            );
+        });
+
         // New services
         $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
         $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
@@ -144,8 +168,27 @@ class Plugin
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
-        $container->set(Optimizer::class, static fn(ServiceContainer $c) => new Optimizer($c->get(Semaphore::class)));
-        $container->set(WebPConverter::class, static fn(ServiceContainer $c) => new WebPConverter($c->get(Fs::class), $c->get(RateLimiter::class)));
+        $container->set(Optimizer::class, static function (ServiceContainer $c) {
+            return new Optimizer(
+                $c->get(Semaphore::class),
+                $c->get(\FP\PerfSuite\Services\Assets\HtmlMinifier::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)
+            );
+        });
+        $container->set(WebPConverter::class, static function (ServiceContainer $c) {
+            return new WebPConverter(
+                $c->get(Fs::class),
+                $c->get(RateLimiter::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class),
+                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
+            );
+        });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
