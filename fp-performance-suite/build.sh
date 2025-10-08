@@ -98,6 +98,20 @@ RSYNC_EXCLUDES=(
     "--exclude=build"
     "--exclude=.gitattributes"
     "--exclude=.gitignore"
+    "--exclude=phpunit.xml.dist"
+    "--exclude=phpcs.xml.dist"
+    "--exclude=phpstan.neon.dist"
+    "--exclude=composer.lock"
+    "--exclude=.phpunit.result.cache"
+    "--exclude=wp-content"
+    "--exclude=wp-admin"
+    "--exclude=wp-includes"
+    "--exclude=📋*.txt"
+    "--exclude=📚*.md"
+    "--exclude=🎉*.md"
+    "--exclude=examples"
+    "--exclude=tools"
+    "--exclude=bin"
 )
 
 rsync -a --delete "${RSYNC_EXCLUDES[@]}" ./ "$STAGING_DIR"/
