@@ -1,13 +1,14 @@
 <?php
 
-namespace FP\PerfSuite;
-
 /**
- * Boots FP Performance Suite services and admin integrations.
+ * Plugin main class file.
  *
+ * @package FP\PerfSuite
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
+
+namespace FP\PerfSuite;
 
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
