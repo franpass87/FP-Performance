@@ -35,11 +35,11 @@ class WebPConvertedEvent extends Event
     {
         $originalSize = (int)$this->get('original_size', 0);
         $webpSize = (int)$this->get('webp_size', 0);
-        
+
         if ($originalSize === 0) {
             return 0.0;
         }
-        
+
         return round((($originalSize - $webpSize) / $originalSize) * 100, 2);
     }
 }

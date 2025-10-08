@@ -9,6 +9,7 @@ use FP\PerfSuite\Services\Media\WebP\WebPPathHelper;
 use FP\PerfSuite\Services\Media\WebP\WebPQueue;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\RateLimiter;
+
 use function add_action;
 use function add_filter;
 use function get_option;
@@ -23,9 +24,9 @@ use function wp_update_attachment_metadata;
 
 /**
  * WebP Conversion Orchestrator
- * 
+ *
  * Coordinates WebP conversion modules for automatic and bulk conversions
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -78,7 +79,7 @@ class WebPConverter
 
     /**
      * Get current settings
-     * 
+     *
      * @return array{enabled:bool,quality:int,keep_original:bool,lossy:bool}
      */
     public function settings(): array
@@ -97,20 +98,20 @@ class WebPConverter
         $current = $this->settings();
         $quality = isset($settings['quality']) ? (int) $settings['quality'] : $current['quality'];
         $quality = max(1, min(100, $quality));
-        
+
         $new = [
             'enabled' => !empty($settings['enabled']),
             'quality' => $quality,
             'keep_original' => !empty($settings['keep_original']),
             'lossy' => !empty($settings['lossy']),
         ];
-        
+
         update_option(self::OPTION, $new);
     }
 
     /**
      * Generate WebP on attachment upload/update
-     * 
+     *
      * @param array<string, mixed> $metadata
      * @param int $attachment_id
      * @return array<string, mixed>
@@ -128,12 +129,12 @@ class WebPConverter
 
     /**
      * Convert single file to WebP
-     * 
+     *
      * @param string $file File path
      * @param array<string, mixed> $settings Conversion settings
      * @param bool $force Force reconversion
      * @return bool True if conversion was successful
-     * 
+     *
      * @deprecated Use WebPImageConverter::convert() directly
      */
     public function convert(string $file, array $settings, bool $force = false): bool
@@ -144,7 +145,7 @@ class WebPConverter
 
     /**
      * Start bulk conversion
-     * 
+     *
      * @param int $limit Maximum number of images
      * @param int $offset Starting offset
      * @return array{converted:int,total:int,queued:bool,error?:string}
@@ -165,40 +166,40 @@ class WebPConverter
 
     /**
      * Calculate WebP coverage percentage
-     * 
+     *
      * @return float Percentage of images converted to WebP
      */
     public function coverage(): float
     {
         $attachments = wp_count_attachments('image');
         $count = 0;
-        
+
         if (is_object($attachments) && property_exists($attachments, 'inherit')) {
             $count = (int) $attachments->inherit;
         }
-        
+
         if ($count === 0) {
             return 100.0;
         }
-        
+
         global $wpdb;
         $query = $wpdb->prepare(
             "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
             self::CONVERSION_META,
             '1'
         );
-        
+
         if ($query === false) {
             return 0.0;
         }
-        
+
         $webp = (int) $wpdb->get_var($query);
         return min(100.0, ($webp / $count) * 100);
     }
 
     /**
      * Get conversion status
-     * 
+     *
      * @return array{enabled:bool,quality:int,coverage:float}
      */
     public function status(): array
@@ -212,7 +213,7 @@ class WebPConverter
     }
 
     // Getters for modular components (useful for testing and extension)
-    
+
     public function getImageConverter(): WebPImageConverter
     {
         return $this->imageConverter;

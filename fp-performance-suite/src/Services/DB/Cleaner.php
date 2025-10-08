@@ -6,6 +6,7 @@ use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use wpdb;
+
 use function __;
 use function add_action;
 use function add_filter;
@@ -160,7 +161,7 @@ class Cleaner
         global $wpdb;
         $batch = $batch ?: $this->settings()['batch'];
         $results = [];
-        
+
         Logger::info('Database cleanup started', [
             'scope' => $scope,
             'dryRun' => $dryRun,
@@ -204,7 +205,7 @@ class Cleaner
             'totalDeleted' => $totalDeleted,
             'dryRun' => $dryRun,
         ]);
-        
+
         do_action('fp_ps_db_cleanup_complete', $results, $dryRun);
 
         return $results;

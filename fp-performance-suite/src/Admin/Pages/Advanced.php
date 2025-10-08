@@ -10,7 +10,7 @@ use FP\PerfSuite\Services\Reports\ScheduledReports;
 
 /**
  * Advanced Features Admin Page
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -19,7 +19,7 @@ class Advanced extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-        
+
         // Handle form submissions
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleSave']);
     }
@@ -94,7 +94,7 @@ class Advanced extends AbstractPage
     {
         $criticalCss = new CriticalCss();
         $status = $criticalCss->status();
-        
+
         ob_start();
         ?>
         <div class="fp-ps-card">
@@ -133,7 +133,7 @@ class Advanced extends AbstractPage
     {
         $cdn = new CdnManager();
         $settings = $cdn->settings();
-        
+
         ob_start();
         ?>
         <div class="fp-ps-card">
@@ -184,7 +184,7 @@ class Advanced extends AbstractPage
     {
         $monitor = PerformanceMonitor::instance();
         $settings = $monitor->settings();
-        
+
         ob_start();
         ?>
         <div class="fp-ps-card">
@@ -223,7 +223,7 @@ class Advanced extends AbstractPage
     {
         $reports = new ScheduledReports();
         $settings = $reports->settings();
-        
+
         ob_start();
         ?>
         <div class="fp-ps-card">

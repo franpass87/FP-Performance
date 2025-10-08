@@ -4,7 +4,7 @@ Tags: performance, caching, optimization, webp, database
 Requires at least: 6.2
 Tested up to: 6.5
 Requires PHP: 8.0
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin Homepage: https://francescopasseri.com
@@ -61,10 +61,24 @@ Only when you enable features that require it. Every change is safeguarded with 
 
 == Changelog ==
 
+= 1.1.0 =
+* Major enhancement release with 45+ improvements
+* Added centralized logging system with configurable levels
+* Added rate limiting for resource-intensive operations
+* Added settings caching to reduce database queries
+* Added WP-CLI commands for automation
+* Extended hook system with 15+ new actions and filters
+* Modern admin notices and progress indicators
+* Comprehensive developer documentation
+* See `CHANGELOG.md` for complete details
+
 = 1.0.1 =
-* See `CHANGELOG.md` for the complete release history.
+* Initial public release with caching, optimization, WebP, database, logging, and preset modules
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Major feature release with improved logging, rate limiting, WP-CLI support, and extended hooks system. Safe to upgrade from 1.0.1.
 
 = 1.0.1 =
 Initial public release with caching, optimization, WebP, database, logging, and preset modules.

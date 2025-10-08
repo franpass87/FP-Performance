@@ -28,6 +28,17 @@ if (!function_exists('add_action')) {
     }
 }
 
+if (!function_exists('do_action')) {
+    function do_action($hook, ...$args)
+    {
+        if (!empty($GLOBALS['__hooks'][$hook])) {
+            foreach ($GLOBALS['__hooks'][$hook] as $callback) {
+                call_user_func_array($callback, $args);
+            }
+        }
+    }
+}
+
 if (!function_exists('add_filter')) {
     function add_filter($hook, $callback, $priority = 10, $accepted_args = 1)
     {
@@ -130,6 +141,14 @@ if (!function_exists('get_option')) {
     function get_option($name, $default = false)
     {
         return $GLOBALS['__wp_options'][$name] ?? $default;
+    }
+}
+
+if (!function_exists('delete_option')) {
+    function delete_option($name)
+    {
+        unset($GLOBALS['__wp_options'][$name]);
+        return true;
     }
 }
 
@@ -342,10 +361,26 @@ if (!class_exists('WP_Scripts')) {
     }
 }
 
+if (!function_exists('get_transient')) {
+    function get_transient($name)
+    {
+        return $GLOBALS['__transients'][$name] ?? false;
+    }
+}
+
+if (!function_exists('set_transient')) {
+    function set_transient($name, $value, $expiration = 0)
+    {
+        $GLOBALS['__transients'][$name] = $value;
+        return true;
+    }
+}
+
 if (!function_exists('delete_transient')) {
     function delete_transient($name)
     {
         unset($GLOBALS['__transients'][$name]);
+        return true;
     }
 }
 

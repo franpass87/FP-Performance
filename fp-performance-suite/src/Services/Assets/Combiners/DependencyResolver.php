@@ -13,9 +13,9 @@ use function usort;
 
 /**
  * Dependency Resolver for Asset Combination
- * 
+ *
  * Performs topological sort on dependencies to determine safe combination order
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -23,7 +23,7 @@ class DependencyResolver
 {
     /**
      * Resolve dependencies using topological sort
-     * 
+     *
      * @param array<string, array{handle:string,path:string,url:string,deps:array<int,string>}> $candidates
      * @param array<string, int> $positions Original queue positions
      * @return array<int, string>|null Ordered handles or null if circular dependency
@@ -101,7 +101,7 @@ class DependencyResolver
 
     /**
      * Filter candidates that have external dependencies
-     * 
+     *
      * @param array<string, array{handle:string,path:string,url:string,deps:array<int,string>}> $candidates
      * @param array<string, bool> $queueLookup Map of all queued handles
      * @return array<string, array{handle:string,path:string,url:string,deps:array<int,string>}>
@@ -130,7 +130,7 @@ class DependencyResolver
 
     /**
      * Normalize dependencies array
-     * 
+     *
      * @param mixed $depsProperty
      * @return array<int, string>
      */

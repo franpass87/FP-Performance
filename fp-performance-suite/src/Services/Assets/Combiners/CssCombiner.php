@@ -14,9 +14,9 @@ use function wp_register_style;
 
 /**
  * CSS Asset Combiner
- * 
+ *
  * Combines multiple CSS files into a single file to reduce HTTP requests
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -37,7 +37,7 @@ class CssCombiner extends AssetCombinerBase
 
     /**
      * Combine CSS styles
-     * 
+     *
      * @return bool True if combination was successful
      */
     public function combine(): bool
@@ -77,7 +77,7 @@ class CssCombiner extends AssetCombinerBase
 
     /**
      * Combine dependency group
-     * 
+     *
      * @param \WP_Dependencies $collection
      * @return array{handles:array<int,string>,url:string}|null
      */

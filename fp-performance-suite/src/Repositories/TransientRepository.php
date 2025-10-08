@@ -4,9 +4,9 @@ namespace FP\PerfSuite\Repositories;
 
 /**
  * Transient-based temporary storage repository
- * 
+ *
  * For caching and temporary data
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -28,13 +28,13 @@ class TransientRepository
     {
         $fullKey = $this->prefix . $key;
         $value = get_transient($fullKey);
-        
+
         return $value === false ? $default : $value;
     }
 
     /**
      * Set transient value
-     * 
+     *
      * @param string $key Transient key
      * @param mixed $value Value to store
      * @param int|null $expiration Expiration in seconds (null uses default)
@@ -44,7 +44,7 @@ class TransientRepository
     {
         $fullKey = $this->prefix . $key;
         $expiration = $expiration ?? $this->defaultExpiration;
-        
+
         return set_transient($fullKey, $value, $expiration);
     }
 
@@ -68,9 +68,9 @@ class TransientRepository
 
     /**
      * Remember value with callback
-     * 
+     *
      * Get from cache or generate and cache result
-     * 
+     *
      * @param string $key Cache key
      * @param callable $callback Function to generate value if not cached
      * @param int|null $expiration Expiration in seconds
@@ -79,20 +79,20 @@ class TransientRepository
     public function remember(string $key, callable $callback, ?int $expiration = null)
     {
         $value = $this->get($key);
-        
+
         if ($value !== null) {
             return $value;
         }
-        
+
         $value = $callback();
         $this->set($key, $value, $expiration);
-        
+
         return $value;
     }
 
     /**
      * Increment numeric value
-     * 
+     *
      * @param string $key Transient key
      * @param int $amount Amount to increment by
      * @return int New value
@@ -102,13 +102,13 @@ class TransientRepository
         $value = (int)$this->get($key, 0);
         $newValue = $value + $amount;
         $this->set($key, $newValue);
-        
+
         return $newValue;
     }
 
     /**
      * Decrement numeric value
-     * 
+     *
      * @param string $key Transient key
      * @param int $amount Amount to decrement by
      * @return int New value
@@ -118,19 +118,19 @@ class TransientRepository
         $value = (int)$this->get($key, 0);
         $newValue = max(0, $value - $amount);
         $this->set($key, $newValue);
-        
+
         return $newValue;
     }
 
     /**
      * Clear all transients with this prefix
-     * 
+     *
      * @return int Number of transients deleted
      */
     public function clear(): int
     {
         global $wpdb;
-        
+
         $pattern = '_transient_' . $wpdb->esc_like($this->prefix) . '%';
         $count = $wpdb->query(
             $wpdb->prepare(
@@ -138,7 +138,7 @@ class TransientRepository
                 $pattern
             )
         );
-        
+
         // Also delete timeout keys
         $timeoutPattern = '_transient_timeout_' . $wpdb->esc_like($this->prefix) . '%';
         $wpdb->query(
@@ -147,7 +147,7 @@ class TransientRepository
                 $timeoutPattern
             )
         );
-        
+
         return (int)$count;
     }
 }

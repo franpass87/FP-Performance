@@ -13,9 +13,9 @@ use function wp_register_script;
 
 /**
  * JavaScript Asset Combiner
- * 
+ *
  * Combines multiple JS files into a single file to reduce HTTP requests
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -39,7 +39,7 @@ class JsCombiner extends AssetCombinerBase
 
     /**
      * Combine JavaScript files
-     * 
+     *
      * @param bool $footer Whether to combine footer scripts
      * @return bool True if combination was successful
      */
@@ -83,7 +83,7 @@ class JsCombiner extends AssetCombinerBase
 
     /**
      * Combine dependency group
-     * 
+     *
      * @param \WP_Dependencies $collection
      * @param int $group Group identifier (0 for head, 1 for footer)
      * @return array{handles:array<int,string>,url:string}|null
@@ -194,7 +194,7 @@ class JsCombiner extends AssetCombinerBase
 
     /**
      * Check if item matches the target group
-     * 
+     *
      * @param object $item
      * @param int $group
      * @return bool
@@ -212,7 +212,7 @@ class JsCombiner extends AssetCombinerBase
 
     /**
      * Check if scripts have been combined
-     * 
+     *
      * @param bool|null $footer Check specific location, or null for any
      */
     public function isCombined(?bool $footer = null): bool
@@ -226,7 +226,7 @@ class JsCombiner extends AssetCombinerBase
 
     /**
      * Reset combination state
-     * 
+     *
      * @param bool|null $footer Reset specific location, or null for all
      */
     public function reset(?bool $footer = null): void

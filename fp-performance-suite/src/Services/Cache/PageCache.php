@@ -6,6 +6,7 @@ use FP\PerfSuite\Contracts\CacheInterface;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Logger;
+
 use function headers_list;
 use function is_user_logged_in;
 use function wp_cache_get_cookies_values;
@@ -216,8 +217,10 @@ class PageCache implements CacheInterface
             $this->finishBuffering();
             return;
         }
-        if ((function_exists('is_404') && is_404()) || (function_exists('is_search') && is_search()) ||
-            (function_exists('is_feed') && is_feed()) || (function_exists('is_preview') && is_preview())) {
+        if (
+            (function_exists('is_404') && is_404()) || (function_exists('is_search') && is_search()) ||
+            (function_exists('is_feed') && is_feed()) || (function_exists('is_preview') && is_preview())
+        ) {
             $this->finishBuffering();
             return;
         }

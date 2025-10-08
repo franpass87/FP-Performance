@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Enums;
 
 /**
  * Cache Type Enumeration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -21,7 +21,7 @@ enum CacheType: string
      */
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PAGE => __('Page Cache', 'fp-performance-suite'),
             self::BROWSER => __('Browser Cache', 'fp-performance-suite'),
             self::OBJECT => __('Object Cache', 'fp-performance-suite'),
@@ -35,7 +35,7 @@ enum CacheType: string
      */
     public function description(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PAGE => __('Stores rendered HTML pages on disk', 'fp-performance-suite'),
             self::BROWSER => __('Controls browser caching via headers', 'fp-performance-suite'),
             self::OBJECT => __('Caches database query results in memory', 'fp-performance-suite'),
@@ -49,7 +49,7 @@ enum CacheType: string
      */
     public function icon(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PAGE => '📄',
             self::BROWSER => '🌐',
             self::OBJECT => '💾',

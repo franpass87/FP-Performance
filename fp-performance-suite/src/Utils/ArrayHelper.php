@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Utils;
 
 /**
  * Array manipulation helpers
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -12,7 +12,7 @@ class ArrayHelper
 {
     /**
      * Get value from array using dot notation
-     * 
+     *
      * @example get(['user' => ['name' => 'John']], 'user.name') => 'John'
      */
     public static function get(array $array, string $key, $default = null)
@@ -90,7 +90,7 @@ class ArrayHelper
 
         foreach ($array as $item) {
             $value = is_object($item) ? ($item->$column ?? null) : ($item[$column] ?? null);
-            
+
             if ($key !== null) {
                 $keyValue = is_object($item) ? ($item->$key ?? null) : ($item[$key] ?? null);
                 $results[$keyValue] = $value;
@@ -131,11 +131,11 @@ class ArrayHelper
 
         foreach ($array as $item) {
             $groupKey = is_object($item) ? ($item->$key ?? 'other') : ($item[$key] ?? 'other');
-            
+
             if (!isset($groups[$groupKey])) {
                 $groups[$groupKey] = [];
             }
-            
+
             $groups[$groupKey][] = $item;
         }
 
@@ -179,10 +179,10 @@ class ArrayHelper
      */
     public static function sortBy(array $array, string $column, bool $descending = false): array
     {
-        usort($array, function($a, $b) use ($column, $descending) {
+        usort($array, function ($a, $b) use ($column, $descending) {
             $aVal = is_object($a) ? ($a->$column ?? null) : ($a[$column] ?? null);
             $bVal = is_object($b) ? ($b->$column ?? null) : ($b[$column] ?? null);
-            
+
             $comparison = $aVal <=> $bVal;
             return $descending ? -$comparison : $comparison;
         });

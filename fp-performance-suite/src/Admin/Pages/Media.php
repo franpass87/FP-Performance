@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Media\WebPConverter;
+
 use function __;
 use function checked;
 use function esc_attr;

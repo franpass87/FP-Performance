@@ -13,6 +13,7 @@ use FP\PerfSuite\Utils\Logger;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
+
 use function current_user_can;
 use function esc_html;
 use function esc_html__;
@@ -89,7 +90,7 @@ class Routes
                 'scope' => [
                     'required' => true,
                     'type' => 'array',
-                    'validate_callback' => function($param) {
+                    'validate_callback' => function ($param) {
                         if (!is_array($param) || empty($param)) {
                             return new WP_Error('invalid_scope', __('Scope must be a non-empty array', 'fp-performance-suite'));
                         }
@@ -109,7 +110,7 @@ class Routes
                 'batch' => [
                     'default' => 200,
                     'type' => 'integer',
-                    'validate_callback' => function($param) {
+                    'validate_callback' => function ($param) {
                         $value = (int) $param;
                         return $value >= 50 && $value <= 1000;
                     },
@@ -204,20 +205,20 @@ class Routes
         $dry = $dry === null ? true : $dry;
         $batch = $request->get_param('batch');
         $batch = $batch ? (int) $batch : null;
-        
+
         Logger::info('DB cleanup requested via REST API', [
             'scope' => $scope,
             'dryRun' => $dry,
             'batch' => $batch,
         ]);
-        
+
         $cleaner = $this->container->get(Cleaner::class);
         $result = $cleaner->cleanup($scope, $dry, $batch);
-        
+
         if (isset($result['error'])) {
             return new WP_Error('cleanup_failed', $result['error'], ['status' => 429]);
         }
-        
+
         return rest_ensure_response($result);
     }
 

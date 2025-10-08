@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Media\WebPConverter;
+
 use function __;
 use function array_key_exists;
 use function esc_attr;
@@ -30,6 +31,7 @@ use function wp_json_encode;
 use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
+
 use const FILTER_NULL_ON_FAILURE;
 use const FILTER_VALIDATE_BOOLEAN;
 use const FILTER_VALIDATE_INT;

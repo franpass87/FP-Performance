@@ -9,10 +9,10 @@ use function remove_filter;
 
 /**
  * WordPress Core Optimizations
- * 
+ *
  * Handles WordPress-specific optimizations like removing emoji scripts
  * and controlling the heartbeat API
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -34,7 +34,7 @@ class WordPressOptimizer
 
     /**
      * Configure WordPress heartbeat interval
-     * 
+     *
      * @param array<string, mixed> $settings Current heartbeat settings
      * @param int $interval Desired interval in seconds
      * @return array<string, mixed> Modified settings
@@ -47,12 +47,12 @@ class WordPressOptimizer
 
     /**
      * Register heartbeat filter with given interval
-     * 
+     *
      * @param int $interval Heartbeat interval in seconds
      */
     public function registerHeartbeat(int $interval): void
     {
-        add_filter('heartbeat_settings', function(array $settings) use ($interval) {
+        add_filter('heartbeat_settings', function (array $settings) use ($interval) {
             return $this->configureHeartbeat($settings, $interval);
         });
     }

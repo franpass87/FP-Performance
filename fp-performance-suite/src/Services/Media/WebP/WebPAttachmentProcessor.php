@@ -14,9 +14,9 @@ use function update_post_meta;
 
 /**
  * WebP Attachment Processor
- * 
+ *
  * Processes individual WordPress attachments and their sizes for WebP conversion
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -37,7 +37,7 @@ class WebPAttachmentProcessor
 
     /**
      * Process attachment for WebP conversion
-     * 
+     *
      * @param int $attachmentId WordPress attachment ID
      * @param array<string,mixed> $metadata Attachment metadata
      * @param array{quality:int,lossy:bool,keep_original:bool} $settings Conversion settings
@@ -56,11 +56,11 @@ class WebPAttachmentProcessor
         if ($file && file_exists($file)) {
             $baseDir = dirname($file);
             $webpFile = $this->pathHelper->getWebPPath($file);
-            
+
             if ($this->converter->convert($file, $webpFile, $settings, $force)) {
                 $converted = true;
             }
-            
+
             if (file_exists($webpFile)) {
                 $hasWebp = true;
                 $metadata = $this->updateMainFileMetadata($metadata, $file, $webpFile, $settings);
@@ -93,9 +93,9 @@ class WebPAttachmentProcessor
             'quality' => (int) $settings['quality'],
             'lossy' => (bool) $settings['lossy'],
         ];
-        
+
         $storedSignature = get_post_meta($attachmentId, self::SETTINGS_META, true);
-        
+
         return !is_array($storedSignature)
             || (int) ($storedSignature['quality'] ?? -1) !== $settingsSignature['quality']
             || (bool) ($storedSignature['lossy'] ?? true) !== $settingsSignature['lossy'];
@@ -103,7 +103,7 @@ class WebPAttachmentProcessor
 
     /**
      * Update metadata for main file
-     * 
+     *
      * @param array<string,mixed> $metadata
      * @param string $originalFile
      * @param string $webpFile
@@ -119,7 +119,7 @@ class WebPAttachmentProcessor
             if (!empty($metadata['original_image'])) {
                 $metadata['original_image'] = $this->pathHelper->withWebPExtension($metadata['original_image']);
             }
-            
+
             $filesize = $this->pathHelper->safeFilesize($webpFile);
             if ($filesize !== null) {
                 $metadata['filesize'] = $filesize;
@@ -127,9 +127,9 @@ class WebPAttachmentProcessor
                     $metadata['original_image_filesize'] = $filesize;
                 }
             }
-            
+
             $metadata['mime-type'] = self::WEBP_MIME;
-            
+
             if (file_exists($originalFile)) {
                 @unlink($originalFile);
             }
@@ -140,7 +140,7 @@ class WebPAttachmentProcessor
 
     /**
      * Process image sizes
-     * 
+     *
      * @param array<string,array<string,mixed>> $sizes
      * @param string $baseDir
      * @param array{quality:int,lossy:bool,keep_original:bool} $settings
@@ -156,32 +156,32 @@ class WebPAttachmentProcessor
             if (empty($sizeData['file'])) {
                 continue;
             }
-            
+
             $path = $baseDir !== '' ? path_join($baseDir, $sizeData['file']) : '';
             if ($path === '' || !file_exists($path)) {
                 continue;
             }
-            
+
             $sizeWebp = $this->pathHelper->getWebPPath($path);
-            
+
             if ($this->converter->convert($path, $sizeWebp, $settings, $force)) {
                 $converted = true;
             }
-            
+
             if (file_exists($sizeWebp)) {
                 $hasWebp = true;
-                
+
                 if (!$settings['keep_original']) {
                     $sizes[$sizeKey]['file'] = $this->pathHelper->withWebPExtension($sizeData['file']);
                     $sizes[$sizeKey]['mime-type'] = self::WEBP_MIME;
-                    
+
                     if (isset($sizes[$sizeKey]['filesize'])) {
                         $sizeFilesize = $this->pathHelper->safeFilesize($sizeWebp);
                         if ($sizeFilesize !== null) {
                             $sizes[$sizeKey]['filesize'] = $sizeFilesize;
                         }
                     }
-                    
+
                     if (file_exists($path)) {
                         @unlink($path);
                     }
@@ -198,7 +198,7 @@ class WebPAttachmentProcessor
 
     /**
      * Update post metadata
-     * 
+     *
      * @param int $attachmentId
      * @param bool $hasWebp
      * @param array{quality:int,lossy:bool,keep_original:bool} $settings
@@ -212,7 +212,7 @@ class WebPAttachmentProcessor
                 'quality' => (int) $settings['quality'],
                 'lossy' => (bool) $settings['lossy'],
             ]);
-            
+
             if (!$settings['keep_original'] && !empty($metadata['file'])) {
                 update_attached_file($attachmentId, $metadata['file']);
             }

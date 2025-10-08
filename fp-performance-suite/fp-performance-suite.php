@@ -3,7 +3,7 @@
  * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
  * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -28,7 +28,7 @@ if (is_readable($autoload)) {
     });
 }
 
-define('FP_PERF_SUITE_VERSION', '1.0.1');
+define('FP_PERF_SUITE_VERSION', '1.1.0');
 define('FP_PERF_SUITE_DIR', __DIR__);
 
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);

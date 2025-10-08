@@ -115,15 +115,22 @@ final class OptimizerTest extends TestCase
 
     public function testPreloadResourcesProvideStructuredHints(): void
     {
-        update_option('fp_ps_assets', [
-            'preload' => [
-                'https://cdn.test/app.js',
-                'https://cdn.test/font.woff2',
-                'https://cdn.test/data',
-            ],
-        ]);
+        $preloadUrls = [
+            'https://cdn.test/app.js',
+            'https://cdn.test/font.woff2',
+            'https://cdn.test/data',
+        ];
 
-        $optimizer = new Optimizer(new Semaphore());
+        $resourceHints = new \FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager();
+        $resourceHints->setPreloadUrls($preloadUrls);
+
+        $optimizer = new Optimizer(
+            new Semaphore(),
+            null,
+            null,
+            null,
+            $resourceHints
+        );
 
         $existing = [
             ['href' => 'https://existing.test/style.css', 'as' => 'STYLE', 'crossorigin' => 'anonymous'],

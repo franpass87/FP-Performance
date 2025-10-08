@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Utils;
 
 /**
  * Benchmarking utility for performance testing
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -35,7 +35,7 @@ class Benchmark
 
         $end = microtime(true);
         $memoryEnd = memory_get_usage(true);
-        
+
         self::$timers[$name]['end'] = $end;
         self::$timers[$name]['duration'] = $end - self::$timers[$name]['start'];
         self::$timers[$name]['memory_end'] = $memoryEnd;
@@ -52,7 +52,7 @@ class Benchmark
         self::start($name);
         $result = $callback();
         self::stop($name);
-        
+
         return $result;
     }
 
@@ -80,7 +80,7 @@ class Benchmark
         if (!isset(self::$counters[$name])) {
             self::$counters[$name] = 0;
         }
-        
+
         self::$counters[$name] += $amount;
         return self::$counters[$name];
     }
@@ -110,11 +110,11 @@ class Benchmark
         if ($seconds < 0.001) {
             return number_format($seconds * 1000000, 0) . ' μs';
         }
-        
+
         if ($seconds < 1) {
             return number_format($seconds * 1000, 2) . ' ms';
         }
-        
+
         return number_format($seconds, 3) . ' s';
     }
 
@@ -125,7 +125,7 @@ class Benchmark
     {
         $units = ['B', 'KB', 'MB', 'GB'];
         $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
-        
+
         return number_format($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
     }
 
@@ -135,7 +135,7 @@ class Benchmark
     public static function report(): string
     {
         $output = "=== Benchmark Report ===\n\n";
-        
+
         if (!empty(self::$timers)) {
             $output .= "Timers:\n";
             foreach (self::$timers as $name => $data) {
@@ -150,14 +150,14 @@ class Benchmark
             }
             $output .= "\n";
         }
-        
+
         if (!empty(self::$counters)) {
             $output .= "Counters:\n";
             foreach (self::$counters as $name => $value) {
                 $output .= sprintf("  %s: %d\n", $name, $value);
             }
         }
-        
+
         return $output;
     }
 

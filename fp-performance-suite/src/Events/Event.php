@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Events;
 
 /**
  * Base Event class
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */

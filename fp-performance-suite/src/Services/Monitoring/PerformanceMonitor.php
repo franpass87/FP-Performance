@@ -6,9 +6,9 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * Performance Monitoring Service
- * 
+ *
  * Tracks and stores performance metrics over time
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -34,7 +34,7 @@ class PerformanceMonitor
         if (self::$instance === null) {
             self::$instance = new self();
         }
-        
+
         return self::$instance;
     }
 
@@ -70,7 +70,7 @@ class PerformanceMonitor
             'track_memory' => true,
             'track_timing' => true,
         ];
-        
+
         return wp_parse_args(get_option(self::OPTION, []), $defaults);
     }
 
@@ -80,7 +80,7 @@ class PerformanceMonitor
     public function update(array $settings): void
     {
         $current = $this->settings();
-        
+
         $new = [
             'enabled' => !empty($settings['enabled']),
             'sample_rate' => max(1, min(100, (int)($settings['sample_rate'] ?? $current['sample_rate']))),
@@ -88,7 +88,7 @@ class PerformanceMonitor
             'track_memory' => !empty($settings['track_memory']),
             'track_timing' => !empty($settings['track_timing']),
         ];
-        
+
         update_option(self::OPTION, $new);
         Logger::info('Performance monitoring settings updated', $new);
     }
@@ -99,14 +99,14 @@ class PerformanceMonitor
     public function recordPageLoad(): void
     {
         $settings = $this->settings();
-        
+
         // Sample based on sample_rate
         if (rand(1, 100) > $settings['sample_rate']) {
             return;
         }
 
         global $wpdb;
-        
+
         $metrics = [
             'url' => $_SERVER['REQUEST_URI'] ?? '/',
             'timestamp' => time(),
@@ -127,7 +127,7 @@ class PerformanceMonitor
         $metrics = array_merge($metrics, $this->currentPageMetrics);
 
         $this->storeMetric($metrics);
-        
+
         Logger::debug('Page load recorded', [
             'load_time' => round($metrics['load_time'] * 1000, 2) . 'ms',
             'queries' => $metrics['db_queries'] ?? 0,
@@ -140,7 +140,7 @@ class PerformanceMonitor
     private function storeMetric(array $metrics): void
     {
         $stored = get_option(self::OPTION . '_data', []);
-        
+
         if (!is_array($stored)) {
             $stored = [];
         }
@@ -178,7 +178,7 @@ class PerformanceMonitor
     public function stopTimer(string $name): float
     {
         $startKey = "timer_{$name}_start";
-        
+
         if (!isset($this->currentPageMetrics[$startKey])) {
             return 0.0;
         }
@@ -186,7 +186,7 @@ class PerformanceMonitor
         $duration = microtime(true) - $this->currentPageMetrics[$startKey];
         $this->currentPageMetrics["timer_{$name}"] = $duration;
         unset($this->currentPageMetrics[$startKey]);
-        
+
         return $duration;
     }
 
@@ -196,7 +196,7 @@ class PerformanceMonitor
     public function getStats(int $days = 7): array
     {
         $data = get_option(self::OPTION . '_data', []);
-        
+
         if (empty($data)) {
             return [
                 'avg_load_time' => 0,
@@ -208,7 +208,7 @@ class PerformanceMonitor
 
         // Filter by date range
         $cutoff = time() - ($days * DAY_IN_SECONDS);
-        $filtered = array_filter($data, function($metric) use ($cutoff) {
+        $filtered = array_filter($data, function ($metric) use ($cutoff) {
             return isset($metric['timestamp']) && $metric['timestamp'] >= $cutoff;
         });
 
@@ -222,7 +222,7 @@ class PerformanceMonitor
         }
 
         $samples = count($filtered);
-        
+
         $totalLoadTime = array_sum(array_column($filtered, 'load_time'));
         $totalQueries = array_sum(array_filter(array_column($filtered, 'db_queries')));
         $totalMemory = array_sum(array_filter(array_column($filtered, 'memory_peak')));
@@ -242,7 +242,7 @@ class PerformanceMonitor
     public function getRecent(int $limit = 50): array
     {
         $data = get_option(self::OPTION . '_data', []);
-        
+
         if (empty($data) || !is_array($data)) {
             return [];
         }
@@ -306,13 +306,13 @@ class PerformanceMonitor
     public function getTrends(int $days = 30): array
     {
         $data = get_option(self::OPTION . '_data', []);
-        
+
         if (empty($data)) {
             return [];
         }
 
         $cutoff = time() - ($days * DAY_IN_SECONDS);
-        $filtered = array_filter($data, function($metric) use ($cutoff) {
+        $filtered = array_filter($data, function ($metric) use ($cutoff) {
             return isset($metric['timestamp']) && $metric['timestamp'] >= $cutoff;
         });
 
@@ -320,7 +320,7 @@ class PerformanceMonitor
         $byDay = [];
         foreach ($filtered as $metric) {
             $day = date('Y-m-d', $metric['timestamp']);
-            
+
             if (!isset($byDay[$day])) {
                 $byDay[$day] = [
                     'load_times' => [],
@@ -328,7 +328,7 @@ class PerformanceMonitor
                     'memory' => [],
                 ];
             }
-            
+
             $byDay[$day]['load_times'][] = $metric['load_time'];
             if (isset($metric['db_queries'])) {
                 $byDay[$day]['queries'][] = $metric['db_queries'];

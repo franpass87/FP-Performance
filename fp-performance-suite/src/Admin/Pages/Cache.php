@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+
 use function __;
 use function checked;
 use function esc_attr;

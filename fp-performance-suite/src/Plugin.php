@@ -1,13 +1,14 @@
 <?php
 
-namespace FP\PerfSuite;
-
 /**
- * Boots FP Performance Suite services and admin integrations.
+ * Plugin main class file.
  *
+ * @package FP\PerfSuite
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
+
+namespace FP\PerfSuite;
 
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
@@ -29,6 +30,7 @@ use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
+
 use function get_file_data;
 use function wp_clear_scheduled_hook;
 
@@ -55,14 +57,14 @@ class Plugin
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
-            
+
             // Core services
             $container->get(PageCache::class)->register();
             $container->get(Headers::class)->register();
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
-            
+
             // New services
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
             $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
@@ -92,23 +94,23 @@ class Plugin
         }
 
         require_once FP_PERF_SUITE_DIR . '/src/Cli/Commands.php';
-        
+
         \WP_CLI::add_command('fp-performance cache', [Cli\Commands::class, 'cache'], [
             'shortdesc' => 'Manage page cache',
         ]);
-        
+
         \WP_CLI::add_command('fp-performance db', [Cli\Commands::class, 'db'], [
             'shortdesc' => 'Database cleanup operations',
         ]);
-        
+
         \WP_CLI::add_command('fp-performance webp', [Cli\Commands::class, 'webp'], [
             'shortdesc' => 'WebP conversion operations',
         ]);
-        
+
         \WP_CLI::add_command('fp-performance score', [Cli\Commands::class, 'score'], [
             'shortdesc' => 'Calculate performance score',
         ]);
-        
+
         \WP_CLI::add_command('fp-performance info', [Cli\Commands::class, 'info'], [
             'shortdesc' => 'Show plugin information',
         ]);
@@ -231,7 +233,7 @@ class Plugin
         $cleaner = new Cleaner(new Env(), new RateLimiter());
         $cleaner->primeSchedules();
         $cleaner->maybeSchedule(true);
-        
+
         Logger::info('Plugin activated', ['version' => $version]);
         do_action('fp_ps_plugin_activated', $version);
     }

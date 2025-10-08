@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
+
 use function __;
 use function add_action;
 use function admin_url;

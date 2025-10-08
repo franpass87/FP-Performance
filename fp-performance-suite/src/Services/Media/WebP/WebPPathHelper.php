@@ -7,9 +7,9 @@ use function pathinfo;
 
 /**
  * WebP Path Helper Utilities
- * 
+ *
  * Helper functions for WebP file path manipulation
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -17,7 +17,7 @@ class WebPPathHelper
 {
     /**
      * Get WebP path for a given file
-     * 
+     *
      * @param string $file Original file path
      * @return string WebP file path
      */
@@ -31,7 +31,7 @@ class WebPPathHelper
 
     /**
      * Convert file path to WebP extension
-     * 
+     *
      * @param string $file Original file path
      * @return string Path with .webp extension
      */
@@ -41,17 +41,17 @@ class WebPPathHelper
         $dirname = $info['dirname'] ?? '';
         $filename = $info['filename'] ?? '';
         $replacement = $filename . '.webp';
-        
+
         if ($dirname !== '' && $dirname !== '.') {
             return $dirname . '/' . $replacement;
         }
-        
+
         return $replacement;
     }
 
     /**
      * Get file size safely
-     * 
+     *
      * @param string $file File path
      * @return int|null File size in bytes or null on failure
      */
