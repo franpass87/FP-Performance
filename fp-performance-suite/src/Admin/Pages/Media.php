@@ -58,6 +58,7 @@ class Media extends AbstractPage
                     'quality' => (int) ($_POST['webp_quality'] ?? 82),
                     'keep_original' => !empty($_POST['keep_original']),
                     'lossy' => !empty($_POST['lossy']),
+                    'auto_deliver' => !empty($_POST['auto_deliver']),
                 ]);
                 $message = __('WebP settings saved.', 'fp-performance-suite');
             }
@@ -88,8 +89,17 @@ class Media extends AbstractPage
                     <span class="info">
                         <strong><?php esc_html_e('Enable WebP on upload', 'fp-performance-suite'); ?></strong>
                         <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <small><?php esc_html_e('Automatically convert uploaded images to WebP format', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="webp_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="green" />
+                </label>
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Auto-deliver WebP images', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <small><?php esc_html_e('Automatically serve WebP to compatible browsers (30-40% smaller)', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="auto_deliver" value="1" <?php checked($settings['auto_deliver']); ?> data-risk="green" />
                 </label>
                 <p>
                     <label for="webp_quality"><?php esc_html_e('Quality (0-100)', 'fp-performance-suite'); ?></label>
