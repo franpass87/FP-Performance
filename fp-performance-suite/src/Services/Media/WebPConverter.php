@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\Media\WebP\WebPImageConverter;
 use FP\PerfSuite\Services\Media\WebP\WebPPathHelper;
 use FP\PerfSuite\Services\Media\WebP\WebPQueue;
 use FP\PerfSuite\Utils\Fs;
+use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 
 use function add_action;
@@ -19,6 +20,7 @@ use function min;
 use function update_option;
 use function wp_count_attachments;
 use function wp_get_attachment_metadata;
+use function wp_get_upload_dir;
 use function wp_parse_args;
 use function wp_update_attachment_metadata;
 
@@ -69,18 +71,25 @@ class WebPConverter
     {
         add_action($this->queue->getCronHook(), [$this, 'runQueue']);
 
-        if (!$this->settings()['enabled']) {
+        $settings = $this->settings();
+
+        if (!$settings['enabled']) {
             return;
         }
 
         add_filter('wp_generate_attachment_metadata', [$this, 'generateWebp'], 10, 2);
         add_filter('wp_update_attachment_metadata', [$this, 'generateWebp'], 10, 2);
+
+        // Register automatic WebP delivery if enabled
+        if (!empty($settings['auto_deliver'])) {
+            $this->registerDelivery();
+        }
     }
 
     /**
      * Get current settings
      *
-     * @return array{enabled:bool,quality:int,keep_original:bool,lossy:bool}
+     * @return array{enabled:bool,quality:int,keep_original:bool,lossy:bool,auto_deliver:bool}
      */
     public function settings(): array
     {
@@ -89,6 +98,7 @@ class WebPConverter
             'quality' => 82,
             'keep_original' => true,
             'lossy' => true,
+            'auto_deliver' => true,
         ];
         return wp_parse_args(get_option(self::OPTION, []), $defaults);
     }
@@ -104,6 +114,7 @@ class WebPConverter
             'quality' => $quality,
             'keep_original' => !empty($settings['keep_original']),
             'lossy' => !empty($settings['lossy']),
+            'auto_deliver' => isset($settings['auto_deliver']) ? !empty($settings['auto_deliver']) : $current['auto_deliver'],
         ];
 
         update_option(self::OPTION, $new);
@@ -200,7 +211,7 @@ class WebPConverter
     /**
      * Get conversion status
      *
-     * @return array{enabled:bool,quality:int,coverage:float}
+     * @return array{enabled:bool,quality:int,coverage:float,auto_deliver:bool}
      */
     public function status(): array
     {
@@ -209,6 +220,7 @@ class WebPConverter
             'enabled' => $settings['enabled'],
             'quality' => $settings['quality'],
             'coverage' => $this->coverage(),
+            'auto_deliver' => $settings['auto_deliver'],
         ];
     }
 
@@ -237,5 +249,183 @@ class WebPConverter
     public function getPathHelper(): WebPPathHelper
     {
         return $this->pathHelper;
+    }
+
+    /**
+     * Register WebP delivery filters
+     */
+    private function registerDelivery(): void
+    {
+        if (!$this->shouldDeliverWebP()) {
+            return;
+        }
+
+        // Rewrite attachment image sources
+        add_filter('wp_get_attachment_image_src', [$this, 'filterAttachmentImageSrc'], 10, 4);
+        
+        // Rewrite srcset for responsive images
+        add_filter('wp_calculate_image_srcset', [$this, 'filterImageSrcset'], 10, 5);
+        
+        // Rewrite images in post content
+        add_filter('the_content', [$this, 'filterContentImages'], 20);
+
+        Logger::info('WebP automatic delivery enabled');
+        do_action('fp_ps_webp_delivery_registered');
+    }
+
+    /**
+     * Check if WebP should be delivered to client
+     *
+     * @return bool True if WebP delivery is supported
+     */
+    private function shouldDeliverWebP(): bool
+    {
+        // Check if client accepts WebP
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        $supportsWebP = strpos($accept, 'image/webp') !== false;
+
+        // Allow filtering
+        $supportsWebP = apply_filters('fp_ps_webp_delivery_supported', $supportsWebP);
+
+        return $supportsWebP;
+    }
+
+    /**
+     * Rewrite single image URL to WebP if available
+     *
+     * @param string $url Original image URL
+     * @return string WebP URL if available, original otherwise
+     */
+    private function rewriteImageUrl(string $url): string
+    {
+        // Skip external URLs
+        $uploadDir = wp_get_upload_dir();
+        $baseUrl = $uploadDir['baseurl'] ?? '';
+        
+        if ($baseUrl === '' || strpos($url, $baseUrl) === false) {
+            return $url;
+        }
+
+        // Get filesystem path
+        $relativePath = str_replace($baseUrl, '', $url);
+        $uploadPath = $uploadDir['basedir'] ?? '';
+        $filePath = $uploadPath . $relativePath;
+
+        // Get WebP path
+        $webpPath = $this->pathHelper->getWebPPath($filePath);
+
+        // Check if WebP exists
+        if (!file_exists($webpPath)) {
+            return $url;
+        }
+
+        // Build WebP URL
+        $webpUrl = $this->pathHelper->getWebPPath($url);
+
+        // Log delivery (only in debug mode to avoid spam)
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            Logger::debug('WebP delivered', [
+                'original' => basename($url),
+                'webp' => basename($webpUrl),
+            ]);
+        }
+
+        return $webpUrl;
+    }
+
+    /**
+     * Filter attachment image source to serve WebP
+     *
+     * @param array|false $image Image data or false
+     * @param int $attachment_id Attachment ID
+     * @param string|int[] $size Image size
+     * @param bool $icon Whether to use icon
+     * @return array|false Modified image data
+     */
+    public function filterAttachmentImageSrc($image, int $attachment_id, $size, bool $icon)
+    {
+        if (!is_array($image) || empty($image[0])) {
+            return $image;
+        }
+
+        $image[0] = $this->rewriteImageUrl($image[0]);
+
+        return $image;
+    }
+
+    /**
+     * Filter image srcset to serve WebP
+     *
+     * @param array $sources Srcset sources
+     * @param array $size_array Size array
+     * @param string $image_src Image source URL
+     * @param array $image_meta Image metadata
+     * @param int $attachment_id Attachment ID
+     * @return array Modified srcset sources
+     */
+    public function filterImageSrcset(array $sources, array $size_array, string $image_src, array $image_meta, int $attachment_id): array
+    {
+        foreach ($sources as $key => $source) {
+            if (!empty($source['url'])) {
+                $sources[$key]['url'] = $this->rewriteImageUrl($source['url']);
+            }
+        }
+
+        return $sources;
+    }
+
+    /**
+     * Filter post content to serve WebP images
+     *
+     * @param string $content Post content
+     * @return string Modified content
+     */
+    public function filterContentImages(string $content): string
+    {
+        if (empty($content) || strpos($content, '<img') === false) {
+            return $content;
+        }
+
+        // Match all img tags
+        $pattern = '/<img([^>]+)src=["\']([^"\']+)["\']([^>]*)>/i';
+        
+        $content = preg_replace_callback($pattern, function($matches) {
+            $beforeSrc = $matches[1];
+            $src = $matches[2];
+            $afterSrc = $matches[3];
+
+            // Rewrite main src
+            $newSrc = $this->rewriteImageUrl($src);
+
+            // Build new img tag
+            $newTag = '<img' . $beforeSrc . 'src="' . $newSrc . '"' . $afterSrc . '>';
+
+            // Also rewrite srcset if present
+            if (strpos($afterSrc, 'srcset=') !== false) {
+                $newTag = preg_replace_callback(
+                    '/srcset=["\']([^"\']+)["\']/i',
+                    function($srcsetMatch) {
+                        $srcset = $srcsetMatch[1];
+                        $sources = explode(',', $srcset);
+                        $rewritten = [];
+
+                        foreach ($sources as $source) {
+                            $parts = preg_split('/\s+/', trim($source));
+                            if (!empty($parts[0])) {
+                                $parts[0] = $this->rewriteImageUrl($parts[0]);
+                                $rewritten[] = implode(' ', $parts);
+                            }
+                        }
+
+                        return 'srcset="' . implode(', ', $rewritten) . '"';
+                    },
+                    $newTag
+                );
+            }
+
+            return $newTag;
+        }, $content);
+
+        return $content;
     }
 }

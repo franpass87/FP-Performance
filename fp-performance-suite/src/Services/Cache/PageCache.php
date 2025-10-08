@@ -7,10 +7,25 @@ use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Logger;
 
+use function get_author_posts_url;
+use function get_object_taxonomies;
+use function get_option;
+use function get_permalink;
+use function get_post;
+use function get_post_type_archive_link;
+use function get_term_link;
+use function get_the_terms;
 use function headers_list;
+use function home_url;
 use function is_user_logged_in;
+use function sanitize_key;
+use function trailingslashit;
+use function update_option;
 use function wp_cache_get_cookies_values;
+use function wp_is_post_revision;
 use function wp_mkdir_p;
+use function wp_parse_args;
+use function wp_parse_url;
 
 class PageCache implements CacheInterface
 {
@@ -36,6 +51,9 @@ class PageCache implements CacheInterface
         add_action('template_redirect', [$this, 'maybeServeCache'], 0);
         add_action('template_redirect', [$this, 'startBuffering'], PHP_INT_MAX);
         add_action('shutdown', [$this, 'saveBuffer'], PHP_INT_MAX);
+
+        // Register automatic cache purge hooks
+        $this->registerPurgeHooks();
     }
 
     public function isEnabled(): bool
@@ -114,6 +132,315 @@ class PageCache implements CacheInterface
         } catch (\Throwable $e) {
             Logger::error('Failed to clear page cache', $e);
         }
+    }
+
+    /**
+     * Purge cache for specific URL
+     *
+     * @param string $url URL to purge
+     * @return bool Success status
+     */
+    public function purgeUrl(string $url): bool
+    {
+        try {
+            $file = $this->urlToCacheFile($url);
+            
+            if (!$file) {
+                Logger::warning('Cannot purge URL - invalid format', ['url' => $url]);
+                return false;
+            }
+
+            $deleted = false;
+
+            // Delete main cache file
+            if (file_exists($file)) {
+                @unlink($file);
+                $deleted = true;
+            }
+
+            // Delete meta file
+            if (file_exists($file . '.meta')) {
+                @unlink($file . '.meta');
+            }
+
+            if ($deleted) {
+                Logger::info('Cache purged for URL', ['url' => $url]);
+                do_action('fp_ps_cache_purged_url', $url);
+            }
+
+            return $deleted;
+        } catch (\Throwable $e) {
+            Logger::error('Failed to purge URL cache', $e);
+            return false;
+        }
+    }
+
+    /**
+     * Purge cache for specific post and related URLs
+     *
+     * @param int $postId Post ID
+     * @return int Number of URLs purged
+     */
+    public function purgePost(int $postId): int
+    {
+        $post = get_post($postId);
+        if (!$post) {
+            return 0;
+        }
+
+        $urlsToPurge = [];
+
+        // Post permalink
+        $permalink = get_permalink($postId);
+        if ($permalink) {
+            $urlsToPurge[] = $permalink;
+        }
+
+        // Home page (if post is shown on front page)
+        if ($post->post_type === 'post' || get_option('show_on_front') === 'page' && (int) get_option('page_on_front') === $postId) {
+            $urlsToPurge[] = home_url('/');
+        }
+
+        // Post type archive
+        if ($post->post_type !== 'page') {
+            $archiveLink = get_post_type_archive_link($post->post_type);
+            if ($archiveLink) {
+                $urlsToPurge[] = $archiveLink;
+            }
+        }
+
+        // Author archive
+        if ($post->post_author) {
+            $authorLink = get_author_posts_url($post->post_author);
+            if ($authorLink) {
+                $urlsToPurge[] = $authorLink;
+            }
+        }
+
+        // Category/tag archives
+        $taxonomies = get_object_taxonomies($post->post_type);
+        foreach ($taxonomies as $taxonomy) {
+            $terms = get_the_terms($postId, $taxonomy);
+            if (is_array($terms)) {
+                foreach ($terms as $term) {
+                    $termLink = get_term_link($term);
+                    if (!is_wp_error($termLink)) {
+                        $urlsToPurge[] = $termLink;
+                    }
+                }
+            }
+        }
+
+        // Purge all URLs
+        $purged = 0;
+        foreach (array_unique($urlsToPurge) as $url) {
+            if ($this->purgeUrl($url)) {
+                $purged++;
+            }
+        }
+
+        if ($purged > 0) {
+            Logger::info('Cache purged for post', [
+                'post_id' => $postId,
+                'urls_purged' => $purged,
+            ]);
+            do_action('fp_ps_cache_purged_post', $postId, $purged);
+        }
+
+        return $purged;
+    }
+
+    /**
+     * Purge cache files matching pattern
+     *
+     * @param string $pattern Pattern to match (e.g., "category-*")
+     * @return int Number of files purged
+     */
+    public function purgePattern(string $pattern): int
+    {
+        try {
+            $dir = $this->cacheDir();
+            $host = sanitize_key(wp_parse_url(home_url(), PHP_URL_HOST) ?? 'site');
+            $hostDir = trailingslashit($dir) . $host;
+
+            if (!is_dir($hostDir)) {
+                return 0;
+            }
+
+            $files = glob($hostDir . '/' . $pattern . '.html');
+            if ($files === false) {
+                return 0;
+            }
+
+            $purged = 0;
+            foreach ($files as $file) {
+                @unlink($file);
+                @unlink($file . '.meta');
+                $purged++;
+            }
+
+            if ($purged > 0) {
+                Logger::info('Cache purged by pattern', [
+                    'pattern' => $pattern,
+                    'files_purged' => $purged,
+                ]);
+                do_action('fp_ps_cache_purged_pattern', $pattern, $purged);
+            }
+
+            return $purged;
+        } catch (\Throwable $e) {
+            Logger::error('Failed to purge cache by pattern', $e);
+            return 0;
+        }
+    }
+
+    /**
+     * Convert URL to cache file path
+     *
+     * @param string $url URL to convert
+     * @return string|null Cache file path or null if invalid
+     */
+    private function urlToCacheFile(string $url): ?string
+    {
+        $parsed = wp_parse_url($url);
+        if (!$parsed || empty($parsed['host'])) {
+            return null;
+        }
+
+        $host = sanitize_key($parsed['host']);
+        $path = trim($parsed['path'] ?? '/', '/');
+        $path = $path === '' ? 'index' : str_replace('/', '-', $path);
+
+        $dir = trailingslashit($this->cacheDir()) . $host;
+        return $dir . '/' . $path . '.html';
+    }
+
+    /**
+     * Register hooks for automatic cache purging on content updates
+     */
+    private function registerPurgeHooks(): void
+    {
+        // Post updates
+        add_action('save_post', [$this, 'onContentUpdate'], 10, 3);
+        add_action('deleted_post', [$this, 'onContentUpdate']);
+        add_action('trashed_post', [$this, 'onContentUpdate']);
+        add_action('wp_trash_post', [$this, 'onContentUpdate']);
+
+        // Comment updates
+        add_action('comment_post', [$this, 'onCommentUpdate'], 10, 2);
+        add_action('edit_comment', [$this, 'onCommentUpdate']);
+        add_action('deleted_comment', [$this, 'onCommentUpdate']);
+        add_action('trashed_comment', [$this, 'onCommentUpdate']);
+        add_action('spam_comment', [$this, 'onCommentUpdate']);
+        add_action('unspam_comment', [$this, 'onCommentUpdate']);
+
+        // Theme/customizer changes
+        add_action('switch_theme', [$this, 'onThemeChange']);
+        add_action('customize_save_after', [$this, 'onThemeChange']);
+
+        // Widget updates
+        add_action('update_option_sidebars_widgets', [$this, 'onWidgetUpdate']);
+
+        // Menu updates
+        add_action('wp_update_nav_menu', [$this, 'onMenuUpdate']);
+
+        // Allow disabling auto-purge via filter
+        if (apply_filters('fp_ps_enable_auto_purge', true)) {
+            Logger::debug('Auto-purge hooks registered');
+        }
+    }
+
+    /**
+     * Handle content updates (posts, pages, etc.)
+     *
+     * @param int $postId Post ID
+     */
+    public function onContentUpdate($postId): void
+    {
+        // Skip autosaves and revisions
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        if (wp_is_post_revision($postId)) {
+            return;
+        }
+
+        // Only purge for published posts
+        $post = get_post($postId);
+        if (!$post || $post->post_status !== 'publish') {
+            return;
+        }
+
+        // Use selective purge for better performance
+        $purged = $this->purgePost($postId);
+
+        Logger::info('Auto-purge triggered by post update', [
+            'post_id' => $postId,
+            'post_type' => $post->post_type ?? 'unknown',
+            'urls_purged' => $purged,
+        ]);
+
+        do_action('fp_ps_cache_auto_purged', 'post_update', $postId);
+    }
+
+    /**
+     * Handle comment updates
+     *
+     * @param int $commentId Comment ID
+     */
+    public function onCommentUpdate($commentId): void
+    {
+        $comment = get_comment($commentId);
+        if (!$comment) {
+            return;
+        }
+
+        // Only purge for approved comments on published posts
+        if ($comment->comment_approved !== '1') {
+            return;
+        }
+
+        // Purge the post and related pages
+        $purged = $this->purgePost($comment->comment_post_ID);
+
+        Logger::info('Auto-purge triggered by comment update', [
+            'comment_id' => $commentId,
+            'post_id' => $comment->comment_post_ID,
+            'urls_purged' => $purged,
+        ]);
+
+        do_action('fp_ps_cache_auto_purged', 'comment_update', $commentId);
+    }
+
+    /**
+     * Handle theme changes
+     */
+    public function onThemeChange(): void
+    {
+        Logger::info('Auto-purge triggered by theme change');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'theme_change', null);
+    }
+
+    /**
+     * Handle widget updates
+     */
+    public function onWidgetUpdate(): void
+    {
+        Logger::info('Auto-purge triggered by widget update');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'widget_update', null);
+    }
+
+    /**
+     * Handle menu updates
+     */
+    public function onMenuUpdate(): void
+    {
+        Logger::info('Auto-purge triggered by menu update');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'menu_update', null);
     }
 
     public function maybeServeCache(): void

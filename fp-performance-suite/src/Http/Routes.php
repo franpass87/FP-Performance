@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Http;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
@@ -80,6 +81,45 @@ class Routes
             'methods' => 'POST',
             'callback' => [$this, 'presetRollback'],
             'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/cache/purge-url', [
+            'methods' => 'POST',
+            'callback' => [$this, 'cachePurgeUrl'],
+            'permission_callback' => [$this, 'permissionCheck'],
+            'args' => [
+                'url' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'esc_url_raw',
+                ],
+            ],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/cache/purge-post', [
+            'methods' => 'POST',
+            'callback' => [$this, 'cachePurgePost'],
+            'permission_callback' => [$this, 'permissionCheck'],
+            'args' => [
+                'post_id' => [
+                    'required' => true,
+                    'type' => 'integer',
+                    'sanitize_callback' => 'absint',
+                ],
+            ],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/cache/purge-pattern', [
+            'methods' => 'POST',
+            'callback' => [$this, 'cachePurgePattern'],
+            'permission_callback' => [$this, 'permissionCheck'],
+            'args' => [
+                'pattern' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ],
+            ],
         ]);
 
         register_rest_route('fp-ps/v1', '/db/cleanup', [
@@ -245,6 +285,66 @@ class Routes
             $data = [];
         }
         return rest_ensure_response($data);
+    }
+
+    public function cachePurgeUrl(WP_REST_Request $request)
+    {
+        $url = $request->get_param('url');
+        
+        if (empty($url)) {
+            return new WP_Error('invalid_url', esc_html__('URL is required', 'fp-performance-suite'), ['status' => 400]);
+        }
+
+        $cache = $this->container->get(PageCache::class);
+        $result = $cache->purgeUrl($url);
+
+        if (!$result) {
+            return new WP_Error('purge_failed', esc_html__('Failed to purge cache for URL', 'fp-performance-suite'), ['status' => 500]);
+        }
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => __('Cache purged successfully', 'fp-performance-suite'),
+            'url' => $url,
+        ]);
+    }
+
+    public function cachePurgePost(WP_REST_Request $request)
+    {
+        $postId = (int) $request->get_param('post_id');
+        
+        if ($postId <= 0) {
+            return new WP_Error('invalid_post_id', esc_html__('Valid post ID is required', 'fp-performance-suite'), ['status' => 400]);
+        }
+
+        $cache = $this->container->get(PageCache::class);
+        $purged = $cache->purgePost($postId);
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => sprintf(__('Purged %d URLs for post', 'fp-performance-suite'), $purged),
+            'post_id' => $postId,
+            'urls_purged' => $purged,
+        ]);
+    }
+
+    public function cachePurgePattern(WP_REST_Request $request)
+    {
+        $pattern = $request->get_param('pattern');
+        
+        if (empty($pattern)) {
+            return new WP_Error('invalid_pattern', esc_html__('Pattern is required', 'fp-performance-suite'), ['status' => 400]);
+        }
+
+        $cache = $this->container->get(PageCache::class);
+        $purged = $cache->purgePattern($pattern);
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => sprintf(__('Purged %d files matching pattern', 'fp-performance-suite'), $purged),
+            'pattern' => $pattern,
+            'files_purged' => $purged,
+        ]);
     }
 
     /**

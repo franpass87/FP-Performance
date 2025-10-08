@@ -52,9 +52,14 @@ class Logs extends AbstractPage
         $message = '';
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_logs_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_logs_nonce']), 'fp-ps-logs')) {
             if (isset($_POST['toggle_debug'])) {
-                $enabled = !empty($_POST['wp_debug']);
-                $log = !empty($_POST['wp_debug_log']);
-                if ($toggler->toggle($enabled, $log)) {
+                $settings = [
+                    'WP_DEBUG' => !empty($_POST['wp_debug']),
+                    'WP_DEBUG_LOG' => !empty($_POST['wp_debug_log']),
+                    'WP_DEBUG_DISPLAY' => !empty($_POST['wp_debug_display']),
+                    'SCRIPT_DEBUG' => !empty($_POST['script_debug']),
+                    'SAVEQUERIES' => !empty($_POST['savequeries']),
+                ];
+                if ($toggler->updateSettings($settings)) {
                     $message = __('Debug configuration updated.', 'fp-performance-suite');
                     $status = $toggler->status();
                 } else {
@@ -86,15 +91,41 @@ class Logs extends AbstractPage
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG', 'fp-performance-suite'); ?></strong>
                             <span class="fp-ps-badge red"><?php esc_html_e('Red', 'fp-performance-suite'); ?></span>
+                            <small><?php esc_html_e('Master switch for WordPress debugging', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="wp_debug" value="1" <?php checked($status['WP_DEBUG']); ?> data-risk="red" />
                     </label>
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Enable debug.log', 'fp-performance-suite'); ?></strong>
+                            <strong><?php esc_html_e('Enable WP_DEBUG_LOG', 'fp-performance-suite'); ?></strong>
                             <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <small><?php esc_html_e('Save errors to debug.log file', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="wp_debug_log" value="1" <?php checked($status['WP_DEBUG_LOG']); ?> data-risk="amber" />
+                    </label>
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Enable WP_DEBUG_DISPLAY', 'fp-performance-suite'); ?></strong>
+                            <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <small><?php esc_html_e('Display errors in browser (not recommended for production)', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="wp_debug_display" value="1" <?php checked($status['WP_DEBUG_DISPLAY']); ?> data-risk="amber" />
+                    </label>
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Enable SCRIPT_DEBUG', 'fp-performance-suite'); ?></strong>
+                            <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                            <small><?php esc_html_e('Use non-minified versions of core CSS and JS', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="script_debug" value="1" <?php checked($status['SCRIPT_DEBUG']); ?> data-risk="green" />
+                    </label>
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Enable SAVEQUERIES', 'fp-performance-suite'); ?></strong>
+                            <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <small><?php esc_html_e('Save database queries for analysis (impacts performance)', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="savequeries" value="1" <?php checked($status['SAVEQUERIES']); ?> data-risk="amber" />
                     </label>
                     <p>
                         <button type="submit" class="button button-primary" data-risk="red"><?php esc_html_e('Save Debug Settings', 'fp-performance-suite'); ?></button>
