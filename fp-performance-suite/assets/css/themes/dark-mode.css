@@ -1,0 +1,56 @@
+/**
+ * Dark Mode Theme
+ * 
+ * @package FP\PerfSuite
+ */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fp-bg: #1a1d23;
+        --fp-card: #25282e;
+        --fp-accent: #5b8def;
+        --fp-ok: #2ea970;
+        --fp-warn: #f5c045;
+        --fp-danger: #e85462;
+        --fp-text: #e4e6eb;
+    }
+
+    .fp-ps-wrap {
+        background: var(--fp-bg);
+    }
+
+    .fp-ps-card {
+        background: var(--fp-card);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .fp-ps-header h1 {
+        color: var(--fp-text);
+    }
+
+    .fp-ps-breadcrumbs ol {
+        color: #b0b3b8;
+    }
+
+    .fp-ps-toggle {
+        background: var(--fp-card);
+        border-color: #3a3d44;
+    }
+
+    .fp-ps-table th,
+    .fp-ps-table td {
+        border-bottom-color: #3a3d44;
+        color: var(--fp-text);
+    }
+
+    .fp-ps-log-viewer {
+        background: #0d1117;
+        color: #e6edf3;
+        border: 1px solid #3a3d44;
+    }
+
+    /* WordPress admin compatibility */
+    body.admin-color-modern .fp-ps-wrap {
+        background: #1a1d23;
+    }
+}

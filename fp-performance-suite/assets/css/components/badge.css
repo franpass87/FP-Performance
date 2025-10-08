@@ -1,0 +1,29 @@
+/**
+ * Badge Component
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--fp-spacing-xs);
+    border-radius: var(--fp-radius-xl);
+    font-size: var(--fp-font-size-xs);
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.fp-ps-badge.green {
+    background: var(--fp-ok);
+}
+
+.fp-ps-badge.amber {
+    background: var(--fp-warn);
+}
+
+.fp-ps-badge.red {
+    background: var(--fp-danger);
+}
