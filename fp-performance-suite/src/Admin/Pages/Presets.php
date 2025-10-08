@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
+
 use function __;
 use function esc_attr;
 use function esc_html;

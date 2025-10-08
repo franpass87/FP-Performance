@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
+
 use function __;
 
 class Manager

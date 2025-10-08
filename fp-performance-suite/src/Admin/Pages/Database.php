@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\DB\Cleaner;
+
 use function __;
 use function array_map;
 use function date_i18n;

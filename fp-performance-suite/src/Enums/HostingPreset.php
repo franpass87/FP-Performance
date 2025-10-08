@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Enums;
 
 /**
  * Hosting Preset Enumeration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -19,7 +19,7 @@ enum HostingPreset: string
      */
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::GENERAL => __('General', 'fp-performance-suite'),
             self::IONOS => __('IONOS', 'fp-performance-suite'),
             self::ARUBA => __('Aruba', 'fp-performance-suite'),
@@ -31,7 +31,7 @@ enum HostingPreset: string
      */
     public function description(): string
     {
-        return match($this) {
+        return match ($this) {
             self::GENERAL => __('Balanced settings for most shared hosting providers', 'fp-performance-suite'),
             self::IONOS => __('Optimized for IONOS hosting environment', 'fp-performance-suite'),
             self::ARUBA => __('Optimized for Aruba hosting environment', 'fp-performance-suite'),
@@ -43,7 +43,7 @@ enum HostingPreset: string
      */
     public function config(): array
     {
-        return match($this) {
+        return match ($this) {
             self::GENERAL => [
                 'page_cache' => ['enabled' => true, 'ttl' => 3600],
                 'browser_cache' => ['enabled' => true],
@@ -97,8 +97,8 @@ enum HostingPreset: string
     public function isRecommended(): bool
     {
         $serverSoftware = strtolower($_SERVER['SERVER_SOFTWARE'] ?? '');
-        
-        return match($this) {
+
+        return match ($this) {
             self::IONOS => strpos($serverSoftware, 'ionos') !== false,
             self::ARUBA => strpos($serverSoftware, 'aruba') !== false,
             self::GENERAL => true,

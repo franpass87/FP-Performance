@@ -10,9 +10,9 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * WordPress Site Health integration
- * 
+ *
  * Adds FP Performance Suite checks to WordPress Site Health
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -107,7 +107,6 @@ class HealthCheck
                 ),
                 'test' => 'fp_performance_cache',
             ];
-
         } catch (\Throwable $e) {
             Logger::error('Health check failed for page cache', $e);
             return self::errorResult('Page Cache', $e);
@@ -194,7 +193,6 @@ class HealthCheck
                 ),
                 'test' => 'fp_performance_webp',
             ];
-
         } catch (\Throwable $e) {
             Logger::error('Health check failed for WebP', $e);
             return self::errorResult('WebP Coverage', $e);
@@ -262,7 +260,6 @@ class HealthCheck
                 ),
                 'test' => 'fp_performance_database',
             ];
-
         } catch (\Throwable $e) {
             Logger::error('Health check failed for database', $e);
             return self::errorResult('Database Health', $e);
@@ -282,14 +279,23 @@ class HealthCheck
             $activeOptimizations = 0;
             $recommendations = [];
 
-            if ($status['defer_js']) $activeOptimizations++;
-            else $recommendations[] = __('Enable JavaScript deferral', 'fp-performance-suite');
+            if ($status['defer_js']) {
+                $activeOptimizations++;
+            } else {
+                $recommendations[] = __('Enable JavaScript deferral', 'fp-performance-suite');
+            }
 
-            if ($status['minify_html']) $activeOptimizations++;
-            else $recommendations[] = __('Enable HTML minification', 'fp-performance-suite');
+            if ($status['minify_html']) {
+                $activeOptimizations++;
+            } else {
+                $recommendations[] = __('Enable HTML minification', 'fp-performance-suite');
+            }
 
-            if ($status['remove_emojis']) $activeOptimizations++;
-            else $recommendations[] = __('Remove emoji scripts', 'fp-performance-suite');
+            if ($status['remove_emojis']) {
+                $activeOptimizations++;
+            } else {
+                $recommendations[] = __('Remove emoji scripts', 'fp-performance-suite');
+            }
 
             if ($activeOptimizations >= 2) {
                 return [
@@ -334,7 +340,6 @@ class HealthCheck
                 ),
                 'test' => 'fp_performance_assets',
             ];
-
         } catch (\Throwable $e) {
             Logger::error('Health check failed for assets', $e);
             return self::errorResult('Asset Optimization', $e);
@@ -348,7 +353,7 @@ class HealthCheck
     {
         try {
             $container = Plugin::container();
-            
+
             $pageCache = $container->get(PageCache::class);
             $webp = $container->get(WebPConverter::class);
             $cleaner = $container->get(Cleaner::class);
@@ -391,7 +396,6 @@ class HealthCheck
                     ],
                 ],
             ];
-
         } catch (\Throwable $e) {
             Logger::error('Failed to add debug info to Site Health', $e);
         }

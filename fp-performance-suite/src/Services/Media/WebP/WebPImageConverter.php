@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Media\WebP;
 
 use FP\PerfSuite\Utils\Logger;
+
 use function file_exists;
 use function filemtime;
 use function function_exists;
@@ -19,9 +20,9 @@ use function strtolower;
 
 /**
  * WebP Image Conversion Engine
- * 
+ *
  * Handles the actual image conversion to WebP format using Imagick or GD
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -32,7 +33,7 @@ class WebPImageConverter
 
     /**
      * Convert an image file to WebP format
-     * 
+     *
      * @param string $sourceFile Source image path
      * @param string $targetFile Target WebP path
      * @param array{quality:int,lossy:bool} $settings Conversion settings
@@ -66,7 +67,7 @@ class WebPImageConverter
 
     /**
      * Check if file can be converted to WebP
-     * 
+     *
      * @param string $file File path
      * @return bool
      */
@@ -79,7 +80,7 @@ class WebPImageConverter
 
     /**
      * Check if conversion is needed
-     * 
+     *
      * @param string $sourceFile Source file path
      * @param string $targetFile Target WebP path
      * @param bool $force Force conversion
@@ -108,7 +109,7 @@ class WebPImageConverter
 
     /**
      * Convert using Imagick extension
-     * 
+     *
      * @param string $sourceFile
      * @param string $targetFile
      * @param array{quality:int,lossy:bool} $settings
@@ -122,14 +123,14 @@ class WebPImageConverter
 
         try {
             $imagick = new \Imagick($sourceFile);
-            
+
             if ($settings['lossy']) {
                 $imagick->setImageCompressionQuality($settings['quality']);
             }
-            
+
             $imagick->setImageFormat('webp');
             $result = (bool) $imagick->writeImage($targetFile);
-            
+
             return $result;
         } catch (\ImagickException $e) {
             Logger::error('Imagick failed to convert to WebP', $e);
@@ -147,7 +148,7 @@ class WebPImageConverter
 
     /**
      * Convert using GD extension
-     * 
+     *
      * @param string $sourceFile
      * @param string $targetFile
      * @param array{quality:int,lossy:bool} $settings
@@ -163,7 +164,7 @@ class WebPImageConverter
         $ext = strtolower($info['extension'] ?? '');
 
         $image = $this->createImageResource($sourceFile, $ext);
-        
+
         if ($image === null) {
             return false;
         }
@@ -195,7 +196,7 @@ class WebPImageConverter
 
     /**
      * Create GD image resource from file
-     * 
+     *
      * @param string $file File path
      * @param string $extension File extension
      * @return resource|null
@@ -231,7 +232,7 @@ class WebPImageConverter
 
     /**
      * Get supported file extensions
-     * 
+     *
      * @return array<int, string>
      */
     public function getSupportedExtensions(): array

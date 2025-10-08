@@ -3,7 +3,6 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
-
 use FP\PerfSuite\Utils\Capabilities;
 
 abstract class AbstractPage

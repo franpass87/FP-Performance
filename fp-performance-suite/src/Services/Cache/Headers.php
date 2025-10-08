@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Services\Cache;
 
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Htaccess;
+
 use function headers_list;
 use function is_admin;
 use function is_array;
@@ -33,8 +34,10 @@ class Headers
 
         if (!is_admin()) {
             add_action('send_headers', function (): void {
-                if ((function_exists('wp_doing_ajax') && wp_doing_ajax()) ||
-                    (function_exists('rest_doing_request') && rest_doing_request()) || is_user_logged_in()) {
+                if (
+                    (function_exists('wp_doing_ajax') && wp_doing_ajax()) ||
+                    (function_exists('rest_doing_request') && rest_doing_request()) || is_user_logged_in()
+                ) {
                     return;
                 }
 

@@ -13,6 +13,7 @@ use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
+
 use function add_action;
 use function add_menu_page;
 use function add_submenu_page;

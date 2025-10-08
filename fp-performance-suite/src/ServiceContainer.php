@@ -47,7 +47,7 @@ class ServiceContainer
 
     /**
      * Get cached settings to reduce database queries
-     * 
+     *
      * @param string $optionName WordPress option name
      * @param array $defaults Default values
      * @return array Parsed settings
@@ -58,13 +58,13 @@ class ServiceContainer
             $options = get_option($optionName, []);
             $this->settingsCache[$optionName] = wp_parse_args($options, $defaults);
         }
-        
+
         return $this->settingsCache[$optionName];
     }
 
     /**
      * Invalidate settings cache after update
-     * 
+     *
      * @param string $optionName WordPress option name to invalidate
      */
     public function invalidateSettingsCache(string $optionName): void

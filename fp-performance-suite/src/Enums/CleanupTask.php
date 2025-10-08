@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Enums;
 
 /**
  * Database Cleanup Task Enumeration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -25,7 +25,7 @@ enum CleanupTask: string
      */
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::REVISIONS => __('Post Revisions', 'fp-performance-suite'),
             self::AUTO_DRAFTS => __('Auto-drafts', 'fp-performance-suite'),
             self::TRASH_POSTS => __('Trashed Posts', 'fp-performance-suite'),
@@ -43,7 +43,7 @@ enum CleanupTask: string
      */
     public function description(): string
     {
-        return match($this) {
+        return match ($this) {
             self::REVISIONS => __('Remove old post revisions to save space', 'fp-performance-suite'),
             self::AUTO_DRAFTS => __('Delete auto-saved drafts', 'fp-performance-suite'),
             self::TRASH_POSTS => __('Permanently delete trashed posts', 'fp-performance-suite'),
@@ -61,7 +61,7 @@ enum CleanupTask: string
      */
     public function riskLevel(): string
     {
-        return match($this) {
+        return match ($this) {
             self::REVISIONS, self::AUTO_DRAFTS, self::EXPIRED_TRANSIENTS => 'green',
             self::TRASH_POSTS, self::SPAM_COMMENTS => 'amber',
             self::ORPHAN_POSTMETA, self::ORPHAN_TERMMETA, self::ORPHAN_USERMETA, self::OPTIMIZE_TABLES => 'red',
@@ -113,7 +113,7 @@ enum CleanupTask: string
      */
     public static function byRiskLevel(string $level): array
     {
-        return array_filter(self::all(), function($task) use ($level) {
+        return array_filter(self::all(), function ($task) use ($level) {
             return $task->riskLevel() === $level;
         });
     }

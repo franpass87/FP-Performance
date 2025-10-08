@@ -9,7 +9,7 @@ interface SettingsRepositoryInterface
 {
     /**
      * Get a setting value
-     * 
+     *
      * @param string $key Setting key
      * @param mixed $default Default value if not found
      * @return mixed
@@ -18,7 +18,7 @@ interface SettingsRepositoryInterface
 
     /**
      * Set a setting value
-     * 
+     *
      * @param string $key Setting key
      * @param mixed $value Value to store
      * @return bool Success
@@ -27,7 +27,7 @@ interface SettingsRepositoryInterface
 
     /**
      * Check if setting exists
-     * 
+     *
      * @param string $key Setting key
      * @return bool
      */
@@ -35,7 +35,7 @@ interface SettingsRepositoryInterface
 
     /**
      * Delete a setting
-     * 
+     *
      * @param string $key Setting key
      * @return bool Success
      */
@@ -43,7 +43,7 @@ interface SettingsRepositoryInterface
 
     /**
      * Get all settings
-     * 
+     *
      * @return array
      */
     public function all(): array;

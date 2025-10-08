@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Services\Logs;
 
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Env;
+
 use function error_log;
 use function get_option;
 use function update_option;
@@ -51,7 +52,7 @@ class DebugToggler
                 error_log('[FP Performance Suite] Failed to acquire lock for wp-config.php modification');
                 return false;
             }
-            
+
             if (!$this->fs->exists($config)) {
                 return false;
             }

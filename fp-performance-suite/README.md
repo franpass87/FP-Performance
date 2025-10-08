@@ -5,7 +5,7 @@
 | Meta | Value |
 | --- | --- |
 | **Name** | FP Performance Suite |
-| **Version** | 1.0.1 |
+| **Version** | 1.1.0 |
 | **Author** | [Francesco Passeri](https://francescopasseri.com) |
 | **Author Email** | [info@francescopasseri.com](mailto:info@francescopasseri.com) |
 | **Author URI** | https://francescopasseri.com |

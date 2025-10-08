@@ -6,9 +6,9 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * Event Dispatcher
- * 
+ *
  * Central event dispatching system for the plugin
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -26,42 +26,42 @@ class EventDispatcher
         if (self::$instance === null) {
             self::$instance = new self();
         }
-        
+
         return self::$instance;
     }
 
     /**
      * Dispatch an event
-     * 
+     *
      * @param Event $event Event to dispatch
      * @return Event The event (possibly modified by listeners)
      */
     public function dispatch(Event $event): Event
     {
         $eventName = $event->name();
-        
+
         Logger::debug('Event dispatched', [
             'name' => $eventName,
             'data' => $event->getData(),
         ]);
-        
+
         // Track dispatched events
         $this->dispatched[] = [
             'name' => $eventName,
             'timestamp' => $event->timestamp(),
             'data' => $event->getData(),
         ];
-        
+
         // Fire WordPress action
         do_action("fp_ps_event_{$eventName}", $event);
-        
+
         // Call registered listeners
         if (isset($this->listeners[$eventName])) {
             foreach ($this->listeners[$eventName] as $listener) {
                 if (!$event->shouldPropagate()) {
                     break;
                 }
-                
+
                 try {
                     call_user_func($listener, $event);
                 } catch (\Throwable $e) {
@@ -69,13 +69,13 @@ class EventDispatcher
                 }
             }
         }
-        
+
         return $event;
     }
 
     /**
      * Register event listener
-     * 
+     *
      * @param string $eventName Event name to listen for
      * @param callable $listener Callback function
      * @param int $priority Priority (lower runs first)
@@ -85,14 +85,14 @@ class EventDispatcher
         if (!isset($this->listeners[$eventName])) {
             $this->listeners[$eventName] = [];
         }
-        
+
         $this->listeners[$eventName][$priority][] = $listener;
         ksort($this->listeners[$eventName]);
     }
 
     /**
      * Remove event listener
-     * 
+     *
      * @param string $eventName Event name
      * @param callable $listener Callback to remove
      */
@@ -101,7 +101,7 @@ class EventDispatcher
         if (!isset($this->listeners[$eventName])) {
             return;
         }
-        
+
         foreach ($this->listeners[$eventName] as $priority => $listeners) {
             $key = array_search($listener, $listeners, true);
             if ($key !== false) {
@@ -112,7 +112,7 @@ class EventDispatcher
 
     /**
      * Get all dispatched events
-     * 
+     *
      * @return array
      */
     public function getDispatched(): array
@@ -130,14 +130,14 @@ class EventDispatcher
 
     /**
      * Get listeners for an event
-     * 
+     *
      * @param string $eventName Event name
      * @return array
      */
     public function getListeners(string $eventName): array
     {
         $listeners = [];
-        
+
         if (isset($this->listeners[$eventName])) {
             foreach ($this->listeners[$eventName] as $priority => $callbacks) {
                 foreach ($callbacks as $callback) {
@@ -148,7 +148,7 @@ class EventDispatcher
                 }
             }
         }
-        
+
         return $listeners;
     }
 }

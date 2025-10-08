@@ -6,10 +6,10 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * Critical CSS management service
- * 
+ *
  * Allows administrators to define critical CSS that should be inlined
  * for above-the-fold content optimization.
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -48,14 +48,14 @@ class CriticalCss
 
     /**
      * Update critical CSS
-     * 
+     *
      * @param string $css The critical CSS to store
      * @return array Result with success/error
      */
     public function update(string $css): array
     {
         $css = trim($css);
-        
+
         // Validate size
         if (strlen($css) > self::MAX_SIZE) {
             return [
@@ -76,7 +76,7 @@ class CriticalCss
         }
 
         update_option(self::OPTION, $css);
-        
+
         Logger::info('Critical CSS updated', [
             'size' => strlen($css),
             'enabled' => !empty($css),
@@ -107,7 +107,7 @@ class CriticalCss
     public function inlineCriticalCss(): void
     {
         $css = $this->get();
-        
+
         if (empty($css)) {
             return;
         }
@@ -126,10 +126,10 @@ class CriticalCss
 
     /**
      * Generate critical CSS from current page (basic implementation)
-     * 
+     *
      * This is a placeholder for more advanced implementations using
      * services like critical.css, penthouse, or puppeteer
-     * 
+     *
      * @param string $url URL to analyze
      * @return array Result with CSS or error
      */
@@ -154,7 +154,7 @@ class CriticalCss
         }
 
         $html = wp_remote_retrieve_body($response);
-        
+
         // Extract inline styles and linked stylesheets
         $criticalCss = $this->extractCriticalStyles($html, $url);
 
@@ -174,7 +174,7 @@ class CriticalCss
         // Check for balanced braces
         $openBraces = substr_count($css, '{');
         $closeBraces = substr_count($css, '}');
-        
+
         if ($openBraces !== $closeBraces) {
             return false;
         }
@@ -215,7 +215,7 @@ class CriticalCss
         }
 
         $combined = implode("\n\n", $criticalCss);
-        
+
         // Minify
         return $this->minifyCss($combined);
     }
@@ -270,13 +270,15 @@ class CriticalCss
         ];
 
         $filtered = [];
-        
+
         // Split into rules (very basic)
         $rules = preg_split('/}/', $css);
-        
+
         foreach ($rules as $rule) {
             $rule = trim($rule);
-            if (empty($rule)) continue;
+            if (empty($rule)) {
+                continue;
+            }
 
             foreach ($aboveFoldPatterns as $pattern) {
                 if (stripos($rule, $pattern) !== false) {
@@ -296,12 +298,12 @@ class CriticalCss
     {
         // Remove comments
         $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
-        
+
         // Remove whitespace
         $css = str_replace(["\r\n", "\r", "\n", "\t"], '', $css);
         $css = preg_replace('/\s+/', ' ', $css);
         $css = preg_replace('/\s*([{}:;,])\s*/', '$1', $css);
-        
+
         return trim($css);
     }
 
@@ -312,7 +314,7 @@ class CriticalCss
     {
         $css = $this->get();
         $size = strlen($css);
-        
+
         return [
             'enabled' => !empty($css),
             'size' => $size,

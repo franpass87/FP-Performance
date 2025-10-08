@@ -10,9 +10,9 @@ use function strpos;
 
 /**
  * JavaScript Script Tag Optimizer
- * 
+ *
  * Adds defer and async attributes to script tags for better loading performance
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -23,7 +23,7 @@ class ScriptOptimizer
 
     /**
      * Filter script tag to add defer/async attributes
-     * 
+     *
      * @param string $tag Original script tag
      * @param string $handle Script handle
      * @param string $src Script source URL
@@ -38,7 +38,7 @@ class ScriptOptimizer
         }
 
         $skipHandles = apply_filters('fp_ps_defer_skip_handles', $this->skipHandles);
-        
+
         if (in_array($handle, $skipHandles, true)) {
             return $tag;
         }
@@ -56,7 +56,7 @@ class ScriptOptimizer
 
     /**
      * Set custom skip handles
-     * 
+     *
      * @param array<int, string> $handles
      */
     public function setSkipHandles(array $handles): void
@@ -66,7 +66,7 @@ class ScriptOptimizer
 
     /**
      * Get current skip handles
-     * 
+     *
      * @return array<int, string>
      */
     public function getSkipHandles(): array

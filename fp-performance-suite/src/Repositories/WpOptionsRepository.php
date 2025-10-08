@@ -7,7 +7,7 @@ use FP\PerfSuite\Plugin;
 
 /**
  * WordPress Options-based settings repository
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -26,7 +26,7 @@ class WpOptionsRepository implements SettingsRepositoryInterface
     public function get(string $key, $default = null)
     {
         $fullKey = $this->prefix . $key;
-        
+
         // Use container's cached settings if available
         if (class_exists('\FP\PerfSuite\Plugin')) {
             try {
@@ -37,7 +37,7 @@ class WpOptionsRepository implements SettingsRepositoryInterface
                 // Fallback to direct get_option
             }
         }
-        
+
         return get_option($fullKey, $default);
     }
 
@@ -48,7 +48,7 @@ class WpOptionsRepository implements SettingsRepositoryInterface
     {
         $fullKey = $this->prefix . $key;
         $result = update_option($fullKey, $value);
-        
+
         // Invalidate cache
         if (class_exists('\FP\PerfSuite\Plugin')) {
             try {
@@ -58,9 +58,9 @@ class WpOptionsRepository implements SettingsRepositoryInterface
                 // Continue anyway
             }
         }
-        
+
         do_action('fp_ps_setting_updated', $key, $value);
-        
+
         return $result;
     }
 
@@ -80,7 +80,7 @@ class WpOptionsRepository implements SettingsRepositoryInterface
     {
         $fullKey = $this->prefix . $key;
         $result = delete_option($fullKey);
-        
+
         // Invalidate cache
         if (class_exists('\FP\PerfSuite\Plugin')) {
             try {
@@ -90,9 +90,9 @@ class WpOptionsRepository implements SettingsRepositoryInterface
                 // Continue anyway
             }
         }
-        
+
         do_action('fp_ps_setting_deleted', $key);
-        
+
         return $result;
     }
 
@@ -102,7 +102,7 @@ class WpOptionsRepository implements SettingsRepositoryInterface
     public function all(): array
     {
         global $wpdb;
-        
+
         $pattern = $wpdb->esc_like($this->prefix) . '%';
         $options = $wpdb->get_results(
             $wpdb->prepare(
@@ -111,19 +111,19 @@ class WpOptionsRepository implements SettingsRepositoryInterface
             ),
             ARRAY_A
         );
-        
+
         $result = [];
         foreach ($options as $option) {
             $key = str_replace($this->prefix, '', $option['option_name']);
             $result[$key] = maybe_unserialize($option['option_value']);
         }
-        
+
         return $result;
     }
 
     /**
      * Bulk set settings
-     * 
+     *
      * @param array $settings Array of key => value pairs
      * @return bool Success
      */
@@ -132,13 +132,13 @@ class WpOptionsRepository implements SettingsRepositoryInterface
         foreach ($settings as $key => $value) {
             $this->set($key, $value);
         }
-        
+
         return true;
     }
 
     /**
      * Get settings matching pattern
-     * 
+     *
      * @param string $pattern Wildcard pattern (e.g., 'cache_*')
      * @return array
      */
@@ -146,8 +146,8 @@ class WpOptionsRepository implements SettingsRepositoryInterface
     {
         $all = $this->all();
         $pattern = str_replace('*', '.*', preg_quote($pattern, '/'));
-        
-        return array_filter($all, function($key) use ($pattern) {
+
+        return array_filter($all, function ($key) use ($pattern) {
             return preg_match('/^' . $pattern . '$/', $key);
         }, ARRAY_FILTER_USE_KEY);
     }

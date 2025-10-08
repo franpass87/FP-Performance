@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### 🎯 Major Enhancements - v1.1.0
+## [1.1.0] - 2025-10-08
+
+### 🎯 Major Enhancements
 
 #### Core Infrastructure
 - **Centralized Logging System** (`Logger` utility class)
@@ -71,5 +73,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Loaded the `mod_rewrite` helper before `.htaccess` capability checks.
 - Hardened settings import validation for JSON payloads.
 
-[Unreleased]: https://github.com/franpass87/FP-Performance/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/franpass87/FP-Performance/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/franpass87/FP-Performance/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/franpass87/FP-Performance/releases/tag/1.0.1

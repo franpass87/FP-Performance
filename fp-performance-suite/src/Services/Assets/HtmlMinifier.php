@@ -4,9 +4,9 @@ namespace FP\PerfSuite\Services\Assets;
 
 /**
  * HTML Minification Service
- * 
+ *
  * Removes unnecessary whitespace, newlines, and tabs from HTML output
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -42,7 +42,7 @@ class HtmlMinifier
 
     /**
      * Minify HTML content
-     * 
+     *
      * @param string $html HTML content to minify
      * @return string Minified HTML
      */

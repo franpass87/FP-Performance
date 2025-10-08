@@ -4,7 +4,7 @@ namespace FP\PerfSuite\ValueObjects;
 
 /**
  * Performance Score Value Object
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */

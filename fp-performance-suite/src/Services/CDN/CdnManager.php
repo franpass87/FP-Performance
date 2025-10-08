@@ -6,9 +6,9 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * CDN Integration Manager
- * 
+ *
  * Rewrites asset URLs to use CDN and provides purge functionality
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -22,7 +22,7 @@ class CdnManager
     public function register(): void
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['enabled'])) {
             return;
         }
@@ -32,7 +32,7 @@ class CdnManager
             add_filter('wp_calculate_image_srcset', [$this, 'rewriteSrcset'], 10, 5);
             add_filter('script_loader_src', [$this, 'rewriteUrl'], 10, 2);
             add_filter('style_loader_src', [$this, 'rewriteUrl'], 10, 2);
-            
+
             if (!empty($settings['rewrite_content'])) {
                 add_filter('the_content', [$this, 'rewriteContentUrls'], 999);
             }
@@ -58,7 +58,7 @@ class CdnManager
             'api_key' => '',
             'zone_id' => '',
         ];
-        
+
         return wp_parse_args(get_option(self::OPTION, []), $defaults);
     }
 
@@ -68,7 +68,7 @@ class CdnManager
     public function update(array $settings): void
     {
         $current = $this->settings();
-        
+
         $new = [
             'enabled' => !empty($settings['enabled']),
             'url' => esc_url_raw($settings['url'] ?? $current['url']),
@@ -79,14 +79,14 @@ class CdnManager
             'api_key' => sanitize_text_field($settings['api_key'] ?? $current['api_key']),
             'zone_id' => sanitize_text_field($settings['zone_id'] ?? $current['zone_id']),
         ];
-        
+
         update_option(self::OPTION, $new);
-        
+
         Logger::info('CDN settings updated', [
             'enabled' => $new['enabled'],
             'provider' => $new['provider'],
         ]);
-        
+
         do_action('fp_ps_cdn_settings_updated', $new);
     }
 
@@ -96,7 +96,7 @@ class CdnManager
     public function rewriteUrl(string $url, $id = null): string
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['enabled']) || empty($settings['url'])) {
             return $url;
         }
@@ -123,12 +123,12 @@ class CdnManager
 
         // Replace site URL with CDN URL
         $rewritten = str_replace($siteUrl, rtrim($cdnUrl, '/'), $url);
-        
+
         Logger::debug('URL rewritten to CDN', [
             'original' => $url,
             'cdn' => $rewritten,
         ]);
-        
+
         return apply_filters('fp_ps_cdn_url', $rewritten, $url);
     }
 
@@ -140,7 +140,7 @@ class CdnManager
         foreach ($sources as $width => $source) {
             $sources[$width]['url'] = $this->rewriteUrl($source['url'], $attachment_id);
         }
-        
+
         return $sources;
     }
 
@@ -150,17 +150,17 @@ class CdnManager
     public function rewriteContentUrls(string $content): string
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['enabled']) || empty($settings['url'])) {
             return $content;
         }
 
         $siteUrl = site_url();
         $uploadsUrl = wp_upload_dir()['baseurl'];
-        
+
         // Rewrite upload URLs in content
         $content = str_replace($uploadsUrl, rtrim($settings['url'], '/'), $content);
-        
+
         return $content;
     }
 
@@ -177,7 +177,7 @@ class CdnManager
         // Use hash of URL to consistently select same domain for same resource
         $hash = crc32($url);
         $index = $hash % count($settings['domains']);
-        
+
         return $settings['domains'][$index];
     }
 
@@ -187,7 +187,7 @@ class CdnManager
     public function purgeAll(): bool
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['enabled']) || empty($settings['api_key'])) {
             return false;
         }
@@ -223,21 +223,21 @@ class CdnManager
     public function purgeFile(string $file): bool
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['enabled'])) {
             return false;
         }
 
         $url = wp_get_attachment_url(attachment_url_to_postid($file));
-        
+
         if (!$url) {
             return false;
         }
 
         do_action('fp_ps_cdn_purge_file', $url, $settings);
-        
+
         Logger::debug('CDN file purge requested', ['url' => $url]);
-        
+
         return true;
     }
 
@@ -305,7 +305,7 @@ class CdnManager
     public function testConnection(): array
     {
         $settings = $this->settings();
-        
+
         if (empty($settings['url'])) {
             return [
                 'success' => false,
@@ -325,7 +325,7 @@ class CdnManager
         }
 
         $code = wp_remote_retrieve_response_code($response);
-        
+
         if ($code >= 200 && $code < 400) {
             return [
                 'success' => true,
@@ -346,7 +346,7 @@ class CdnManager
     public function status(): array
     {
         $settings = $this->settings();
-        
+
         return [
             'enabled' => $settings['enabled'],
             'provider' => $settings['provider'],

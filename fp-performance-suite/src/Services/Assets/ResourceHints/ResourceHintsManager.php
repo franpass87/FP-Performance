@@ -12,14 +12,15 @@ use function parse_url;
 use function preg_split;
 use function strtolower;
 use function trim;
+
 use const PATHINFO_EXTENSION;
 use const PHP_URL_PATH;
 
 /**
  * Resource Hints Manager
- * 
+ *
  * Manages DNS prefetch and preload resource hints for better performance
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -33,7 +34,7 @@ class ResourceHintsManager
 
     /**
      * Add DNS prefetch hint
-     * 
+     *
      * @param array<int, mixed> $hints Current hints
      * @param string $relation Relation type
      * @return array<int, mixed> Modified hints
@@ -49,7 +50,7 @@ class ResourceHintsManager
 
     /**
      * Add preload resource hints
-     * 
+     *
      * @param array<int, mixed> $hints Current hints
      * @param string $relation Relation type
      * @return array<int, mixed> Modified hints
@@ -65,7 +66,7 @@ class ResourceHintsManager
 
     /**
      * Set DNS prefetch URLs
-     * 
+     *
      * @param array<int, string>|string $urls URLs to prefetch
      */
     public function setDnsPrefetchUrls($urls): void
@@ -75,7 +76,7 @@ class ResourceHintsManager
 
     /**
      * Set preload URLs
-     * 
+     *
      * @param array<int, string>|string $urls URLs to preload
      */
     public function setPreloadUrls($urls): void
@@ -85,7 +86,7 @@ class ResourceHintsManager
 
     /**
      * Sanitize URL list
-     * 
+     *
      * @param mixed $value
      * @return array<int, string>
      */
@@ -124,7 +125,7 @@ class ResourceHintsManager
 
     /**
      * Format URLs as preload hints
-     * 
+     *
      * @param array<int, string> $urls
      * @return array<int, array<string, mixed>>
      */
@@ -148,7 +149,7 @@ class ResourceHintsManager
 
     /**
      * Merge preload hints avoiding duplicates
-     * 
+     *
      * @param array<int, mixed> $existing
      * @param array<int, array<string, mixed>> $additional
      * @return array<int, array<string, mixed>>
@@ -204,7 +205,7 @@ class ResourceHintsManager
 
     /**
      * Guess preload resource type from URL
-     * 
+     *
      * @param string $url Resource URL
      * @return string Resource type
      */

@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Assets\Optimizer;
+
 use function __;
 use function array_filter;
 use function array_map;

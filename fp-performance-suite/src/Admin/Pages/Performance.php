@@ -8,7 +8,7 @@ use FP\PerfSuite\Services\Score\Scorer;
 
 /**
  * Performance Metrics Dashboard
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -51,7 +51,7 @@ class Performance extends AbstractPage
         $stats7days = $monitor->getStats(7);
         $stats30days = $monitor->getStats(30);
         $trends = $monitor->getTrends(14);
-        
+
         ob_start();
         ?>
         
@@ -143,7 +143,7 @@ class Performance extends AbstractPage
         </section>
 
         <!-- Trends Chart (Simple Text Version) -->
-        <?php if (!empty($trends)): ?>
+        <?php if (!empty($trends)) : ?>
         <section class="fp-ps-card">
             <h2>📊 <?php esc_html_e('14-Day Trends', 'fp-performance-suite'); ?></h2>
             <table class="fp-ps-table">
@@ -156,7 +156,7 @@ class Performance extends AbstractPage
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach (array_slice(array_reverse($trends), 0, 14) as $trend): ?>
+                    <?php foreach (array_slice(array_reverse($trends), 0, 14) as $trend) : ?>
                     <tr>
                         <td><?php echo esc_html($trend['date']); ?></td>
                         <td><?php echo number_format($trend['avg_load_time'] * 1000, 0); ?> ms</td>

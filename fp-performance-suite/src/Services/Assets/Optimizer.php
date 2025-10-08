@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\Combiners\DependencyResolver;
 use FP\PerfSuite\Services\Assets\Combiners\JsCombiner;
 use FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager;
 use FP\PerfSuite\Utils\Semaphore;
+
 use function __;
 use function array_key_exists;
 use function esc_url_raw;
@@ -21,15 +22,16 @@ use function preg_split;
 use function trim;
 use function array_unique;
 use function array_values;
+
 use const FILTER_NULL_ON_FAILURE;
 use const FILTER_VALIDATE_BOOLEAN;
 
 /**
  * Asset Optimization Orchestrator
- * 
+ *
  * Coordinates various asset optimization strategies including minification,
  * combination, defer/async loading, and resource hints.
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -58,7 +60,7 @@ class Optimizer
         $this->scriptOptimizer = $scriptOptimizer ?? new ScriptOptimizer();
         $this->wpOptimizer = $wpOptimizer ?? new WordPressOptimizer();
         $this->resourceHints = $resourceHints ?? new ResourceHintsManager();
-        
+
         $dependencyResolver = $dependencyResolver ?? new DependencyResolver();
         $this->cssCombiner = new CssCombiner($dependencyResolver);
         $this->jsCombiner = new JsCombiner($dependencyResolver);
@@ -67,30 +69,30 @@ class Optimizer
     public function register(): void
     {
         $settings = $this->settings();
-        
+
         if (!is_admin()) {
             // HTML Minification
             if (!empty($settings['minify_html'])) {
                 add_action('template_redirect', [$this, 'startBuffer'], 1);
                 add_action('shutdown', [$this, 'endBuffer'], PHP_INT_MAX);
             }
-            
+
             // Script defer/async
             if (!empty($settings['defer_js'])) {
                 add_filter('script_loader_tag', [$this, 'filterScriptTag'], 10, 3);
             }
-            
+
             // Resource hints
             if (!empty($settings['dns_prefetch'])) {
                 $this->resourceHints->setDnsPrefetchUrls($settings['dns_prefetch']);
                 add_filter('wp_resource_hints', [$this->resourceHints, 'addDnsPrefetch'], 10, 2);
             }
-            
+
             if (!empty($settings['preload'])) {
                 $this->resourceHints->setPreloadUrls($settings['preload']);
                 add_filter('wp_resource_hints', [$this->resourceHints, 'addPreloadHints'], 10, 2);
             }
-            
+
             // Asset combination
             if (!empty($settings['combine_css']) || !empty($settings['combine_js'])) {
                 add_action('wp_enqueue_scripts', [$this, 'applyCombination'], PHP_INT_MAX);
@@ -109,7 +111,7 @@ class Optimizer
 
     /**
      * Get current settings
-     * 
+     *
      * @return array{
      *  minify_html:bool,
      *  defer_js:bool,
@@ -136,7 +138,7 @@ class Optimizer
             'combine_js' => false,
         ];
         $options = get_option(self::OPTION, []);
-        
+
         // Sanitize URL lists
         if (isset($options['dns_prefetch'])) {
             $options['dns_prefetch'] = $this->sanitizeUrlList($options['dns_prefetch']);
@@ -144,7 +146,7 @@ class Optimizer
         if (isset($options['preload'])) {
             $options['preload'] = $this->sanitizeUrlList($options['preload']);
         }
-        
+
         return wp_parse_args($options, $defaults);
     }
 
@@ -206,7 +208,7 @@ class Optimizer
         $settings = $this->settings();
         $defer = !empty($settings['defer_js']);
         $async = !empty($settings['async_js']);
-        
+
         return $this->scriptOptimizer->filterScriptTag($tag, $handle, $src, $defer, $async);
     }
 
@@ -263,7 +265,7 @@ class Optimizer
 
     /**
      * Sanitize URL list
-     * 
+     *
      * @param mixed $value
      * @return array<int, string>
      */
@@ -338,7 +340,7 @@ class Optimizer
     }
 
     // Getters for modular components (useful for testing and extension)
-    
+
     public function getHtmlMinifier(): HtmlMinifier
     {
         return $this->htmlMinifier;

@@ -9,9 +9,9 @@ use function wp_update_attachment_metadata;
 
 /**
  * WebP Batch Processing Engine
- * 
+ *
  * Processes batches of images for WebP conversion via cron
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -30,7 +30,7 @@ class WebPBatchProcessor
 
     /**
      * Process queued batch
-     * 
+     *
      * @param array{quality:int,lossy:bool,keep_original:bool} $settings
      */
     public function processBatch(array $settings): void
@@ -61,7 +61,7 @@ class WebPBatchProcessor
         $converted = $this->processAttachments($attachmentIds, $settings);
 
         $processedThisRun = count($attachmentIds);
-        
+
         $this->queue->updateState([
             'processed' => $state['processed'] + $processedThisRun,
             'converted' => $state['converted'] + $converted,
@@ -81,7 +81,7 @@ class WebPBatchProcessor
 
     /**
      * Process multiple attachments
-     * 
+     *
      * @param array<int, int> $attachmentIds
      * @param array{quality:int,lossy:bool,keep_original:bool} $settings
      * @return int Number of successfully converted attachments
@@ -93,13 +93,13 @@ class WebPBatchProcessor
         foreach ($attachmentIds as $attachmentId) {
             $metadata = wp_get_attachment_metadata($attachmentId);
             $metadata = is_array($metadata) ? $metadata : [];
-            
+
             $result = $this->attachmentProcessor->process($attachmentId, $metadata, $settings);
-            
+
             if (!empty($result['converted'])) {
                 $converted++;
             }
-            
+
             if ($metadata !== $result['metadata']) {
                 wp_update_attachment_metadata($attachmentId, $result['metadata']);
             }
@@ -110,7 +110,7 @@ class WebPBatchProcessor
 
     /**
      * Set chunk size for testing
-     * 
+     *
      * @param int $size
      */
     public function setChunkSize(int $size): void

@@ -4,9 +4,9 @@ namespace FP\PerfSuite\ValueObjects;
 
 /**
  * Cache Settings Value Object
- * 
+ *
  * Immutable object representing cache configuration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */

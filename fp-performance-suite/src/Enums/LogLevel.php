@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Enums;
 
 /**
  * Log Level Enumeration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -20,7 +20,7 @@ enum LogLevel: string
      */
     public function priority(): int
     {
-        return match($this) {
+        return match ($this) {
             self::ERROR => 1,
             self::WARNING => 2,
             self::INFO => 3,
@@ -33,7 +33,7 @@ enum LogLevel: string
      */
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ERROR => '#ef4444',
             self::WARNING => '#f59e0b',
             self::INFO => '#3b82f6',
@@ -46,7 +46,7 @@ enum LogLevel: string
      */
     public function emoji(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ERROR => '🔴',
             self::WARNING => '⚠️',
             self::INFO => 'ℹ️',

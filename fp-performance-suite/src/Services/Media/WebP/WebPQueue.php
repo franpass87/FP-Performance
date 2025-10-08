@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Services\Media\WebP;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use WP_Query;
+
 use function __;
 use function delete_option;
 use function get_option;
@@ -17,9 +18,9 @@ use function wp_schedule_single_event;
 
 /**
  * WebP Conversion Queue Manager
- * 
+ *
  * Manages the queue for bulk WebP conversions
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -27,7 +28,7 @@ class WebPQueue
 {
     private const QUEUE_OPTION = 'fp_ps_webp_queue';
     private const CRON_HOOK = 'fp_ps_webp_process_batch';
-    
+
     private RateLimiter $rateLimiter;
 
     public function __construct(?RateLimiter $rateLimiter = null)
@@ -37,7 +38,7 @@ class WebPQueue
 
     /**
      * Initialize bulk conversion queue
-     * 
+     *
      * @param int $limit Maximum number of images to convert
      * @param int $offset Starting offset
      * @return array{converted:int,total:int,queued:bool,error?:string}
@@ -69,7 +70,7 @@ class WebPQueue
                 'queued' => false,
             ];
         }
-        
+
         Logger::info("Starting WebP bulk conversion: {$total} images");
         do_action('fp_ps_webp_bulk_start', $total);
 
@@ -94,7 +95,7 @@ class WebPQueue
 
     /**
      * Get current queue state
-     * 
+     *
      * @return array{limit:int,offset:int,processed:int,converted:int,total:int}|null
      */
     public function getState(): ?array
@@ -116,13 +117,13 @@ class WebPQueue
 
     /**
      * Update queue state
-     * 
+     *
      * @param array{limit?:int,offset?:int,processed?:int,converted?:int,total?:int} $updates
      */
     public function updateState(array $updates): void
     {
         $state = $this->getState();
-        
+
         if ($state === null) {
             return;
         }
@@ -156,7 +157,7 @@ class WebPQueue
 
     /**
      * Get attachment IDs for next batch
-     * 
+     *
      * @param int $batchSize Number of images to process
      * @param int $batchOffset Starting offset for this batch
      * @return array<int, int> Attachment IDs
@@ -182,7 +183,7 @@ class WebPQueue
 
     /**
      * Count queued images
-     * 
+     *
      * @param int $offset Starting offset
      * @param int $limit Maximum count
      * @return int

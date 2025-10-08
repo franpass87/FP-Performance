@@ -8,9 +8,9 @@ use FP\PerfSuite\Utils\Logger;
 
 /**
  * Scheduled Performance Reports
- * 
+ *
  * Sends periodic email reports about site performance
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -26,7 +26,7 @@ class ScheduledReports
     {
         add_action(self::CRON_HOOK, [$this, 'sendReport']);
         add_filter('cron_schedules', [$this, 'addSchedules']);
-        
+
         $this->maybeSchedule();
     }
 
@@ -39,12 +39,12 @@ class ScheduledReports
             'interval' => WEEK_IN_SECONDS,
             'display' => __('Once Weekly (FP Performance)', 'fp-performance-suite'),
         ];
-        
+
         $schedules['fp_ps_monthly'] = [
             'interval' => 30 * DAY_IN_SECONDS,
             'display' => __('Once Monthly (FP Performance)', 'fp-performance-suite'),
         ];
-        
+
         return $schedules;
     }
 
@@ -61,7 +61,7 @@ class ScheduledReports
             'include_optimizations' => true,
             'include_metrics' => true,
         ];
-        
+
         return wp_parse_args(get_option(self::OPTION, []), $defaults);
     }
 
@@ -71,23 +71,23 @@ class ScheduledReports
     public function update(array $settings): void
     {
         $current = $this->settings();
-        
+
         $new = [
             'enabled' => !empty($settings['enabled']),
-            'frequency' => in_array($settings['frequency'] ?? '', ['daily', 'weekly', 'monthly']) 
-                ? $settings['frequency'] 
+            'frequency' => in_array($settings['frequency'] ?? '', ['daily', 'weekly', 'monthly'])
+                ? $settings['frequency']
                 : $current['frequency'],
             'recipient' => sanitize_email($settings['recipient'] ?? $current['recipient']),
             'include_suggestions' => !empty($settings['include_suggestions']),
             'include_optimizations' => !empty($settings['include_optimizations']),
             'include_metrics' => !empty($settings['include_metrics']),
         ];
-        
+
         update_option(self::OPTION, $new);
-        
+
         // Reschedule
         $this->maybeSchedule(true);
-        
+
         Logger::info('Scheduled reports settings updated', $new);
     }
 
@@ -99,21 +99,21 @@ class ScheduledReports
         if ($force) {
             wp_clear_scheduled_hook(self::CRON_HOOK);
         }
-        
+
         $settings = $this->settings();
-        
+
         if (!$settings['enabled']) {
             wp_clear_scheduled_hook(self::CRON_HOOK);
             return;
         }
-        
+
         if (wp_next_scheduled(self::CRON_HOOK)) {
             return; // Already scheduled
         }
-        
+
         $recurrence = $this->getRecurrence($settings['frequency']);
         wp_schedule_event(time() + HOUR_IN_SECONDS, $recurrence, self::CRON_HOOK);
-        
+
         Logger::info('Scheduled performance reports', [
             'frequency' => $settings['frequency'],
             'recipient' => $settings['recipient'],
@@ -142,21 +142,21 @@ class ScheduledReports
     public function sendReport(): void
     {
         $settings = $this->settings();
-        
+
         if (!$settings['enabled']) {
             return;
         }
-        
+
         try {
             $report = $this->generateReport($settings);
-            
+
             $sent = wp_mail(
                 $settings['recipient'],
                 $report['subject'],
                 $report['body'],
                 $report['headers']
             );
-            
+
             if ($sent) {
                 Logger::info('Performance report sent', [
                     'recipient' => $settings['recipient'],
@@ -168,7 +168,6 @@ class ScheduledReports
             } else {
                 Logger::error('Failed to send performance report');
             }
-            
         } catch (\Throwable $e) {
             Logger::error('Failed to generate performance report', $e);
         }
@@ -183,17 +182,17 @@ class ScheduledReports
         $scorer = $container->get(Scorer::class);
         $score = $scorer->calculate();
         $optimizations = $scorer->activeOptimizations();
-        
+
         $siteName = get_bloginfo('name');
         $siteUrl = home_url();
         $date = date_i18n(get_option('date_format'));
-        
+
         $subject = sprintf(
             __('[%s] Performance Report - %s', 'fp-performance-suite'),
             $siteName,
             $date
         );
-        
+
         // Build HTML email
         $body = $this->renderEmailTemplate([
             'site_name' => $siteName,
@@ -203,12 +202,12 @@ class ScheduledReports
             'optimizations' => $optimizations,
             'settings' => $settings,
         ]);
-        
+
         $headers = [
             'Content-Type: text/html; charset=UTF-8',
             sprintf('From: %s <%s>', $siteName, get_option('admin_email')),
         ];
-        
+
         return [
             'subject' => $subject,
             'body' => $body,
@@ -223,7 +222,7 @@ class ScheduledReports
     {
         $score = $data['score'];
         $scoreColor = $score['total'] >= 80 ? '#10b981' : ($score['total'] >= 60 ? '#f59e0b' : '#ef4444');
-        
+
         ob_start();
         ?>
         <!DOCTYPE html>
@@ -284,7 +283,7 @@ class ScheduledReports
                                 </td>
                             </tr>
                             
-                            <?php if ($data['settings']['include_metrics']): ?>
+                            <?php if ($data['settings']['include_metrics']) : ?>
                             <!-- Breakdown -->
                             <tr>
                                 <td style="padding: 0 30px 30px 30px;">
@@ -292,7 +291,7 @@ class ScheduledReports
                                         Score Breakdown
                                     </h3>
                                     <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-                                        <?php foreach ($score['breakdown'] as $label => $points): ?>
+                                        <?php foreach ($score['breakdown'] as $label => $points) : ?>
                                         <tr>
                                             <td style="border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px;">
                                                 <?php echo esc_html($label); ?>
@@ -307,7 +306,7 @@ class ScheduledReports
                             </tr>
                             <?php endif; ?>
                             
-                            <?php if ($data['settings']['include_optimizations'] && !empty($data['optimizations'])): ?>
+                            <?php if ($data['settings']['include_optimizations'] && !empty($data['optimizations'])) : ?>
                             <!-- Active Optimizations -->
                             <tr>
                                 <td style="padding: 0 30px 30px 30px;">
@@ -315,7 +314,7 @@ class ScheduledReports
                                         Active Optimizations
                                     </h3>
                                     <ul style="margin: 0; padding: 0 0 0 20px;">
-                                        <?php foreach ($data['optimizations'] as $opt): ?>
+                                        <?php foreach ($data['optimizations'] as $opt) : ?>
                                         <li style="color: #374151; font-size: 14px; margin-bottom: 8px;">
                                             <?php echo esc_html($opt); ?>
                                         </li>
@@ -325,7 +324,7 @@ class ScheduledReports
                             </tr>
                             <?php endif; ?>
                             
-                            <?php if ($data['settings']['include_suggestions'] && !empty($score['suggestions'])): ?>
+                            <?php if ($data['settings']['include_suggestions'] && !empty($score['suggestions'])) : ?>
                             <!-- Suggestions -->
                             <tr>
                                 <td style="padding: 0 30px 30px 30px;">
@@ -334,7 +333,7 @@ class ScheduledReports
                                     </h3>
                                     <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
                                         <ul style="margin: 0; padding: 0 0 0 20px;">
-                                            <?php foreach ($score['suggestions'] as $suggestion): ?>
+                                            <?php foreach ($score['suggestions'] as $suggestion) : ?>
                                             <li style="color: #92400e; font-size: 14px; margin-bottom: 8px;">
                                                 <?php echo esc_html($suggestion); ?>
                                             </li>
@@ -385,28 +384,27 @@ class ScheduledReports
                 'recipient' => $recipient,
                 'enabled' => true,
             ]);
-            
+
             $report = $this->generateReport($testSettings);
-            
+
             $sent = wp_mail(
                 $recipient,
                 '[TEST] ' . $report['subject'],
                 $report['body'],
                 $report['headers']
             );
-            
+
             if ($sent) {
                 return [
                     'success' => true,
                     'message' => __('Test report sent successfully', 'fp-performance-suite'),
                 ];
             }
-            
+
             return [
                 'success' => false,
                 'error' => __('Failed to send test report', 'fp-performance-suite'),
             ];
-            
         } catch (\Throwable $e) {
             Logger::error('Failed to send test report', $e);
             return [

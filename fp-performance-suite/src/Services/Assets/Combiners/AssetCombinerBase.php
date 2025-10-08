@@ -30,6 +30,7 @@ use function trailingslashit;
 use function wp_mkdir_p;
 use function wp_parse_url;
 use function wp_upload_dir;
+
 use const LOCK_EX;
 use const PHP_URL_HOST;
 use const PHP_URL_PATH;
@@ -37,9 +38,9 @@ use const PHP_URL_SCHEME;
 
 /**
  * Base Asset Combiner
- * 
+ *
  * Provides common functionality for CSS and JS combiners
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -64,7 +65,7 @@ abstract class AssetCombinerBase
 
     /**
      * Check if dependency item is combinable
-     * 
+     *
      * @param object $item Dependency item
      * @return bool
      */
@@ -88,7 +89,7 @@ abstract class AssetCombinerBase
 
     /**
      * Resolve dependency source to local file path
-     * 
+     *
      * @param \WP_Dependencies $collection
      * @param object $item
      * @return array{path:string,url:string}|null
@@ -161,7 +162,7 @@ abstract class AssetCombinerBase
 
     /**
      * Write combined asset to file
-     * 
+     *
      * @param array<int,array{handle:string,path:string,url:string}> $files
      * @return array{handles:array<int,string>,url:string}|null
      */
@@ -233,7 +234,7 @@ abstract class AssetCombinerBase
 
     /**
      * Replace dependencies after combination
-     * 
+     *
      * @param \WP_Dependencies $collection
      * @param array<int, string> $replacedHandles
      * @param string $replacement

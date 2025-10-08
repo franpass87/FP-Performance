@@ -4,7 +4,7 @@ namespace FP\PerfSuite\Enums;
 
 /**
  * CDN Provider Enumeration
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -22,7 +22,7 @@ enum CdnProvider: string
      */
     public function name(): string
     {
-        return match($this) {
+        return match ($this) {
             self::CUSTOM => __('Custom CDN', 'fp-performance-suite'),
             self::CLOUDFLARE => 'CloudFlare',
             self::BUNNYCDN => 'BunnyCDN',
@@ -37,7 +37,7 @@ enum CdnProvider: string
      */
     public function setupUrl(): string
     {
-        return match($this) {
+        return match ($this) {
             self::CUSTOM => '',
             self::CLOUDFLARE => 'https://cloudflare.com',
             self::BUNNYCDN => 'https://bunny.net',
@@ -52,7 +52,7 @@ enum CdnProvider: string
      */
     public function supportsApiPurge(): bool
     {
-        return match($this) {
+        return match ($this) {
             self::CLOUDFLARE, self::BUNNYCDN, self::STACKPATH, self::FASTLY => true,
             self::CUSTOM, self::CLOUDFRONT => false,
         };
@@ -72,7 +72,7 @@ enum CdnProvider: string
     public function requiredFields(): array
     {
         $base = ['url'];
-        
+
         if ($this->requiresApiKey()) {
             $base[] = 'api_key';
         }
@@ -89,7 +89,7 @@ enum CdnProvider: string
      */
     public function icon(): string
     {
-        return match($this) {
+        return match ($this) {
             self::CUSTOM => '⚙️',
             self::CLOUDFLARE => '☁️',
             self::BUNNYCDN => '🐰',

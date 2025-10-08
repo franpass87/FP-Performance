@@ -4,9 +4,9 @@ namespace FP\PerfSuite\Utils;
 
 /**
  * Centralized logging utility for FP Performance Suite.
- * 
+ *
  * Provides consistent logging with context and severity levels.
- * 
+ *
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
@@ -36,14 +36,14 @@ class Logger
                 $e->getLine(),
                 $e->getMessage()
             );
-            
+
             if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
                 $context .= "\nStack trace:\n" . $e->getTraceAsString();
             }
         }
-        
+
         self::write(self::ERROR, $message . $context);
-        
+
         // Hook per monitoraggio esterno
         do_action('fp_ps_log_error', $message, $e);
     }
@@ -93,7 +93,7 @@ class Logger
             $level,
             $message
         );
-        
+
         error_log($formattedMessage);
     }
 
@@ -112,10 +112,10 @@ class Logger
 
         $configuredLevel = get_option(self::OPTION_LOG_LEVEL, 'ERROR');
         $levels = [self::ERROR => 1, self::WARNING => 2, self::INFO => 3, self::DEBUG => 4];
-        
+
         $currentLevel = $levels[$configuredLevel] ?? 1;
         $requestedLevel = $levels[$level] ?? 4;
-        
+
         return $requestedLevel <= $currentLevel;
     }
 

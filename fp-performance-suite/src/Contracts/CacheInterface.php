@@ -14,14 +14,14 @@ interface CacheInterface
 
     /**
      * Get cache settings
-     * 
+     *
      * @return array
      */
     public function settings(): array;
 
     /**
      * Update cache settings
-     * 
+     *
      * @param array $settings
      */
     public function update(array $settings): void;
@@ -33,7 +33,7 @@ interface CacheInterface
 
     /**
      * Get cache status
-     * 
+     *
      * @return array
      */
     public function status(): array;
