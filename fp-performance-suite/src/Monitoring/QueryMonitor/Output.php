@@ -134,7 +134,8 @@ class Output extends \QM_Output_Html
                 echo '<tbody>';
 
                 foreach ($otherMetrics as $key => $value) {
-                    echo '<tr><td>' . esc_html($key) . '</td><td>' . esc_html(print_r($value, true)) . '</td></tr>';
+                    $formattedValue = is_scalar($value) ? $value : wp_json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                    echo '<tr><td>' . esc_html($key) . '</td><td><pre style="margin:0;white-space:pre-wrap;">' . esc_html($formattedValue) . '</pre></td></tr>';
                 }
 
                 echo '</tbody></table>';

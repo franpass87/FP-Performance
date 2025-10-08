@@ -4,8 +4,8 @@ namespace FP\PerfSuite\Services\Logs;
 
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Env;
+use FP\PerfSuite\Utils\Logger;
 
-use function error_log;
 use function get_option;
 use function update_option;
 
@@ -35,11 +35,28 @@ class DebugToggler
         return [
             'WP_DEBUG' => defined('WP_DEBUG') ? (bool) WP_DEBUG : false,
             'WP_DEBUG_LOG' => $logEnabled,
+            'WP_DEBUG_DISPLAY' => defined('WP_DEBUG_DISPLAY') ? (bool) WP_DEBUG_DISPLAY : false,
+            'SCRIPT_DEBUG' => defined('SCRIPT_DEBUG') ? (bool) SCRIPT_DEBUG : false,
+            'SAVEQUERIES' => defined('SAVEQUERIES') ? (bool) SAVEQUERIES : false,
             'log_file' => $logPath,
         ];
     }
 
     public function toggle(bool $enabled, bool $log = true): bool
+    {
+        return $this->updateSettings([
+            'WP_DEBUG' => $enabled,
+            'WP_DEBUG_LOG' => $log,
+        ]);
+    }
+
+    /**
+     * Update multiple debug settings at once
+     *
+     * @param array<string, bool|string> $settings Array of constant => value pairs
+     * @return bool Success status
+     */
+    public function updateSettings(array $settings): bool
     {
         $config = ABSPATH . 'wp-config.php';
         $lockFile = WP_CONTENT_DIR . '/fp-ps-config.lock';
@@ -49,7 +66,7 @@ class DebugToggler
             // Acquire lock to prevent concurrent modifications
             $lock = fopen($lockFile, 'c+');
             if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
-                error_log('[FP Performance Suite] Failed to acquire lock for wp-config.php modification');
+                Logger::error('Failed to acquire lock for wp-config.php modification');
                 return false;
             }
 
@@ -65,15 +82,35 @@ class DebugToggler
             $parsedLogValue = $this->parseConstant($existingLogValue);
             $existingRaw = $existingLogValue !== null ? trim($existingLogValue) : null;
 
-            if (!$log && $existingRaw !== null && $existingRaw !== '' && strtolower($existingRaw) !== 'false') {
+            // Save custom log path if disabling
+            if (isset($settings['WP_DEBUG_LOG']) && !$settings['WP_DEBUG_LOG'] && $existingRaw !== null && $existingRaw !== '' && strtolower($existingRaw) !== 'false') {
                 update_option(self::OPTION_LOG_EXPRESSION, $existingRaw);
             }
 
-            $map = [
-                'WP_DEBUG' => $enabled ? 'true' : 'false',
-                'WP_DEBUG_LOG' => $log ? $this->determineLogValue($parsedLogValue) : 'false',
-            ];
+            // Build constant map
+            $map = [];
 
+            if (isset($settings['WP_DEBUG'])) {
+                $map['WP_DEBUG'] = $settings['WP_DEBUG'] ? 'true' : 'false';
+            }
+
+            if (isset($settings['WP_DEBUG_LOG'])) {
+                $map['WP_DEBUG_LOG'] = $settings['WP_DEBUG_LOG'] ? $this->determineLogValue($parsedLogValue) : 'false';
+            }
+
+            if (isset($settings['WP_DEBUG_DISPLAY'])) {
+                $map['WP_DEBUG_DISPLAY'] = $settings['WP_DEBUG_DISPLAY'] ? 'true' : 'false';
+            }
+
+            if (isset($settings['SCRIPT_DEBUG'])) {
+                $map['SCRIPT_DEBUG'] = $settings['SCRIPT_DEBUG'] ? 'true' : 'false';
+            }
+
+            if (isset($settings['SAVEQUERIES'])) {
+                $map['SAVEQUERIES'] = $settings['SAVEQUERIES'] ? 'true' : 'false';
+            }
+
+            // Apply changes
             foreach ($map as $constant => $value) {
                 $replacement = "define('{$constant}', {$value});";
                 $pattern = "/define\s*\(\s*['\"]{$constant}['\"]\s*,\s*([^\)]*)\);/i";
@@ -88,9 +125,12 @@ class DebugToggler
             if ($result && function_exists('wp_opcache_invalidate')) {
                 wp_opcache_invalidate($config, true);
             }
+
+            Logger::info('Debug settings updated', $map);
+
             return $result;
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Failed to toggle debug mode: ' . $e->getMessage());
+            Logger::error('Failed to update debug settings', $e);
             return false;
         } finally {
             // Always release lock
@@ -108,7 +148,7 @@ class DebugToggler
             $backupFile = $config . '.fp-backup-' . gmdate('YmdHis');
             $this->fs->putContents($backupFile, $contents);
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Failed to back up wp-config.php: ' . $e->getMessage());
+            Logger::error('Failed to back up wp-config.php', $e);
         }
     }
 
@@ -130,7 +170,7 @@ class DebugToggler
             }
             return $result;
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Failed to restore wp-config.php backup: ' . $e->getMessage());
+            Logger::error('Failed to restore wp-config.php backup', $e);
             return false;
         }
     }

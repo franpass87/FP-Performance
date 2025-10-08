@@ -36,6 +36,9 @@ class PageCache implements CacheInterface
         add_action('template_redirect', [$this, 'maybeServeCache'], 0);
         add_action('template_redirect', [$this, 'startBuffering'], PHP_INT_MAX);
         add_action('shutdown', [$this, 'saveBuffer'], PHP_INT_MAX);
+
+        // Register automatic cache purge hooks
+        $this->registerPurgeHooks();
     }
 
     public function isEnabled(): bool
@@ -114,6 +117,128 @@ class PageCache implements CacheInterface
         } catch (\Throwable $e) {
             Logger::error('Failed to clear page cache', $e);
         }
+    }
+
+    /**
+     * Register hooks for automatic cache purging on content updates
+     */
+    private function registerPurgeHooks(): void
+    {
+        // Post updates
+        add_action('save_post', [$this, 'onContentUpdate'], 10, 3);
+        add_action('deleted_post', [$this, 'onContentUpdate']);
+        add_action('trashed_post', [$this, 'onContentUpdate']);
+        add_action('wp_trash_post', [$this, 'onContentUpdate']);
+
+        // Comment updates
+        add_action('comment_post', [$this, 'onCommentUpdate'], 10, 2);
+        add_action('edit_comment', [$this, 'onCommentUpdate']);
+        add_action('deleted_comment', [$this, 'onCommentUpdate']);
+        add_action('trashed_comment', [$this, 'onCommentUpdate']);
+        add_action('spam_comment', [$this, 'onCommentUpdate']);
+        add_action('unspam_comment', [$this, 'onCommentUpdate']);
+
+        // Theme/customizer changes
+        add_action('switch_theme', [$this, 'onThemeChange']);
+        add_action('customize_save_after', [$this, 'onThemeChange']);
+
+        // Widget updates
+        add_action('update_option_sidebars_widgets', [$this, 'onWidgetUpdate']);
+
+        // Menu updates
+        add_action('wp_update_nav_menu', [$this, 'onMenuUpdate']);
+
+        // Allow disabling auto-purge via filter
+        if (apply_filters('fp_ps_enable_auto_purge', true)) {
+            Logger::debug('Auto-purge hooks registered');
+        }
+    }
+
+    /**
+     * Handle content updates (posts, pages, etc.)
+     *
+     * @param int $postId Post ID
+     */
+    public function onContentUpdate($postId): void
+    {
+        // Skip autosaves and revisions
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
+        if (wp_is_post_revision($postId)) {
+            return;
+        }
+
+        // Only purge for published posts
+        $post = get_post($postId);
+        if (!$post || $post->post_status !== 'publish') {
+            return;
+        }
+
+        Logger::info('Auto-purge triggered by post update', [
+            'post_id' => $postId,
+            'post_type' => $post->post_type ?? 'unknown',
+        ]);
+
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'post_update', $postId);
+    }
+
+    /**
+     * Handle comment updates
+     *
+     * @param int $commentId Comment ID
+     */
+    public function onCommentUpdate($commentId): void
+    {
+        $comment = get_comment($commentId);
+        if (!$comment) {
+            return;
+        }
+
+        // Only purge for approved comments on published posts
+        if ($comment->comment_approved !== '1') {
+            return;
+        }
+
+        Logger::info('Auto-purge triggered by comment update', [
+            'comment_id' => $commentId,
+            'post_id' => $comment->comment_post_ID,
+        ]);
+
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'comment_update', $commentId);
+    }
+
+    /**
+     * Handle theme changes
+     */
+    public function onThemeChange(): void
+    {
+        Logger::info('Auto-purge triggered by theme change');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'theme_change', null);
+    }
+
+    /**
+     * Handle widget updates
+     */
+    public function onWidgetUpdate(): void
+    {
+        Logger::info('Auto-purge triggered by widget update');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'widget_update', null);
+    }
+
+    /**
+     * Handle menu updates
+     */
+    public function onMenuUpdate(): void
+    {
+        Logger::info('Auto-purge triggered by menu update');
+        $this->clear();
+        do_action('fp_ps_cache_auto_purged', 'menu_update', null);
     }
 
     public function maybeServeCache(): void
