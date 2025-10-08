@@ -15,21 +15,27 @@ class Assets
             return;
         }
 
+        // Enqueue modular CSS (uses @import for sub-modules)
         wp_enqueue_style(
             'fp-performance-suite-admin',
-            plugins_url('assets/admin.css', FP_PERF_SUITE_FILE),
+            plugins_url('assets/css/admin.css', FP_PERF_SUITE_FILE),
             [],
             FP_PERF_SUITE_VERSION
         );
 
+        // Enqueue modular JavaScript (ES6 modules)
         wp_enqueue_script(
             'fp-performance-suite-admin',
-            plugins_url('assets/admin.js', FP_PERF_SUITE_FILE),
+            plugins_url('assets/js/main.js', FP_PERF_SUITE_FILE),
             ['wp-i18n'],
             FP_PERF_SUITE_VERSION,
             true
         );
 
+        // Add type="module" attribute for ES6 modules
+        add_filter('script_loader_tag', [$this, 'addModuleType'], 10, 3);
+
+        // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
             'confirmLabel' => __('Type PROCEDI to confirm high-risk actions', 'fp-performance-suite'),
@@ -39,5 +45,21 @@ class Assets
                 'presetError' => __('Unable to apply preset.', 'fp-performance-suite'),
             ],
         ]);
+    }
+
+    /**
+     * Add type="module" to our script tag for ES6 module support
+     *
+     * @param string $tag    The script tag
+     * @param string $handle The script handle
+     * @param string $src    The script source URL
+     * @return string Modified script tag
+     */
+    public function addModuleType(string $tag, string $handle, string $src): string
+    {
+        if ('fp-performance-suite-admin' === $handle) {
+            $tag = str_replace('<script ', '<script type="module" ', $tag);
+        }
+        return $tag;
     }
 }

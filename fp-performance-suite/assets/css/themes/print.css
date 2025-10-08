@@ -1,0 +1,23 @@
+/**
+ * Print Styles
+ * 
+ * @package FP\PerfSuite
+ */
+
+@media print {
+    .fp-ps-wrap {
+        background: white;
+        padding: 0;
+    }
+
+    .fp-ps-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        page-break-inside: avoid;
+    }
+
+    .fp-ps-actions,
+    .fp-ps-breadcrumbs {
+        display: none;
+    }
+}
