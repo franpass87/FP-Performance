@@ -324,7 +324,11 @@ class Cleaner
         $run = [];
         foreach ($tables as $table) {
             if (!$dryRun) {
-                $wpdb->query("OPTIMIZE TABLE `{$table}`");
+                // Sanitize table name to prevent SQL injection
+                $sanitizedTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+                if ($sanitizedTable === $table) {
+                    $wpdb->query("OPTIMIZE TABLE `{$sanitizedTable}`");
+                }
             }
             $run[] = $table;
         }

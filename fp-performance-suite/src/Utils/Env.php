@@ -16,7 +16,7 @@ class Env
 
     public function serverSoftware(): string
     {
-        return $_SERVER['SERVER_SOFTWARE'] ?? '';
+        return isset($_SERVER['SERVER_SOFTWARE']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE'])) : '';
     }
 
     public function isApache(): bool
