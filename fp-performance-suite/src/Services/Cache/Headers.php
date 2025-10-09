@@ -45,7 +45,7 @@ class Headers
                     return;
                 }
 
-                $uri = $_SERVER['REQUEST_URI'] ?? '';
+                $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
                 if (is_string($uri) && ($uri === '/wp-login.php' || strpos($uri, 'wp-login.php') !== false || strpos($uri, 'wp-signup.php') !== false)) {
                     return;
                 }

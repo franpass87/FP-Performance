@@ -197,7 +197,7 @@ class PageCache implements CacheInterface
         }
 
         // Home page (if post is shown on front page)
-        if ($post->post_type === 'post' || get_option('show_on_front') === 'page' && (int) get_option('page_on_front') === $postId) {
+        if ($post->post_type === 'post' || (get_option('show_on_front') === 'page' && (int) get_option('page_on_front') === $postId)) {
             $urlsToPurge[] = home_url('/');
         }
 
@@ -598,7 +598,7 @@ class PageCache implements CacheInterface
             return false;
         }
 
-        if (!is_main_query() || is_user_logged_in() || is_admin() || defined('DONOTCACHEPAGE')) {
+        if (is_user_logged_in() || is_admin() || defined('DONOTCACHEPAGE')) {
             return false;
         }
 
@@ -606,7 +606,8 @@ class PageCache implements CacheInterface
             return false;
         }
 
-        if (!in_array(strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'), ['GET', 'HEAD'], true)) {
+        $requestMethod = isset($_SERVER['REQUEST_METHOD']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])) : 'GET';
+        if (!in_array(strtoupper($requestMethod), ['GET', 'HEAD'], true)) {
             return false;
         }
 
@@ -620,7 +621,8 @@ class PageCache implements CacheInterface
     private function cacheFile(): string
     {
         $host = sanitize_key(wp_parse_url(home_url(), PHP_URL_HOST) ?? 'site');
-        $path = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/', '/');
+        $requestUri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '/';
+        $path = trim(parse_url($requestUri, PHP_URL_PATH) ?? '/', '/');
         $path = $path === '' ? 'index' : str_replace('/', '-', $path);
         $dir = trailingslashit($this->cacheDir()) . $host;
         wp_mkdir_p($dir);
@@ -674,7 +676,8 @@ class PageCache implements CacheInterface
 
     private function isHeadRequest(): bool
     {
-        return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD';
+        $requestMethod = isset($_SERVER['REQUEST_METHOD']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])) : 'GET';
+        return strtoupper($requestMethod) === 'HEAD';
     }
 
     private function hasPrivateCookies(): bool
