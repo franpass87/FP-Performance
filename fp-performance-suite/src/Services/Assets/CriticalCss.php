@@ -297,12 +297,12 @@ class CriticalCss
     private function minifyCss(string $css): string
     {
         // Remove comments
-        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
+        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css) ?? $css;
 
         // Remove whitespace
         $css = str_replace(["\r\n", "\r", "\n", "\t"], '', $css);
-        $css = preg_replace('/\s+/', ' ', $css);
-        $css = preg_replace('/\s*([{}:;,])\s*/', '$1', $css);
+        $css = preg_replace('/\s+/', ' ', $css) ?? $css;
+        $css = preg_replace('/\s*([{}:;,])\s*/', '$1', $css) ?? $css;
 
         return trim($css);
     }
