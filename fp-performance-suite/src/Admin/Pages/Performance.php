@@ -110,13 +110,17 @@ class Performance extends AbstractPage
                         <td><?php echo number_format($stats30days['avg_load_time'] * 1000, 0); ?> ms</td>
                         <td>
                             <?php
-                            $delta = (($stats7days['avg_load_time'] - $stats30days['avg_load_time']) / $stats30days['avg_load_time']) * 100;
-                            if ($delta < -5) {
-                                echo '<span style="color: #10b981;">↓ ' . number_format(abs($delta), 1) . '%</span>';
-                            } elseif ($delta > 5) {
-                                echo '<span style="color: #ef4444;">↑ ' . number_format($delta, 1) . '%</span>';
+                            if ($stats30days['avg_load_time'] > 0) {
+                                $delta = (($stats7days['avg_load_time'] - $stats30days['avg_load_time']) / $stats30days['avg_load_time']) * 100;
+                                if ($delta < -5) {
+                                    echo '<span style="color: #10b981;">↓ ' . number_format(abs($delta), 1) . '%</span>';
+                                } elseif ($delta > 5) {
+                                    echo '<span style="color: #ef4444;">↑ ' . number_format($delta, 1) . '%</span>';
+                                } else {
+                                    echo '<span style="color: #6b7280;">→ Stable</span>';
+                                }
                             } else {
-                                echo '<span style="color: #6b7280;">→ Stable</span>';
+                                echo '<span style="color: #6b7280;">—</span>';
                             }
                             ?>
                         </td>

@@ -156,7 +156,13 @@ class CdnManager
         }
 
         $siteUrl = site_url();
-        $uploadsUrl = wp_upload_dir()['baseurl'];
+        $uploadDir = wp_upload_dir();
+        
+        if (empty($uploadDir['baseurl'])) {
+            return $content;
+        }
+        
+        $uploadsUrl = $uploadDir['baseurl'];
 
         // Rewrite upload URLs in content
         $content = str_replace($uploadsUrl, rtrim($settings['url'], '/'), $content);
@@ -170,13 +176,13 @@ class CdnManager
     private function selectCdnDomain(string $url, array $settings): string
     {
         // If no domain sharding, use main URL
-        if (empty($settings['domains']) || !is_array($settings['domains'])) {
+        if (empty($settings['domains']) || !is_array($settings['domains']) || count($settings['domains']) === 0) {
             return $settings['url'];
         }
 
         // Use hash of URL to consistently select same domain for same resource
         $hash = crc32($url);
-        $index = $hash % count($settings['domains']);
+        $index = abs($hash) % count($settings['domains']);
 
         return $settings['domains'][$index];
     }

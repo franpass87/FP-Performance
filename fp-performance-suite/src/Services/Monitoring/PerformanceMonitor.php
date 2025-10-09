@@ -223,6 +223,17 @@ class PerformanceMonitor
 
         $samples = count($filtered);
 
+        // Prevent division by zero
+        if ($samples === 0) {
+            return [
+                'avg_load_time' => 0,
+                'avg_queries' => 0,
+                'avg_memory' => 0,
+                'samples' => 0,
+                'period_days' => $days,
+            ];
+        }
+
         $totalLoadTime = array_sum(array_column($filtered, 'load_time'));
         $totalQueries = array_sum(array_filter(array_column($filtered, 'db_queries')));
         $totalMemory = array_sum(array_filter(array_column($filtered, 'memory_peak')));
