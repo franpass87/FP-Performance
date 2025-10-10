@@ -94,7 +94,7 @@ class Output extends \QM_Output_Html
             $memoryUsage = $data['performance']['memory_usage'] / 1024 / 1024;
             $memoryPeak = $data['performance']['memory_peak'] / 1024 / 1024;
             $memoryLimit = $data['performance']['memory_limit'] / 1024 / 1024;
-            $memoryPercent = ($memoryPeak / $memoryLimit) * 100;
+            $memoryPercent = $memoryLimit > 0 ? ($memoryPeak / $memoryLimit) * 100 : 0;
 
             echo '<tr><td>Memory Usage</td><td>' . number_format($memoryUsage, 2) . ' MB</td></tr>';
             echo '<tr><td>Memory Peak</td><td>' . number_format($memoryPeak, 2) . ' MB</td></tr>';

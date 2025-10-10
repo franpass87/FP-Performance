@@ -465,7 +465,9 @@ class PageCache implements CacheInterface
             @unlink($file . '.meta');
             return;
         }
-        if ($ttl > 0 && filemtime($file) + $ttl < time()) {
+        
+        $fileTime = @filemtime($file);
+        if ($ttl > 0 && $fileTime !== false && $fileTime + $ttl < time()) {
             @unlink($file);
             @unlink($file . '.meta');
             return;
