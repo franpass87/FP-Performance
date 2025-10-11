@@ -18,11 +18,15 @@ import { initRiskyToggles } from './components/confirmation.js';
 import { initLogViewer } from './features/log-viewer.js';
 import { initPresets } from './features/presets.js';
 import { initBulkActions } from './features/bulk-actions.js';
+import { initDarkMode } from './features/dark-mode.js';
 
 /**
  * Initialize all features on DOM ready
  */
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize dark mode (needs to run early for smooth transition)
+    initDarkMode();
+    
     // Initialize risky action confirmations
     initRiskyToggles();
     
