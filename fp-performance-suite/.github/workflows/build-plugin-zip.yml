@@ -43,6 +43,23 @@ jobs:
             --exclude=build \
             --exclude=.gitattributes \
             --exclude=.gitignore \
+            --exclude=phpunit.xml.dist \
+            --exclude=phpcs.xml.dist \
+            --exclude=phpstan.neon.dist \
+            --exclude=composer.lock \
+            --exclude=.phpunit.result.cache \
+            --exclude=wp-content \
+            --exclude=wp-admin \
+            --exclude=wp-includes \
+            --exclude=examples \
+            --exclude=tools \
+            --exclude=bin \
+            --exclude=build.sh \
+            --exclude=verify-zip-structure.sh \
+            --exclude=README-BUILD.md \
+            --exclude=README-ZIP-WORDPRESS.md \
+            --exclude=.DS_Store \
+            --exclude=Thumbs.db \
             ./ "build/${PLUGIN_SLUG}/"
 
       - name: Create zip archive
