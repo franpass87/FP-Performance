@@ -181,7 +181,7 @@ class Assets extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita Lazy Loading', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Migliora LCP e TTI', 'fp-performance-suite'); ?>"><?php esc_html_e('RACCOMANDATO', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Migliora LCP e TTI', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="lazy_load_enabled" value="1" <?php checked($lazyLoadSettings['enabled']); ?> />
                 </label>
@@ -209,7 +209,7 @@ class Assets extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita ottimizzazione font', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Migliora FCP e CLS', 'fp-performance-suite'); ?>"><?php esc_html_e('RACCOMANDATO', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Migliora FCP e CLS', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="font_optimizer_enabled" value="1" <?php checked($fontSettings['enabled']); ?> />
                 </label>
@@ -238,7 +238,7 @@ class Assets extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita ottimizzazione immagini', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Previene CLS', 'fp-performance-suite'); ?>"><?php esc_html_e('RACCOMANDATO', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Previene CLS', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="image_optimizer_enabled" value="1" <?php checked($imageSettings['enabled']); ?> />
                 </label>
