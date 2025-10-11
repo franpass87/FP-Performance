@@ -8,6 +8,7 @@ use FP\PerfSuite\Admin\Pages\Dashboard;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\Performance;
 use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
@@ -53,6 +54,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Performance Metrics', 'fp-performance-suite'), __('Performance', 'fp-performance-suite'), $capability, 'fp-performance-suite-performance', [$pages['performance'], 'render']);
         add_submenu_page('fp-performance-suite', __('Presets', 'fp-performance-suite'), __('Presets', 'fp-performance-suite'), $capability, 'fp-performance-suite-presets', [$pages['presets'], 'render']);
         add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
@@ -70,6 +72,7 @@ class Menu
             'assets' => new Assets($this->container),
             'media' => new Media($this->container),
             'database' => new Database($this->container),
+            'performance' => new Performance($this->container),
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
