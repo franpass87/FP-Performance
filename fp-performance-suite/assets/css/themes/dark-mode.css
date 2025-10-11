@@ -1,11 +1,26 @@
 /**
  * Dark Mode Theme
  * 
+ * Supports both automatic (prefers-color-scheme) and manual toggle
+ * 
  * @package FP\PerfSuite
  */
 
+/* Dark mode variables - applies when user manually enables dark mode */
+.fp-dark-mode .fp-ps-wrap {
+    --fp-bg: #1a1d23;
+    --fp-card: #25282e;
+    --fp-accent: #5b8def;
+    --fp-ok: #2ea970;
+    --fp-warn: #f5c045;
+    --fp-danger: #e85462;
+    --fp-text: #e4e6eb;
+    background: var(--fp-bg);
+}
+
+/* Dark mode variables - applies when system prefers dark and user hasn't forced light */
 @media (prefers-color-scheme: dark) {
-    :root {
+    body:not(.fp-light-mode) .fp-ps-wrap {
         --fp-bg: #1a1d23;
         --fp-card: #25282e;
         --fp-accent: #5b8def;
@@ -13,44 +28,137 @@
         --fp-warn: #f5c045;
         --fp-danger: #e85462;
         --fp-text: #e4e6eb;
-    }
-
-    .fp-ps-wrap {
         background: var(--fp-bg);
     }
+}
 
-    .fp-ps-card {
+/* Card styling - manual dark mode */
+.fp-dark-mode .fp-ps-card {
+    background: var(--fp-card);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Card styling - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-card {
         background: var(--fp-card);
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     }
+}
 
-    .fp-ps-header h1 {
+/* Header text - manual dark mode */
+.fp-dark-mode .fp-ps-header h1 {
+    color: var(--fp-text);
+}
+
+/* Header text - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-header h1 {
         color: var(--fp-text);
     }
+}
 
-    .fp-ps-breadcrumbs ol {
+/* Breadcrumbs - manual dark mode */
+.fp-dark-mode .fp-ps-breadcrumbs ol {
+    color: #b0b3b8;
+}
+
+/* Breadcrumbs - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-breadcrumbs ol {
         color: #b0b3b8;
     }
+}
 
-    .fp-ps-toggle {
+/* Toggles - manual dark mode */
+.fp-dark-mode .fp-ps-toggle {
+    background: var(--fp-card);
+    border-color: #3a3d44;
+}
+
+/* Toggles - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-toggle {
         background: var(--fp-card);
         border-color: #3a3d44;
     }
+}
 
-    .fp-ps-table th,
-    .fp-ps-table td {
+/* Tables - manual dark mode */
+.fp-dark-mode .fp-ps-table th,
+.fp-dark-mode .fp-ps-table td {
+    border-bottom-color: #3a3d44;
+    color: var(--fp-text);
+}
+
+/* Tables - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-table th,
+    body:not(.fp-light-mode) .fp-ps-table td {
         border-bottom-color: #3a3d44;
         color: var(--fp-text);
     }
+}
 
-    .fp-ps-log-viewer {
+/* Log viewer - manual dark mode */
+.fp-dark-mode .fp-ps-log-viewer {
+    background: #0d1117;
+    color: #e6edf3;
+    border: 1px solid #3a3d44;
+}
+
+/* Log viewer - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body:not(.fp-light-mode) .fp-ps-log-viewer {
         background: #0d1117;
         color: #e6edf3;
         border: 1px solid #3a3d44;
     }
+}
 
-    /* WordPress admin compatibility */
-    body.admin-color-modern .fp-ps-wrap {
+/* WordPress admin compatibility - manual dark mode */
+.fp-dark-mode.admin-color-modern .fp-ps-wrap {
+    background: #1a1d23;
+}
+
+/* WordPress admin compatibility - auto dark mode */
+@media (prefers-color-scheme: dark) {
+    body.admin-color-modern:not(.fp-light-mode) .fp-ps-wrap {
         background: #1a1d23;
     }
+}
+
+/* Dark mode toggle button */
+.fp-dark-mode-toggle {
+    position: fixed;
+    top: 32px;
+    right: 20px;
+    z-index: 9999;
+    background: var(--fp-card, #fff);
+    border: 1px solid var(--fp-accent, #2271b1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fp-dark-mode-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fp-dark-mode-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--fp-text, #1e1e1e);
+}
+
+.fp-dark-mode-toggle span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fp-text, #1e1e1e);
 }
