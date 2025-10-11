@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### ✨ New Features
+- **Performance Analysis Section** - Sezione completa di analisi dei problemi di performance
+  - Nuovo servizio `PerformanceAnalyzer` per diagnosi automatica
+  - Health Score da 0 a 100 con indicatori visivi
+  - Categorizzazione intelligente: Critici, Warning, Raccomandazioni
+  - Analisi di 6 aree: Cache, Asset, Database, Immagini, Server, Metriche Storiche
+  - Ogni problema include: descrizione, impatto quantificato, soluzione step-by-step
+  - Ordinamento automatico per priorità
+  - UI intuitiva con codifica colori (rosso/giallo/blu)
+  - Integrata nella pagina Performance Metrics
+
 ## [1.1.0] - 2025-10-08
 
 ### 🎯 Major Enhancements
