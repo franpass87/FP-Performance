@@ -177,6 +177,18 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
         $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, static fn() => \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance());
         $container->set(\FP\PerfSuite\Services\Reports\ScheduledReports::class, static fn() => new \FP\PerfSuite\Services\Reports\ScheduledReports());
+        
+        // Performance Analyzer
+        $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer(
+                $c->get(PageCache::class),
+                $c->get(Headers::class),
+                $c->get(Optimizer::class),
+                $c->get(WebPConverter::class),
+                $c->get(Cleaner::class),
+                $c->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)
+            );
+        });
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
