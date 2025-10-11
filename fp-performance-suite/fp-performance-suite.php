@@ -28,9 +28,8 @@ if (is_readable($autoload)) {
     });
 }
 
-define('FP_PERF_SUITE_VERSION', '1.1.0');
-define('FP_PERF_SUITE_DIR', __DIR__);
-
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.1.0');
+defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
 use FP\PerfSuite\Plugin;
