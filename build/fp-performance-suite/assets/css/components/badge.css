@@ -1,0 +1,56 @@
+/**
+ * Badge Component
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--fp-spacing-xs);
+    border-radius: var(--fp-radius-xl);
+    font-size: var(--fp-font-size-xs);
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.fp-ps-badge.green {
+    background: var(--fp-ok);
+}
+
+.fp-ps-badge.amber {
+    background: var(--fp-warn);
+}
+
+.fp-ps-badge.red {
+    background: var(--fp-danger);
+}
+
+/* Risk indicator circles */
+.fp-ps-risk-indicator {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    vertical-align: middle;
+    cursor: help;
+    transition: transform 0.2s ease;
+}
+
+.fp-ps-risk-indicator:hover {
+    transform: scale(1.2);
+}
+
+.fp-ps-risk-indicator.green {
+    background: var(--fp-ok);
+}
+
+.fp-ps-risk-indicator.amber {
+    background: var(--fp-warn);
+}
+
+.fp-ps-risk-indicator.red {
+    background: var(--fp-danger);
+}
