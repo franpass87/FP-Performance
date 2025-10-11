@@ -109,9 +109,16 @@ RSYNC_EXCLUDES=(
     "--exclude=📋*.txt"
     "--exclude=📚*.md"
     "--exclude=🎉*.md"
+    "--exclude=✅*.md"
     "--exclude=examples"
     "--exclude=tools"
     "--exclude=bin"
+    "--exclude=build.sh"
+    "--exclude=verify-zip-structure.sh"
+    "--exclude=README-BUILD.md"
+    "--exclude=README-ZIP-WORDPRESS.md"
+    "--exclude=.DS_Store"
+    "--exclude=Thumbs.db"
 )
 
 rsync -a --delete "${RSYNC_EXCLUDES[@]}" ./ "$STAGING_DIR"/
