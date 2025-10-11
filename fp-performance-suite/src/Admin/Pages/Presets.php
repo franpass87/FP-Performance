@@ -77,7 +77,22 @@ class Presets extends AbstractPage
                                                         <?php echo $value ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
                                                     </span>
                                                 <?php elseif (is_array($value)) : ?>
-                                                    <code><?php echo esc_html(wp_json_encode($value)); ?></code>
+                                                    <ul style="margin-left: 20px; font-size: 0.85em; list-style: none;">
+                                                        <?php foreach ($value as $subKey => $subValue) : ?>
+                                                            <li>
+                                                                <?php echo esc_html(ucfirst(str_replace('_', ' ', (string) $subKey))); ?>: 
+                                                                <?php if (is_bool($subValue)) : ?>
+                                                                    <span class="fp-ps-badge <?php echo $subValue ? 'green' : 'gray'; ?>" style="font-size: 0.8em;">
+                                                                        <?php echo $subValue ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
+                                                                    </span>
+                                                                <?php elseif (is_array($subValue)) : ?>
+                                                                    <code><?php echo esc_html(wp_json_encode($subValue)); ?></code>
+                                                                <?php else : ?>
+                                                                    <code><?php echo esc_html($subValue); ?></code>
+                                                                <?php endif; ?>
+                                                            </li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
                                                 <?php else : ?>
                                                     <code><?php echo esc_html($value); ?></code>
                                                 <?php endif; ?>
