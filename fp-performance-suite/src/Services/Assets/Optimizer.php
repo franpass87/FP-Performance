@@ -82,6 +82,11 @@ class Optimizer
                 add_filter('script_loader_tag', [$this, 'filterScriptTag'], 10, 3);
             }
 
+            // CSS async loading
+            if (!empty($settings['async_css'])) {
+                add_filter('style_loader_tag', [$this, 'filterStyleTag'], 10, 4);
+            }
+
             // Resource hints
             if (!empty($settings['dns_prefetch'])) {
                 $this->resourceHints->setDnsPrefetchUrls($settings['dns_prefetch']);
@@ -91,6 +96,11 @@ class Optimizer
             if (!empty($settings['preload'])) {
                 $this->resourceHints->setPreloadUrls($settings['preload']);
                 add_filter('wp_resource_hints', [$this->resourceHints, 'addPreloadHints'], 10, 2);
+            }
+
+            if (!empty($settings['preconnect'])) {
+                $this->resourceHints->setPreconnectUrls($settings['preconnect']);
+                add_filter('wp_resource_hints', [$this->resourceHints, 'addPreconnectHints'], 10, 2);
             }
 
             // Asset combination
@@ -116,12 +126,15 @@ class Optimizer
      *  minify_html:bool,
      *  defer_js:bool,
      *  async_js:bool,
+     *  async_css:bool,
      *  remove_emojis:bool,
      *  dns_prefetch:array<int,string>,
      *  preload:array<int,string>,
+     *  preconnect:array<int,mixed>,
      *  heartbeat_admin:int,
      *  combine_css:bool,
-     *  combine_js:bool
+     *  combine_js:bool,
+     *  critical_css_handles:array<int,string>
      * }
      */
     public function settings(): array
@@ -130,12 +143,15 @@ class Optimizer
             'minify_html' => false,
             'defer_js' => true,
             'async_js' => false,
+            'async_css' => false,
             'remove_emojis' => true,
             'dns_prefetch' => [],
             'preload' => [],
+            'preconnect' => [],
             'heartbeat_admin' => 60,
             'combine_css' => false,
             'combine_js' => false,
+            'critical_css_handles' => [],
         ];
         $options = get_option(self::OPTION, []);
 
@@ -145,6 +161,12 @@ class Optimizer
         }
         if (isset($options['preload'])) {
             $options['preload'] = $this->sanitizeUrlList($options['preload']);
+        }
+        if (isset($options['preconnect']) && is_string($options['preconnect'])) {
+            $options['preconnect'] = $this->sanitizeUrlList($options['preconnect']);
+        }
+        if (isset($options['critical_css_handles']) && is_string($options['critical_css_handles'])) {
+            $options['critical_css_handles'] = $this->sanitizeHandleList($options['critical_css_handles']);
         }
 
         return wp_parse_args($options, $defaults);
@@ -157,12 +179,15 @@ class Optimizer
             'minify_html' => $this->resolveFlag($settings, 'minify_html', $current['minify_html']),
             'defer_js' => $this->resolveFlag($settings, 'defer_js', $current['defer_js']),
             'async_js' => $this->resolveFlag($settings, 'async_js', $current['async_js']),
+            'async_css' => $this->resolveFlag($settings, 'async_css', $current['async_css']),
             'remove_emojis' => $this->resolveFlag($settings, 'remove_emojis', $current['remove_emojis']),
             'dns_prefetch' => $this->sanitizeUrlList($settings['dns_prefetch'] ?? $current['dns_prefetch']),
             'preload' => $this->sanitizeUrlList($settings['preload'] ?? $current['preload']),
+            'preconnect' => isset($settings['preconnect']) ? $this->sanitizeUrlList($settings['preconnect']) : $current['preconnect'],
             'heartbeat_admin' => isset($settings['heartbeat_admin']) ? (int) $settings['heartbeat_admin'] : $current['heartbeat_admin'],
             'combine_css' => $this->resolveFlag($settings, 'combine_css', $current['combine_css']),
             'combine_js' => $this->resolveFlag($settings, 'combine_js', $current['combine_js']),
+            'critical_css_handles' => isset($settings['critical_css_handles']) ? $this->sanitizeHandleList($settings['critical_css_handles']) : $current['critical_css_handles'],
         ];
         update_option(self::OPTION, $new);
     }
@@ -210,6 +235,49 @@ class Optimizer
         $async = !empty($settings['async_js']);
 
         return $this->scriptOptimizer->filterScriptTag($tag, $handle, $src, $defer, $async);
+    }
+
+    /**
+     * Filter style tag to make CSS load asynchronously
+     *
+     * @param string $html Style tag HTML
+     * @param string $handle Style handle
+     * @param string $href Style URL
+     * @param string $media Media attribute
+     * @return string Modified style tag
+     */
+    public function filterStyleTag(string $html, string $handle, string $href, $media): string
+    {
+        // Skip critical CSS handles (should load synchronously)
+        $settings = $this->settings();
+        $criticalHandles = $settings['critical_css_handles'] ?? [];
+        
+        if (in_array($handle, $criticalHandles, true)) {
+            return $html;
+        }
+
+        // Skip admin CSS
+        if (strpos($handle, 'admin') !== false) {
+            return $html;
+        }
+
+        // Convert to async loading using preload trick
+        // Reference: https://web.dev/defer-non-critical-css/
+        $html = str_replace(
+            "rel='stylesheet'",
+            "rel='preload' as='style' onload=\"this.onload=null;this.rel='stylesheet'\"",
+            $html
+        );
+
+        // Add noscript fallback
+        $noscriptTag = str_replace(
+            "rel='preload' as='style' onload=\"this.onload=null;this.rel='stylesheet'\"",
+            "rel='stylesheet'",
+            $html
+        );
+        $html .= "\n<noscript>" . $noscriptTag . "</noscript>";
+
+        return $html;
     }
 
     /**
@@ -300,6 +368,42 @@ class Optimizer
         }
 
         return array_values(array_unique($urls));
+    }
+
+    /**
+     * Sanitize handle list (comma or newline separated)
+     *
+     * @param mixed $value
+     * @return array<int, string>
+     */
+    private function sanitizeHandleList($value): array
+    {
+        if (is_string($value)) {
+            $value = preg_split('/[\r\n,]+/', $value) ?: [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $handles = [];
+        foreach ($value as $handle) {
+            if (!is_string($handle)) {
+                continue;
+            }
+            $trimmed = trim($handle);
+            if ($trimmed === '') {
+                continue;
+            }
+            // Sanitize handle (allow alphanumeric, dash, underscore)
+            $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '', $trimmed);
+            if ($sanitized === '') {
+                continue;
+            }
+            $handles[] = $sanitized;
+        }
+
+        return array_values(array_unique($handles));
     }
 
     private function resolveFlag(array $settings, string $key, bool $current): bool

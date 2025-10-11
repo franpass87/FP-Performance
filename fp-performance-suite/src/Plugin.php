@@ -65,11 +65,16 @@ class Plugin
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
 
-            // New services
+            // New services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
             $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
             $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
+            
+            // PageSpeed optimization services (v1.2.0)
+            $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
         });
 
         // Register WP-CLI commands
@@ -144,6 +149,11 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\WordPressOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager());
         $container->set(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class, static fn() => new \FP\PerfSuite\Services\Assets\Combiners\DependencyResolver());
+        
+        // PageSpeed optimization services
+        $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
+        $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
 
         // WebP conversion modular components
         $container->set(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPPathHelper());

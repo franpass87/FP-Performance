@@ -32,6 +32,9 @@ class ResourceHintsManager
     /** @var array<int, string> */
     private array $preloadUrls = [];
 
+    /** @var array<int, array<string, mixed>> */
+    private array $preconnectUrls = [];
+
     /**
      * Add DNS prefetch hint
      *
@@ -65,6 +68,22 @@ class ResourceHintsManager
     }
 
     /**
+     * Add preconnect resource hints
+     *
+     * @param array<int, mixed> $hints Current hints
+     * @param string $relation Relation type
+     * @return array<int, mixed> Modified hints
+     */
+    public function addPreconnectHints(array $hints, string $relation): array
+    {
+        if ('preconnect' !== $relation) {
+            return $hints;
+        }
+
+        return array_unique(array_merge($hints, $this->formatPreconnectHints($this->preconnectUrls)));
+    }
+
+    /**
      * Set DNS prefetch URLs
      *
      * @param array<int, string>|string $urls URLs to prefetch
@@ -82,6 +101,54 @@ class ResourceHintsManager
     public function setPreloadUrls($urls): void
     {
         $this->preloadUrls = $this->sanitizeUrlList($urls);
+    }
+
+    /**
+     * Set preconnect URLs
+     *
+     * @param array<int, array<string, mixed>>|string $urls URLs to preconnect
+     */
+    public function setPreconnectUrls($urls): void
+    {
+        if (is_string($urls)) {
+            $urls = preg_split('/[\r\n,]+/', $urls) ?: [];
+            $formatted = [];
+            foreach ($urls as $url) {
+                $url = trim($url);
+                if ($url !== '') {
+                    $formatted[] = ['url' => $url, 'crossorigin' => false];
+                }
+            }
+            $urls = $formatted;
+        }
+
+        if (!is_array($urls)) {
+            $this->preconnectUrls = [];
+            return;
+        }
+
+        $sanitized = [];
+        foreach ($urls as $entry) {
+            if (is_string($entry)) {
+                $entry = ['url' => $entry, 'crossorigin' => false];
+            }
+
+            if (!is_array($entry) || empty($entry['url'])) {
+                continue;
+            }
+
+            $url = esc_url_raw(trim($entry['url']));
+            if ($url === '') {
+                continue;
+            }
+
+            $sanitized[] = [
+                'url' => $url,
+                'crossorigin' => !empty($entry['crossorigin']),
+            ];
+        }
+
+        $this->preconnectUrls = $sanitized;
     }
 
     /**
@@ -201,6 +268,28 @@ class ResourceHintsManager
         }
 
         return $merged;
+    }
+
+    /**
+     * Format preconnect hints
+     *
+     * @param array<int, array<string, mixed>> $urls
+     * @return array<int, string>
+     */
+    private function formatPreconnectHints(array $urls): array
+    {
+        $formatted = [];
+
+        foreach ($urls as $entry) {
+            if (!is_array($entry) || empty($entry['url'])) {
+                continue;
+            }
+
+            // WordPress expects simple URL strings for preconnect
+            $formatted[] = $entry['url'];
+        }
+
+        return $formatted;
     }
 
     /**
