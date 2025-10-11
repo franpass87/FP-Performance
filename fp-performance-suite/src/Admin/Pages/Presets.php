@@ -77,30 +77,40 @@ class Presets extends AbstractPage
                                                         <?php echo $value ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
                                                     </span>
                                                 <?php elseif (is_array($value)) : ?>
-                                                    <ul style="margin-left: 20px; font-size: 0.85em; list-style: none;">
-                                                        <?php foreach ($value as $subKey => $subValue) : ?>
-                                                            <li>
-                                                                <?php echo esc_html(ucfirst(str_replace('_', ' ', (string) $subKey))); ?>: 
-                                                                <?php if (is_bool($subValue)) : ?>
-                                                                    <span class="fp-ps-badge <?php echo $subValue ? 'green' : 'gray'; ?>" style="font-size: 0.8em;">
-                                                                        <?php echo $subValue ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
-                                                                    </span>
-                                                                <?php elseif (is_array($subValue)) : ?>
-                                                                    <code><?php echo esc_html(wp_json_encode($subValue)); ?></code>
-                                                                <?php else : ?>
-                                                                    <code><?php echo esc_html($subValue); ?></code>
-                                                                <?php endif; ?>
-                                                            </li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
+                                                    <?php if (empty($value)) : ?>
+                                                        <span style="color: #999; font-style: italic;"><?php esc_html_e('None', 'fp-performance-suite'); ?></span>
+                                                    <?php else : ?>
+                                                        <ul style="margin-left: 20px; font-size: 0.85em; list-style: disc;">
+                                                            <?php foreach ($value as $subKey => $subValue) : ?>
+                                                                <li>
+                                                                    <?php if (!is_numeric($subKey)) : ?>
+                                                                        <?php echo esc_html(ucfirst(str_replace('_', ' ', (string) $subKey))); ?>: 
+                                                                    <?php endif; ?>
+                                                                    <?php if (is_bool($subValue)) : ?>
+                                                                        <span class="fp-ps-badge <?php echo $subValue ? 'green' : 'gray'; ?>" style="font-size: 0.8em;">
+                                                                            <?php echo $subValue ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
+                                                                        </span>
+                                                                    <?php elseif (is_array($subValue)) : ?>
+                                                                        <span style="color: #666;"><?php echo esc_html(count($subValue) . ' ' . __('items', 'fp-performance-suite')); ?></span>
+                                                                    <?php else : ?>
+                                                                        <span style="color: #2271b1; font-weight: 500;"><?php echo esc_html($subValue); ?></span>
+                                                                    <?php endif; ?>
+                                                                </li>
+                                                            <?php endforeach; ?>
+                                                        </ul>
+                                                    <?php endif; ?>
+                                                <?php elseif (is_numeric($value)) : ?>
+                                                    <span style="color: #2271b1; font-weight: 500;"><?php echo esc_html($value); ?></span>
                                                 <?php else : ?>
-                                                    <code><?php echo esc_html($value); ?></code>
+                                                    <span style="color: #2271b1; font-weight: 500;"><?php echo esc_html($value); ?></span>
                                                 <?php endif; ?>
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
+                                <?php elseif (is_numeric($config)) : ?>
+                                    <span style="color: #2271b1; font-weight: 500;"><?php echo esc_html($config); ?></span>
                                 <?php else : ?>
-                                    <code><?php echo esc_html($config); ?></code>
+                                    <span style="color: #2271b1; font-weight: 500;"><?php echo esc_html($config); ?></span>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
