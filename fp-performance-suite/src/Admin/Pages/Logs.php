@@ -90,7 +90,7 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-badge red"><?php esc_html_e('Red', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-risk-indicator red" title="<?php esc_attr_e('Rischio alto - Potrebbe causare problemi', 'fp-performance-suite'); ?>"></span>
                             <small><?php esc_html_e('Master switch for WordPress debugging', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="wp_debug" value="1" <?php checked($status['WP_DEBUG']); ?> data-risk="red" />
@@ -98,7 +98,7 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG_LOG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                             <small><?php esc_html_e('Save errors to debug.log file', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="wp_debug_log" value="1" <?php checked($status['WP_DEBUG_LOG']); ?> data-risk="amber" />
@@ -106,7 +106,7 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG_DISPLAY', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                             <small><?php esc_html_e('Display errors in browser (not recommended for production)', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="wp_debug_display" value="1" <?php checked($status['WP_DEBUG_DISPLAY']); ?> data-risk="amber" />
@@ -114,7 +114,7 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable SCRIPT_DEBUG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Sicuro da attivare', 'fp-performance-suite'); ?>"></span>
                             <small><?php esc_html_e('Use non-minified versions of core CSS and JS', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="script_debug" value="1" <?php checked($status['SCRIPT_DEBUG']); ?> data-risk="green" />
@@ -122,7 +122,7 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable SAVEQUERIES', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                             <small><?php esc_html_e('Save database queries for analysis (impacts performance)', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="savequeries" value="1" <?php checked($status['SAVEQUERIES']); ?> data-risk="amber" />

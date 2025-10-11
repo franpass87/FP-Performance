@@ -88,7 +88,7 @@ class Media extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable WebP on upload', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Sicuro da attivare', 'fp-performance-suite'); ?>"></span>
                         <small><?php esc_html_e('Automatically convert uploaded images to WebP format', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="webp_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="green" />
@@ -96,7 +96,7 @@ class Media extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Auto-deliver WebP images', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Sicuro da attivare', 'fp-performance-suite'); ?>"></span>
                         <small><?php esc_html_e('Automatically serve WebP to compatible browsers (30-40% smaller)', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="auto_deliver" value="1" <?php checked($settings['auto_deliver']); ?> data-risk="green" />
@@ -108,14 +108,14 @@ class Media extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Keep original files', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="keep_original" value="1" <?php checked($settings['keep_original']); ?> data-risk="amber" />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Use lossy compression', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="lossy" value="1" <?php checked($settings['lossy']); ?> data-risk="amber" />
                 </label>

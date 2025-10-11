@@ -81,7 +81,7 @@ class Settings extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Safety mode', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Sicuro da attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="safety_mode" value="1" <?php checked($options['safety_mode']); ?> />
                 </label>

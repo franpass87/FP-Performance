@@ -82,42 +82,42 @@ class Assets extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Minify HTML output', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="minify_html" value="1" <?php checked($settings['minify_html']); ?> />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Defer JavaScript', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="defer_js" value="1" <?php checked($settings['defer_js']); ?> data-risk="amber" />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Async JavaScript', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge amber"><?php esc_html_e('Amber', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber" title="<?php esc_attr_e('Rischio medio - Testare prima di attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="async_js" value="1" <?php checked($settings['async_js']); ?> data-risk="amber" />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Combine CSS files', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge red"><?php esc_html_e('Red', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator red" title="<?php esc_attr_e('Rischio alto - Potrebbe causare problemi', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="combine_css" value="1" <?php checked($settings['combine_css']); ?> data-risk="red" />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Combine JS files', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge red"><?php esc_html_e('Red', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator red" title="<?php esc_attr_e('Rischio alto - Potrebbe causare problemi', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="combine_js" value="1" <?php checked($settings['combine_js']); ?> data-risk="red" />
                 </label>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Remove emojis script', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-badge green"><?php esc_html_e('Green', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green" title="<?php esc_attr_e('Rischio basso - Sicuro da attivare', 'fp-performance-suite'); ?>"></span>
                     </span>
                     <input type="checkbox" name="remove_emojis" value="1" <?php checked($settings['remove_emojis']); ?> data-risk="green" />
                 </label>
