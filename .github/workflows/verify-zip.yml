@@ -1,0 +1,79 @@
+name: Verify ZIP is Updated
+
+on:
+  pull_request:
+    paths:
+      - 'fp-performance-suite/src/**'
+      - 'fp-performance-suite/assets/**'
+      - 'fp-performance-suite/views/**'
+      - 'fp-performance-suite/*.php'
+      - 'fp-performance-suite/readme.txt'
+
+env:
+  PLUGIN_SLUG: fp-performance-suite
+
+jobs:
+  verify-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      
+      - name: Build fresh ZIP
+        run: |
+          mkdir -p "build/${PLUGIN_SLUG}"
+          cd "${PLUGIN_SLUG}"
+          find . -type f \( -name "*.php" -o -name "*.css" -o -name "*.js" -o -name "*.pot" -o -name "*.txt" \) \
+            ! -path "*/tests/*" \
+            ! -path "*/docs/*" \
+            ! -path "*/examples/*" \
+            ! -path "*/tools/*" \
+            ! -path "*/bin/*" \
+            ! -path "*/.git/*" \
+            ! -path "*/node_modules/*" \
+            ! -path "*/build/*" \
+            ! -path "*/vendor/*" \
+            ! -name "*composer*" \
+            ! -name "*.md" \
+            ! -name "*.xml.dist" \
+            ! -name "*.neon.dist" \
+            ! -name "*.sh" \
+            -exec bash -c 'mkdir -p "../build/${PLUGIN_SLUG}/$(dirname "{}")" && cp "{}" "../build/${PLUGIN_SLUG}/{}"' \;
+          cp LICENSE readme.txt uninstall.php "../build/${PLUGIN_SLUG}/" 2>/dev/null || true
+          cd ../build
+          zip -r "${PLUGIN_SLUG}-test.zip" "${PLUGIN_SLUG}" -q
+      
+      - name: Compare with committed ZIP
+        run: |
+          # Estrae entrambi gli ZIP e confronta i contenuti
+          mkdir -p compare/committed compare/fresh
+          
+          if [ -f "${PLUGIN_SLUG}.zip" ]; then
+            unzip -q "${PLUGIN_SLUG}.zip" -d compare/committed/
+            unzip -q "build/${PLUGIN_SLUG}-test.zip" -d compare/fresh/
+            
+            # Confronta i file PHP principali
+            DIFF_COUNT=$(diff -r compare/committed/ compare/fresh/ | grep -c "^diff" || echo "0")
+            
+            if [ "$DIFF_COUNT" -gt 0 ]; then
+              echo "⚠️  ATTENZIONE: Il file ${PLUGIN_SLUG}.zip non è aggiornato!"
+              echo ""
+              echo "📝 Esegui questo comando per aggiornarlo:"
+              echo "   bash update-zip.sh"
+              echo ""
+              echo "Differenze trovate: $DIFF_COUNT"
+              diff -r compare/committed/ compare/fresh/ | head -50
+              exit 1
+            else
+              echo "✅ Il file ${PLUGIN_SLUG}.zip è aggiornato!"
+            fi
+          else
+            echo "⚠️  File ${PLUGIN_SLUG}.zip non trovato!"
+            echo "📝 Esegui: bash update-zip.sh"
+            exit 1
+          fi

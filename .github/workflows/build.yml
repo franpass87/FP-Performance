@@ -64,8 +64,25 @@ jobs:
         run: |
           cd build
           zip -r "${PLUGIN_SLUG}.zip" "${PLUGIN_SLUG}"
+          mv "${PLUGIN_SLUG}.zip" ../"${PLUGIN_SLUG}.zip"
+      
+      - name: Commit updated ZIP to repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Verifica se il ZIP è cambiato
+          if git diff --quiet fp-performance-suite.zip; then
+            echo "✅ ZIP già aggiornato, nessun commit necessario"
+          else
+            git add fp-performance-suite.zip
+            git commit -m "chore: Update plugin ZIP after build [skip ci]"
+            git push
+            echo "✅ ZIP aggiornato e committato"
+          fi
       
       - uses: actions/upload-artifact@v4
         with:
           name: fp-performance-suite
-          path: build/fp-performance-suite.zip
+          path: fp-performance-suite.zip
