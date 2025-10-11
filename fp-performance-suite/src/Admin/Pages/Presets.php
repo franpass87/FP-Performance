@@ -65,7 +65,29 @@ class Presets extends AbstractPage
                     <p><?php esc_html_e('Safe defaults crafted for shared hosting providers.', 'fp-performance-suite'); ?></p>
                     <ul>
                         <?php foreach ($preset['config'] as $section => $config) : ?>
-                            <li><strong><?php echo esc_html(ucfirst(str_replace('_', ' ', $section))); ?>:</strong> <?php echo esc_html(wp_json_encode($config)); ?></li>
+                            <li>
+                                <strong><?php echo esc_html(ucfirst(str_replace('_', ' ', $section))); ?>:</strong>
+                                <?php if (is_array($config)) : ?>
+                                    <ul style="margin-left: 20px; font-size: 0.9em;">
+                                        <?php foreach ($config as $key => $value) : ?>
+                                            <li>
+                                                <?php echo esc_html(ucfirst(str_replace('_', ' ', $key))); ?>: 
+                                                <?php if (is_bool($value)) : ?>
+                                                    <span class="fp-ps-badge <?php echo $value ? 'green' : 'gray'; ?>" style="font-size: 0.85em;">
+                                                        <?php echo $value ? esc_html__('Yes', 'fp-performance-suite') : esc_html__('No', 'fp-performance-suite'); ?>
+                                                    </span>
+                                                <?php elseif (is_array($value)) : ?>
+                                                    <code><?php echo esc_html(wp_json_encode($value)); ?></code>
+                                                <?php else : ?>
+                                                    <code><?php echo esc_html($value); ?></code>
+                                                <?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else : ?>
+                                    <code><?php echo esc_html($config); ?></code>
+                                <?php endif; ?>
+                            </li>
                         <?php endforeach; ?>
                     </ul>
                     <div class="fp-ps-actions">
