@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin;
 
+use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Cache;
 use FP\PerfSuite\Admin\Pages\Dashboard;
@@ -58,6 +59,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Presets', 'fp-performance-suite'), __('Presets', 'fp-performance-suite'), $capability, 'fp-performance-suite-presets', [$pages['presets'], 'render']);
         add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
         add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
     }
 
@@ -76,6 +78,7 @@ class Menu
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
+            'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),
         ];
     }
