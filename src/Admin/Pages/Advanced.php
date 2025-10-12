@@ -58,8 +58,18 @@ class Advanced extends AbstractPage
 
     protected function content(): string
     {
+        // Check for success message
+        $message = '';
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            $message = __('Advanced settings saved.', 'fp-performance-suite');
+        }
+
         ob_start();
         ?>
+        
+        <?php if ($message) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
+        <?php endif; ?>
         
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
