@@ -4,7 +4,10 @@ namespace FP\PerfSuite\Cli;
 
 use FP\PerfSuite\Plugin;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Logger;
@@ -99,6 +102,12 @@ class Commands
      *     # Actually cleanup revisions only
      *     wp fp-performance db cleanup --scope=revisions
      *
+     *     # Optimize all database tables
+     *     wp fp-performance db optimize
+     *
+     *     # Analyze database and get recommendations
+     *     wp fp-performance db analyze
+     *
      * @when after_wp_load
      */
     public function db($args, $assoc_args)
@@ -109,6 +118,10 @@ class Commands
             $this->dbCleanup($assoc_args);
         } elseif ($subcommand === 'status') {
             $this->dbStatus();
+        } elseif ($subcommand === 'optimize') {
+            $this->dbOptimize($assoc_args);
+        } elseif ($subcommand === 'analyze') {
+            $this->dbAnalyze();
         } else {
             \WP_CLI::error("Unknown db subcommand: {$subcommand}");
         }
@@ -158,17 +171,89 @@ class Commands
         try {
             $container = Plugin::container();
             $cleaner = $container->get(Cleaner::class);
+            $optimizer = $container->get(DatabaseOptimizer::class);
+            
             $status = $cleaner->status();
+            $dbSize = $optimizer->getDatabaseSize();
 
             \WP_CLI::log('Database Status:');
+            \WP_CLI::log('  Size: ' . $dbSize['total_mb'] . ' MB');
             \WP_CLI::log('  Overhead: ' . $status['overhead_mb'] . ' MB');
             \WP_CLI::log('  Schedule: ' . $status['schedule']);
 
             if ($status['last_run'] > 0) {
-                \WP_CLI::log('  Last run: ' . date('Y-m-d H:i:s', $status['last_run']));
+                \WP_CLI::log('  Last cleanup: ' . date('Y-m-d H:i:s', $status['last_run']));
             }
         } catch (\Throwable $e) {
             \WP_CLI::error('Failed to get database status: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Optimize database tables
+     */
+    private function dbOptimize(array $assoc_args): void
+    {
+        try {
+            $container = Plugin::container();
+            $optimizer = $container->get(DatabaseOptimizer::class);
+
+            \WP_CLI::log('Optimizing all database tables...');
+            
+            $results = $optimizer->optimizeAllTables();
+            
+            if ($results['success']) {
+                \WP_CLI::success("Optimized {$results['total']} tables successfully!");
+            } else {
+                \WP_CLI::warning("Optimized with errors. Check logs for details.");
+            }
+            
+            if (!empty($results['errors'])) {
+                \WP_CLI::log("\nErrors:");
+                foreach ($results['errors'] as $table => $error) {
+                    \WP_CLI::log("  {$table}: {$error}");
+                }
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to optimize database: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Analyze database and get recommendations
+     */
+    private function dbAnalyze(): void
+    {
+        try {
+            $container = Plugin::container();
+            $optimizer = $container->get(DatabaseOptimizer::class);
+
+            \WP_CLI::log('Analyzing database...');
+            
+            $analysis = $optimizer->analyze();
+            
+            \WP_CLI::log("\n" . \WP_CLI::colorize('%G=== Database Analysis ===%n'));
+            \WP_CLI::log('Size: ' . $analysis['database_size']['total_mb'] . ' MB');
+            \WP_CLI::log('Tables: ' . $analysis['table_analysis']['total_tables']);
+            \WP_CLI::log('Overhead: ' . $analysis['table_analysis']['total_overhead_mb'] . ' MB');
+            
+            if (!empty($analysis['recommendations'])) {
+                \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Recommendations ===%n'));
+                foreach ($analysis['recommendations'] as $rec) {
+                    $color = match($rec['type']) {
+                        'critical' => '%R',
+                        'warning' => '%Y',
+                        'info' => '%C',
+                        default => '%G'
+                    };
+                    \WP_CLI::log(\WP_CLI::colorize("{$color}• {$rec['title']}%n"));
+                    \WP_CLI::log("  {$rec['message']}");
+                }
+            } else {
+                \WP_CLI::success('Database is well optimized!');
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to analyze database: ' . $e->getMessage());
         }
     }
 
@@ -310,6 +395,142 @@ class Commands
     }
 
     /**
+     * Object cache management
+     *
+     * ## EXAMPLES
+     *
+     *     # Check object cache status
+     *     wp fp-performance object-cache status
+     *
+     *     # Enable object cache
+     *     wp fp-performance object-cache enable
+     *
+     *     # Disable object cache
+     *     wp fp-performance object-cache disable
+     *
+     *     # Flush object cache
+     *     wp fp-performance object-cache flush
+     *
+     * @when after_wp_load
+     */
+    public function objectCache($args, $assoc_args)
+    {
+        $subcommand = $args[0] ?? 'status';
+
+        if ($subcommand === 'status') {
+            $this->objectCacheStatus();
+        } elseif ($subcommand === 'enable') {
+            $this->objectCacheEnable();
+        } elseif ($subcommand === 'disable') {
+            $this->objectCacheDisable();
+        } elseif ($subcommand === 'flush') {
+            $this->objectCacheFlush();
+        } else {
+            \WP_CLI::error("Unknown object-cache subcommand: {$subcommand}");
+        }
+    }
+    
+    /**
+     * Show object cache status
+     */
+    private function objectCacheStatus(): void
+    {
+        try {
+            $container = Plugin::container();
+            $objectCache = $container->get(ObjectCacheManager::class);
+            
+            $info = $objectCache->getBackendInfo();
+            $stats = $objectCache->getStatistics();
+            
+            \WP_CLI::log(\WP_CLI::colorize('%G=== Object Cache Status ===%n'));
+            
+            if ($info['available']) {
+                \WP_CLI::log('Backend: ' . $info['name']);
+                \WP_CLI::log('Available: Yes');
+                \WP_CLI::log('Enabled: ' . ($info['enabled'] ? 'Yes' : 'No'));
+                
+                if ($stats['enabled']) {
+                    \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Statistics ===%n'));
+                    \WP_CLI::log('Cache Hits: ' . number_format($stats['hits'] ?? 0));
+                    \WP_CLI::log('Cache Misses: ' . number_format($stats['misses'] ?? 0));
+                    \WP_CLI::log('Hit Ratio: ' . round($stats['ratio'] ?? 0, 2) . '%');
+                }
+            } else {
+                \WP_CLI::warning('No object cache backend available (Redis, Memcached, APCu)');
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to get object cache status: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Enable object cache
+     */
+    private function objectCacheEnable(): void
+    {
+        try {
+            $container = Plugin::container();
+            $objectCache = $container->get(ObjectCacheManager::class);
+            
+            \WP_CLI::log('Enabling object cache...');
+            
+            $result = $objectCache->install();
+            
+            if ($result['success']) {
+                \WP_CLI::success($result['message']);
+            } else {
+                \WP_CLI::error($result['message']);
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to enable object cache: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Disable object cache
+     */
+    private function objectCacheDisable(): void
+    {
+        try {
+            $container = Plugin::container();
+            $objectCache = $container->get(ObjectCacheManager::class);
+            
+            \WP_CLI::log('Disabling object cache...');
+            
+            $result = $objectCache->uninstall();
+            
+            if ($result['success']) {
+                \WP_CLI::success($result['message']);
+            } else {
+                \WP_CLI::error($result['message']);
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to disable object cache: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Flush object cache
+     */
+    private function objectCacheFlush(): void
+    {
+        try {
+            $container = Plugin::container();
+            $objectCache = $container->get(ObjectCacheManager::class);
+            
+            \WP_CLI::log('Flushing object cache...');
+            
+            if ($objectCache->flush()) {
+                \WP_CLI::success('Object cache flushed successfully!');
+            } else {
+                \WP_CLI::error('Failed to flush object cache');
+            }
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to flush object cache: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Plugin information and status
      *
      * ## EXAMPLES
@@ -327,13 +548,19 @@ class Commands
         \WP_CLI::log('Website: https://francescopasseri.com');
 
         \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Available Commands ===%n'));
-        \WP_CLI::log('  cache clear       - Clear page cache');
-        \WP_CLI::log('  cache status      - Show cache status');
-        \WP_CLI::log('  db cleanup        - Run database cleanup');
-        \WP_CLI::log('  db status         - Show database status');
-        \WP_CLI::log('  webp convert      - Convert images to WebP');
-        \WP_CLI::log('  webp status       - Show WebP status');
-        \WP_CLI::log('  score             - Calculate performance score');
-        \WP_CLI::log('  info              - Show this information');
+        \WP_CLI::log('  cache clear          - Clear page cache');
+        \WP_CLI::log('  cache status         - Show cache status');
+        \WP_CLI::log('  db cleanup           - Run database cleanup');
+        \WP_CLI::log('  db status            - Show database status');
+        \WP_CLI::log('  db optimize          - Optimize database tables');
+        \WP_CLI::log('  db analyze           - Analyze database and get recommendations');
+        \WP_CLI::log('  object-cache status  - Show object cache status');
+        \WP_CLI::log('  object-cache enable  - Enable object cache');
+        \WP_CLI::log('  object-cache disable - Disable object cache');
+        \WP_CLI::log('  object-cache flush   - Flush object cache');
+        \WP_CLI::log('  webp convert         - Convert images to WebP');
+        \WP_CLI::log('  webp status          - Show WebP status');
+        \WP_CLI::log('  score                - Calculate performance score');
+        \WP_CLI::log('  info                 - Show this information');
     }
 }

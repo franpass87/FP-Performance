@@ -18,8 +18,11 @@ use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
 use FP\PerfSuite\Services\Media\WebPConverter;
@@ -65,6 +68,11 @@ class Plugin
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // Database optimization services
+            $container->get(DatabaseQueryMonitor::class)->register();
+            $container->get(DatabaseOptimizer::class)->register();
+            $container->get(ObjectCacheManager::class)->register();
 
             // New services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
@@ -122,6 +130,10 @@ class Plugin
 
         \WP_CLI::add_command('fp-performance info', [Cli\Commands::class, 'info'], [
             'shortdesc' => 'Show plugin information',
+        ]);
+
+        \WP_CLI::add_command('fp-performance object-cache', [Cli\Commands::class, 'objectCache'], [
+            'shortdesc' => 'Manage object caching',
         ]);
 
         Logger::debug('WP-CLI commands registered');
@@ -221,6 +233,12 @@ class Plugin
             );
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
+        
+        // Database optimization services
+        $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());
+        $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
+        $container->set(ObjectCacheManager::class, static fn() => new ObjectCacheManager());
+        
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {

@@ -1,0 +1,222 @@
+/**
+ * Statistics Components
+ * 
+ * Styles for database statistics and metrics display
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ */
+
+/* Stat Box */
+.fp-ps-stat-box {
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.fp-ps-stat-box:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.fp-ps-stat-box .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #2271b1;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.fp-ps-stat-box .stat-value.warning {
+    color: #f0b429;
+}
+
+.fp-ps-stat-box .stat-value.error {
+    color: #d63638;
+}
+
+.fp-ps-stat-box .stat-value.success {
+    color: #46b450;
+}
+
+.fp-ps-stat-box .stat-label {
+    font-size: 13px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* Grid for stats */
+.fp-ps-grid.three > .fp-ps-stat-box {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Recommendation boxes */
+.fp-ps-recommendation {
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid;
+    border-radius: 4px;
+}
+
+.fp-ps-recommendation.critical {
+    background: #fef7f7;
+    border-color: #d63638;
+}
+
+.fp-ps-recommendation.warning {
+    background: #fff8e5;
+    border-color: #f0b429;
+}
+
+.fp-ps-recommendation.info {
+    background: #f0f6fc;
+    border-color: #2271b1;
+}
+
+.fp-ps-recommendation.success {
+    background: #f0f9f1;
+    border-color: #46b450;
+}
+
+.fp-ps-recommendation h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.fp-ps-recommendation ul {
+    margin: 10px 0 0 20px;
+    list-style: disc;
+}
+
+.fp-ps-recommendation li {
+    margin: 5px 0;
+    color: #50575e;
+}
+
+/* Cache status indicators */
+.fp-ps-cache-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.fp-ps-cache-status.active {
+    background: #e7f7ef;
+    color: #00a32a;
+}
+
+.fp-ps-cache-status.inactive {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+.fp-ps-cache-status .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Progress bar */
+.fp-ps-progress {
+    height: 8px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fp-ps-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2271b1, #135e96);
+    transition: width 0.3s ease;
+}
+
+.fp-ps-progress-bar.warning {
+    background: linear-gradient(90deg, #f0b429, #d89e00);
+}
+
+.fp-ps-progress-bar.success {
+    background: linear-gradient(90deg, #46b450, #00a32a);
+}
+
+/* Metric cards */
+.fp-ps-metric-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.fp-ps-metric-card .metric-label {
+    font-weight: 500;
+    color: #1e1e1e;
+}
+
+.fp-ps-metric-card .metric-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2271b1;
+}
+
+/* Info boxes */
+.fp-ps-info-box {
+    padding: 15px;
+    margin: 20px 0;
+    border-left: 4px solid;
+    border-radius: 4px;
+}
+
+.fp-ps-info-box.green {
+    background: #e7f7ef;
+    border-color: #46b450;
+}
+
+.fp-ps-info-box.yellow {
+    background: #fff3cd;
+    border-color: #f0b429;
+}
+
+.fp-ps-info-box.red {
+    background: #fef7f7;
+    border-color: #d63638;
+}
+
+.fp-ps-info-box h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.fp-ps-info-box p:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .fp-ps-stat-box .stat-value {
+        font-size: 24px;
+    }
+    
+    .fp-ps-stat-box .stat-label {
+        font-size: 12px;
+    }
+    
+    .fp-ps-grid.three {
+        grid-template-columns: 1fr;
+    }
+}
+
