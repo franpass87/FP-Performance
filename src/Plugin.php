@@ -18,6 +18,7 @@ use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
@@ -75,6 +76,9 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+            
+            // Compression service
+            $container->get(CompressionManager::class)->register();
         });
 
         // Register WP-CLI commands
@@ -154,6 +158,9 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
         $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
+        
+        // Compression service
+        $container->set(CompressionManager::class, static fn(ServiceContainer $c) => new CompressionManager($c->get(Htaccess::class)));
 
         // WebP conversion modular components
         $container->set(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPPathHelper());
