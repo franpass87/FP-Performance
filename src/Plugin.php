@@ -12,6 +12,7 @@ namespace FP\PerfSuite;
 
 use FP\PerfSuite\Admin\Assets as AdminAssets;
 use FP\PerfSuite\Admin\Menu;
+use FP\PerfSuite\Admin\AdminBar;
 use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
 use FP\PerfSuite\Monitoring\QueryMonitor;
@@ -54,6 +55,7 @@ class Plugin
 
         $container->get(Menu::class)->boot();
         $container->get(AdminAssets::class)->boot();
+        $container->get(AdminBar::class)->boot();
         $container->get(Routes::class)->boot();
 
         add_action('init', static function () use ($container) {
@@ -237,6 +239,7 @@ class Plugin
 
         $container->set(AdminAssets::class, static fn() => new AdminAssets());
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
+        $container->set(AdminBar::class, static fn(ServiceContainer $c) => new AdminBar($c));
         $container->set(Routes::class, static fn(ServiceContainer $c) => new Routes($c));
     }
 

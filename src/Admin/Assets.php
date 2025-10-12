@@ -8,6 +8,8 @@ class Assets
     {
         add_action('admin_enqueue_scripts', [$this, 'enqueue']);
         add_action('admin_head', [$this, 'injectDarkModeScript'], 1);
+        add_action('admin_head', [$this, 'injectAdminBarStyles'], 999);
+        add_action('wp_head', [$this, 'injectAdminBarStyles'], 999);
     }
 
     public function enqueue(string $hook): void
@@ -93,6 +95,72 @@ class Assets
             // 'auto' mode is handled by CSS media queries
         })();
         </script>
+        <?php
+    }
+
+    /**
+     * Inject styles for admin bar purge button
+     * Makes the button more visible and professional
+     *
+     * @return void
+     */
+    public function injectAdminBarStyles(): void
+    {
+        // Only inject if user can see the admin bar
+        if (!is_admin_bar_showing()) {
+            return;
+        }
+
+        ?>
+        <style id="fp-performance-adminbar-styles">
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-icon:before {
+            content: "\f208";
+            top: 2px;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge > .ab-item {
+            background-color: #2271b1;
+            color: #fff;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge > .ab-item:hover {
+            background-color: #135e96;
+            color: #fff;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-icon {
+            margin-right: 6px;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-label {
+            font-weight: 600;
+        }
+
+        /* Submenu items */
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-submenu {
+            background-color: #2271b1;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-submenu a {
+            color: #fff;
+        }
+
+        #wpadminbar #wp-admin-bar-fp-performance-purge .ab-submenu a:hover {
+            background-color: #135e96;
+            color: #fff;
+        }
+
+        /* Mobile styles */
+        @media screen and (max-width: 782px) {
+            #wpadminbar #wp-admin-bar-fp-performance-purge {
+                display: block;
+            }
+            
+            #wpadminbar #wp-admin-bar-fp-performance-purge > .ab-item {
+                text-align: left;
+            }
+        }
+        </style>
         <?php
     }
 }
