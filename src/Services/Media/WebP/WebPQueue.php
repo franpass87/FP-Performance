@@ -172,6 +172,18 @@ class WebPQueue
             'offset' => $batchOffset,
             'fields' => 'ids',
             'no_found_rows' => true,
+            'meta_query' => [
+                'relation' => 'OR',
+                [
+                    'key' => '_fp_ps_webp_generated',
+                    'compare' => 'NOT EXISTS',
+                ],
+                [
+                    'key' => '_fp_ps_webp_generated',
+                    'value' => '1',
+                    'compare' => '!=',
+                ],
+            ],
         ]);
 
         if (empty($query->posts)) {
@@ -198,6 +210,18 @@ class WebPQueue
             'offset' => $offset,
             'fields' => 'ids',
             'no_found_rows' => false,
+            'meta_query' => [
+                'relation' => 'OR',
+                [
+                    'key' => '_fp_ps_webp_generated',
+                    'compare' => 'NOT EXISTS',
+                ],
+                [
+                    'key' => '_fp_ps_webp_generated',
+                    'value' => '1',
+                    'compare' => '!=',
+                ],
+            ],
         ]);
 
         $total = (int) $query->found_posts;
