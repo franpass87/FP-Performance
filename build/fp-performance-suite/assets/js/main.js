@@ -13,6 +13,7 @@
 import { showNotice } from './components/notice.js';
 import { showProgress, removeProgress } from './components/progress.js';
 import { initRiskyToggles } from './components/confirmation.js';
+import { initTooltips } from './components/tooltip.js';
 
 // Features
 import { initLogViewer } from './features/log-viewer.js';
@@ -26,6 +27,9 @@ import { initDarkMode } from './features/dark-mode.js';
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize dark mode (needs to run early for smooth transition)
     initDarkMode();
+    
+    // Initialize tooltips (early to prevent positioning issues)
+    initTooltips();
     
     // Initialize risky action confirmations
     initRiskyToggles();
