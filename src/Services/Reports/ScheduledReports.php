@@ -348,7 +348,7 @@ class ScheduledReports
                             <tr>
                                 <td style="padding: 0 30px 30px 30px; text-align: center;">
                                     <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite')); ?>" style="display: inline-block; background-color: #667eea; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: 600; font-size: 14px;">
-                                        View Full Dashboard
+                                        Visualizza Overview Completa
                                     </a>
                                 </td>
                             </tr>
