@@ -23,7 +23,7 @@
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity var(--fp-transition-fast);
-    z-index: 10;
+    z-index: 999999;
 }
 
 .fp-ps-tooltip:focus-within span,
