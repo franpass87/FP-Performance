@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
 use FP\PerfSuite\Services\CDN\CdnManager;
+use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Reports\ScheduledReports;
 
@@ -57,8 +58,30 @@ class Advanced extends AbstractPage
 
     protected function content(): string
     {
+        // Check for success message
+        $success_message = '';
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            $success_message = __('Advanced settings saved.', 'fp-performance-suite');
+        }
+
+        // Check for error message
+        $error_message = '';
+        if (isset($_GET['error']) && $_GET['error'] === '1') {
+            $error_message = isset($_GET['message']) 
+                ? urldecode($_GET['message']) 
+                : __('An error occurred while saving settings.', 'fp-performance-suite');
+        }
+
         ob_start();
         ?>
+        
+        <?php if ($success_message) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($success_message); ?></p></div>
+        <?php endif; ?>
+        
+        <?php if ($error_message) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
+        <?php endif; ?>
         
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
@@ -66,6 +89,9 @@ class Advanced extends AbstractPage
             
             <!-- Critical CSS Section -->
             <?php echo $this->renderCriticalCssSection(); ?>
+            
+            <!-- Compression Section -->
+            <?php echo $this->renderCompressionSection(); ?>
             
             <!-- CDN Section -->
             <?php echo $this->renderCdnSection(); ?>
@@ -124,6 +150,141 @@ class Advanced extends AbstractPage
                     </td>
                 </tr>
             </table>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function renderCompressionSection(): string
+    {
+        $compression = $this->container->get(CompressionManager::class);
+        $status = $compression->status();
+        $info = $compression->getInfo();
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>🗜️ <?php esc_html_e('Compressione Brotli & Gzip', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Abilita la compressione Brotli e Gzip per ridurre le dimensioni dei file trasferiti del 60-80%.', 'fp-performance-suite'); ?></p>
+            
+            <!-- Status Overview -->
+            <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;"><?php esc_html_e('Stato Attuale', 'fp-performance-suite'); ?></h4>
+                <ul style="margin: 0;">
+                    <li>
+                        <?php if ($status['active']): ?>
+                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Compressione attiva', 'fp-performance-suite'); ?>
+                        <?php else: ?>
+                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Compressione non attiva', 'fp-performance-suite'); ?>
+                        <?php endif; ?>
+                    </li>
+                    <li>
+                        <?php if ($status['brotli_supported']): ?>
+                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Brotli supportato', 'fp-performance-suite'); ?>
+                        <?php else: ?>
+                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('Brotli non disponibile', 'fp-performance-suite'); ?>
+                        <?php endif; ?>
+                    </li>
+                    <li>
+                        <?php if ($status['gzip_supported']): ?>
+                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Gzip supportato', 'fp-performance-suite'); ?>
+                        <?php else: ?>
+                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Gzip non disponibile', 'fp-performance-suite'); ?>
+                        <?php endif; ?>
+                    </li>
+                    <li>
+                        <?php if ($status['htaccess_supported']): ?>
+                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('.htaccess modificabile', 'fp-performance-suite'); ?>
+                        <?php else: ?>
+                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('.htaccess non modificabile', 'fp-performance-suite'); ?>
+                        <?php endif; ?>
+                    </li>
+                </ul>
+            </div>
+
+            <?php if (!$status['gzip_supported'] && !$status['brotli_supported']): ?>
+                <div class="notice notice-warning inline">
+                    <p>
+                        <strong><?php esc_html_e('Attenzione:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('Il tuo server non sembra supportare né Gzip né Brotli. Contatta il tuo hosting provider per abilitare mod_deflate o mod_brotli.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!$status['htaccess_supported']): ?>
+                <div class="notice notice-info inline">
+                    <p>
+                        <strong><?php esc_html_e('Info:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('Il file .htaccess non può essere modificato automaticamente. Dovrai configurare la compressione manualmente nel tuo server.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="compression_enabled"><?php esc_html_e('Abilita Compressione', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="compression[enabled]" id="compression_enabled" value="1" <?php checked($status['enabled']); ?>>
+                            <?php esc_html_e('Abilita compressione Brotli e Gzip', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Questo ridurrà le dimensioni di HTML, CSS, JavaScript e altri file di testo del 60-80%, migliorando drasticamente i tempi di caricamento.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Technical Details (Collapsible) -->
+            <details style="margin-top: 20px;">
+                <summary style="cursor: pointer; font-weight: 600; padding: 10px; background: #f0f0f1; border-radius: 4px;">
+                    <?php esc_html_e('Dettagli Tecnici', 'fp-performance-suite'); ?>
+                </summary>
+                <div style="padding: 15px; background: #fafafa; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 4px 4px;">
+                    <h4><?php esc_html_e('Moduli Apache Rilevati:', 'fp-performance-suite'); ?></h4>
+                    <ul>
+                        <?php if (!empty($info['modules'])): ?>
+                            <?php foreach ($info['modules'] as $module => $available): ?>
+                                <li>
+                                    <code><?php echo esc_html($module); ?></code>: 
+                                    <?php if ($available): ?>
+                                        <span style="color: #00a32a;">✓ <?php esc_html_e('Disponibile', 'fp-performance-suite'); ?></span>
+                                    <?php else: ?>
+                                        <span style="color: #d63638;">✗ <?php esc_html_e('Non disponibile', 'fp-performance-suite'); ?></span>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li><?php esc_html_e('Informazioni sui moduli non disponibili', 'fp-performance-suite'); ?></li>
+                        <?php endif; ?>
+                    </ul>
+                    
+                    <h4><?php esc_html_e('Impostazioni PHP:', 'fp-performance-suite'); ?></h4>
+                    <ul>
+                        <li>
+                            <code>zlib.output_compression</code>: 
+                            <strong><?php echo esc_html($info['php_settings']['zlib.output_compression'] ?: 'Off'); ?></strong>
+                        </li>
+                        <li>
+                            <code>gzencode()</code>: 
+                            <?php if ($info['php_settings']['gzencode_available']): ?>
+                                <span style="color: #00a32a;">✓ <?php esc_html_e('Disponibile', 'fp-performance-suite'); ?></span>
+                            <?php else: ?>
+                                <span style="color: #d63638;">✗ <?php esc_html_e('Non disponibile', 'fp-performance-suite'); ?></span>
+                            <?php endif; ?>
+                        </li>
+                    </ul>
+
+                    <?php if ($status['has_rules']): ?>
+                        <h4><?php esc_html_e('Regole .htaccess:', 'fp-performance-suite'); ?></h4>
+                        <p style="color: #00a32a;">
+                            ✓ <?php esc_html_e('Le regole di compressione sono presenti nel file .htaccess', 'fp-performance-suite'); ?>
+                        </p>
+                    <?php endif; ?>
+                </div>
+            </details>
         </div>
         <?php
         return ob_get_clean();
@@ -276,31 +437,59 @@ class Advanced extends AbstractPage
 
         check_admin_referer('fp_ps_advanced');
 
-        // Save Critical CSS
-        if (isset($_POST['critical_css'])) {
-            $criticalCss = new CriticalCss();
-            $criticalCss->update(wp_unslash($_POST['critical_css']));
-        }
+        try {
+            // Save Critical CSS
+            if (isset($_POST['critical_css'])) {
+                $criticalCss = new CriticalCss();
+                $criticalCss->update(wp_unslash($_POST['critical_css']));
+            }
 
-        // Save CDN settings
-        if (isset($_POST['cdn'])) {
-            $cdn = new CdnManager();
-            $cdn->update(wp_unslash($_POST['cdn']));
-        }
+            // Save Compression settings
+            // IMPORTANTE: Gestiamo sempre la compressione perché quando una checkbox
+            // non è selezionata, non viene inviata nei dati POST
+            $compression = $this->container->get(CompressionManager::class);
+            $enabled = !empty($_POST['compression']['enabled']);
+            
+            if ($enabled) {
+                $compression->enable();
+            } else {
+                $compression->disable();
+            }
 
-        // Save Monitoring settings
-        if (isset($_POST['monitoring'])) {
-            $monitor = PerformanceMonitor::instance();
-            $monitor->update(wp_unslash($_POST['monitoring']));
-        }
+            // Save CDN settings
+            if (isset($_POST['cdn'])) {
+                $cdn = new CdnManager();
+                $cdn->update(wp_unslash($_POST['cdn']));
+            }
 
-        // Save Reports settings
-        if (isset($_POST['reports'])) {
-            $reports = new ScheduledReports();
-            $reports->update(wp_unslash($_POST['reports']));
-        }
+            // Save Monitoring settings
+            if (isset($_POST['monitoring'])) {
+                $monitor = PerformanceMonitor::instance();
+                $monitor->update(wp_unslash($_POST['monitoring']));
+            }
 
-        wp_safe_redirect(add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug())));
-        exit;
+            // Save Reports settings
+            if (isset($_POST['reports'])) {
+                $reports = new ScheduledReports();
+                $reports->update(wp_unslash($_POST['reports']));
+            }
+
+            // Redirect con successo
+            $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));
+            wp_safe_redirect($redirect_url);
+            exit;
+
+        } catch (\Throwable $e) {
+            // Log dell'errore
+            error_log('[FP Performance Suite] Errore durante il salvataggio delle impostazioni advanced: ' . $e->getMessage());
+            
+            // Redirect con errore
+            $redirect_url = add_query_arg(
+                ['error' => '1', 'message' => urlencode($e->getMessage())],
+                admin_url('admin.php?page=' . $this->slug())
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
+        }
     }
 }
