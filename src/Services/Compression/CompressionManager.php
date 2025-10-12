@@ -189,6 +189,18 @@ class CompressionManager
     {
         $rules = [];
 
+        // Escludi endpoint admin critici dalla compressione
+        $rules[] = '# Escludi endpoint admin critici dalla compressione';
+        $rules[] = '<FilesMatch "(admin-post\.php|admin-ajax\.php|upload\.php)$">';
+        $rules[] = '    <IfModule mod_deflate.c>';
+        $rules[] = '        SetEnv no-gzip 1';
+        $rules[] = '    </IfModule>';
+        $rules[] = '    <IfModule mod_brotli.c>';
+        $rules[] = '        SetEnv no-brotli 1';
+        $rules[] = '    </IfModule>';
+        $rules[] = '</FilesMatch>';
+        $rules[] = '';
+
         // Regole Brotli (preferito se supportato)
         if ($this->isBrotliSupported()) {
             $rules[] = '<IfModule mod_brotli.c>';

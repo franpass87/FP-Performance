@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- **Compressione Gzip/Brotli** - Risolto problema pagina bianca su admin-post.php
+  - Esclusi endpoint admin critici dalla compressione (admin-post.php, admin-ajax.php, upload.php)
+  - Previene conflitti con output buffering e redirect di WordPress
+  - La compressione rimane attiva su tutto il resto del sito
+  - Migliora stabilità delle operazioni admin e form submissions
+
 ### ✨ New Features
 - **Performance Analysis Section** - Sezione completa di analisi dei problemi di performance
   - Nuovo servizio `PerformanceAnalyzer` per diagnosi automatica
