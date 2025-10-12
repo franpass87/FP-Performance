@@ -58,8 +58,30 @@ class Advanced extends AbstractPage
 
     protected function content(): string
     {
+        // Check for success message
+        $success_message = '';
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            $success_message = __('Advanced settings saved.', 'fp-performance-suite');
+        }
+
+        // Check for error message
+        $error_message = '';
+        if (isset($_GET['error']) && $_GET['error'] === '1') {
+            $error_message = isset($_GET['message']) 
+                ? urldecode($_GET['message']) 
+                : __('An error occurred while saving settings.', 'fp-performance-suite');
+        }
+
         ob_start();
         ?>
+        
+        <?php if ($success_message) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($success_message); ?></p></div>
+        <?php endif; ?>
+        
+        <?php if ($error_message) : ?>
+            <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
+        <?php endif; ?>
         
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
@@ -415,14 +437,16 @@ class Advanced extends AbstractPage
 
         check_admin_referer('fp_ps_advanced');
 
-        // Save Critical CSS
-        if (isset($_POST['critical_css'])) {
-            $criticalCss = new CriticalCss();
-            $criticalCss->update(wp_unslash($_POST['critical_css']));
-        }
+        try {
+            // Save Critical CSS
+            if (isset($_POST['critical_css'])) {
+                $criticalCss = new CriticalCss();
+                $criticalCss->update(wp_unslash($_POST['critical_css']));
+            }
 
-        // Save Compression settings
-        if (isset($_POST['compression'])) {
+            // Save Compression settings
+            // IMPORTANTE: Gestiamo sempre la compressione perché quando una checkbox
+            // non è selezionata, non viene inviata nei dati POST
             $compression = $this->container->get(CompressionManager::class);
             $enabled = !empty($_POST['compression']['enabled']);
             
@@ -431,27 +455,41 @@ class Advanced extends AbstractPage
             } else {
                 $compression->disable();
             }
-        }
 
-        // Save CDN settings
-        if (isset($_POST['cdn'])) {
-            $cdn = new CdnManager();
-            $cdn->update(wp_unslash($_POST['cdn']));
-        }
+            // Save CDN settings
+            if (isset($_POST['cdn'])) {
+                $cdn = new CdnManager();
+                $cdn->update(wp_unslash($_POST['cdn']));
+            }
 
-        // Save Monitoring settings
-        if (isset($_POST['monitoring'])) {
-            $monitor = PerformanceMonitor::instance();
-            $monitor->update(wp_unslash($_POST['monitoring']));
-        }
+            // Save Monitoring settings
+            if (isset($_POST['monitoring'])) {
+                $monitor = PerformanceMonitor::instance();
+                $monitor->update(wp_unslash($_POST['monitoring']));
+            }
 
-        // Save Reports settings
-        if (isset($_POST['reports'])) {
-            $reports = new ScheduledReports();
-            $reports->update(wp_unslash($_POST['reports']));
-        }
+            // Save Reports settings
+            if (isset($_POST['reports'])) {
+                $reports = new ScheduledReports();
+                $reports->update(wp_unslash($_POST['reports']));
+            }
 
-        wp_safe_redirect(add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug())));
-        exit;
+            // Redirect con successo
+            $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));
+            wp_safe_redirect($redirect_url);
+            exit;
+
+        } catch (\Throwable $e) {
+            // Log dell'errore
+            error_log('[FP Performance Suite] Errore durante il salvataggio delle impostazioni advanced: ' . $e->getMessage());
+            
+            // Redirect con errore
+            $redirect_url = add_query_arg(
+                ['error' => '1', 'message' => urlencode($e->getMessage())],
+                admin_url('admin.php?page=' . $this->slug())
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
+        }
     }
 }
