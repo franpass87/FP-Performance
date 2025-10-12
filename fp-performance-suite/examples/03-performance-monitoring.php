@@ -116,7 +116,7 @@ add_action('wp_dashboard_setup', function() {
             echo '<p><strong>Avg Load Time:</strong> ' . number_format($stats['avg_load_time'] * 1000, 0) . ' ms</p>';
             echo '<p><strong>Avg Queries:</strong> ' . number_format($stats['avg_queries'], 1) . '</p>';
             echo '<p><strong>Samples:</strong> ' . number_format($stats['samples']) . '</p>';
-            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite-performance') . '" class="button">View Details</a>';
+            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite') . '" class="button">View Details</a>';
             echo '</div>';
         }
     );
