@@ -1,0 +1,11 @@
+/**
+ * Score Display Utility
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-score {
+    font-size: var(--fp-font-size-xxl);
+    font-weight: 700;
+    color: var(--fp-accent);
+}
