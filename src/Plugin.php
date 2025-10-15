@@ -19,11 +19,15 @@ use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Env;
@@ -68,7 +72,7 @@ class Plugin
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
 
-            // New services (v1.1.0)
+            // Cache services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
             $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
@@ -78,9 +82,20 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
-            
-            // Compression service
             $container->get(CompressionManager::class)->register();
+            
+            // Advanced Performance Services (v1.3.0)
+            $container->get(ObjectCacheManager::class)->register();
+            $container->get(EdgeCacheManager::class)->register();
+            $container->get(AVIFConverter::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
+            $container->get(QueryCacheManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
         });
 
         // Register WP-CLI commands
@@ -181,7 +196,7 @@ class Plugin
             );
         });
 
-        // New services
+        // v1.1.0 Services
         $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
         $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
         $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, static fn() => \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance());
@@ -198,6 +213,48 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)
             );
         });
+        
+        // v1.3.0 Advanced Performance Services
+        
+        // Object Cache (Redis/Memcached)
+        $container->set(ObjectCacheManager::class, static fn() => new ObjectCacheManager());
+        
+        // Edge Cache Providers
+        $container->set(EdgeCacheManager::class, static fn() => new EdgeCacheManager());
+        
+        // AVIF Image Converter
+        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter());
+        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper());
+        $container->set(AVIFConverter::class, static function (ServiceContainer $c) {
+            return new AVIFConverter(
+                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class),
+                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)
+            );
+        });
+        
+        // HTTP/2 Server Push
+        $container->set(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, static fn() => new \FP\PerfSuite\Services\Assets\Http2ServerPush());
+        
+        // Critical CSS Automation
+        $container->set(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCssAutomation());
+        
+        // Third-Party Script Manager
+        $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptManager());
+        
+        // Service Worker / PWA
+        $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
+        
+        // Core Web Vitals Monitor
+        $container->set(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class, static fn() => new \FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor());
+        
+        // Database Query Cache
+        $container->set(QueryCacheManager::class, static fn() => new QueryCacheManager());
+        
+        // Predictive Prefetching
+        $container->set(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class, static fn() => new \FP\PerfSuite\Services\Assets\PredictivePrefetching());
+        
+        // Smart Asset Delivery
+        $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
