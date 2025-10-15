@@ -22,6 +22,9 @@ use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
+use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
+use FP\PerfSuite\Services\Compatibility\ThemeDetector;
+use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -96,6 +99,10 @@ class Plugin
             $container->get(QueryCacheManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+            
+            // Theme Compatibility (v1.3.0)
+            $container->get(ThemeCompatibility::class)->register();
+            $container->get(CompatibilityFilters::class)->register();
         });
 
         // Register WP-CLI commands
@@ -255,6 +262,11 @@ class Plugin
         
         // Smart Asset Delivery
         $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
+        
+        // Theme Compatibility
+        $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
+        $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
+        $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));

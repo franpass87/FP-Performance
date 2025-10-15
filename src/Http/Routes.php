@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Http;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Http\Ajax\CompatibilityAjax;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -34,6 +35,10 @@ class Routes
     public function boot(): void
     {
         add_action('rest_api_init', [$this, 'register']);
+        
+        // Register AJAX handlers
+        $compatAjax = new CompatibilityAjax($this->container);
+        $compatAjax->register();
     }
 
     public function register(): void
