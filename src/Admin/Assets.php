@@ -10,6 +10,9 @@ class Assets
         add_action('admin_head', [$this, 'injectDarkModeScript'], 1);
         add_action('admin_head', [$this, 'injectAdminBarStyles'], 999);
         add_action('wp_head', [$this, 'injectAdminBarStyles'], 999);
+        
+        // Add type="module" attribute for ES6 modules
+        add_filter('script_loader_tag', [$this, 'addModuleType'], 10, 3);
     }
 
     public function enqueue(string $hook): void
@@ -34,9 +37,6 @@ class Assets
             FP_PERF_SUITE_VERSION,
             true
         );
-
-        // Add type="module" attribute for ES6 modules
-        add_filter('script_loader_tag', [$this, 'addModuleType'], 10, 3);
 
         // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
