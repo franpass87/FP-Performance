@@ -272,6 +272,24 @@ Gestisce il caricamento ritardato di script di terze parti (analytics, social, a
 - 🔥 Hotjar
 - 💬 Intercom
 - 📺 YouTube embeds
+- 💼 LinkedIn Insight Tag
+- 🐦 Twitter/X Pixel
+- 🎵 TikTok Pixel
+- 📌 Pinterest Tag
+- 🧡 HubSpot
+- 🎧 Zendesk
+- 💬 Drift
+- 💬 Crisp
+- 💬 Tidio
+- 📊 Segment
+- 📈 Mixpanel
+- 📧 Mailchimp
+- 💳 Stripe
+- 💳 PayPal
+- 🤖 reCAPTCHA
+- 🗺️ Google Maps
+- 🔍 Microsoft Clarity
+- ▶️ Vimeo
 
 ### Strategie di Caricamento
 1. **On Interaction**: Carica al primo scroll/click/hover

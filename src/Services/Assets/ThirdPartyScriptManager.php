@@ -80,6 +80,96 @@ class ThirdPartyScriptManager
                     'patterns' => ['youtube.com/iframe_api', 'youtube.com/embed'],
                     'delay' => true,
                 ],
+                'linkedin_insight' => [
+                    'enabled' => false,
+                    'patterns' => ['snap.licdn.com', 'platform.linkedin.com'],
+                    'delay' => true,
+                ],
+                'twitter_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['static.ads-twitter.com', 'analytics.twitter.com'],
+                    'delay' => true,
+                ],
+                'tiktok_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['analytics.tiktok.com'],
+                    'delay' => true,
+                ],
+                'pinterest_tag' => [
+                    'enabled' => false,
+                    'patterns' => ['ct.pinterest.com', 'pintrk.com'],
+                    'delay' => true,
+                ],
+                'hubspot' => [
+                    'enabled' => false,
+                    'patterns' => ['js.hs-scripts.com', 'js.hubspot.com', 'js.hs-analytics.net'],
+                    'delay' => true,
+                ],
+                'zendesk' => [
+                    'enabled' => false,
+                    'patterns' => ['static.zdassets.com', 'ekr.zdassets.com'],
+                    'delay' => true,
+                ],
+                'drift' => [
+                    'enabled' => false,
+                    'patterns' => ['js.driftt.com'],
+                    'delay' => true,
+                ],
+                'crisp' => [
+                    'enabled' => false,
+                    'patterns' => ['client.crisp.chat'],
+                    'delay' => true,
+                ],
+                'tidio' => [
+                    'enabled' => false,
+                    'patterns' => ['code.tidio.co'],
+                    'delay' => true,
+                ],
+                'segment' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.segment.com'],
+                    'delay' => true,
+                ],
+                'mixpanel' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.mxpnl.com'],
+                    'delay' => true,
+                ],
+                'mailchimp' => [
+                    'enabled' => false,
+                    'patterns' => ['chimpstatic.com/mcjs-connected'],
+                    'delay' => true,
+                ],
+                'stripe' => [
+                    'enabled' => false,
+                    'patterns' => ['js.stripe.com'],
+                    'delay' => true,
+                ],
+                'paypal' => [
+                    'enabled' => false,
+                    'patterns' => ['paypal.com/sdk/js'],
+                    'delay' => true,
+                ],
+                'recaptcha' => [
+                    'enabled' => false,
+                    'patterns' => ['google.com/recaptcha', 'gstatic.com/recaptcha'],
+                    'delay' => true,
+                ],
+                'google_maps' => [
+                    'enabled' => false,
+                    'patterns' => ['maps.googleapis.com', 'maps.google.com'],
+                    'delay' => true,
+                ],
+                'microsoft_clarity' => [
+                    'enabled' => false,
+                    'patterns' => ['clarity.ms'],
+                    'delay' => true,
+                ],
+                'vimeo' => [
+                    'enabled' => false,
+                    'patterns' => ['player.vimeo.com', 'vimeocdn.com'],
+                    'delay' => true,
+                ],
             ],
         ];
 

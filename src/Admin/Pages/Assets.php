@@ -169,6 +169,24 @@ class Assets extends AbstractPage
                         'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
                         'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
                         'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
+                        'linkedin_insight' => ['enabled' => !empty($_POST['third_party_linkedin']), 'delay' => true],
+                        'twitter_pixel' => ['enabled' => !empty($_POST['third_party_twitter']), 'delay' => true],
+                        'tiktok_pixel' => ['enabled' => !empty($_POST['third_party_tiktok']), 'delay' => true],
+                        'pinterest_tag' => ['enabled' => !empty($_POST['third_party_pinterest']), 'delay' => true],
+                        'hubspot' => ['enabled' => !empty($_POST['third_party_hubspot']), 'delay' => true],
+                        'zendesk' => ['enabled' => !empty($_POST['third_party_zendesk']), 'delay' => true],
+                        'drift' => ['enabled' => !empty($_POST['third_party_drift']), 'delay' => true],
+                        'crisp' => ['enabled' => !empty($_POST['third_party_crisp']), 'delay' => true],
+                        'tidio' => ['enabled' => !empty($_POST['third_party_tidio']), 'delay' => true],
+                        'segment' => ['enabled' => !empty($_POST['third_party_segment']), 'delay' => true],
+                        'mixpanel' => ['enabled' => !empty($_POST['third_party_mixpanel']), 'delay' => true],
+                        'mailchimp' => ['enabled' => !empty($_POST['third_party_mailchimp']), 'delay' => true],
+                        'stripe' => ['enabled' => !empty($_POST['third_party_stripe']), 'delay' => true],
+                        'paypal' => ['enabled' => !empty($_POST['third_party_paypal']), 'delay' => true],
+                        'recaptcha' => ['enabled' => !empty($_POST['third_party_recaptcha']), 'delay' => true],
+                        'google_maps' => ['enabled' => !empty($_POST['third_party_gmaps']), 'delay' => true],
+                        'microsoft_clarity' => ['enabled' => !empty($_POST['third_party_clarity']), 'delay' => true],
+                        'vimeo' => ['enabled' => !empty($_POST['third_party_vimeo']), 'delay' => true],
                     ],
                 ]);
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
@@ -722,6 +740,150 @@ class Assets extends AbstractPage
                             <span class="description" style="font-size: 12px;"><?php esc_html_e('Video embeds, iframe API', 'fp-performance-suite'); ?></span>
                         </span>
                         <input type="checkbox" name="third_party_youtube" value="1" <?php checked($thirdPartySettings['scripts']['youtube']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💼 LinkedIn Insight</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Insight Tag, Conversion', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_linkedin" value="1" <?php checked($thirdPartySettings['scripts']['linkedin_insight']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🐦 Twitter/X Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Twitter Ads, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_twitter" value="1" <?php checked($thirdPartySettings['scripts']['twitter_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 TikTok Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('TikTok Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tiktok" value="1" <?php checked($thirdPartySettings['scripts']['tiktok_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📌 Pinterest Tag</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Pinterest Conversion', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_pinterest" value="1" <?php checked($thirdPartySettings['scripts']['pinterest_tag']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🧡 HubSpot</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Marketing, CRM, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_hubspot" value="1" <?php checked($thirdPartySettings['scripts']['hubspot']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎧 Zendesk</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Support, Live Chat', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_zendesk" value="1" <?php checked($thirdPartySettings['scripts']['zendesk']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Drift</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Conversational Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_drift" value="1" <?php checked($thirdPartySettings['scripts']['drift']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Crisp</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Live Chat, Messaging', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_crisp" value="1" <?php checked($thirdPartySettings['scripts']['crisp']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Tidio</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Live Chat, Chatbots', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tidio" value="1" <?php checked($thirdPartySettings['scripts']['tidio']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📊 Segment</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Customer Data Platform', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_segment" value="1" <?php checked($thirdPartySettings['scripts']['segment']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📈 Mixpanel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Product Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_mixpanel" value="1" <?php checked($thirdPartySettings['scripts']['mixpanel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📧 Mailchimp</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Email Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_mailchimp" value="1" <?php checked($thirdPartySettings['scripts']['mailchimp']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 Stripe</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Payment Processing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_stripe" value="1" <?php checked($thirdPartySettings['scripts']['stripe']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 PayPal</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Payment Processing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_paypal" value="1" <?php checked($thirdPartySettings['scripts']['paypal']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🤖 reCAPTCHA</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Google reCAPTCHA', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_recaptcha" value="1" <?php checked($thirdPartySettings['scripts']['recaptcha']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🗺️ Google Maps</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Maps API, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_gmaps" value="1" <?php checked($thirdPartySettings['scripts']['google_maps']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🔍 Microsoft Clarity</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Session Recording, Heatmaps', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_clarity" value="1" <?php checked($thirdPartySettings['scripts']['microsoft_clarity']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>▶️ Vimeo</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Video Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_vimeo" value="1" <?php checked($thirdPartySettings['scripts']['vimeo']['enabled'] ?? false); ?> />
                     </label>
                 </div>
                 
