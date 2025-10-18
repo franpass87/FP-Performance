@@ -64,6 +64,8 @@ class Settings extends AbstractPage
             'log_retention_days' => 30,
             'notification_email' => get_option('admin_email'),
             'enable_notifications' => false,
+            'dev_mode' => false,
+            'mobile_separate' => false,
         ]);
         $criticalCss = get_option('fp_ps_critical_css', '');
         $message = '';
@@ -82,6 +84,12 @@ class Settings extends AbstractPage
             // Notifications
             $options['enable_notifications'] = !empty($_POST['enable_notifications']);
             $options['notification_email'] = sanitize_email($_POST['notification_email'] ?? get_option('admin_email'));
+            
+            // Development Mode
+            $options['dev_mode'] = !empty($_POST['dev_mode']);
+            
+            // Mobile Settings
+            $options['mobile_separate'] = !empty($_POST['mobile_separate']);
             
             update_option('fp_ps_settings', $options);
             update_option('fp_ps_critical_css', wp_unslash($_POST['critical_css'] ?? ''));
@@ -193,6 +201,66 @@ class Settings extends AbstractPage
                     <input type="email" name="notification_email" id="notification_email" value="<?php echo esc_attr($options['notification_email']); ?>" class="regular-text">
                     <span class="description"><?php esc_html_e('Email address to receive notifications.', 'fp-performance-suite'); ?></span>
                 </p>
+        </section>
+        
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Developer Options', 'fp-performance-suite'); ?></h2>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Development Mode', 'fp-performance-suite'); ?></strong>
+                    <span class="fp-ps-risk-indicator red">
+                        <div class="fp-ps-risk-tooltip red">
+                            <div class="fp-ps-risk-tooltip-title">
+                                <span class="icon">🔴</span>
+                                <?php esc_html_e('Solo per Sviluppo', 'fp-performance-suite'); ?>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Disabilita tutte le cache, abilita logging verboso e mostra informazioni di debug. Solo per ambiente di sviluppo.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Effetti', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text">
+                                    <?php esc_html_e('• Disabilita page cache<br>• Disabilita browser cache<br>• Log level impostato a DEBUG<br>• Mostra informazioni tecniche', 'fp-performance-suite'); ?>
+                                </div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Avviso', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ MAI ATTIVARE IN PRODUZIONE! Le performance saranno drasticamente ridotte.', 'fp-performance-suite'); ?></div>
+                            </div>
+                        </div>
+                    </span>
+                </span>
+                <input type="checkbox" name="dev_mode" value="1" <?php checked($options['dev_mode']); ?> />
+            </label>
+            <p class="description" style="color: #d63638; font-weight: 600;">
+                <?php esc_html_e('⚠️ ATTENZIONE: Questa modalità riduce significativamente le performance. Da usare solo durante lo sviluppo!', 'fp-performance-suite'); ?>
+            </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Mobile Optimization', 'fp-performance-suite'); ?></h2>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Separate Mobile/Desktop Settings', 'fp-performance-suite'); ?></strong>
+                </span>
+                <input type="checkbox" name="mobile_separate" value="1" <?php checked($options['mobile_separate']); ?> />
+            </label>
+            <p class="description">
+                <?php esc_html_e('Abilita cache separata e ottimizzazioni diverse per dispositivi mobile e desktop. Migliora le performance mobile con impostazioni più aggressive.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($options['mobile_separate']) : ?>
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 15px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Impostazioni Mobile Attive:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Cache separata per mobile e desktop', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Lazy load più aggressivo su mobile', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Qualità immagini ottimizzata per connessioni lente', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Script di terze parti ritardati più a lungo', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+            <?php endif; ?>
         </section>
         
         <div class="fp-ps-card">

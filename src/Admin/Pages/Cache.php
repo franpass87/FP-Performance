@@ -67,11 +67,19 @@ class Cache extends AbstractPage
                 $excludeUrls = !empty($_POST['cache_exclude_urls']) ? wp_unslash($_POST['cache_exclude_urls']) : '';
                 $excludeQueryStrings = !empty($_POST['cache_exclude_query_strings']) ? wp_unslash($_POST['cache_exclude_query_strings']) : '';
                 
+                // Cache warming settings
+                $enableWarming = !empty($_POST['cache_warming_enabled']);
+                $warmingUrls = !empty($_POST['cache_warming_urls']) ? wp_unslash($_POST['cache_warming_urls']) : '';
+                $warmingSchedule = sanitize_text_field($_POST['cache_warming_schedule'] ?? 'hourly');
+                
                 $pageCache->update([
                     'enabled' => $enabledRequested,
                     'ttl' => $ttlRequested,
                     'exclude_urls' => $excludeUrls,
                     'exclude_query_strings' => $excludeQueryStrings,
+                    'warming_enabled' => $enableWarming,
+                    'warming_urls' => $warmingUrls,
+                    'warming_schedule' => $warmingSchedule,
                 ]);
                 $message = __('Page cache settings saved.', 'fp-performance-suite');
                 $currentSettings = $pageCache->settings();
@@ -184,6 +192,33 @@ class Cache extends AbstractPage
                     <input type="text" name="cache_exclude_query_strings" id="cache_exclude_query_strings" value="<?php echo esc_attr($pageSettings['exclude_query_strings'] ?? ''); ?>" class="large-text" placeholder="<?php esc_attr_e('fbclid, gclid, utm_source, utm_medium', 'fp-performance-suite'); ?>" />
                     <span class="description"><?php esc_html_e('Comma-separated list of query parameters to ignore (pages with these params will still be cached).', 'fp-performance-suite'); ?></span>
                 </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Cache Warming', 'fp-performance-suite'); ?></h3>
+                <p class="description"><?php esc_html_e('Automatically pre-generate cache for important pages to ensure they are always fast.', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable automatic cache warming', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="cache_warming_enabled" value="1" <?php checked($pageSettings['warming_enabled'] ?? false); ?> />
+                </label>
+                
+                <p>
+                    <label for="cache_warming_urls"><?php esc_html_e('URLs to warm (one per line)', 'fp-performance-suite'); ?></label>
+                    <textarea name="cache_warming_urls" id="cache_warming_urls" rows="5" class="large-text" placeholder="<?php esc_attr_e('https://example.com/\nhttps://example.com/about/\nhttps://example.com/products/', 'fp-performance-suite'); ?>"><?php echo esc_textarea($pageSettings['warming_urls'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('Full URLs of pages to pre-cache. These pages will be requested automatically to keep cache warm.', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="cache_warming_schedule"><?php esc_html_e('Warming schedule', 'fp-performance-suite'); ?></label>
+                    <select name="cache_warming_schedule" id="cache_warming_schedule">
+                        <option value="hourly" <?php selected($pageSettings['warming_schedule'] ?? 'hourly', 'hourly'); ?>><?php esc_html_e('Every hour', 'fp-performance-suite'); ?></option>
+                        <option value="twicedaily" <?php selected($pageSettings['warming_schedule'] ?? 'hourly', 'twicedaily'); ?>><?php esc_html_e('Twice daily', 'fp-performance-suite'); ?></option>
+                        <option value="daily" <?php selected($pageSettings['warming_schedule'] ?? 'hourly', 'daily'); ?>><?php esc_html_e('Once daily', 'fp-performance-suite'); ?></option>
+                    </select>
+                    <span class="description"><?php esc_html_e('How often to warm the cache for specified URLs.', 'fp-performance-suite'); ?></span>
+                </p>
+                
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Save Page Cache', 'fp-performance-suite'); ?></button>
                     <button type="submit" name="fp_ps_clear_cache" value="1" class="button"><?php esc_html_e('Clear Cache', 'fp-performance-suite'); ?></button>
