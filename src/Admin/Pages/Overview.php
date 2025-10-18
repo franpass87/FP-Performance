@@ -97,7 +97,7 @@ class Overview extends AbstractPage
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Technical SEO Score', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0;">
-                    <?php echo esc_html((string) $score['total']); ?>
+                    <?php echo esc_html((string) $score['total']); ?><span style="font-size: 24px;">/100</span>
                 </div>
                 <p class="description">
                     <?php esc_html_e('Configuration optimization score', 'fp-performance-suite'); ?>
