@@ -283,6 +283,9 @@ class Plugin
         
         // Smart Intelligence Services
         $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());
+        $container->set(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator(
+            $c->get(SmartExclusionDetector::class)
+        ));
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
