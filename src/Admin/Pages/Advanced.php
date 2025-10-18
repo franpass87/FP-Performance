@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\CriticalCss;
 use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
+use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
 use FP\PerfSuite\Services\Reports\ScheduledReports;
 
 /**
@@ -98,6 +99,9 @@ class Advanced extends AbstractPage
             
             <!-- Performance Monitoring Section -->
             <?php echo $this->renderMonitoringSection(); ?>
+            
+            <!-- Core Web Vitals Monitor Section -->
+            <?php echo $this->renderCoreWebVitalsSection(); ?>
             
             <!-- Scheduled Reports Section -->
             <?php echo $this->renderReportsSection(); ?>
@@ -380,6 +384,201 @@ class Advanced extends AbstractPage
         return ob_get_clean();
     }
 
+    private function renderCoreWebVitalsSection(): string
+    {
+        $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+        $settings = $cwvMonitor->settings();
+        $status = $cwvMonitor->status();
+        $summary = $cwvMonitor->getSummary(7);
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>📊 <?php esc_html_e('Core Web Vitals Monitor', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
+            <p><?php esc_html_e('Monitora in tempo reale i Core Web Vitals (LCP, FID, CLS) degli utenti reali per ottimizzare le performance e il ranking SEO di Google.', 'fp-performance-suite'); ?></p>
+            
+            <?php if ($status['enabled']): ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong>
+                        <?php printf(
+                            esc_html__('Attivo - %d metriche raccolte (Sample rate: %.0f%%)', 'fp-performance-suite'),
+                            $status['metrics_count'],
+                            $settings['sample_rate'] * 100
+                        ); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($summary)): ?>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;"><?php esc_html_e('Metriche Ultimi 7 Giorni', 'fp-performance-suite'); ?></h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    <?php foreach ($summary as $metricName => $data): ?>
+                    <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;"><?php echo esc_html($metricName); ?></div>
+                        <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                            <?php 
+                            if ($metricName === 'CLS') {
+                                echo number_format($data['p75'], 3);
+                            } else {
+                                echo number_format($data['p75'], 0);
+                                echo '<span style="font-size: 14px;">ms</span>';
+                            }
+                            ?>
+                        </div>
+                        <div style="font-size: 11px; color: #666;">
+                            <?php printf(
+                                esc_html__('%d campioni', 'fp-performance-suite'),
+                                $data['count']
+                            ); ?>
+                        </div>
+                        <div style="margin-top: 8px; display: flex; gap: 5px; font-size: 11px;">
+                            <span style="color: #00a32a;">✓ <?php echo $data['good']; ?></span>
+                            <span style="color: #dba617;">⚠ <?php echo $data['needs_improvement']; ?></span>
+                            <span style="color: #d63638;">✗ <?php echo $data['poor']; ?></span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_enabled"><?php esc_html_e('Abilita Monitoring', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Monitora Core Web Vitals degli utenti reali (RUM)', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Raccoglie metriche reali dai browser degli utenti per avere dati accurati sulle performance percepite.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_sample_rate"><?php esc_html_e('Sample Rate', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[sample_rate]" id="cwv_sample_rate" value="<?php echo esc_attr($settings['sample_rate'] * 100); ?>" min="1" max="100" class="small-text">
+                        <span>%</span>
+                        <p class="description"><?php esc_html_e('Percentuale di utenti da monitorare (100% = tutti gli utenti)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Metriche da Tracciare', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="cwv[track_lcp]" value="1" <?php checked($settings['track_lcp']); ?>>
+                                <?php esc_html_e('LCP - Largest Contentful Paint', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_fid]" value="1" <?php checked($settings['track_fid']); ?>>
+                                <?php esc_html_e('FID - First Input Delay', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_cls]" value="1" <?php checked($settings['track_cls']); ?>>
+                                <?php esc_html_e('CLS - Cumulative Layout Shift', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_fcp]" value="1" <?php checked($settings['track_fcp']); ?>>
+                                <?php esc_html_e('FCP - First Contentful Paint', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_ttfb]" value="1" <?php checked($settings['track_ttfb']); ?>>
+                                <?php esc_html_e('TTFB - Time to First Byte', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_inp]" value="1" <?php checked($settings['track_inp']); ?>>
+                                <?php esc_html_e('INP - Interaction to Next Paint (sperimentale)', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_retention_days"><?php esc_html_e('Conservazione Dati', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[retention_days]" id="cwv_retention_days" value="<?php echo esc_attr($settings['retention_days']); ?>" min="1" max="365" class="small-text">
+                        <span><?php esc_html_e('giorni', 'fp-performance-suite'); ?></span>
+                        <p class="description"><?php esc_html_e('Per quanto tempo conservare le metriche raccolte', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_send_analytics"><?php esc_html_e('Integrazione Analytics', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="cwv[send_to_analytics]" id="cwv_send_analytics" value="1" <?php checked($settings['send_to_analytics']); ?>>
+                            <?php esc_html_e('Invia metriche a Google Analytics (se disponibile)', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('Le metriche verranno inviate come eventi personalizzati a GA4 se configurato', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            
+            <h3><?php esc_html_e('Soglie di Allerta', 'fp-performance-suite'); ?></h3>
+            <p class="description"><?php esc_html_e('Ricevi notifiche via email quando le metriche superano queste soglie (valori "poor"):', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_email"><?php esc_html_e('Email per Allerte', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="email" name="cwv[alert_email]" id="cwv_alert_email" value="<?php echo esc_attr($settings['alert_email']); ?>" class="regular-text">
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_lcp"><?php esc_html_e('Soglia LCP (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_lcp]" id="cwv_alert_lcp" value="<?php echo esc_attr($settings['alert_threshold_lcp']); ?>" min="1000" max="10000" step="100" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 2500ms (good), 4000ms (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_fid"><?php esc_html_e('Soglia FID (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_fid]" id="cwv_alert_fid" value="<?php echo esc_attr($settings['alert_threshold_fid']); ?>" min="50" max="1000" step="10" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 100ms (good), 300ms (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_cls"><?php esc_html_e('Soglia CLS', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_cls]" id="cwv_alert_cls" value="<?php echo esc_attr($settings['alert_threshold_cls']); ?>" min="0.05" max="1" step="0.05" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 0.1 (good), 0.25 (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Perché è importante:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('I Core Web Vitals sono un fattore di ranking di Google per la SEO', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('I dati RUM (Real User Monitoring) sono più accurati dei test sintetici', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Aiuta a identificare problemi di performance che colpiscono gli utenti reali', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Monitora l\'impatto delle ottimizzazioni in tempo reale', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
     private function renderReportsSection(): string
     {
         $reports = new ScheduledReports();
@@ -479,6 +678,29 @@ class Advanced extends AbstractPage
             $monitoringSettings['enabled'] = isset($_POST['monitoring']['enabled']);
             
             $monitor->update($monitoringSettings);
+
+            // Save Core Web Vitals settings
+            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+            if (isset($_POST['cwv'])) {
+                $cwvData = wp_unslash($_POST['cwv']);
+                
+                // Convert sample rate from percentage to decimal
+                if (isset($cwvData['sample_rate'])) {
+                    $cwvData['sample_rate'] = (float)$cwvData['sample_rate'] / 100;
+                }
+                
+                // Gestisci le checkbox
+                $cwvData['enabled'] = isset($_POST['cwv']['enabled']);
+                $cwvData['track_lcp'] = isset($_POST['cwv']['track_lcp']);
+                $cwvData['track_fid'] = isset($_POST['cwv']['track_fid']);
+                $cwvData['track_cls'] = isset($_POST['cwv']['track_cls']);
+                $cwvData['track_fcp'] = isset($_POST['cwv']['track_fcp']);
+                $cwvData['track_ttfb'] = isset($_POST['cwv']['track_ttfb']);
+                $cwvData['track_inp'] = isset($_POST['cwv']['track_inp']);
+                $cwvData['send_to_analytics'] = isset($_POST['cwv']['send_to_analytics']);
+                
+                $cwvMonitor->update($cwvData);
+            }
 
             // Save Reports settings
             $reports = new ScheduledReports();
