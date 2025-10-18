@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Presets;
 
+use FP\PerfSuite\Services\Assets\LazyLoadManager;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -22,8 +23,9 @@ class Manager
     private WebPConverter $webp;
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
+    private LazyLoadManager $lazyLoad;
 
-    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler)
+    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler, LazyLoadManager $lazyLoad)
     {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
@@ -31,6 +33,7 @@ class Manager
         $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->debugToggler = $debugToggler;
+        $this->lazyLoad = $lazyLoad;
     }
 
     /**
@@ -79,10 +82,25 @@ class Manager
     {
         Logger::info('Attempting to apply preset', ['preset_id' => $id]);
         
-        $preset = $this->presets()[$id] ?? null;
-        if (!$preset) {
-            Logger::error('Preset not found', ['preset_id' => $id]);
-            return ['error' => __('Preset not found', 'fp-performance-suite')];
+        // Check if it's a custom preset
+        if (strpos($id, 'custom_') === 0) {
+            $customKey = substr($id, 7); // Remove 'custom_' prefix
+            $customPresets = get_option('fp_ps_custom_presets', []);
+            
+            if (!isset($customPresets[$customKey])) {
+                Logger::error('Custom preset not found', ['preset_id' => $id, 'custom_key' => $customKey]);
+                return ['error' => __('Custom preset not found', 'fp-performance-suite')];
+            }
+            
+            $preset = $customPresets[$customKey];
+            Logger::debug('Custom preset loaded', ['preset_id' => $id]);
+        } else {
+            // Standard preset
+            $preset = $this->presets()[$id] ?? null;
+            if (!$preset) {
+                Logger::error('Preset not found', ['preset_id' => $id]);
+                return ['error' => __('Preset not found', 'fp-performance-suite')];
+            }
         }
 
         try {
@@ -98,6 +116,7 @@ class Manager
                     'assets' => $this->optimizer->settings(),
                     'webp' => $this->webp->settings(),
                     'db' => $this->cleaner->settings(),
+                    'lazy_load' => $this->lazyLoad->settings(),
                 ];
                 Logger::debug('Current settings retrieved successfully');
             } catch (\Throwable $e) {
@@ -161,6 +180,17 @@ class Manager
                     throw new \RuntimeException('Failed to update database settings: ' . $e->getMessage(), 0, $e);
                 }
             }
+            
+            if (isset($config['lazy_load'])) {
+                Logger::debug('Applying lazy load settings');
+                try {
+                    $this->lazyLoad->update(array_merge($this->lazyLoad->settings(), $config['lazy_load']));
+                    Logger::debug('Lazy load settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update lazy load settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update lazy load settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
 
             Logger::debug('Saving preset metadata');
             try {
@@ -195,6 +225,9 @@ class Manager
         $this->optimizer->update($prev['assets']);
         $this->webp->update($prev['webp']);
         $this->cleaner->update($prev['db']);
+        if (isset($prev['lazy_load'])) {
+            $this->lazyLoad->update($prev['lazy_load']);
+        }
         update_option(self::OPTION, ['active' => null, 'applied_at' => time(), 'previous' => []]);
         return true;
     }
