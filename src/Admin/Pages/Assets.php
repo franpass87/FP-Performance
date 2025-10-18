@@ -68,6 +68,12 @@ class Assets extends AbstractPage
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
         
+        // Carica le impostazioni correnti PRIMA del blocco POST
+        // per permettere la lettura delle esclusioni esistenti quando si applicano le nuove
+        $settings = $optimizer->settings();
+        $fontSettings = $fontOptimizer->getSettings();
+        $thirdPartySettings = $thirdPartyScripts->settings();
+        
         // Smart Script Detector
         $smartDetector = new SmartExclusionDetector();
         $criticalScripts = null;
@@ -439,6 +445,8 @@ class Assets extends AbstractPage
                 }
             }
         }
+        
+        // Ricarica le impostazioni dopo il POST per mostrare i valori aggiornati
         $settings = $optimizer->settings();
         $fontSettings = $fontOptimizer->getSettings();
         $thirdPartySettings = $thirdPartyScripts->settings();
