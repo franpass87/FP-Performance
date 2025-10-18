@@ -196,6 +196,16 @@ class AVIFConverter
     }
 
     /**
+     * Check detailed AVIF format conversion availability
+     *
+     * @return array Detailed availability information with recommendations
+     */
+    public function checkAvailability(): array
+    {
+        return $this->imageConverter->checkAvailability();
+    }
+
+    /**
      * Register AVIF delivery filters
      */
     private function registerDelivery(): void

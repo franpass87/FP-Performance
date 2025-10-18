@@ -51,7 +51,44 @@ class AVIFImageConverter
             }
         }
 
-        Logger::warning('AVIF conversion not available (requires PHP 8.1+ GD or Imagick with AVIF support)');
+        // Log detailed warning based on what's missing
+        $this->logAvailabilityWarning();
+    }
+
+    /**
+     * Log detailed warning about AVIF availability
+     */
+    private function logAvailabilityWarning(): void
+    {
+        $phpVersion = PHP_VERSION;
+        $phpMajor = (int)PHP_MAJOR_VERSION;
+        $phpMinor = (int)PHP_MINOR_VERSION;
+
+        $reasons = [];
+
+        // Check PHP version
+        if ($phpMajor < 8 || ($phpMajor === 8 && $phpMinor < 1)) {
+            $reasons[] = "PHP version $phpVersion (requires 8.1+ for GD support)";
+        } else {
+            // PHP 8.1+ but GD doesn't have AVIF
+            if (!function_exists('imageavif')) {
+                $reasons[] = 'GD extension missing imageavif() function';
+            }
+        }
+
+        // Check Imagick
+        if (!extension_loaded('imagick')) {
+            $reasons[] = 'Imagick extension not loaded';
+        } else {
+            $reasons[] = 'Imagick loaded but AVIF format not supported';
+        }
+
+        $message = 'AVIF conversion not available';
+        if (!empty($reasons)) {
+            $message .= ': ' . implode(', ', $reasons);
+        }
+
+        Logger::warning($message);
     }
 
     /**
@@ -72,6 +109,73 @@ class AVIFImageConverter
     public function getMethod(): string
     {
         return $this->method;
+    }
+
+    /**
+     * Check AVIF format conversion availability and requirements
+     *
+     * @return array{
+     *     available: bool,
+     *     method: string,
+     *     php_version: string,
+     *     php_meets_requirement: bool,
+     *     gd_loaded: bool,
+     *     gd_has_avif: bool,
+     *     imagick_loaded: bool,
+     *     imagick_has_avif: bool,
+     *     recommendations: array
+     * }
+     */
+    public function checkAvailability(): array
+    {
+        $phpVersion = PHP_VERSION;
+        $phpMajor = (int)PHP_MAJOR_VERSION;
+        $phpMinor = (int)PHP_MINOR_VERSION;
+        $phpMeetsRequirement = $phpMajor > 8 || ($phpMajor === 8 && $phpMinor >= 1);
+
+        $gdLoaded = extension_loaded('gd');
+        $gdHasAvif = function_exists('imageavif');
+
+        $imagickLoaded = extension_loaded('imagick');
+        $imagickHasAvif = false;
+
+        if ($imagickLoaded) {
+            try {
+                $imagick = new \Imagick();
+                $formats = $imagick->queryFormats('AVIF');
+                $imagickHasAvif = !empty($formats);
+            } catch (\Exception $e) {
+                // Imagick loaded but can't query formats
+            }
+        }
+
+        $recommendations = [];
+
+        if (!$this->isAvailable()) {
+            if (!$phpMeetsRequirement) {
+                $recommendations[] = "Aggiorna PHP alla versione 8.1 o superiore (attuale: $phpVersion)";
+            } elseif ($gdLoaded && !$gdHasAvif) {
+                $recommendations[] = 'Ricompila GD con supporto AVIF o usa Imagick';
+            }
+
+            if (!$imagickLoaded) {
+                $recommendations[] = 'Installa l\'estensione Imagick come alternativa';
+            } elseif (!$imagickHasAvif) {
+                $recommendations[] = 'Aggiorna ImageMagick con supporto AVIF (libheif)';
+            }
+        }
+
+        return [
+            'available' => $this->isAvailable(),
+            'method' => $this->method,
+            'php_version' => $phpVersion,
+            'php_meets_requirement' => $phpMeetsRequirement,
+            'gd_loaded' => $gdLoaded,
+            'gd_has_avif' => $gdHasAvif,
+            'imagick_loaded' => $imagickLoaded,
+            'imagick_has_avif' => $imagickHasAvif,
+            'recommendations' => $recommendations,
+        ];
     }
 
     /**
