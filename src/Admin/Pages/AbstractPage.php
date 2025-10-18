@@ -33,12 +33,37 @@ abstract class AbstractPage
             wp_die(esc_html__('You do not have permission to access this page.', 'fp-performance-suite'));
         }
 
-        $view = $this->view();
-        $data = $this->data();
-        $data['content'] = $this->content();
-        if (is_readable($view)) {
-            $pageData = $data;
-            include $view;
+        try {
+            $view = $this->view();
+            $data = $this->data();
+            $data['content'] = $this->content();
+            if (is_readable($view)) {
+                $pageData = $data;
+                include $view;
+            }
+        } catch (\Throwable $e) {
+            // Log the error
+            error_log('[FP Performance Suite] Error rendering page ' . $this->slug() . ': ' . $e->getMessage());
+            error_log('[FP Performance Suite] Stack trace: ' . $e->getTraceAsString());
+            
+            // Display user-friendly error message
+            ?>
+            <div class="wrap">
+                <h1><?php echo esc_html($this->title()); ?></h1>
+                <div class="notice notice-error">
+                    <p>
+                        <strong><?php esc_html_e('Errore:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('Si è verificato un errore durante il caricamento di questa pagina.', 'fp-performance-suite'); ?>
+                    </p>
+                    <details>
+                        <summary style="cursor: pointer;"><?php esc_html_e('Dettagli tecnici', 'fp-performance-suite'); ?></summary>
+                        <pre style="background: #f0f0f1; padding: 10px; overflow: auto;"><?php echo esc_html($e->getMessage()); ?></pre>
+                        <p><strong><?php esc_html_e('File:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($e->getFile()); ?></p>
+                        <p><strong><?php esc_html_e('Linea:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($e->getLine()); ?></p>
+                    </details>
+                </div>
+            </div>
+            <?php
         }
     }
 

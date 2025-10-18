@@ -51,6 +51,11 @@ function applyDarkModePreference() {
     const preference = getDarkModePreference();
     const body = document.body;
     
+    // Safety check: ensure body exists
+    if (!body) {
+        return;
+    }
+    
     // Remove existing classes
     body.classList.remove('fp-dark-mode', 'fp-light-mode');
     

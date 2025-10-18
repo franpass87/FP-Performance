@@ -47,6 +47,7 @@ class Assets
             'messages' => [
                 'logsError' => __('Unable to load log data.', 'fp-performance-suite'),
                 'presetError' => __('Unable to apply preset.', 'fp-performance-suite'),
+                'presetSuccess' => __('Preset applied successfully!', 'fp-performance-suite'),
             ],
         ]);
     }
@@ -87,6 +88,11 @@ class Assets
             // Apply dark mode preference immediately to prevent FOUC
             var preference = localStorage.getItem('fp_ps_dark_mode') || 'auto';
             var body = document.body;
+            
+            // Check if body is available (it should be in admin_head, but let's be safe)
+            if (!body) {
+                return;
+            }
             
             if (preference === 'dark') {
                 body.classList.add('fp-dark-mode');
