@@ -118,8 +118,11 @@ class Advanced extends AbstractPage
             <div class="fp-ps-card">
                 <div class="fp-ps-actions">
                     <button type="submit" class="button button-primary button-large">
-                        <?php esc_html_e('Save Advanced Settings', 'fp-performance-suite'); ?>
+                        💾 <?php esc_html_e('Salva Tutte le Impostazioni Avanzate', 'fp-performance-suite'); ?>
                     </button>
+                    <p class="description" style="margin-top: 10px;">
+                        <?php esc_html_e('Salva tutte le modifiche apportate nelle sezioni sopra (Critical CSS, Compressione, CDN, Monitoring, ecc.)', 'fp-performance-suite'); ?>
+                    </p>
                 </div>
             </div>
         </form>
@@ -220,6 +223,14 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
                                 <?php esc_html_e('⚠️ Dimensione eccessiva!', 'fp-performance-suite'); ?>
                             </span>
                         </p>
+                        <div style="margin-top: 15px;">
+                            <button type="submit" class="button button-primary">
+                                💾 <?php esc_html_e('Salva Critical CSS', 'fp-performance-suite'); ?>
+                            </button>
+                            <span class="description" style="margin-left: 10px;">
+                                <?php esc_html_e('Salva le modifiche al Critical CSS', 'fp-performance-suite'); ?>
+                            </span>
+                        </div>
                     </td>
                 </tr>
             </table>
@@ -353,7 +364,11 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
                         success: function(response) {
                             if (response.success && response.data.css) {
                                 $('#critical_css').val(response.data.css).trigger('input');
-                                alert('✅ ' + '<?php echo esc_js(__('Critical CSS generato con successo! Ricorda di salvare le impostazioni.', 'fp-performance-suite')); ?>');
+                                var message = '<?php echo esc_js(__('Critical CSS generato e salvato con successo!', 'fp-performance-suite')); ?>';
+                                if (response.data.note) {
+                                    message += '\n\n' + response.data.note;
+                                }
+                                alert('✅ ' + message);
                             } else {
                                 alert('❌ ' + (response.data.error || '<?php echo esc_js(__('Errore durante la generazione del Critical CSS.', 'fp-performance-suite')); ?>'));
                             }

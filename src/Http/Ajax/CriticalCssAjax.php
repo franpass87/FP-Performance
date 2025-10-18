@@ -49,11 +49,21 @@ class CriticalCssAjax
             $result = $criticalCss->generate($url);
             
             if ($result['success']) {
-                wp_send_json_success([
-                    'css' => $result['css'],
-                    'size' => $result['size'],
-                    'note' => $result['note'] ?? '',
-                ]);
+                // Save the generated CSS automatically
+                $saveResult = $criticalCss->update($result['css']);
+                
+                if ($saveResult['success']) {
+                    wp_send_json_success([
+                        'css' => $result['css'],
+                        'size' => $result['size'],
+                        'note' => $result['note'] ?? '',
+                        'saved' => true,
+                    ]);
+                } else {
+                    wp_send_json_error([
+                        'error' => $saveResult['error'] ?? __('Errore durante il salvataggio', 'fp-performance-suite'),
+                    ]);
+                }
             } else {
                 wp_send_json_error([
                     'error' => $result['error'] ?? __('Errore durante la generazione', 'fp-performance-suite'),
