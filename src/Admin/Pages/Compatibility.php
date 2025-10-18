@@ -46,6 +46,11 @@ class Compatibility extends AbstractPage
     
     public function render(): void
     {
+        // Handle form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->handlePost();
+        }
+        
         $config = $this->detector->getRecommendedConfig();
         $status = $this->compat->status();
         $theme = $config['theme'];
@@ -360,7 +365,8 @@ class Compatibility extends AbstractPage
                 'auto_apply' => !empty($_POST['auto_apply']),
             ]);
             
-            $this->compat->applyCompatibilityRules();
+            // Force apply compatibility rules (bypass autoApply check)
+            $this->compat->applyCompatibilityRules(true);
             
             wp_redirect(admin_url('admin.php?page=fp-performance-compatibility&applied=1'));
             exit;

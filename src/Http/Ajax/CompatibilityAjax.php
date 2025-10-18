@@ -45,8 +45,8 @@ class CompatibilityAjax
                 'auto_apply' => true,
             ]);
             
-            // Apply rules
-            $compat->applyCompatibilityRules();
+            // Apply rules (force application)
+            $compat->applyCompatibilityRules(true);
             
             wp_send_json_success([
                 'message' => 'Configurazione applicata con successo',

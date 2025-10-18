@@ -80,10 +80,12 @@ class ThemeCompatibility
     
     /**
      * Apply compatibility rules based on detected theme
+     * 
+     * @param bool $force Force application even if autoApply is disabled
      */
-    public function applyCompatibilityRules(): void
+    public function applyCompatibilityRules(bool $force = false): void
     {
-        if (!$this->autoApply) {
+        if (!$force && !$this->autoApply) {
             return;
         }
         
