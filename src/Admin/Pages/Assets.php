@@ -178,7 +178,7 @@ class Assets extends AbstractPage
             
             // Handle apply critical assets suggestions
             if (isset($_POST['apply_critical_assets_suggestions'])) {
-                $result = $assetsDetector->autoApplyCriticalAssets(false);
+                $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
                 
                 // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
                 // delete_transient('fp_ps_critical_assets_detected');
@@ -1028,9 +1028,21 @@ class Assets extends AbstractPage
                 <?php endif; ?>
                 
                 <p>
-                    <label for="critical_assets"><?php esc_html_e('Critical assets to preload', 'fp-performance-suite'); ?></label>
-                    <textarea name="critical_assets" id="critical_assets" rows="5" class="large-text" placeholder="<?php esc_attr_e('/wp-content/themes/mytheme/style.css\n/wp-content/themes/mytheme/hero-image.jpg\n/wp-content/themes/mytheme/main.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea(implode("\n", $settings['critical_assets_list'] ?? [])); ?></textarea>
-                    <span class="description"><?php esc_html_e('Full URLs or paths of critical assets to preload. One per line. Use for above-the-fold resources only.', 'fp-performance-suite'); ?></span>
+                    <label for="critical_assets">
+                        <?php esc_html_e('Critical assets to preload', 'fp-performance-suite'); ?>
+                        <?php if (!empty($settings['critical_assets_list'])) : ?>
+                            <span style="background: #059669; color: white; padding: 3px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">
+                                ✓ <?php echo count($settings['critical_assets_list']); ?> asset<?php echo count($settings['critical_assets_list']) > 1 ? 's' : ''; ?> configurati
+                            </span>
+                        <?php endif; ?>
+                    </label>
+                    <textarea name="critical_assets" id="critical_assets" rows="8" class="large-text" placeholder="<?php esc_attr_e('/wp-content/themes/mytheme/style.css\n/wp-content/themes/mytheme/hero-image.jpg\n/wp-content/themes/mytheme/main.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea(implode("\n", $settings['critical_assets_list'] ?? [])); ?></textarea>
+                    <span class="description">
+                        <?php esc_html_e('Full URLs or paths of critical assets to preload. One per line. Use for above-the-fold resources only.', 'fp-performance-suite'); ?>
+                        <?php if (!empty($settings['critical_assets_list'])) : ?>
+                            <br><strong style="color: #059669;">✓ <?php esc_html_e('Asset preloading is active', 'fp-performance-suite'); ?></strong>
+                        <?php endif; ?>
+                    </span>
                 </p>
                 
                 <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin: 20px 0;">
