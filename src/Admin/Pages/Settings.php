@@ -23,8 +23,6 @@ use function explode;
 use function implode;
 use function trim;
 
-use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
-
 class Settings extends AbstractPage
 {
     public function slug(): string
@@ -72,26 +70,7 @@ class Settings extends AbstractPage
         $criticalCss = get_option('fp_ps_critical_css', '');
         $message = '';
         
-        // Smart Exclusions Detector
-        $smartDetector = new SmartExclusionDetector();
-        $autoDetected = null;
-        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_settings_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_settings_nonce']), 'fp-ps-settings')) {
-            // Handle auto-detect action
-            if (isset($_POST['auto_detect_exclusions'])) {
-                $autoDetected = $smartDetector->detectSensitiveUrls();
-                $message = __('Auto-detection completed! Review suggestions below.', 'fp-performance-suite');
-            }
-            
-            // Handle auto-apply action
-            if (isset($_POST['auto_apply_exclusions'])) {
-                $result = $smartDetector->autoApplyExclusions(false);
-                $message = sprintf(
-                    __('%d exclusions applied automatically, %d skipped (low confidence).', 'fp-performance-suite'),
-                    $result['applied'],
-                    $result['skipped']
-                );
-            }
             $options['allowed_role'] = sanitize_text_field($_POST['allowed_role'] ?? 'administrator');
             $options['safety_mode'] = !empty($_POST['safety_mode']);
             
@@ -180,97 +159,20 @@ class Settings extends AbstractPage
                     <textarea name="critical_css" id="critical_css" rows="6" class="large-text code" placeholder="<?php esc_attr_e('Paste above-the-fold CSS or snippet reference.', 'fp-performance-suite'); ?>"><?php echo esc_textarea($criticalCss); ?></textarea>
                 </p>
         </section>
-
-        <section class="fp-ps-card">
-            <h2>🤖 <?php esc_html_e('Smart Auto-Exclusions', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Sistema intelligente che rileva automaticamente URL sensibili, script critici e pattern da escludere dalle ottimizzazioni.', 'fp-performance-suite'); ?></p>
-            
-            <div class="fp-ps-actions" style="margin: 20px 0;">
-                <button type="submit" name="auto_detect_exclusions" class="button button-primary button-large">
-                    🔍 <?php esc_html_e('Rileva Automaticamente', 'fp-performance-suite'); ?>
-                </button>
-                <button type="submit" name="auto_apply_exclusions" class="button button-secondary button-large" onclick="return confirm('<?php esc_attr_e('Applicare automaticamente tutte le esclusioni con confidence >= 80%?', 'fp-performance-suite'); ?>');">
-                    ✨ <?php esc_html_e('Applica Automaticamente (High Confidence)', 'fp-performance-suite'); ?>
-                </button>
-            </div>
-            
-            <?php if ($autoDetected) : ?>
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 20px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #0969da;">
-                        📊 <?php esc_html_e('Esclusioni Rilevate Automaticamente', 'fp-performance-suite'); ?>
-                    </h3>
-                    
-                    <?php foreach ($autoDetected as $category => $items) : ?>
-                        <?php if (!empty($items)) : ?>
-                            <h4 style="margin-top: 20px; font-size: 14px; text-transform: uppercase; color: #666;">
-                                <?php 
-                                $categoryLabels = [
-                                    'auto_detected' => __('🎯 Standard Sensitive URLs', 'fp-performance-suite'),
-                                    'plugin_based' => __('🔌 Plugin-Based URLs', 'fp-performance-suite'),
-                                    'user_behavior' => __('📈 Behavior-Based URLs', 'fp-performance-suite'),
-                                ];
-                                echo esc_html($categoryLabels[$category] ?? $category);
-                                ?>
-                            </h4>
-                            
-                            <div style="display: grid; gap: 10px; margin-top: 10px;">
-                                <?php foreach ($items as $item) : ?>
-                                    <?php
-                                    $confidence = $item['confidence'] * 100;
-                                    $confidenceColor = $confidence >= 90 ? '#059669' : ($confidence >= 70 ? '#d97706' : '#dc2626');
-                                    ?>
-                                    <div style="background: white; border-left: 4px solid <?php echo $confidenceColor; ?>; padding: 12px; border-radius: 4px;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <div style="flex: 1;">
-                                                <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 13px;">
-                                                    <?php echo esc_html($item['url']); ?>
-                                                </code>
-                                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
-                                                    <?php echo esc_html($item['reason']); ?>
-                                                    <?php if (isset($item['plugin'])) : ?>
-                                                        <span style="background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px;">
-                                                            <?php echo esc_html($item['plugin']); ?>
-                                                        </span>
-                                                    <?php endif; ?>
-                                                </p>
-                                            </div>
-                                            <div style="text-align: right; margin-left: 20px;">
-                                                <div style="font-size: 18px; font-weight: 600; color: <?php echo $confidenceColor; ?>;">
-                                                    <?php echo number_format($confidence, 0); ?>%
-                                                </div>
-                                                <div style="font-size: 10px; color: #666;">confidence</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                    
-                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-top: 20px; border-radius: 4px;">
-                        <p style="margin: 0; font-size: 13px; color: #92400e;">
-                            <strong>💡 <?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
-                            <?php esc_html_e('Le esclusioni con confidence >= 80% sono generalmente sicure da applicare. Quelle con confidence più bassa richiedono revisione manuale.', 'fp-performance-suite'); ?>
-                        </p>
-                    </div>
-                </div>
-            <?php endif; ?>
-            
-            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
-                <p style="margin: 0; font-weight: 600; color: #2271b1;">🧠 <?php esc_html_e('Come Funziona il Sistema Intelligente:', 'fp-performance-suite'); ?></p>
-                <ul style="margin: 10px 0 0 20px; color: #555; font-size: 13px;">
-                    <li><?php esc_html_e('Scansiona automaticamente il sito per URL sensibili (checkout, login, account, etc.)', 'fp-performance-suite'); ?></li>
-                    <li><?php esc_html_e('Rileva plugin attivi (WooCommerce, EDD, etc.) e applica regole specifiche', 'fp-performance-suite'); ?></li>
-                    <li><?php esc_html_e('Analizza storico errori per identificare pagine problematiche', 'fp-performance-suite'); ?></li>
-                    <li><?php esc_html_e('Assegna un punteggio di confidence a ogni esclusione suggerita', 'fp-performance-suite'); ?></li>
-                    <li><?php esc_html_e('Applica automaticamente solo esclusioni ad alta confidence (>= 80%)', 'fp-performance-suite'); ?></li>
-                </ul>
-            </div>
-        </section>
         
         <section class="fp-ps-card">
-            <h2><?php esc_html_e('Manual Global Exclusions', 'fp-performance-suite'); ?></h2>
-            <p class="description"><?php esc_html_e('Se necessario, puoi ancora aggiungere esclusioni manuali oltre a quelle rilevate automaticamente.', 'fp-performance-suite'); ?></p>
+            <h2><?php esc_html_e('Global Exclusions', 'fp-performance-suite'); ?></h2>
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
+                <p style="margin: 0;">
+                    <strong>💡 <?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                    <?php 
+                    echo sprintf(
+                        __('Per gestire le esclusioni in modo più avanzato con il sistema intelligente Smart Auto-Exclusions, vai alla pagina %s', 'fp-performance-suite'),
+                        '<a href="' . admin_url('admin.php?page=fp-performance-suite-exclusions') . '" style="color: #2271b1; font-weight: 600;">🤖 Gestisci Esclusioni</a>'
+                    );
+                    ?>
+                </p>
+            </div>
                 <p>
                     <label for="exclude_urls"><?php esc_html_e('Exclude URLs from all optimizations', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_urls" id="exclude_urls" rows="5" class="large-text" placeholder="<?php esc_attr_e('One URL per line. Examples:\n/checkout/\n/my-account/\n/cart/', 'fp-performance-suite'); ?>"><?php echo esc_textarea($options['exclude_urls']); ?></textarea>
