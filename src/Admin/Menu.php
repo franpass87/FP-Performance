@@ -5,6 +5,8 @@ namespace FP\PerfSuite\Admin;
 use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Cache;
+use FP\PerfSuite\Admin\Pages\Compatibility;
+use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Logs;
@@ -60,19 +62,86 @@ class Menu
             return;
         }
 
-        $message = sprintf(
-            __('FP Performance Suite: Si è verificato un errore durante l\'attivazione del plugin. Errore: %s', 'fp-performance-suite'),
-            esc_html($error['message'] ?? 'Errore sconosciuto')
-        );
+        $errorMessage = esc_html($error['message'] ?? 'Errore sconosciuto');
+        $errorType = $error['type'] ?? 'unknown';
+        $solution = $error['solution'] ?? 'Contatta il supporto.';
+        $phpVersion = $error['php_version'] ?? PHP_VERSION;
+        $wpVersion = $error['wp_version'] ?? get_bloginfo('version');
 
-        printf(
-            '<div class="notice notice-warning is-dismissible"><p><strong>%s</strong></p><p><a href="#" class="fp-ps-dismiss-activation-error">%s</a></p></div>',
-            $message,
-            __('Nascondi questo messaggio', 'fp-performance-suite')
-        );
+        // Determina l'icona e il colore in base al tipo di errore
+        $noticeClass = 'notice-error';
+        $icon = '❌';
+        
+        if (in_array($errorType, ['php_version', 'php_extension'], true)) {
+            $icon = '⚠️';
+        } elseif ($errorType === 'permissions') {
+            $icon = '🔒';
+            $noticeClass = 'notice-warning';
+        }
 
-        // Script per dismissare il notice
         ?>
+        <div class="notice <?php echo esc_attr($noticeClass); ?> is-dismissible fp-ps-activation-error" style="border-left-width: 4px; padding: 12px;">
+            <h3 style="margin-top: 0;">
+                <?php echo $icon; ?> 
+                <?php _e('FP Performance Suite: Errore Critico all\'Installazione', 'fp-performance-suite'); ?>
+            </h3>
+            
+            <p style="font-size: 14px; margin: 10px 0;">
+                <strong><?php _e('Errore:', 'fp-performance-suite'); ?></strong> 
+                <?php echo $errorMessage; ?>
+            </p>
+
+            <?php if (!empty($solution)): ?>
+            <div style="background: #fff; border-left: 3px solid #00a0d2; padding: 10px; margin: 10px 0;">
+                <p style="margin: 0;">
+                    <strong>💡 <?php _e('Soluzione:', 'fp-performance-suite'); ?></strong><br>
+                    <?php echo esc_html($solution); ?>
+                </p>
+            </div>
+            <?php endif; ?>
+
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; color: #2271b1;">
+                    <?php _e('Dettagli tecnici (clicca per espandere)', 'fp-performance-suite'); ?>
+                </summary>
+                <div style="background: #f0f0f1; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 12px;">
+                    <p><strong><?php _e('Versione PHP:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($phpVersion); ?></p>
+                    <p><strong><?php _e('Versione WordPress:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($wpVersion); ?></p>
+                    <?php if (!empty($error['file'])): ?>
+                    <p><strong><?php _e('File:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($error['file']); ?></p>
+                    <p><strong><?php _e('Linea:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($error['line'] ?? 'N/A'); ?></p>
+                    <?php endif; ?>
+                    <p><strong><?php _e('Data:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(date('Y-m-d H:i:s', $error['time'] ?? time())); ?></p>
+                </div>
+            </details>
+
+            <?php if (!empty($error['recovery_attempted'])): ?>
+            <div style="background: <?php echo $error['recovery_successful'] ? '#d4edda' : '#f8d7da'; ?>; border-left: 3px solid <?php echo $error['recovery_successful'] ? '#28a745' : '#dc3545'; ?>; padding: 10px; margin: 10px 0;">
+                <p style="margin: 0;">
+                    <?php if ($error['recovery_successful']): ?>
+                        <strong>✅ <?php _e('Recupero Automatico:', 'fp-performance-suite'); ?></strong><br>
+                        <?php _e('È stato tentato un recupero automatico con successo. Prova a disattivare e riattivare il plugin per verificare.', 'fp-performance-suite'); ?>
+                    <?php else: ?>
+                        <strong>❌ <?php _e('Recupero Automatico:', 'fp-performance-suite'); ?></strong><br>
+                        <?php _e('Il tentativo di recupero automatico non ha avuto successo. Segui la soluzione suggerita sopra.', 'fp-performance-suite'); ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <?php endif; ?>
+
+            <p style="margin-top: 15px;">
+                <a href="#" class="button button-primary fp-ps-dismiss-activation-error">
+                    <?php _e('Ho risolto il problema - Nascondi questo messaggio', 'fp-performance-suite'); ?>
+                </a>
+                <a href="<?php echo admin_url('admin.php?page=fp-performance-diagnostics'); ?>" class="button button-secondary" style="margin-left: 10px;">
+                    <?php _e('Esegui Diagnostica', 'fp-performance-suite'); ?>
+                </a>
+                <a href="https://francescopasseri.com/support" class="button" target="_blank" style="margin-left: 10px;">
+                    <?php _e('Contatta il Supporto', 'fp-performance-suite'); ?>
+                </a>
+            </p>
+        </div>
+
         <script>
         jQuery(document).ready(function($) {
             $('.fp-ps-dismiss-activation-error').on('click', function(e) {
@@ -80,8 +149,14 @@ class Menu
                 $.post(ajaxurl, {
                     action: 'fp_ps_dismiss_activation_error',
                     nonce: '<?php echo wp_create_nonce('fp_ps_dismiss_error'); ?>'
-                }, function() {
-                    location.reload();
+                }, function(response) {
+                    if (response.success) {
+                        $('.fp-ps-activation-error').fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                    } else {
+                        alert('<?php _e('Errore durante la dismissione del messaggio.', 'fp-performance-suite'); ?>');
+                    }
                 });
             });
         });
@@ -157,6 +232,7 @@ class Menu
             'compatibility' => new Compatibility($this->container),
             'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),
+            'diagnostics' => new Diagnostics($this->container),
         ];
     }
 }
