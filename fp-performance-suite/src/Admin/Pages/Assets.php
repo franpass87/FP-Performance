@@ -895,7 +895,7 @@ class Assets extends AbstractPage
                 </div>
                 
                 <p>
-                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Asset Settings', 'fp-performance-suite'); ?></button>
+                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save Delivery Settings', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
