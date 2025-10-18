@@ -130,8 +130,13 @@ class Advanced extends AbstractPage
 
     private function renderCriticalCssSection(): string
     {
-        $criticalCss = new CriticalCss();
-        $status = $criticalCss->status();
+        try {
+            $criticalCss = new CriticalCss();
+            $status = $criticalCss->status();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CriticalCss: ' . $e->getMessage());
+            return $this->renderErrorSection('Critical CSS', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -169,9 +174,14 @@ class Advanced extends AbstractPage
 
     private function renderCompressionSection(): string
     {
-        $compression = $this->container->get(CompressionManager::class);
-        $status = $compression->status();
-        $info = $compression->getInfo();
+        try {
+            $compression = $this->container->get(CompressionManager::class);
+            $status = $compression->status();
+            $info = $compression->getInfo();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CompressionManager: ' . $e->getMessage());
+            return $this->renderErrorSection('Compressione', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -304,8 +314,13 @@ class Advanced extends AbstractPage
 
     private function renderCdnSection(): string
     {
-        $cdn = new CdnManager();
-        $settings = $cdn->settings();
+        try {
+            $cdn = new CdnManager();
+            $settings = $cdn->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CdnManager: ' . $e->getMessage());
+            return $this->renderErrorSection('CDN Integration', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -355,8 +370,13 @@ class Advanced extends AbstractPage
 
     private function renderMonitoringSection(): string
     {
-        $monitor = PerformanceMonitor::instance();
-        $settings = $monitor->settings();
+        try {
+            $monitor = PerformanceMonitor::instance();
+            $settings = $monitor->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading PerformanceMonitor: ' . $e->getMessage());
+            return $this->renderErrorSection('Performance Monitoring', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -394,10 +414,15 @@ class Advanced extends AbstractPage
 
     private function renderCoreWebVitalsSection(): string
     {
-        $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
-        $settings = $cwvMonitor->settings();
-        $status = $cwvMonitor->status();
-        $summary = $cwvMonitor->getSummary(7);
+        try {
+            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+            $settings = $cwvMonitor->settings();
+            $status = $cwvMonitor->status();
+            $summary = $cwvMonitor->getSummary(7);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CoreWebVitalsMonitor: ' . $e->getMessage());
+            return $this->renderErrorSection('Core Web Vitals Monitor', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -589,8 +614,13 @@ class Advanced extends AbstractPage
 
     private function renderReportsSection(): string
     {
-        $reports = new ScheduledReports();
-        $settings = $reports->settings();
+        try {
+            $reports = new ScheduledReports();
+            $settings = $reports->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading ScheduledReports: ' . $e->getMessage());
+            return $this->renderErrorSection('Scheduled Reports', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -638,8 +668,13 @@ class Advanced extends AbstractPage
 
     private function renderPWASection(): string
     {
-        $serviceWorker = $this->container->get(ServiceWorkerManager::class);
-        $settings = $serviceWorker->settings();
+        try {
+            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+            $settings = $serviceWorker->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading ServiceWorkerManager: ' . $e->getMessage());
+            return $this->renderErrorSection('Progressive Web App (PWA)', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -734,8 +769,13 @@ class Advanced extends AbstractPage
 
     private function renderPrefetchingSection(): string
     {
-        $prefetching = $this->container->get(PredictivePrefetching::class);
-        $settings = $prefetching->settings();
+        try {
+            $prefetching = $this->container->get(PredictivePrefetching::class);
+            $settings = $prefetching->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading PredictivePrefetching: ' . $e->getMessage());
+            return $this->renderErrorSection('Predictive Prefetching', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -815,6 +855,30 @@ class Advanced extends AbstractPage
                     <li><?php esc_html_e('Intelligente: prefetch solo pagine con alta probabilità di click', 'fp-performance-suite'); ?></li>
                     <li><?php esc_html_e('Rispetta Save-Data e connessioni lente', 'fp-performance-suite'); ?></li>
                 </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render error section when a service fails to load
+     */
+    private function renderErrorSection(string $sectionName, string $errorMessage): string
+    {
+        ob_start();
+        ?>
+        <div class="fp-ps-card" style="border-left: 4px solid #d63638;">
+            <h2>⚠️ <?php echo esc_html($sectionName); ?></h2>
+            <div class="notice notice-error inline" style="margin: 0;">
+                <p>
+                    <strong><?php esc_html_e('Errore:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('Impossibile caricare questa sezione. Controlla i log per maggiori dettagli.', 'fp-performance-suite'); ?>
+                </p>
+                <details>
+                    <summary style="cursor: pointer;"><?php esc_html_e('Dettagli tecnici', 'fp-performance-suite'); ?></summary>
+                    <pre style="background: #f0f0f1; padding: 10px; margin-top: 10px; overflow: auto;"><?php echo esc_html($errorMessage); ?></pre>
+                </details>
             </div>
         </div>
         <?php
