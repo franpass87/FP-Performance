@@ -320,7 +320,8 @@ class Plugin
                 $c->get(Optimizer::class),
                 $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
-                $c->get(DebugToggler::class)
+                $c->get(DebugToggler::class),
+                $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)
             );
         });
         $container->set(Scorer::class, static function (ServiceContainer $c) {
