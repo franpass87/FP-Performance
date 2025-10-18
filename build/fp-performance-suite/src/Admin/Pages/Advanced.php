@@ -353,7 +353,11 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
                         success: function(response) {
                             if (response.success && response.data.css) {
                                 $('#critical_css').val(response.data.css).trigger('input');
-                                alert('✅ ' + '<?php echo esc_js(__('Critical CSS generato con successo! Ricorda di salvare le impostazioni.', 'fp-performance-suite')); ?>');
+                                var message = '<?php echo esc_js(__('Critical CSS generato e salvato con successo!', 'fp-performance-suite')); ?>';
+                                if (response.data.note) {
+                                    message += '\n\n' + response.data.note;
+                                }
+                                alert('✅ ' + message);
                             } else {
                                 alert('❌ ' + (response.data.error || '<?php echo esc_js(__('Errore durante la generazione del Critical CSS.', 'fp-performance-suite')); ?>'));
                             }
