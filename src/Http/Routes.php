@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Http;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Http\Ajax\CompatibilityAjax;
+use FP\PerfSuite\Http\Ajax\CriticalCssAjax;
 use FP\PerfSuite\Http\Ajax\RecommendationsAjax;
 use FP\PerfSuite\Http\Ajax\WebPAjax;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -47,6 +48,9 @@ class Routes
         
         $webpAjax = new WebPAjax($this->container);
         $webpAjax->register();
+        
+        $criticalCssAjax = new CriticalCssAjax($this->container);
+        $criticalCssAjax->register();
     }
 
     public function register(): void
