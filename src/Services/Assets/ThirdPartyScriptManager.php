@@ -335,6 +335,20 @@ class ThirdPartyScriptManager
             }
         }
 
+        // Check against custom scripts
+        $customScripts = $this->getCustomScripts();
+        foreach ($customScripts as $customScript) {
+            if (empty($customScript['enabled']) || empty($customScript['delay'])) {
+                continue;
+            }
+
+            foreach ($customScript['patterns'] as $pattern) {
+                if (strpos($src, $pattern) !== false) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -470,7 +484,7 @@ class ThirdPartyScriptManager
     /**
      * Get status
      *
-     * @return array{enabled:bool,delay_all:bool,managed_scripts:int}
+     * @return array{enabled:bool,delay_all:bool,managed_scripts:int,custom_scripts:int}
      */
     public function status(): array
     {
@@ -483,10 +497,20 @@ class ThirdPartyScriptManager
             }
         }
 
+        // Count custom scripts
+        $customScripts = $this->getCustomScripts();
+        $customCount = 0;
+        foreach ($customScripts as $custom) {
+            if (!empty($custom['enabled'])) {
+                $customCount++;
+            }
+        }
+
         return [
             'enabled' => $settings['enabled'],
             'delay_all' => $settings['delay_all'],
             'managed_scripts' => $managedCount,
+            'custom_scripts' => $customCount,
         ];
     }
 }

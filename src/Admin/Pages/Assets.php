@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
@@ -59,6 +60,7 @@ class Assets extends AbstractPage
         $optimizer = $this->container->get(Optimizer::class);
         $fontOptimizer = $this->container->get(FontOptimizer::class);
         $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+        $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
         $http2Push = $this->container->get(Http2ServerPush::class);
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
@@ -228,6 +230,34 @@ class Assets extends AbstractPage
                     'quality_fast' => (int) ($_POST['smart_quality_fast'] ?? 85),
                 ]);
                 $message = __('Smart Asset Delivery settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'script_detector') {
+                // Handle script detector actions
+                if (isset($_POST['action_scan'])) {
+                    $scriptDetector->scanHomepage();
+                    $message = __('Scan completed! Check suggestions below.', 'fp-performance-suite');
+                } elseif (isset($_POST['action_add_custom'])) {
+                    $scriptDetector->addCustomScript([
+                        'name' => sanitize_text_field($_POST['script_name'] ?? ''),
+                        'patterns' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['script_patterns'] ?? '')))),
+                        'enabled' => !empty($_POST['script_enabled']),
+                        'delay' => !empty($_POST['script_delay']),
+                    ]);
+                    $message = __('Custom script added successfully!', 'fp-performance-suite');
+                } elseif (isset($_POST['action_auto_add'])) {
+                    $hash = sanitize_text_field($_POST['script_hash'] ?? '');
+                    if ($scriptDetector->autoAddFromSuggestion($hash)) {
+                        $message = __('Script automatically added to managed list!', 'fp-performance-suite');
+                    }
+                } elseif (isset($_POST['action_dismiss'])) {
+                    $hash = sanitize_text_field($_POST['script_hash'] ?? '');
+                    $scriptDetector->dismissScript($hash);
+                    $message = __('Suggestion dismissed.', 'fp-performance-suite');
+                } elseif (isset($_POST['action_remove_custom'])) {
+                    $key = sanitize_key($_POST['custom_key'] ?? '');
+                    if ($scriptDetector->removeCustomScript($key)) {
+                        $message = __('Custom script removed.', 'fp-performance-suite');
+                    }
+                }
             }
         }
         $settings = $optimizer->settings();
@@ -1047,6 +1077,206 @@ class Assets extends AbstractPage
                 
                 <p style="margin-top: 20px;">
                     <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Third-Party Scripts', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <?php
+        // Get detector data
+        $suggestions = $scriptDetector->getSuggestions();
+        $customScripts = $scriptDetector->getCustomScripts();
+        $stats = $scriptDetector->getStats();
+        ?>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>🤖 <?php esc_html_e('Auto-Detect & Custom Scripts', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">NEW AI</span></h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                <?php esc_html_e('Il sistema rileva automaticamente script di terze parti non gestiti e ti suggerisce di aggiungerli. Puoi anche aggiungere script personalizzati manualmente.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($stats['total_custom'] > 0 || $stats['total_suggestions'] > 0): ?>
+            <div style="background: #f0f9ff; border-left: 4px solid #0891b2; padding: 15px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #0891b2;">📊 <?php esc_html_e('Statistiche Rilevamento:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php printf(esc_html__('Script rilevati totali: %d', 'fp-performance-suite'), $stats['total_detected']); ?></li>
+                    <li><?php printf(esc_html__('Script custom attivi: %d', 'fp-performance-suite'), $stats['total_custom']); ?></li>
+                    <li><?php printf(esc_html__('Nuovi suggerimenti: %d', 'fp-performance-suite'), $stats['total_suggestions']); ?></li>
+                </ul>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Scan Button -->
+            <form method="post" style="margin-bottom: 20px;">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="script_detector" />
+                <button type="submit" name="action_scan" class="button button-secondary">
+                    🔍 <?php esc_html_e('Scansiona Homepage Ora', 'fp-performance-suite'); ?>
+                </button>
+                <p class="description" style="margin-top: 8px;">
+                    <?php esc_html_e('La scansione automatica viene effettuata ogni giorno. Usa questo pulsante per una scansione immediata.', 'fp-performance-suite'); ?>
+                </p>
+            </form>
+            
+            <!-- Suggestions -->
+            <?php if (!empty($suggestions)): ?>
+            <h3 style="margin-top: 25px; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
+                💡 <?php esc_html_e('Script Rilevati - Suggerimenti', 'fp-performance-suite'); ?>
+            </h3>
+            <p class="description" style="margin-bottom: 15px;">
+                <?php esc_html_e('Questi script sono stati rilevati sul tuo sito ma non sono ancora gestiti. Puoi aggiungerli alla lista o ignorarli.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div style="display: grid; gap: 15px;">
+                <?php foreach (array_slice($suggestions, 0, 10) as $suggestion): 
+                    $categoryColors = [
+                        'analytics' => '#3b82f6',
+                        'advertising' => '#f59e0b',
+                        'chat' => '#10b981',
+                        'social' => '#8b5cf6',
+                        'payment' => '#ef4444',
+                        'video' => '#ec4899',
+                        'forms' => '#14b8a6',
+                        'unknown' => '#6b7280',
+                    ];
+                    $color = $categoryColors[$suggestion['category']] ?? '#6b7280';
+                ?>
+                <div style="background: #fff; border: 1px solid #ddd; border-left: 4px solid <?php echo $color; ?>; padding: 15px; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: #1d2327;">
+                                <?php echo esc_html($suggestion['suggested_name']); ?>
+                                <span style="background: <?php echo $color; ?>; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 8px;">
+                                    <?php echo esc_html($suggestion['category']); ?>
+                                </span>
+                                <?php if ($suggestion['priority'] >= 50): ?>
+                                <span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 4px;">
+                                    HIGH PRIORITY
+                                </span>
+                                <?php endif; ?>
+                            </h4>
+                            <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                                <strong><?php esc_html_e('Dominio:', 'fp-performance-suite'); ?></strong> 
+                                <code><?php echo esc_html($suggestion['domain']); ?></code>
+                            </p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                                <strong><?php esc_html_e('Rilevato:', 'fp-performance-suite'); ?></strong> 
+                                <?php echo $suggestion['occurrences']; ?> volte
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-size: 11px; color: #999;">
+                                <code><?php echo esc_html($suggestion['src']); ?></code>
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-left: 15px;">
+                            <form method="post" style="margin: 0;">
+                                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="form_type" value="script_detector" />
+                                <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
+                                <button type="submit" name="action_auto_add" class="button button-primary button-small">
+                                    ✅ <?php esc_html_e('Aggiungi', 'fp-performance-suite'); ?>
+                                </button>
+                            </form>
+                            <form method="post" style="margin: 0;">
+                                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="form_type" value="script_detector" />
+                                <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
+                                <button type="submit" name="action_dismiss" class="button button-link-delete button-small">
+                                    ❌ <?php esc_html_e('Ignora', 'fp-performance-suite'); ?>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <?php if (count($suggestions) > 10): ?>
+            <p style="margin-top: 15px; color: #666;">
+                <?php printf(esc_html__('Mostrati %d di %d suggerimenti. I più importanti sono elencati per primi.', 'fp-performance-suite'), 10, count($suggestions)); ?>
+            </p>
+            <?php endif; ?>
+            <?php endif; ?>
+            
+            <!-- Custom Scripts List -->
+            <?php if (!empty($customScripts)): ?>
+            <h3 style="margin-top: 30px; border-bottom: 2px solid #8b5cf6; padding-bottom: 8px;">
+                🎯 <?php esc_html_e('Script Custom Gestiti', 'fp-performance-suite'); ?>
+            </h3>
+            
+            <div style="display: grid; gap: 10px; margin-top: 15px;">
+                <?php foreach ($customScripts as $key => $script): ?>
+                <div style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong><?php echo esc_html($script['name']); ?></strong>
+                        <?php if (!empty($script['enabled'])): ?>
+                        <span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">ATTIVO</span>
+                        <?php else: ?>
+                        <span style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">DISATTIVO</span>
+                        <?php endif; ?>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
+                            <?php echo esc_html(implode(', ', $script['patterns'])); ?>
+                        </p>
+                    </div>
+                    <form method="post" style="margin: 0;">
+                        <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                        <input type="hidden" name="form_type" value="script_detector" />
+                        <input type="hidden" name="custom_key" value="<?php echo esc_attr($key); ?>" />
+                        <button type="submit" name="action_remove_custom" class="button button-link-delete button-small" onclick="return confirm('Rimuovere questo script custom?');">
+                            🗑️ <?php esc_html_e('Rimuovi', 'fp-performance-suite'); ?>
+                        </button>
+                    </form>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Add Custom Script Form -->
+            <h3 style="margin-top: 30px; border-bottom: 2px solid #6366f1; padding-bottom: 8px;">
+                ➕ <?php esc_html_e('Aggiungi Script Personalizzato', 'fp-performance-suite'); ?>
+            </h3>
+            
+            <form method="post" style="margin-top: 15px;">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="script_detector" />
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="script_name"><?php esc_html_e('Nome Script', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="script_name" name="script_name" class="regular-text" placeholder="es. My Custom Service" required />
+                            <p class="description"><?php esc_html_e('Nome identificativo per lo script', 'fp-performance-suite'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="script_patterns"><?php esc_html_e('Pattern URL', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <textarea id="script_patterns" name="script_patterns" rows="3" class="large-text code" placeholder="example.com/script.js&#10;cdn.example.com" required></textarea>
+                            <p class="description"><?php esc_html_e('Inserisci uno o più pattern URL (uno per riga). Es: example.com/script.js', 'fp-performance-suite'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Impostazioni', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="script_enabled" value="1" checked />
+                                <?php esc_html_e('Abilita subito', 'fp-performance-suite'); ?>
+                            </label>
+                            <br />
+                            <label>
+                                <input type="checkbox" name="script_delay" value="1" checked />
+                                <?php esc_html_e('Ritarda caricamento', 'fp-performance-suite'); ?>
+                            </label>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p>
+                    <button type="submit" name="action_add_custom" class="button button-primary">
+                        ➕ <?php esc_html_e('Aggiungi Script Custom', 'fp-performance-suite'); ?>
+                    </button>
                 </p>
             </form>
         </section>
