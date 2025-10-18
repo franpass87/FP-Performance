@@ -11,15 +11,19 @@
 
 // Components
 import { showNotice } from './components/notice.js';
-import { showProgress, removeProgress } from './components/progress.js';
+import { showProgress, removeProgress, updateProgress } from './components/progress.js';
 import { initRiskyToggles } from './components/confirmation.js';
 import { initTooltips } from './components/tooltip.js';
+
+// Utilities
+import { BulkProcessor } from './utils/bulk-processor.js';
 
 // Features
 import { initLogViewer } from './features/log-viewer.js';
 import { initPresets } from './features/presets.js';
 import { initBulkActions } from './features/bulk-actions.js';
 import { initDarkMode } from './features/dark-mode.js';
+import { initWebPBulkConvert } from './features/webp-bulk-convert.js';
 
 /**
  * Initialize all features on DOM ready
@@ -42,6 +46,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Initialize bulk actions
     initBulkActions();
+    
+    // Initialize WebP bulk conversion with progress tracking
+    initWebPBulkConvert();
 });
 
 /**
@@ -51,5 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
 window.fpPerfSuiteUtils = {
     showNotice,
     showProgress,
-    removeProgress
+    updateProgress,
+    removeProgress,
+    BulkProcessor
 };
