@@ -174,8 +174,8 @@ class Assets extends AbstractPage
             if (isset($_POST['apply_critical_assets_suggestions'])) {
                 $result = $assetsDetector->autoApplyCriticalAssets(false);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_critical_assets_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_critical_assets_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
@@ -216,8 +216,8 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_critical_scripts_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_critical_scripts_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
@@ -250,8 +250,8 @@ class Assets extends AbstractPage
                     'exclude_css' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_exclude_css_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_exclude_css_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
@@ -284,8 +284,8 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_exclude_js_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_exclude_js_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
