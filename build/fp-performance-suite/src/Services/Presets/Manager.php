@@ -81,27 +81,50 @@ class Manager
             return ['error' => __('Preset not found', 'fp-performance-suite')];
         }
 
-        $config = $preset['config'];
-        $previous = [
-            'page_cache' => $this->pageCache->settings(),
-            'browser_cache' => $this->headers->settings(),
-            'assets' => $this->optimizer->settings(),
-            'webp' => $this->webp->settings(),
-            'db' => $this->cleaner->settings(),
-        ];
-        $this->pageCache->update($config['page_cache']);
-        $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), $config['assets']));
-        $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
-        $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), ['heartbeat_admin' => $config['heartbeat']]));
+        try {
+            $config = $preset['config'];
+            
+            // Save current settings for potential rollback
+            $previous = [
+                'page_cache' => $this->pageCache->settings(),
+                'browser_cache' => $this->headers->settings(),
+                'assets' => $this->optimizer->settings(),
+                'webp' => $this->webp->settings(),
+                'db' => $this->cleaner->settings(),
+            ];
+            
+            // Apply preset settings
+            $this->pageCache->update($config['page_cache'] ?? []);
+            
+            if (isset($config['browser_cache'])) {
+                $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
+            }
+            
+            // Merge assets and heartbeat settings into a single update call
+            $assetSettings = array_merge($this->optimizer->settings(), $config['assets'] ?? []);
+            if (isset($config['heartbeat'])) {
+                $assetSettings['heartbeat_admin'] = $config['heartbeat'];
+            }
+            $this->optimizer->update($assetSettings);
+            
+            if (isset($config['webp'])) {
+                $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
+            }
+            
+            if (isset($config['db'])) {
+                $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
+            }
 
-        update_option(self::OPTION, [
-            'active' => $id,
-            'applied_at' => time(),
-            'previous' => $previous,
-        ]);
-        return ['success' => true];
+            update_option(self::OPTION, [
+                'active' => $id,
+                'applied_at' => time(),
+                'previous' => $previous,
+            ]);
+            
+            return ['success' => true];
+        } catch (\Exception $e) {
+            return ['error' => sprintf(__('Failed to apply preset: %s', 'fp-performance-suite'), $e->getMessage())];
+        }
     }
 
     public function rollback(): bool

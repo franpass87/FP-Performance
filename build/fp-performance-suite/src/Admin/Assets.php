@@ -39,11 +39,13 @@ class Assets
         // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
             'confirmLabel' => __('Type PROCEDI to confirm high-risk actions', 'fp-performance-suite'),
             'cancelledLabel' => __('Action cancelled', 'fp-performance-suite'),
             'messages' => [
                 'logsError' => __('Unable to load log data.', 'fp-performance-suite'),
                 'presetError' => __('Unable to apply preset.', 'fp-performance-suite'),
+                'presetSuccess' => __('Preset applied successfully!', 'fp-performance-suite'),
             ],
         ]);
     }
@@ -84,6 +86,11 @@ class Assets
             // Apply dark mode preference immediately to prevent FOUC
             var preference = localStorage.getItem('fp_ps_dark_mode') || 'auto';
             var body = document.body;
+            
+            // Check if body is available (it should be in admin_head, but let's be safe)
+            if (!body) {
+                return;
+            }
             
             if (preference === 'dark') {
                 body.classList.add('fp-dark-mode');
