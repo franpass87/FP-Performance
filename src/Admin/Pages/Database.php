@@ -226,7 +226,7 @@ class Database extends AbstractPage
                         <strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong>
                         <?php printf(
                             esc_html__('Attivo - %d queries cached, Hit rate: %.1f%%', 'fp-performance-suite'),
-                            $queryCacheStats['cached_count'],
+                            $queryCacheStats['size'],
                             $queryCacheStats['hit_rate']
                         ); ?>
                     </p>
@@ -302,7 +302,7 @@ class Database extends AbstractPage
                         </div>
                         <div>
                             <div style="font-size: 12px; color: #666;"><?php esc_html_e('Queries Cached', 'fp-performance-suite'); ?></div>
-                            <div style="font-size: 24px; font-weight: bold;"><?php echo number_format($queryCacheStats['cached_count']); ?></div>
+                            <div style="font-size: 24px; font-weight: bold;"><?php echo number_format($queryCacheStats['size']); ?></div>
                         </div>
                     </div>
                 </div>
