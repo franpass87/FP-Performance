@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
+use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 
 use function __;
 use function array_filter;
@@ -67,11 +68,36 @@ class Assets extends AbstractPage
         $smartDetector = new SmartExclusionDetector();
         $criticalScripts = null;
         
+        // Critical Assets Detector
+        $assetsDetector = new CriticalAssetsDetector();
+        $criticalAssets = null;
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             // Handle auto-detect critical scripts
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+            }
+            
+            // Handle auto-detect critical assets
+            if (isset($_POST['auto_detect_critical_assets'])) {
+                $criticalAssets = $assetsDetector->detectCriticalAssets();
+                $message = __('Critical assets detected! Review suggestions below.', 'fp-performance-suite');
+            }
+            
+            // Handle apply critical assets suggestions
+            if (isset($_POST['apply_critical_assets_suggestions'])) {
+                $result = $assetsDetector->autoApplyCriticalAssets(false);
+                $message = sprintf(
+                    __('Successfully applied %d critical assets to preload list!', 'fp-performance-suite'),
+                    $result['applied']
+                );
+                
+                // Reload settings to show updated critical assets
+                $settings = $optimizer->settings();
+                
+                // Set detected assets for display
+                $criticalAssets = $assetsDetector->detectCriticalAssets();
             }
             
             // Handle apply critical scripts suggestions
@@ -504,6 +530,118 @@ class Assets extends AbstractPage
                 <p class="description" style="margin-left: 30px;">
                     <?php esc_html_e('Preload the most important assets to improve initial page load time.', 'fp-performance-suite'); ?>
                 </p>
+                
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Asset Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 10px;">
+                        <?php esc_html_e('Let the AI automatically detect critical assets (CSS, images, fonts) that should be preloaded for optimal performance.', 'fp-performance-suite'); ?>
+                    </p>
+                    <button type="submit" name="auto_detect_critical_assets" class="button button-secondary">
+                        🔍 <?php esc_html_e('Auto-Detect Critical Assets', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($criticalAssets) : ?>
+                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('Critical Assets Detected', 'fp-performance-suite'); ?></h4>
+                        
+                        <?php if (!empty($criticalAssets['css'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🎨 <?php esc_html_e('Critical CSS Files', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalAssets['css'] as $asset) : ?>
+                                <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
+                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
+                                    <em style="color: #0369a1;"><?php echo esc_html($asset['reason']); ?></em>
+                                    <span style="background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalAssets['images'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🖼️ <?php esc_html_e('Critical Images', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalAssets['images'] as $asset) : ?>
+                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong>
+                                    <?php if (isset($asset['dimensions'])) : ?>
+                                        <span style="color: #666;">(<?php echo esc_html($asset['dimensions']); ?>)</span>
+                                    <?php endif; ?>
+                                    <br>
+                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
+                                    <em style="color: #b45309;"><?php echo esc_html($asset['reason']); ?></em>
+                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalAssets['fonts'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔤 <?php esc_html_e('Critical Fonts', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalAssets['fonts'] as $asset) : ?>
+                                <div style="background: #f3e8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
+                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
+                                    <em style="color: #7c3aed;"><?php echo esc_html($asset['reason']); ?></em>
+                                    <span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalAssets['js'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                ⚡ <?php esc_html_e('Critical JavaScript', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalAssets['js'] as $asset) : ?>
+                                <div style="background: #fee2e2; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
+                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
+                                    <em style="color: #dc2626;"><?php echo esc_html($asset['reason']); ?></em>
+                                    <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalAssets['summary']['recommendations'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                💡 <?php esc_html_e('Recommendations', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalAssets['summary']['recommendations'] as $rec) : ?>
+                                <div style="background: <?php echo $rec['type'] === 'warning' ? '#fef3c7' : '#dbeafe'; ?>; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <?php echo $rec['type'] === 'warning' ? '⚠️' : 'ℹ️'; ?> <?php echo esc_html($rec['message']); ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
+                                💡 <strong><?php esc_html_e('Summary:', 'fp-performance-suite'); ?></strong>
+                                <?php printf(
+                                    __('Found %d critical assets: %d CSS, %d images, %d fonts, %d JS', 'fp-performance-suite'),
+                                    $criticalAssets['summary']['total_assets'],
+                                    $criticalAssets['summary']['by_type']['css'],
+                                    $criticalAssets['summary']['by_type']['images'],
+                                    $criticalAssets['summary']['by_type']['fonts'],
+                                    $criticalAssets['summary']['by_type']['js']
+                                ); ?>
+                            </p>
+                            <button type="submit" name="apply_critical_assets_suggestions" class="button button-primary">
+                                ✅ <?php esc_html_e('Apply Suggestions Automatically', 'fp-performance-suite'); ?>
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 
                 <p>
                     <label for="critical_assets"><?php esc_html_e('Critical assets to preload', 'fp-performance-suite'); ?></label>
