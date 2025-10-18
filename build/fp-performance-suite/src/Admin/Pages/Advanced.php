@@ -7,7 +7,10 @@ use FP\PerfSuite\Services\Assets\CriticalCss;
 use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
+use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
 use FP\PerfSuite\Services\Reports\ScheduledReports;
+use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
+use FP\PerfSuite\Services\Assets\PredictivePrefetching;
 
 /**
  * Advanced Features Admin Page
@@ -99,8 +102,17 @@ class Advanced extends AbstractPage
             <!-- Performance Monitoring Section -->
             <?php echo $this->renderMonitoringSection(); ?>
             
+            <!-- Core Web Vitals Monitor Section -->
+            <?php echo $this->renderCoreWebVitalsSection(); ?>
+            
             <!-- Scheduled Reports Section -->
             <?php echo $this->renderReportsSection(); ?>
+            
+            <!-- PWA / Service Worker Section -->
+            <?php echo $this->renderPWASection(); ?>
+            
+            <!-- Predictive Prefetching Section -->
+            <?php echo $this->renderPrefetchingSection(); ?>
             
             <!-- Save Button -->
             <div class="fp-ps-card">
@@ -118,15 +130,67 @@ class Advanced extends AbstractPage
 
     private function renderCriticalCssSection(): string
     {
-        $criticalCss = new CriticalCss();
-        $status = $criticalCss->status();
+        try {
+            $criticalCss = new CriticalCss();
+            $status = $criticalCss->status();
+            $homeUrl = home_url('/');
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CriticalCss: ' . $e->getMessage());
+            return $this->renderErrorSection('Critical CSS', $e->getMessage());
+        }
 
         ob_start();
         ?>
         <div class="fp-ps-card">
             <h2>🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Inline critical CSS for above-the-fold content to improve initial render time.', 'fp-performance-suite'); ?></p>
+            <p><?php esc_html_e('Il Critical CSS viene inserito inline nell\'head della pagina per ottimizzare il rendering above-the-fold e migliorare il First Contentful Paint (FCP).', 'fp-performance-suite'); ?></p>
             
+            <!-- Status Overview -->
+            <div style="background: <?php echo $status['enabled'] ? '#e7f5e9' : '#fff8e5'; ?>; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid <?php echo $status['enabled'] ? '#00a32a' : '#dba617'; ?>;">
+                <h4 style="margin-top: 0;">
+                    <?php if ($status['enabled']): ?>
+                        <span style="color: #00a32a;">✓</span> <?php esc_html_e('Critical CSS Attivo', 'fp-performance-suite'); ?>
+                    <?php else: ?>
+                        <span style="color: #dba617;">⚠</span> <?php esc_html_e('Critical CSS Non Configurato', 'fp-performance-suite'); ?>
+                    <?php endif; ?>
+                </h4>
+                <?php if ($status['enabled']): ?>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php printf(
+                            esc_html__('Dimensione corrente: %s KB / %s KB max (%s%% utilizzato)', 'fp-performance-suite'),
+                            '<strong>' . number_format($status['size_kb'], 2) . '</strong>',
+                            number_format($status['max_size_kb'], 0),
+                            '<strong>' . $status['usage_percent'] . '</strong>'
+                        ); ?>
+                    </p>
+                <?php else: ?>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php esc_html_e('Configura il CSS critico per migliorare drasticamente il First Contentful Paint e eliminare il FOUC (Flash of Unstyled Content).', 'fp-performance-suite'); ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;">⚡ <?php esc_html_e('Generazione Rapida', 'fp-performance-suite'); ?></h4>
+                <p><?php esc_html_e('Genera automaticamente il Critical CSS per il tuo sito:', 'fp-performance-suite'); ?></p>
+                
+                <div style="margin: 10px 0;">
+                    <button type="button" class="button button-primary" id="fp-generate-critical-css" data-url="<?php echo esc_attr($homeUrl); ?>">
+                        🚀 <?php esc_html_e('Genera Critical CSS Automaticamente', 'fp-performance-suite'); ?>
+                    </button>
+                    <span id="fp-critical-css-loading" style="display: none; margin-left: 10px;">
+                        <span class="spinner is-active" style="float: none; margin: 0;"></span>
+                        <?php esc_html_e('Generazione in corso...', 'fp-performance-suite'); ?>
+                    </span>
+                </div>
+                
+                <p class="description">
+                    <?php esc_html_e('⚠️ La generazione automatica è una funzione base. Per risultati ottimali, utilizza gli strumenti professionali indicati sotto.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+
+            <!-- Manual Input -->
             <table class="form-table">
                 <tr>
                     <th scope="row">
@@ -136,20 +200,175 @@ class Advanced extends AbstractPage
                         <textarea 
                             name="critical_css" 
                             id="critical_css" 
-                            rows="10" 
+                            rows="12" 
                             class="large-text code"
-                            placeholder="body { margin: 0; } .header { ... }"
+                            placeholder="/* Esempio di Critical CSS */
+body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+.header { background: #fff; height: 80px; }
+.logo { width: 150px; }
+.hero { min-height: 100vh; background: #f5f5f5; }
+/* Aggiungi qui il CSS necessario per il rendering above-the-fold */"
+                            style="font-family: 'Courier New', monospace; font-size: 13px;"
                         ><?php echo esc_textarea($criticalCss->get()); ?></textarea>
                         <p class="description">
                             <?php printf(
-                                esc_html__('Current size: %s KB / %s KB max', 'fp-performance-suite'),
-                                number_format($status['size_kb'], 2),
+                                esc_html__('Dimensione: %s KB / %s KB max', 'fp-performance-suite'),
+                                '<strong id="fp-critical-css-size">' . number_format($status['size_kb'], 2) . '</strong>',
                                 number_format($status['max_size_kb'], 0)
                             ); ?>
+                            <span id="fp-critical-css-warning" style="display: none; color: #d63638; font-weight: bold;">
+                                <?php esc_html_e('⚠️ Dimensione eccessiva!', 'fp-performance-suite'); ?>
+                            </span>
                         </p>
                     </td>
                 </tr>
             </table>
+
+            <!-- Tools and Resources -->
+            <div style="background: #fff; border: 1px solid #c3c4c7; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;">🛠️ <?php esc_html_e('Strumenti Consigliati per Generare Critical CSS', 'fp-performance-suite'); ?></h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <!-- Online Tools -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">🌐 <?php esc_html_e('Strumenti Online', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <a href="https://www.sitelocity.com/critical-path-css-generator" target="_blank" rel="noopener">
+                                    <strong>Critical Path CSS Generator</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Gratuito e facile da usare', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <a href="https://criticalcss.com/" target="_blank" rel="noopener">
+                                    <strong>CriticalCSS.com</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Tool professionale a pagamento', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <a href="https://jonassebastianohlsson.com/criticalpathcssgenerator/" target="_blank" rel="noopener">
+                                    <strong>Critical Path CSS Generator (Jonas)</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Alternativa gratuita', 'fp-performance-suite'); ?></small>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Dev Tools -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">💻 <?php esc_html_e('Strumenti per Sviluppatori', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <strong>Chrome DevTools Coverage</strong>
+                                <br><small><?php esc_html_e('Built-in: Chrome → DevTools → Coverage', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong>npm: critical</strong>
+                                <br><small><code>npm install -g critical</code></small>
+                            </li>
+                            <li>
+                                <strong>npm: penthouse</strong>
+                                <br><small><code>npm install -g penthouse</code></small>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Guidelines -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">📚 <?php esc_html_e('Linee Guida', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <strong><?php esc_html_e('Include solo CSS above-the-fold', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Header, hero, menu principale', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong><?php esc_html_e('Mantieni sotto 14-15 KB', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Per evitare overhead eccessivo', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong><?php esc_html_e('Testa su dispositivi mobile', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Il viewport mobile è diverso', 'fp-performance-suite'); ?></small>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Section -->
+            <div style="background: #f0f6ff; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #0073aa;">
+                <h4 style="margin-top: 0;">🧪 <?php esc_html_e('Test e Verifica', 'fp-performance-suite'); ?></h4>
+                <p><?php esc_html_e('Dopo aver configurato il Critical CSS, verifica l\'implementazione:', 'fp-performance-suite'); ?></p>
+                <ul>
+                    <li>
+                        <a href="<?php echo esc_url($homeUrl); ?>" target="_blank">
+                            <?php esc_html_e('Visualizza il sito', 'fp-performance-suite'); ?>
+                        </a> 
+                        <?php esc_html_e('e controlla il sorgente HTML per verificare che il CSS sia inline nell\'<head>', 'fp-performance-suite'); ?>
+                    </li>
+                    <li>
+                        <?php esc_html_e('Usa Chrome DevTools → Network → Throttling per simulare connessioni lente', 'fp-performance-suite'); ?>
+                    </li>
+                    <li>
+                        <a href="https://pagespeed.web.dev/" target="_blank" rel="noopener">
+                            <?php esc_html_e('Testa con PageSpeed Insights', 'fp-performance-suite'); ?>
+                        </a>
+                        <?php esc_html_e('per misurare il miglioramento del FCP', 'fp-performance-suite'); ?>
+                    </li>
+                </ul>
+            </div>
+
+            <script>
+            jQuery(document).ready(function($) {
+                // Update size counter
+                $('#critical_css').on('input', function() {
+                    var bytes = new Blob([$(this).val()]).size;
+                    var kb = (bytes / 1024).toFixed(2);
+                    var maxKb = <?php echo $status['max_size_kb']; ?>;
+                    
+                    $('#fp-critical-css-size').text(kb);
+                    
+                    if (kb > maxKb) {
+                        $('#fp-critical-css-warning').show();
+                    } else {
+                        $('#fp-critical-css-warning').hide();
+                    }
+                });
+
+                // Generate Critical CSS
+                $('#fp-generate-critical-css').on('click', function() {
+                    var btn = $(this);
+                    var url = btn.data('url');
+                    
+                    btn.prop('disabled', true);
+                    $('#fp-critical-css-loading').show();
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'fp_ps_generate_critical_css',
+                            url: url,
+                            nonce: '<?php echo wp_create_nonce('fp_ps_generate_critical_css'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success && response.data.css) {
+                                $('#critical_css').val(response.data.css).trigger('input');
+                                alert('✅ ' + '<?php echo esc_js(__('Critical CSS generato con successo! Ricorda di salvare le impostazioni.', 'fp-performance-suite')); ?>');
+                            } else {
+                                alert('❌ ' + (response.data.error || '<?php echo esc_js(__('Errore durante la generazione del Critical CSS.', 'fp-performance-suite')); ?>'));
+                            }
+                        },
+                        error: function() {
+                            alert('❌ ' + '<?php echo esc_js(__('Errore di connessione durante la generazione.', 'fp-performance-suite')); ?>');
+                        },
+                        complete: function() {
+                            btn.prop('disabled', false);
+                            $('#fp-critical-css-loading').hide();
+                        }
+                    });
+                });
+            });
+            </script>
         </div>
         <?php
         return ob_get_clean();
@@ -157,9 +376,14 @@ class Advanced extends AbstractPage
 
     private function renderCompressionSection(): string
     {
-        $compression = $this->container->get(CompressionManager::class);
-        $status = $compression->status();
-        $info = $compression->getInfo();
+        try {
+            $compression = $this->container->get(CompressionManager::class);
+            $status = $compression->status();
+            $info = $compression->getInfo();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CompressionManager: ' . $e->getMessage());
+            return $this->renderErrorSection('Compressione', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -292,8 +516,13 @@ class Advanced extends AbstractPage
 
     private function renderCdnSection(): string
     {
-        $cdn = new CdnManager();
-        $settings = $cdn->settings();
+        try {
+            $cdn = new CdnManager();
+            $settings = $cdn->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CdnManager: ' . $e->getMessage());
+            return $this->renderErrorSection('CDN Integration', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -343,8 +572,13 @@ class Advanced extends AbstractPage
 
     private function renderMonitoringSection(): string
     {
-        $monitor = PerformanceMonitor::instance();
-        $settings = $monitor->settings();
+        try {
+            $monitor = PerformanceMonitor::instance();
+            $settings = $monitor->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading PerformanceMonitor: ' . $e->getMessage());
+            return $this->renderErrorSection('Performance Monitoring', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -380,10 +614,215 @@ class Advanced extends AbstractPage
         return ob_get_clean();
     }
 
+    private function renderCoreWebVitalsSection(): string
+    {
+        try {
+            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+            $settings = $cwvMonitor->settings();
+            $status = $cwvMonitor->status();
+            $summary = $cwvMonitor->getSummary(7);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading CoreWebVitalsMonitor: ' . $e->getMessage());
+            return $this->renderErrorSection('Core Web Vitals Monitor', $e->getMessage());
+        }
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>📊 <?php esc_html_e('Core Web Vitals Monitor', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
+            <p><?php esc_html_e('Monitora in tempo reale i Core Web Vitals (LCP, FID, CLS) degli utenti reali per ottimizzare le performance e il ranking SEO di Google.', 'fp-performance-suite'); ?></p>
+            
+            <?php if ($status['enabled']): ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong>
+                        <?php printf(
+                            esc_html__('Attivo - %d metriche raccolte (Sample rate: %.0f%%)', 'fp-performance-suite'),
+                            $status['metrics_count'],
+                            $settings['sample_rate'] * 100
+                        ); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($summary)): ?>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;"><?php esc_html_e('Metriche Ultimi 7 Giorni', 'fp-performance-suite'); ?></h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    <?php foreach ($summary as $metricName => $data): ?>
+                    <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;"><?php echo esc_html($metricName); ?></div>
+                        <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                            <?php 
+                            if ($metricName === 'CLS') {
+                                echo number_format($data['p75'], 3);
+                            } else {
+                                echo number_format($data['p75'], 0);
+                                echo '<span style="font-size: 14px;">ms</span>';
+                            }
+                            ?>
+                        </div>
+                        <div style="font-size: 11px; color: #666;">
+                            <?php printf(
+                                esc_html__('%d campioni', 'fp-performance-suite'),
+                                $data['count']
+                            ); ?>
+                        </div>
+                        <div style="margin-top: 8px; display: flex; gap: 5px; font-size: 11px;">
+                            <span style="color: #00a32a;">✓ <?php echo $data['good']; ?></span>
+                            <span style="color: #dba617;">⚠ <?php echo $data['needs_improvement']; ?></span>
+                            <span style="color: #d63638;">✗ <?php echo $data['poor']; ?></span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_enabled"><?php esc_html_e('Abilita Monitoring', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Monitora Core Web Vitals degli utenti reali (RUM)', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Raccoglie metriche reali dai browser degli utenti per avere dati accurati sulle performance percepite.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_sample_rate"><?php esc_html_e('Sample Rate', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[sample_rate]" id="cwv_sample_rate" value="<?php echo esc_attr($settings['sample_rate'] * 100); ?>" min="1" max="100" class="small-text">
+                        <span>%</span>
+                        <p class="description"><?php esc_html_e('Percentuale di utenti da monitorare (100% = tutti gli utenti)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Metriche da Tracciare', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="cwv[track_lcp]" value="1" <?php checked($settings['track_lcp']); ?>>
+                                <?php esc_html_e('LCP - Largest Contentful Paint', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_fid]" value="1" <?php checked($settings['track_fid']); ?>>
+                                <?php esc_html_e('FID - First Input Delay', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_cls]" value="1" <?php checked($settings['track_cls']); ?>>
+                                <?php esc_html_e('CLS - Cumulative Layout Shift', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_fcp]" value="1" <?php checked($settings['track_fcp']); ?>>
+                                <?php esc_html_e('FCP - First Contentful Paint', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_ttfb]" value="1" <?php checked($settings['track_ttfb']); ?>>
+                                <?php esc_html_e('TTFB - Time to First Byte', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="cwv[track_inp]" value="1" <?php checked($settings['track_inp']); ?>>
+                                <?php esc_html_e('INP - Interaction to Next Paint (sperimentale)', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_retention_days"><?php esc_html_e('Conservazione Dati', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[retention_days]" id="cwv_retention_days" value="<?php echo esc_attr($settings['retention_days']); ?>" min="1" max="365" class="small-text">
+                        <span><?php esc_html_e('giorni', 'fp-performance-suite'); ?></span>
+                        <p class="description"><?php esc_html_e('Per quanto tempo conservare le metriche raccolte', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_send_analytics"><?php esc_html_e('Integrazione Analytics', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="cwv[send_to_analytics]" id="cwv_send_analytics" value="1" <?php checked($settings['send_to_analytics']); ?>>
+                            <?php esc_html_e('Invia metriche a Google Analytics (se disponibile)', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('Le metriche verranno inviate come eventi personalizzati a GA4 se configurato', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            
+            <h3><?php esc_html_e('Soglie di Allerta', 'fp-performance-suite'); ?></h3>
+            <p class="description"><?php esc_html_e('Ricevi notifiche via email quando le metriche superano queste soglie (valori "poor"):', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_email"><?php esc_html_e('Email per Allerte', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="email" name="cwv[alert_email]" id="cwv_alert_email" value="<?php echo esc_attr($settings['alert_email']); ?>" class="regular-text">
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_lcp"><?php esc_html_e('Soglia LCP (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_lcp]" id="cwv_alert_lcp" value="<?php echo esc_attr($settings['alert_threshold_lcp']); ?>" min="1000" max="10000" step="100" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 2500ms (good), 4000ms (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_fid"><?php esc_html_e('Soglia FID (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_fid]" id="cwv_alert_fid" value="<?php echo esc_attr($settings['alert_threshold_fid']); ?>" min="50" max="1000" step="10" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 100ms (good), 300ms (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="cwv_alert_cls"><?php esc_html_e('Soglia CLS', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="cwv[alert_threshold_cls]" id="cwv_alert_cls" value="<?php echo esc_attr($settings['alert_threshold_cls']); ?>" min="0.05" max="1" step="0.05" class="small-text">
+                        <span class="description"><?php esc_html_e('Default: 0.1 (good), 0.25 (poor)', 'fp-performance-suite'); ?></span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Perché è importante:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('I Core Web Vitals sono un fattore di ranking di Google per la SEO', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('I dati RUM (Real User Monitoring) sono più accurati dei test sintetici', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Aiuta a identificare problemi di performance che colpiscono gli utenti reali', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Monitora l\'impatto delle ottimizzazioni in tempo reale', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
     private function renderReportsSection(): string
     {
-        $reports = new ScheduledReports();
-        $settings = $reports->settings();
+        try {
+            $reports = new ScheduledReports();
+            $settings = $reports->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading ScheduledReports: ' . $e->getMessage());
+            return $this->renderErrorSection('Scheduled Reports', $e->getMessage());
+        }
 
         ob_start();
         ?>
@@ -424,6 +863,225 @@ class Advanced extends AbstractPage
                     </td>
                 </tr>
             </table>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function renderPWASection(): string
+    {
+        try {
+            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+            $settings = $serviceWorker->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading ServiceWorkerManager: ' . $e->getMessage());
+            return $this->renderErrorSection('Progressive Web App (PWA)', $e->getMessage());
+        }
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>📱 <?php esc_html_e('Progressive Web App (PWA)', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Trasforma il sito in una PWA con Service Worker, cache offline e installabilità.', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_enabled"><?php esc_html_e('Enable PWA', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="pwa[enabled]" id="pwa_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Abilita Service Worker e Web App Manifest', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Rende il sito installabile su home screen e funzionante offline.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_cache_strategy"><?php esc_html_e('Cache Strategy', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <select name="pwa[cache_strategy]" id="pwa_cache_strategy">
+                            <option value="network_first" <?php selected($settings['cache_strategy'], 'network_first'); ?>><?php esc_html_e('Network First (consigliato)', 'fp-performance-suite'); ?></option>
+                            <option value="cache_first" <?php selected($settings['cache_strategy'], 'cache_first'); ?>><?php esc_html_e('Cache First (veloce)', 'fp-performance-suite'); ?></option>
+                            <option value="stale_while_revalidate" <?php selected($settings['cache_strategy'], 'stale_while_revalidate'); ?>><?php esc_html_e('Stale While Revalidate', 'fp-performance-suite'); ?></option>
+                        </select>
+                        <p class="description"><?php esc_html_e('Strategia di caching del Service Worker', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Cosa cachare', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_assets]" value="1" <?php checked($settings['cache_assets']); ?>>
+                                <?php esc_html_e('Assets statici (CSS, JS, immagini)', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_pages]" value="1" <?php checked($settings['cache_pages']); ?>>
+                                <?php esc_html_e('Pagine HTML', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_api]" value="1" <?php checked($settings['cache_api']); ?>>
+                                <?php esc_html_e('Chiamate API (avanzato)', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[offline_page]" value="1" <?php checked($settings['offline_page']); ?>>
+                                <?php esc_html_e('Pagina offline custom', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_update_interval"><?php esc_html_e('Intervallo aggiornamento (secondi)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="pwa[update_interval]" id="pwa_update_interval" value="<?php echo esc_attr($settings['update_interval']); ?>" min="3600" max="604800" class="small-text">
+                        <span><?php esc_html_e('secondi', 'fp-performance-suite'); ?></span>
+                        <p class="description"><?php esc_html_e('Ogni quanto aggiornare la cache (default: 24h)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_max_cache_size"><?php esc_html_e('Max dimensione cache (MB)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="pwa[max_cache_size]" id="pwa_max_cache_size" value="<?php echo esc_attr($settings['max_cache_size']); ?>" min="10" max="500" class="small-text">
+                        <span>MB</span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #856404;"><?php esc_html_e('⚠️ Requisiti PWA:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #856404;">
+                    <li><?php esc_html_e('HTTPS obbligatorio per Service Worker', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Testa approfonditamente prima di attivare in produzione', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Il Service Worker può cachare dati non aggiornati', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function renderPrefetchingSection(): string
+    {
+        try {
+            $prefetching = $this->container->get(PredictivePrefetching::class);
+            $settings = $prefetching->settings();
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Error loading PredictivePrefetching: ' . $e->getMessage());
+            return $this->renderErrorSection('Predictive Prefetching', $e->getMessage());
+        }
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>🔮 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Prefetch intelligente delle pagine che l\'utente probabilmente visiterà, basato su hover, scroll e viewport.', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_enabled"><?php esc_html_e('Enable Prefetching', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="prefetch[enabled]" id="prefetch_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Abilita prefetch predittivo dei link', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_strategy"><?php esc_html_e('Strategia', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <select name="prefetch[strategy]" id="prefetch_strategy">
+                            <option value="hover" <?php selected($settings['strategy'], 'hover'); ?>><?php esc_html_e('Hover (consigliato)', 'fp-performance-suite'); ?></option>
+                            <option value="visible" <?php selected($settings['strategy'], 'visible'); ?>><?php esc_html_e('Visible in viewport', 'fp-performance-suite'); ?></option>
+                            <option value="viewport" <?php selected($settings['strategy'], 'viewport'); ?>><?php esc_html_e('Near viewport', 'fp-performance-suite'); ?></option>
+                            <option value="mouse-tracking" <?php selected($settings['strategy'], 'mouse-tracking'); ?>><?php esc_html_e('Mouse tracking (aggressivo)', 'fp-performance-suite'); ?></option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Trigger', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="prefetch[prefetch_on_hover]" value="1" <?php checked($settings['prefetch_on_hover']); ?>>
+                                <?php esc_html_e('Prefetch su hover link', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="prefetch[prefetch_on_visible]" value="1" <?php checked($settings['prefetch_on_visible']); ?>>
+                                <?php esc_html_e('Prefetch link visibili', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_delay"><?php esc_html_e('Delay (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="prefetch[delay]" id="prefetch_delay" value="<?php echo esc_attr($settings['delay']); ?>" min="0" max="2000" step="50" class="small-text">
+                        <span>ms</span>
+                        <p class="description"><?php esc_html_e('Ritardo prima del prefetch (default: 100ms)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_max"><?php esc_html_e('Max prefetch simultanei', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="prefetch[max_prefetch]" id="prefetch_max" value="<?php echo esc_attr($settings['max_prefetch']); ?>" min="1" max="10" class="small-text">
+                        <p class="description"><?php esc_html_e('Limite per evitare sovraccarico (consigliato: 3)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Benefici Prefetching:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Navigazione quasi istantanea tra pagine', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Riduce il tempo di caricamento percepito a ~0ms', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Intelligente: prefetch solo pagine con alta probabilità di click', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Rispetta Save-Data e connessioni lente', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Render error section when a service fails to load
+     */
+    private function renderErrorSection(string $sectionName, string $errorMessage): string
+    {
+        ob_start();
+        ?>
+        <div class="fp-ps-card" style="border-left: 4px solid #d63638;">
+            <h2>⚠️ <?php echo esc_html($sectionName); ?></h2>
+            <div class="notice notice-error inline" style="margin: 0;">
+                <p>
+                    <strong><?php esc_html_e('Errore:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('Impossibile caricare questa sezione. Controlla i log per maggiori dettagli.', 'fp-performance-suite'); ?>
+                </p>
+                <details>
+                    <summary style="cursor: pointer;"><?php esc_html_e('Dettagli tecnici', 'fp-performance-suite'); ?></summary>
+                    <pre style="background: #f0f0f1; padding: 10px; margin-top: 10px; overflow: auto;"><?php echo esc_html($errorMessage); ?></pre>
+                </details>
+            </div>
         </div>
         <?php
         return ob_get_clean();
@@ -487,6 +1145,29 @@ class Advanced extends AbstractPage
             
             $monitor->update($monitoringSettings);
 
+            // Save Core Web Vitals settings
+            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+            if (isset($_POST['cwv'])) {
+                $cwvData = wp_unslash($_POST['cwv']);
+                
+                // Convert sample rate from percentage to decimal
+                if (isset($cwvData['sample_rate'])) {
+                    $cwvData['sample_rate'] = (float)$cwvData['sample_rate'] / 100;
+                }
+                
+                // Gestisci le checkbox
+                $cwvData['enabled'] = isset($_POST['cwv']['enabled']);
+                $cwvData['track_lcp'] = isset($_POST['cwv']['track_lcp']);
+                $cwvData['track_fid'] = isset($_POST['cwv']['track_fid']);
+                $cwvData['track_cls'] = isset($_POST['cwv']['track_cls']);
+                $cwvData['track_fcp'] = isset($_POST['cwv']['track_fcp']);
+                $cwvData['track_ttfb'] = isset($_POST['cwv']['track_ttfb']);
+                $cwvData['track_inp'] = isset($_POST['cwv']['track_inp']);
+                $cwvData['send_to_analytics'] = isset($_POST['cwv']['send_to_analytics']);
+                
+                $cwvMonitor->update($cwvData);
+            }
+
             // Save Reports settings
             $reports = new ScheduledReports();
             $currentReports = $reports->settings();
@@ -498,6 +1179,28 @@ class Advanced extends AbstractPage
             $reportsSettings['enabled'] = isset($_POST['reports']['enabled']);
             
             $reports->update($reportsSettings);
+
+            // Save PWA / Service Worker settings
+            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+            if (isset($_POST['pwa'])) {
+                $pwaData = wp_unslash($_POST['pwa']);
+                $pwaData['enabled'] = isset($_POST['pwa']['enabled']);
+                $pwaData['cache_assets'] = isset($_POST['pwa']['cache_assets']);
+                $pwaData['cache_pages'] = isset($_POST['pwa']['cache_pages']);
+                $pwaData['cache_api'] = isset($_POST['pwa']['cache_api']);
+                $pwaData['offline_page'] = isset($_POST['pwa']['offline_page']);
+                $serviceWorker->update($pwaData);
+            }
+
+            // Save Predictive Prefetching settings
+            $prefetching = $this->container->get(PredictivePrefetching::class);
+            if (isset($_POST['prefetch'])) {
+                $prefetchData = wp_unslash($_POST['prefetch']);
+                $prefetchData['enabled'] = isset($_POST['prefetch']['enabled']);
+                $prefetchData['prefetch_on_hover'] = isset($_POST['prefetch']['prefetch_on_hover']);
+                $prefetchData['prefetch_on_visible'] = isset($_POST['prefetch']['prefetch_on_visible']);
+                $prefetching->update($prefetchData);
+            }
 
             // Redirect con successo
             $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));

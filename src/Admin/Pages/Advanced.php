@@ -133,6 +133,7 @@ class Advanced extends AbstractPage
         try {
             $criticalCss = new CriticalCss();
             $status = $criticalCss->status();
+            $homeUrl = home_url('/');
         } catch (\Throwable $e) {
             error_log('[FP Performance Suite] Error loading CriticalCss: ' . $e->getMessage());
             return $this->renderErrorSection('Critical CSS', $e->getMessage());
@@ -142,8 +143,54 @@ class Advanced extends AbstractPage
         ?>
         <div class="fp-ps-card">
             <h2>🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Inline critical CSS for above-the-fold content to improve initial render time.', 'fp-performance-suite'); ?></p>
+            <p><?php esc_html_e('Il Critical CSS viene inserito inline nell\'head della pagina per ottimizzare il rendering above-the-fold e migliorare il First Contentful Paint (FCP).', 'fp-performance-suite'); ?></p>
             
+            <!-- Status Overview -->
+            <div style="background: <?php echo $status['enabled'] ? '#e7f5e9' : '#fff8e5'; ?>; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid <?php echo $status['enabled'] ? '#00a32a' : '#dba617'; ?>;">
+                <h4 style="margin-top: 0;">
+                    <?php if ($status['enabled']): ?>
+                        <span style="color: #00a32a;">✓</span> <?php esc_html_e('Critical CSS Attivo', 'fp-performance-suite'); ?>
+                    <?php else: ?>
+                        <span style="color: #dba617;">⚠</span> <?php esc_html_e('Critical CSS Non Configurato', 'fp-performance-suite'); ?>
+                    <?php endif; ?>
+                </h4>
+                <?php if ($status['enabled']): ?>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php printf(
+                            esc_html__('Dimensione corrente: %s KB / %s KB max (%s%% utilizzato)', 'fp-performance-suite'),
+                            '<strong>' . number_format($status['size_kb'], 2) . '</strong>',
+                            number_format($status['max_size_kb'], 0),
+                            '<strong>' . $status['usage_percent'] . '</strong>'
+                        ); ?>
+                    </p>
+                <?php else: ?>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php esc_html_e('Configura il CSS critico per migliorare drasticamente il First Contentful Paint e eliminare il FOUC (Flash of Unstyled Content).', 'fp-performance-suite'); ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;">⚡ <?php esc_html_e('Generazione Rapida', 'fp-performance-suite'); ?></h4>
+                <p><?php esc_html_e('Genera automaticamente il Critical CSS per il tuo sito:', 'fp-performance-suite'); ?></p>
+                
+                <div style="margin: 10px 0;">
+                    <button type="button" class="button button-primary" id="fp-generate-critical-css" data-url="<?php echo esc_attr($homeUrl); ?>">
+                        🚀 <?php esc_html_e('Genera Critical CSS Automaticamente', 'fp-performance-suite'); ?>
+                    </button>
+                    <span id="fp-critical-css-loading" style="display: none; margin-left: 10px;">
+                        <span class="spinner is-active" style="float: none; margin: 0;"></span>
+                        <?php esc_html_e('Generazione in corso...', 'fp-performance-suite'); ?>
+                    </span>
+                </div>
+                
+                <p class="description">
+                    <?php esc_html_e('⚠️ La generazione automatica è una funzione base. Per risultati ottimali, utilizza gli strumenti professionali indicati sotto.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+
+            <!-- Manual Input -->
             <table class="form-table">
                 <tr>
                     <th scope="row">
@@ -153,20 +200,175 @@ class Advanced extends AbstractPage
                         <textarea 
                             name="critical_css" 
                             id="critical_css" 
-                            rows="10" 
+                            rows="12" 
                             class="large-text code"
-                            placeholder="body { margin: 0; } .header { ... }"
+                            placeholder="/* Esempio di Critical CSS */
+body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+.header { background: #fff; height: 80px; }
+.logo { width: 150px; }
+.hero { min-height: 100vh; background: #f5f5f5; }
+/* Aggiungi qui il CSS necessario per il rendering above-the-fold */"
+                            style="font-family: 'Courier New', monospace; font-size: 13px;"
                         ><?php echo esc_textarea($criticalCss->get()); ?></textarea>
                         <p class="description">
                             <?php printf(
-                                esc_html__('Current size: %s KB / %s KB max', 'fp-performance-suite'),
-                                number_format($status['size_kb'], 2),
+                                esc_html__('Dimensione: %s KB / %s KB max', 'fp-performance-suite'),
+                                '<strong id="fp-critical-css-size">' . number_format($status['size_kb'], 2) . '</strong>',
                                 number_format($status['max_size_kb'], 0)
                             ); ?>
+                            <span id="fp-critical-css-warning" style="display: none; color: #d63638; font-weight: bold;">
+                                <?php esc_html_e('⚠️ Dimensione eccessiva!', 'fp-performance-suite'); ?>
+                            </span>
                         </p>
                     </td>
                 </tr>
             </table>
+
+            <!-- Tools and Resources -->
+            <div style="background: #fff; border: 1px solid #c3c4c7; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                <h4 style="margin-top: 0;">🛠️ <?php esc_html_e('Strumenti Consigliati per Generare Critical CSS', 'fp-performance-suite'); ?></h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <!-- Online Tools -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">🌐 <?php esc_html_e('Strumenti Online', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <a href="https://www.sitelocity.com/critical-path-css-generator" target="_blank" rel="noopener">
+                                    <strong>Critical Path CSS Generator</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Gratuito e facile da usare', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <a href="https://criticalcss.com/" target="_blank" rel="noopener">
+                                    <strong>CriticalCSS.com</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Tool professionale a pagamento', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <a href="https://jonassebastianohlsson.com/criticalpathcssgenerator/" target="_blank" rel="noopener">
+                                    <strong>Critical Path CSS Generator (Jonas)</strong>
+                                </a>
+                                <br><small><?php esc_html_e('Alternativa gratuita', 'fp-performance-suite'); ?></small>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Dev Tools -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">💻 <?php esc_html_e('Strumenti per Sviluppatori', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <strong>Chrome DevTools Coverage</strong>
+                                <br><small><?php esc_html_e('Built-in: Chrome → DevTools → Coverage', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong>npm: critical</strong>
+                                <br><small><code>npm install -g critical</code></small>
+                            </li>
+                            <li>
+                                <strong>npm: penthouse</strong>
+                                <br><small><code>npm install -g penthouse</code></small>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Guidelines -->
+                    <div>
+                        <h5 style="margin: 0 0 10px 0;">📚 <?php esc_html_e('Linee Guida', 'fp-performance-suite'); ?></h5>
+                        <ul style="margin: 0;">
+                            <li>
+                                <strong><?php esc_html_e('Include solo CSS above-the-fold', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Header, hero, menu principale', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong><?php esc_html_e('Mantieni sotto 14-15 KB', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Per evitare overhead eccessivo', 'fp-performance-suite'); ?></small>
+                            </li>
+                            <li>
+                                <strong><?php esc_html_e('Testa su dispositivi mobile', 'fp-performance-suite'); ?></strong>
+                                <br><small><?php esc_html_e('Il viewport mobile è diverso', 'fp-performance-suite'); ?></small>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Section -->
+            <div style="background: #f0f6ff; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #0073aa;">
+                <h4 style="margin-top: 0;">🧪 <?php esc_html_e('Test e Verifica', 'fp-performance-suite'); ?></h4>
+                <p><?php esc_html_e('Dopo aver configurato il Critical CSS, verifica l\'implementazione:', 'fp-performance-suite'); ?></p>
+                <ul>
+                    <li>
+                        <a href="<?php echo esc_url($homeUrl); ?>" target="_blank">
+                            <?php esc_html_e('Visualizza il sito', 'fp-performance-suite'); ?>
+                        </a> 
+                        <?php esc_html_e('e controlla il sorgente HTML per verificare che il CSS sia inline nell\'<head>', 'fp-performance-suite'); ?>
+                    </li>
+                    <li>
+                        <?php esc_html_e('Usa Chrome DevTools → Network → Throttling per simulare connessioni lente', 'fp-performance-suite'); ?>
+                    </li>
+                    <li>
+                        <a href="https://pagespeed.web.dev/" target="_blank" rel="noopener">
+                            <?php esc_html_e('Testa con PageSpeed Insights', 'fp-performance-suite'); ?>
+                        </a>
+                        <?php esc_html_e('per misurare il miglioramento del FCP', 'fp-performance-suite'); ?>
+                    </li>
+                </ul>
+            </div>
+
+            <script>
+            jQuery(document).ready(function($) {
+                // Update size counter
+                $('#critical_css').on('input', function() {
+                    var bytes = new Blob([$(this).val()]).size;
+                    var kb = (bytes / 1024).toFixed(2);
+                    var maxKb = <?php echo $status['max_size_kb']; ?>;
+                    
+                    $('#fp-critical-css-size').text(kb);
+                    
+                    if (kb > maxKb) {
+                        $('#fp-critical-css-warning').show();
+                    } else {
+                        $('#fp-critical-css-warning').hide();
+                    }
+                });
+
+                // Generate Critical CSS
+                $('#fp-generate-critical-css').on('click', function() {
+                    var btn = $(this);
+                    var url = btn.data('url');
+                    
+                    btn.prop('disabled', true);
+                    $('#fp-critical-css-loading').show();
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'fp_ps_generate_critical_css',
+                            url: url,
+                            nonce: '<?php echo wp_create_nonce('fp_ps_generate_critical_css'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success && response.data.css) {
+                                $('#critical_css').val(response.data.css).trigger('input');
+                                alert('✅ ' + '<?php echo esc_js(__('Critical CSS generato con successo! Ricorda di salvare le impostazioni.', 'fp-performance-suite')); ?>');
+                            } else {
+                                alert('❌ ' + (response.data.error || '<?php echo esc_js(__('Errore durante la generazione del Critical CSS.', 'fp-performance-suite')); ?>'));
+                            }
+                        },
+                        error: function() {
+                            alert('❌ ' + '<?php echo esc_js(__('Errore di connessione durante la generazione.', 'fp-performance-suite')); ?>');
+                        },
+                        complete: function() {
+                            btn.prop('disabled', false);
+                            $('#fp-critical-css-loading').hide();
+                        }
+                    });
+                });
+            });
+            </script>
         </div>
         <?php
         return ob_get_clean();
