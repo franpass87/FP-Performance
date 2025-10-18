@@ -170,6 +170,83 @@ class ThirdPartyScriptManager
                     'patterns' => ['player.vimeo.com', 'vimeocdn.com'],
                     'delay' => true,
                 ],
+                // TOP 5 servizi ad alto valore
+                'tawk_to' => [
+                    'enabled' => false,
+                    'patterns' => ['embed.tawk.to'],
+                    'delay' => true,
+                ],
+                'optimizely' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.optimizely.com', 'logx.optimizely.com'],
+                    'delay' => true,
+                ],
+                'trustpilot' => [
+                    'enabled' => false,
+                    'patterns' => ['widget.trustpilot.com', 'invoca.tpcdn.com'],
+                    'delay' => true,
+                ],
+                'klaviyo' => [
+                    'enabled' => false,
+                    'patterns' => ['static.klaviyo.com', 'a.klaviyo.com'],
+                    'delay' => true,
+                ],
+                'onetrust' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.cookielaw.org', 'optanon.blob.core.windows.net'],
+                    'delay' => true,
+                ],
+                // Altri servizi popolari
+                'calendly' => [
+                    'enabled' => false,
+                    'patterns' => ['assets.calendly.com', 'calendly.com/assets'],
+                    'delay' => true,
+                ],
+                'fullstory' => [
+                    'enabled' => false,
+                    'patterns' => ['fullstory.com/s/fs.js', 'rs.fullstory.com'],
+                    'delay' => true,
+                ],
+                'snapchat_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['sc-static.net/scevent.min.js', 'tr.snapchat.com'],
+                    'delay' => true,
+                ],
+                'soundcloud' => [
+                    'enabled' => false,
+                    'patterns' => ['w.soundcloud.com', 'widget.sndcdn.com'],
+                    'delay' => true,
+                ],
+                'klarna' => [
+                    'enabled' => false,
+                    'patterns' => ['js.klarna.com', 'x.klarnacdn.net'],
+                    'delay' => true,
+                ],
+                'spotify' => [
+                    'enabled' => false,
+                    'patterns' => ['open.spotify.com/embed', 'embed.spotify.com'],
+                    'delay' => true,
+                ],
+                'livechat' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.livechatinc.com', 'cdn.livechat-files.com'],
+                    'delay' => true,
+                ],
+                'activecampaign' => [
+                    'enabled' => false,
+                    'patterns' => ['trackcmp.net', 'trackcmp.com'],
+                    'delay' => true,
+                ],
+                'userway' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.userway.org', 'userway.org/widget.js'],
+                    'delay' => true,
+                ],
+                'typeform' => [
+                    'enabled' => false,
+                    'patterns' => ['embed.typeform.com', 'typeform.com/embed'],
+                    'delay' => true,
+                ],
             ],
         ];
 

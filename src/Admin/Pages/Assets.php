@@ -187,6 +187,21 @@ class Assets extends AbstractPage
                         'google_maps' => ['enabled' => !empty($_POST['third_party_gmaps']), 'delay' => true],
                         'microsoft_clarity' => ['enabled' => !empty($_POST['third_party_clarity']), 'delay' => true],
                         'vimeo' => ['enabled' => !empty($_POST['third_party_vimeo']), 'delay' => true],
+                        'tawk_to' => ['enabled' => !empty($_POST['third_party_tawk']), 'delay' => true],
+                        'optimizely' => ['enabled' => !empty($_POST['third_party_optimizely']), 'delay' => true],
+                        'trustpilot' => ['enabled' => !empty($_POST['third_party_trustpilot']), 'delay' => true],
+                        'klaviyo' => ['enabled' => !empty($_POST['third_party_klaviyo']), 'delay' => true],
+                        'onetrust' => ['enabled' => !empty($_POST['third_party_onetrust']), 'delay' => true],
+                        'calendly' => ['enabled' => !empty($_POST['third_party_calendly']), 'delay' => true],
+                        'fullstory' => ['enabled' => !empty($_POST['third_party_fullstory']), 'delay' => true],
+                        'snapchat_pixel' => ['enabled' => !empty($_POST['third_party_snapchat']), 'delay' => true],
+                        'soundcloud' => ['enabled' => !empty($_POST['third_party_soundcloud']), 'delay' => true],
+                        'klarna' => ['enabled' => !empty($_POST['third_party_klarna']), 'delay' => true],
+                        'spotify' => ['enabled' => !empty($_POST['third_party_spotify']), 'delay' => true],
+                        'livechat' => ['enabled' => !empty($_POST['third_party_livechat']), 'delay' => true],
+                        'activecampaign' => ['enabled' => !empty($_POST['third_party_activecampaign']), 'delay' => true],
+                        'userway' => ['enabled' => !empty($_POST['third_party_userway']), 'delay' => true],
+                        'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
                     ],
                 ]);
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
@@ -884,6 +899,139 @@ class Assets extends AbstractPage
                             <span class="description" style="font-size: 12px;"><?php esc_html_e('Video Player, Embed', 'fp-performance-suite'); ?></span>
                         </span>
                         <input type="checkbox" name="third_party_vimeo" value="1" <?php checked($thirdPartySettings['scripts']['vimeo']['enabled'] ?? false); ?> />
+                    </label>
+                </div>
+                
+                <h4 style="margin-top: 25px; color: #1d2327; font-size: 14px; font-weight: 600; border-bottom: 2px solid #2271b1; padding-bottom: 8px;">
+                    🔥 <?php esc_html_e('Servizi Ad Alto Impatto (Consigliati)', 'fp-performance-suite'); ?>
+                </h4>
+                <p class="description" style="margin: 10px 0 15px 0;"><?php esc_html_e('Servizi particolarmente pesanti che beneficiano molto del ritardo.', 'fp-performance-suite'); ?></p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>💬 Tawk.to</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Free Live Chat - Popolarissimo', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tawk" value="1" <?php checked($thirdPartySettings['scripts']['tawk_to']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>🧪 Optimizely</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('A/B Testing, Experimentation', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_optimizely" value="1" <?php checked($thirdPartySettings['scripts']['optimizely']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>⭐ Trustpilot</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Reviews Widget, Trust Badge', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_trustpilot" value="1" <?php checked($thirdPartySettings['scripts']['trustpilot']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>📧 Klaviyo</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('E-commerce Email Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_klaviyo" value="1" <?php checked($thirdPartySettings['scripts']['klaviyo']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>🍪 OneTrust</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Cookie Consent GDPR/CCPA', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_onetrust" value="1" <?php checked($thirdPartySettings['scripts']['onetrust']['enabled'] ?? false); ?> />
+                    </label>
+                </div>
+                
+                <h4 style="margin-top: 25px; color: #1d2327; font-size: 14px; font-weight: 600; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
+                    ➕ <?php esc_html_e('Altri Servizi Popolari', 'fp-performance-suite'); ?>
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📅 Calendly</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Appointment Scheduling', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_calendly" value="1" <?php checked($thirdPartySettings['scripts']['calendly']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎬 FullStory</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Session Replay, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_fullstory" value="1" <?php checked($thirdPartySettings['scripts']['fullstory']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>👻 Snapchat Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Snap Ads, Conversions', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_snapchat" value="1" <?php checked($thirdPartySettings['scripts']['snapchat_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 SoundCloud</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Audio Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_soundcloud" value="1" <?php checked($thirdPartySettings['scripts']['soundcloud']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 Klarna</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Buy Now Pay Later', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_klarna" value="1" <?php checked($thirdPartySettings['scripts']['klarna']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 Spotify</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Music Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_spotify" value="1" <?php checked($thirdPartySettings['scripts']['spotify']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 LiveChat</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Customer Support Chat', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_livechat" value="1" <?php checked($thirdPartySettings['scripts']['livechat']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📊 ActiveCampaign</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Marketing Automation', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_activecampaign" value="1" <?php checked($thirdPartySettings['scripts']['activecampaign']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>♿ UserWay</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Accessibility Widget', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_userway" value="1" <?php checked($thirdPartySettings['scripts']['userway']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📋 Typeform</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Interactive Forms, Surveys', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_typeform" value="1" <?php checked($thirdPartySettings['scripts']['typeform']['enabled'] ?? false); ?> />
                     </label>
                 </div>
                 
