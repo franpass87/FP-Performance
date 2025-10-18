@@ -57,6 +57,7 @@ class Cache extends AbstractPage
         $headers = $this->container->get(Headers::class);
         $objectCache = $this->container->get(ObjectCacheManager::class);
         $edgeCache = $this->container->get(EdgeCacheManager::class);
+        $cacheAutoConfig = $this->container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class);
         $message = '';
         $headerSettings = $headers->settings();
         
@@ -158,6 +159,23 @@ class Cache extends AbstractPage
                 $pageCache->clear();
                 $message = __('Page cache cleared.', 'fp-performance-suite');
             }
+            if (isset($_POST['fp_ps_auto_config_scan'])) {
+                $cacheAutoConfig->analyzeSite();
+                $message = __('Analisi completata! Suggerimenti aggiornati.', 'fp-performance-suite');
+            }
+            if (isset($_POST['fp_ps_auto_config_apply'])) {
+                $results = $cacheAutoConfig->applyAutoConfiguration(false);
+                if ($results['applied']) {
+                    $message = sprintf(
+                        __('Configurazione automatica applicata! %d URL da escludere, %d URL per warming, %d parametri query.', 'fp-performance-suite'),
+                        $results['changes']['exclude_urls_count'],
+                        $results['changes']['warming_urls_count'],
+                        $results['changes']['query_params_count']
+                    );
+                } else {
+                    $message = __('Errore durante l\'applicazione della configurazione: ', 'fp-performance-suite') . implode(', ', $results['errors']);
+                }
+            }
         }
 
         $pageSettings = $pageCache->settings();
@@ -167,10 +185,194 @@ class Cache extends AbstractPage
         $status = $pageCache->status();
 
         ob_start();
+        
+        // Ottieni suggerimenti auto-configurazione
+        $autoConfigSuggestions = $cacheAutoConfig->getSuggestions();
+        $autoConfigStats = $cacheAutoConfig->getStats();
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- Auto-Configuration Section -->
+        <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+            <h2 style="color: white; margin-top: 0;">
+                🤖 <?php esc_html_e('Configurazione Automatica Intelligente', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 15px;">
+                <?php esc_html_e('Sistema AI che rileva, consiglia e applica automaticamente le migliori impostazioni di cache per il tuo sito.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo esc_html($autoConfigStats['suggestions_count']['exclude_urls']); ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('URL da Escludere', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo esc_html($autoConfigStats['suggestions_count']['warming_urls']); ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('URL per Warming', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo esc_html($autoConfigStats['suggestions_count']['query_params']); ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('Parametri Query', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo esc_html($autoConfigSuggestions['optimal_ttl']['ttl'] / 3600); ?>h
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('TTL Consigliato', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" style="margin-top: 20px;">
+                <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="submit" name="fp_ps_auto_config_scan" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        🔍 <?php esc_html_e('Analizza Sito', 'fp-performance-suite'); ?>
+                    </button>
+                    <button type="submit" name="fp_ps_auto_config_apply" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                        ✨ <?php esc_html_e('Applica Configurazione Automatica', 'fp-performance-suite'); ?>
+                    </button>
+                    <button type="button" class="button" onclick="document.getElementById('fp-ps-auto-config-details').style.display = document.getElementById('fp-ps-auto-config-details').style.display === 'none' ? 'block' : 'none';" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                        📋 <?php esc_html_e('Mostra Dettagli', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($autoConfigStats['auto_applied']): ?>
+                <p style="margin-top: 15px; opacity: 0.9; font-size: 13px;">
+                    ✓ <?php printf(
+                        esc_html__('Ultima applicazione: %s fa', 'fp-performance-suite'),
+                        human_time_diff($autoConfigStats['applied_at'], time())
+                    ); ?>
+                </p>
+                <?php endif; ?>
+            </form>
+            
+            <!-- Dettagli Suggerimenti -->
+            <div id="fp-ps-auto-config-details" style="display: none; margin-top: 25px; background: rgba(255,255,255,0.95); color: #333; border-radius: 8px; padding: 20px;">
+                <h3 style="margin-top: 0; color: #667eea;">
+                    <?php esc_html_e('Dettagli Suggerimenti', 'fp-performance-suite'); ?>
+                </h3>
+                
+                <!-- Cache Abilitata -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
+                    <strong><?php esc_html_e('Cache Abilitata:', 'fp-performance-suite'); ?></strong>
+                    <?php echo $autoConfigSuggestions['cache_enabled']['enabled'] ? '✅ Sì' : '❌ No'; ?>
+                    <br>
+                    <span style="font-size: 13px; color: #666;">
+                        <?php echo esc_html($autoConfigSuggestions['cache_enabled']['reason']); ?>
+                        (<?php printf(esc_html__('Confidenza: %d%%', 'fp-performance-suite'), $autoConfigSuggestions['cache_enabled']['confidence'] * 100); ?>)
+                    </span>
+                </div>
+                
+                <!-- TTL Ottimale -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                    <strong><?php esc_html_e('TTL Ottimale:', 'fp-performance-suite'); ?></strong>
+                    <?php echo esc_html($autoConfigSuggestions['optimal_ttl']['ttl']); ?> secondi
+                    (<?php echo esc_html($autoConfigSuggestions['optimal_ttl']['ttl'] / 3600); ?> ore)
+                    <br>
+                    <span style="font-size: 13px; color: #666;">
+                        <?php echo esc_html($autoConfigSuggestions['optimal_ttl']['reason']); ?>
+                    </span>
+                </div>
+                
+                <!-- URL da Escludere -->
+                <?php if (!empty($autoConfigSuggestions['exclude_urls'])): ?>
+                <div style="margin-bottom: 20px;">
+                    <strong><?php esc_html_e('URL da Escludere dalla Cache:', 'fp-performance-suite'); ?></strong>
+                    <ul style="margin: 10px 0; padding-left: 20px; max-height: 200px; overflow-y: auto;">
+                        <?php foreach (array_slice($autoConfigSuggestions['exclude_urls'], 0, 10) as $item): ?>
+                        <li style="margin: 5px 0; font-size: 13px;">
+                            <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 3px;"><?php echo esc_html($item['url']); ?></code>
+                            <br>
+                            <span style="color: #666; font-size: 12px;">
+                                <?php echo esc_html($item['reason']); ?>
+                                (<?php printf(esc_html__('Confidenza: %d%%', 'fp-performance-suite'), $item['confidence'] * 100); ?>)
+                            </span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if (count($autoConfigSuggestions['exclude_urls']) > 10): ?>
+                    <p style="font-size: 13px; color: #666; font-style: italic;">
+                        <?php printf(esc_html__('... e altri %d URL', 'fp-performance-suite'), count($autoConfigSuggestions['exclude_urls']) - 10); ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <!-- URL per Warming -->
+                <?php if (!empty($autoConfigSuggestions['warming_urls'])): ?>
+                <div style="margin-bottom: 20px;">
+                    <strong><?php esc_html_e('URL per Cache Warming:', 'fp-performance-suite'); ?></strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <?php foreach ($autoConfigSuggestions['warming_urls'] as $item): ?>
+                        <li style="margin: 5px 0; font-size: 13px;">
+                            <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 3px;"><?php echo esc_html($item['url']); ?></code>
+                            <br>
+                            <span style="color: #666; font-size: 12px;">
+                                <?php echo esc_html($item['reason']); ?>
+                                (<?php printf(esc_html__('Priorità: %d', 'fp-performance-suite'), $item['priority']); ?>)
+                            </span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Parametri Query -->
+                <?php if (!empty($autoConfigSuggestions['exclude_query_params'])): ?>
+                <div style="margin-bottom: 20px;">
+                    <strong><?php esc_html_e('Parametri Query da Escludere:', 'fp-performance-suite'); ?></strong>
+                    <div style="margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+                        <?php foreach (array_slice($autoConfigSuggestions['exclude_query_params'], 0, 20) as $item): ?>
+                        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-family: monospace;">
+                            <?php echo esc_html($item['param']); ?>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if (count($autoConfigSuggestions['exclude_query_params']) > 20): ?>
+                    <p style="font-size: 13px; color: #666; font-style: italic;">
+                        <?php printf(esc_html__('... e altri %d parametri', 'fp-performance-suite'), count($autoConfigSuggestions['exclude_query_params']) - 20); ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Cache Warming -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 4px;">
+                    <strong><?php esc_html_e('Cache Warming:', 'fp-performance-suite'); ?></strong>
+                    <?php echo $autoConfigSuggestions['warming_enabled']['enabled'] ? '✅ Consigliato' : '❌ Non necessario'; ?>
+                    <br>
+                    <span style="font-size: 13px; color: #666;">
+                        <?php echo esc_html($autoConfigSuggestions['warming_enabled']['reason']); ?>
+                    </span>
+                    <br>
+                    <strong><?php esc_html_e('Frequenza consigliata:', 'fp-performance-suite'); ?></strong>
+                    <?php echo esc_html($autoConfigSuggestions['warming_schedule']['schedule']); ?>
+                    <br>
+                    <span style="font-size: 13px; color: #666;">
+                        <?php echo esc_html($autoConfigSuggestions['warming_schedule']['reason']); ?>
+                    </span>
+                </div>
+            </div>
+        </section>
+        
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Page Cache', 'fp-performance-suite'); ?></h2>
             <p><?php esc_html_e('Serve cached HTML for anonymous visitors using filesystem storage.', 'fp-performance-suite'); ?></p>
