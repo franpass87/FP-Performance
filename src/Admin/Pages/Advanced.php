@@ -1335,146 +1335,48 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
 
     public function handleSave(): void
     {
+        // Verifica permessi utente
         if (!current_user_can($this->capability())) {
-            $redirect_url = add_query_arg(
-                ['error' => '1', 'message' => urlencode(__('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite'))],
-                admin_url('admin.php?page=' . $this->slug())
-            );
-            wp_safe_redirect($redirect_url);
-            exit;
+            $this->redirectWithError(__('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite'));
+            return;
+        }
+
+        // Verifica nonce di sicurezza
+        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'fp_ps_advanced')) {
+            $this->redirectWithError(__('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite'));
+            return;
         }
 
         try {
-            // Verifica il nonce di sicurezza
-            if (!check_admin_referer('fp_ps_advanced', '_wpnonce', false)) {
-                throw new \Exception(__('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite'));
-            }
             // Save Critical CSS
-            if (isset($_POST['critical_css'])) {
-                $criticalCss = new CriticalCss();
-                $criticalCss->update(wp_unslash($_POST['critical_css']));
-            }
-
+            $this->saveCriticalCss();
+            
             // Save Compression settings
-            // IMPORTANTE: Gestiamo sempre la compressione perché quando una checkbox
-            // non è selezionata, non viene inviata nei dati POST
-            $compression = $this->container->get(CompressionManager::class);
-            $enabled = !empty($_POST['compression']['enabled']);
+            $this->saveCompressionSettings();
             
-            if ($enabled) {
-                $compression->enable();
-            } else {
-                $compression->disable();
-            }
-
             // Save CDN settings
-            $cdn = new CdnManager();
-            $currentCdn = $cdn->settings();
+            $this->saveCdnSettings();
             
-            // Prepara i settings CDN preservando i campi non presenti nel form
-            $cdnSettings = array_merge($currentCdn, wp_unslash($_POST['cdn'] ?? []));
-            
-            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
-            $cdnSettings['enabled'] = isset($_POST['cdn']['enabled']);
-            
-            $cdn->update($cdnSettings);
-
             // Save Monitoring settings
-            $monitor = PerformanceMonitor::instance();
-            $currentMonitoring = $monitor->settings();
+            $this->saveMonitoringSettings();
             
-            // Prepara i settings Monitoring preservando i campi non presenti nel form
-            $monitoringSettings = array_merge($currentMonitoring, wp_unslash($_POST['monitoring'] ?? []));
-            
-            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
-            $monitoringSettings['enabled'] = isset($_POST['monitoring']['enabled']);
-            
-            $monitor->update($monitoringSettings);
-
             // Save Core Web Vitals settings
-            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
-            if (isset($_POST['cwv'])) {
-                $cwvData = wp_unslash($_POST['cwv']);
-                
-                // Convert sample rate from percentage to decimal
-                if (isset($cwvData['sample_rate'])) {
-                    $cwvData['sample_rate'] = (float)$cwvData['sample_rate'] / 100;
-                }
-                
-                // Gestisci le checkbox
-                $cwvData['enabled'] = isset($_POST['cwv']['enabled']);
-                $cwvData['track_lcp'] = isset($_POST['cwv']['track_lcp']);
-                $cwvData['track_fid'] = isset($_POST['cwv']['track_fid']);
-                $cwvData['track_cls'] = isset($_POST['cwv']['track_cls']);
-                $cwvData['track_fcp'] = isset($_POST['cwv']['track_fcp']);
-                $cwvData['track_ttfb'] = isset($_POST['cwv']['track_ttfb']);
-                $cwvData['track_inp'] = isset($_POST['cwv']['track_inp']);
-                $cwvData['send_to_analytics'] = isset($_POST['cwv']['send_to_analytics']);
-                
-                $cwvMonitor->update($cwvData);
-            }
-
+            $this->saveCoreWebVitalsSettings();
+            
             // Save Reports settings
-            $reports = new ScheduledReports();
-            $currentReports = $reports->settings();
+            $this->saveReportsSettings();
             
-            // Prepara i settings Reports preservando i campi non presenti nel form
-            $reportsSettings = array_merge($currentReports, wp_unslash($_POST['reports'] ?? []));
-            
-            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
-            $reportsSettings['enabled'] = isset($_POST['reports']['enabled']);
-            
-            $reports->update($reportsSettings);
-
             // Save PWA / Service Worker settings
-            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
-            if (isset($_POST['pwa'])) {
-                $pwaData = wp_unslash($_POST['pwa']);
-                $pwaData['enabled'] = isset($_POST['pwa']['enabled']);
-                $pwaData['cache_assets'] = isset($_POST['pwa']['cache_assets']);
-                $pwaData['cache_pages'] = isset($_POST['pwa']['cache_pages']);
-                $pwaData['cache_api'] = isset($_POST['pwa']['cache_api']);
-                $pwaData['offline_page'] = isset($_POST['pwa']['offline_page']);
-                $serviceWorker->update($pwaData);
-            }
-
+            $this->savePwaSettings();
+            
             // Save Predictive Prefetching settings
-            $prefetching = $this->container->get(PredictivePrefetching::class);
-            if (isset($_POST['prefetch'])) {
-                $prefetchData = wp_unslash($_POST['prefetch']);
-                $prefetchData['enabled'] = isset($_POST['prefetch']['enabled']);
-                $prefetchData['prefetch_on_hover'] = isset($_POST['prefetch']['prefetch_on_hover']);
-                $prefetchData['prefetch_on_visible'] = isset($_POST['prefetch']['prefetch_on_visible']);
-                $prefetching->update($prefetchData);
-            }
-
+            $this->savePrefetchingSettings();
+            
             // Save Performance Budget settings
-            if (isset($_POST['perf_budget'])) {
-                $budgetData = [
-                    'enabled' => isset($_POST['perf_budget']['enabled']),
-                    'score_threshold' => (int) ($_POST['perf_budget']['score_threshold'] ?? 80),
-                    'load_time_threshold' => (int) ($_POST['perf_budget']['load_time_threshold'] ?? 3000),
-                    'fcp_threshold' => (int) ($_POST['perf_budget']['fcp_threshold'] ?? 1800),
-                    'lcp_threshold' => (int) ($_POST['perf_budget']['lcp_threshold'] ?? 2500),
-                    'cls_threshold' => (float) ($_POST['perf_budget']['cls_threshold'] ?? 0.1),
-                    'alert_email' => sanitize_email($_POST['perf_budget']['alert_email'] ?? get_option('admin_email')),
-                    'alert_on_exceed' => isset($_POST['perf_budget']['alert_on_exceed']),
-                ];
-                update_option('fp_ps_performance_budget', $budgetData);
-            }
-
+            $this->savePerformanceBudgetSettings();
+            
             // Save Webhook Integration settings
-            if (isset($_POST['webhooks'])) {
-                $webhookData = [
-                    'enabled' => isset($_POST['webhooks']['enabled']),
-                    'url' => esc_url_raw($_POST['webhooks']['url'] ?? ''),
-                    'secret' => sanitize_text_field($_POST['webhooks']['secret'] ?? ''),
-                    'events' => array_map('sanitize_text_field', $_POST['webhooks']['events'] ?? []),
-                    'retry_failed' => isset($_POST['webhooks']['retry_failed']),
-                    'max_retries' => (int) ($_POST['webhooks']['max_retries'] ?? 3),
-                ];
-                update_option('fp_ps_webhooks', $webhookData);
-            }
+            $this->saveWebhookSettings();
 
             // Redirect con successo
             $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));
@@ -1482,16 +1384,315 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             exit;
 
         } catch (\Throwable $e) {
-            // Log dell'errore
-            error_log('[FP Performance Suite] Errore durante il salvataggio delle impostazioni advanced: ' . $e->getMessage());
+            // Log dell'errore con stack trace per debugging
+            error_log(sprintf(
+                '[FP Performance Suite] Errore durante il salvataggio delle impostazioni advanced: %s in %s:%d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
             
             // Redirect con errore
-            $redirect_url = add_query_arg(
-                ['error' => '1', 'message' => urlencode($e->getMessage())],
-                admin_url('admin.php?page=' . $this->slug())
-            );
-            wp_safe_redirect($redirect_url);
-            exit;
+            $this->redirectWithError($e->getMessage());
+        }
+    }
+
+    /**
+     * Redirect con messaggio di errore
+     */
+    private function redirectWithError(string $message): void
+    {
+        $redirect_url = add_query_arg(
+            ['error' => '1', 'message' => urlencode($message)],
+            admin_url('admin.php?page=' . $this->slug())
+        );
+        wp_safe_redirect($redirect_url);
+        exit;
+    }
+
+    /**
+     * Salva le impostazioni del Critical CSS
+     */
+    private function saveCriticalCss(): void
+    {
+        if (!isset($_POST['critical_css'])) {
+            return;
+        }
+
+        try {
+            $criticalCss = new CriticalCss();
+            $criticalCss->update(wp_unslash($_POST['critical_css']));
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Critical CSS: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio del Critical CSS.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni di compressione
+     */
+    private function saveCompressionSettings(): void
+    {
+        try {
+            $compression = $this->container->get(CompressionManager::class);
+            $enabled = isset($_POST['compression']['enabled']);
+            
+            if ($enabled) {
+                $compression->enable();
+            } else {
+                $compression->disable();
+            }
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Compression: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni di compressione.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni CDN
+     */
+    private function saveCdnSettings(): void
+    {
+        try {
+            $cdn = new CdnManager();
+            $currentCdn = $cdn->settings();
+            
+            // Merge con i valori correnti per preservare campi non presenti nel form
+            $cdnSettings = array_merge($currentCdn, [
+                'enabled' => isset($_POST['cdn']['enabled']),
+                'url' => sanitize_text_field($_POST['cdn']['url'] ?? ''),
+                'provider' => sanitize_text_field($_POST['cdn']['provider'] ?? 'custom'),
+            ]);
+            
+            $cdn->update($cdnSettings);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio CDN: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni CDN.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni di monitoring
+     */
+    private function saveMonitoringSettings(): void
+    {
+        try {
+            $monitor = PerformanceMonitor::instance();
+            $currentMonitoring = $monitor->settings();
+            
+            // Merge con i valori correnti
+            $monitoringSettings = array_merge($currentMonitoring, [
+                'enabled' => isset($_POST['monitoring']['enabled']),
+                'sample_rate' => isset($_POST['monitoring']['sample_rate']) 
+                    ? (int)$_POST['monitoring']['sample_rate'] 
+                    : ($currentMonitoring['sample_rate'] ?? 10),
+            ]);
+            
+            $monitor->update($monitoringSettings);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Monitoring: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni di monitoring.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni Core Web Vitals
+     */
+    private function saveCoreWebVitalsSettings(): void
+    {
+        try {
+            $cwvMonitor = $this->container->get(CoreWebVitalsMonitor::class);
+            $currentSettings = $cwvMonitor->settings();
+            
+            // Prepara i dati con valori di default
+            $cwvData = [
+                'enabled' => isset($_POST['cwv']['enabled']),
+                'sample_rate' => isset($_POST['cwv']['sample_rate']) 
+                    ? (float)$_POST['cwv']['sample_rate'] / 100 
+                    : ($currentSettings['sample_rate'] ?? 0.1),
+                'track_lcp' => isset($_POST['cwv']['track_lcp']),
+                'track_fid' => isset($_POST['cwv']['track_fid']),
+                'track_cls' => isset($_POST['cwv']['track_cls']),
+                'track_fcp' => isset($_POST['cwv']['track_fcp']),
+                'track_ttfb' => isset($_POST['cwv']['track_ttfb']),
+                'track_inp' => isset($_POST['cwv']['track_inp']),
+                'send_to_analytics' => isset($_POST['cwv']['send_to_analytics']),
+                'retention_days' => isset($_POST['cwv']['retention_days']) 
+                    ? (int)$_POST['cwv']['retention_days'] 
+                    : ($currentSettings['retention_days'] ?? 30),
+                'alert_email' => isset($_POST['cwv']['alert_email']) 
+                    ? sanitize_email($_POST['cwv']['alert_email']) 
+                    : ($currentSettings['alert_email'] ?? get_option('admin_email')),
+                'alert_threshold_lcp' => isset($_POST['cwv']['alert_threshold_lcp']) 
+                    ? (int)$_POST['cwv']['alert_threshold_lcp'] 
+                    : ($currentSettings['alert_threshold_lcp'] ?? 4000),
+                'alert_threshold_fid' => isset($_POST['cwv']['alert_threshold_fid']) 
+                    ? (int)$_POST['cwv']['alert_threshold_fid'] 
+                    : ($currentSettings['alert_threshold_fid'] ?? 300),
+                'alert_threshold_cls' => isset($_POST['cwv']['alert_threshold_cls']) 
+                    ? (float)$_POST['cwv']['alert_threshold_cls'] 
+                    : ($currentSettings['alert_threshold_cls'] ?? 0.25),
+            ];
+            
+            $cwvMonitor->update($cwvData);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Core Web Vitals: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni Core Web Vitals.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni dei report schedulati
+     */
+    private function saveReportsSettings(): void
+    {
+        try {
+            $reports = new ScheduledReports();
+            $currentReports = $reports->settings();
+            
+            // Merge con i valori correnti
+            $reportsSettings = array_merge($currentReports, [
+                'enabled' => isset($_POST['reports']['enabled']),
+                'frequency' => sanitize_text_field($_POST['reports']['frequency'] ?? ($currentReports['frequency'] ?? 'weekly')),
+                'recipient' => isset($_POST['reports']['recipient']) 
+                    ? sanitize_email($_POST['reports']['recipient']) 
+                    : ($currentReports['recipient'] ?? get_option('admin_email')),
+            ]);
+            
+            $reports->update($reportsSettings);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Reports: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni dei report.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni PWA / Service Worker
+     */
+    private function savePwaSettings(): void
+    {
+        try {
+            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+            $currentSettings = $serviceWorker->settings();
+            
+            $pwaData = [
+                'enabled' => isset($_POST['pwa']['enabled']),
+                'cache_strategy' => sanitize_text_field($_POST['pwa']['cache_strategy'] ?? ($currentSettings['cache_strategy'] ?? 'network_first')),
+                'cache_assets' => isset($_POST['pwa']['cache_assets']),
+                'cache_pages' => isset($_POST['pwa']['cache_pages']),
+                'cache_api' => isset($_POST['pwa']['cache_api']),
+                'offline_page' => isset($_POST['pwa']['offline_page']),
+                'update_interval' => isset($_POST['pwa']['update_interval']) 
+                    ? (int)$_POST['pwa']['update_interval'] 
+                    : ($currentSettings['update_interval'] ?? 86400),
+                'max_cache_size' => isset($_POST['pwa']['max_cache_size']) 
+                    ? (int)$_POST['pwa']['max_cache_size'] 
+                    : ($currentSettings['max_cache_size'] ?? 50),
+            ];
+            
+            $serviceWorker->update($pwaData);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio PWA: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni PWA.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni di Predictive Prefetching
+     */
+    private function savePrefetchingSettings(): void
+    {
+        try {
+            $prefetching = $this->container->get(PredictivePrefetching::class);
+            $currentSettings = $prefetching->settings();
+            
+            $prefetchData = [
+                'enabled' => isset($_POST['prefetch']['enabled']),
+                'strategy' => sanitize_text_field($_POST['prefetch']['strategy'] ?? ($currentSettings['strategy'] ?? 'hover')),
+                'prefetch_on_hover' => isset($_POST['prefetch']['prefetch_on_hover']),
+                'prefetch_on_visible' => isset($_POST['prefetch']['prefetch_on_visible']),
+                'delay' => isset($_POST['prefetch']['delay']) 
+                    ? (int)$_POST['prefetch']['delay'] 
+                    : ($currentSettings['delay'] ?? 100),
+                'max_prefetch' => isset($_POST['prefetch']['max_prefetch']) 
+                    ? (int)$_POST['prefetch']['max_prefetch'] 
+                    : ($currentSettings['max_prefetch'] ?? 3),
+            ];
+            
+            $prefetching->update($prefetchData);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Prefetching: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni di prefetching.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni del Performance Budget
+     */
+    private function savePerformanceBudgetSettings(): void
+    {
+        try {
+            $budgetData = [
+                'enabled' => isset($_POST['perf_budget']['enabled']),
+                'score_threshold' => isset($_POST['perf_budget']['score_threshold']) 
+                    ? (int)$_POST['perf_budget']['score_threshold'] 
+                    : 80,
+                'load_time_threshold' => isset($_POST['perf_budget']['load_time_threshold']) 
+                    ? (int)$_POST['perf_budget']['load_time_threshold'] 
+                    : 3000,
+                'fcp_threshold' => isset($_POST['perf_budget']['fcp_threshold']) 
+                    ? (int)$_POST['perf_budget']['fcp_threshold'] 
+                    : 1800,
+                'lcp_threshold' => isset($_POST['perf_budget']['lcp_threshold']) 
+                    ? (int)$_POST['perf_budget']['lcp_threshold'] 
+                    : 2500,
+                'cls_threshold' => isset($_POST['perf_budget']['cls_threshold']) 
+                    ? (float)$_POST['perf_budget']['cls_threshold'] 
+                    : 0.1,
+                'alert_email' => isset($_POST['perf_budget']['alert_email']) 
+                    ? sanitize_email($_POST['perf_budget']['alert_email']) 
+                    : get_option('admin_email'),
+                'alert_on_exceed' => isset($_POST['perf_budget']['alert_on_exceed']),
+            ];
+            
+            update_option('fp_ps_performance_budget', $budgetData);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Performance Budget: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni del Performance Budget.', 'fp-performance-suite'));
+        }
+    }
+
+    /**
+     * Salva le impostazioni dei Webhook
+     */
+    private function saveWebhookSettings(): void
+    {
+        try {
+            // Sanitizza gli eventi selezionati
+            $events = [];
+            if (isset($_POST['webhooks']['events']) && is_array($_POST['webhooks']['events'])) {
+                $events = array_map('sanitize_text_field', $_POST['webhooks']['events']);
+            }
+            
+            $webhookData = [
+                'enabled' => isset($_POST['webhooks']['enabled']),
+                'url' => isset($_POST['webhooks']['url']) 
+                    ? esc_url_raw($_POST['webhooks']['url']) 
+                    : '',
+                'secret' => isset($_POST['webhooks']['secret']) 
+                    ? sanitize_text_field($_POST['webhooks']['secret']) 
+                    : '',
+                'events' => $events,
+                'retry_failed' => isset($_POST['webhooks']['retry_failed']),
+                'max_retries' => isset($_POST['webhooks']['max_retries']) 
+                    ? (int)$_POST['webhooks']['max_retries'] 
+                    : 3,
+            ];
+            
+            update_option('fp_ps_webhooks', $webhookData);
+        } catch (\Throwable $e) {
+            error_log('[FP Performance Suite] Errore nel salvataggio Webhook: ' . $e->getMessage());
+            throw new \Exception(__('Errore nel salvataggio delle impostazioni dei webhook.', 'fp-performance-suite'));
         }
     }
 }
