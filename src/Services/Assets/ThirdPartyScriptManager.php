@@ -490,6 +490,16 @@ class ThirdPartyScriptManager
     }
 
     /**
+     * Get custom scripts
+     *
+     * @return array Custom scripts
+     */
+    public function getCustomScripts(): array
+    {
+        return get_option('fp_ps_custom_scripts', []);
+    }
+
+    /**
      * Get status
      *
      * @return array{enabled:bool,delay_all:bool,managed_scripts:int,custom_scripts:int}
