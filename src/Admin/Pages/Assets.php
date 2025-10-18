@@ -82,28 +82,38 @@ class Assets extends AbstractPage
         $themeDetector = $this->container->get(ThemeDetector::class);
         $hints = new ThemeHints($themeDetector);
         
+        // Carica risultati salvati nei transient (se esistono)
+        $criticalScripts = get_transient('fp_ps_critical_scripts_detected');
+        $excludeCss = get_transient('fp_ps_exclude_css_detected');
+        $excludeJs = get_transient('fp_ps_exclude_js_detected');
+        $criticalAssets = get_transient('fp_ps_critical_assets_detected');
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             // Handle auto-detect critical scripts
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
+                set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300); // 5 minuti
                 $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
             }
             
             // Handle auto-detect CSS to exclude
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
+                set_transient('fp_ps_exclude_css_detected', $excludeCss, 300); // 5 minuti
                 $message = __('CSS files to exclude detected! Review suggestions below.', 'fp-performance-suite');
             }
             
             // Handle auto-detect JS to exclude
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
+                set_transient('fp_ps_exclude_js_detected', $excludeJs, 300); // 5 minuti
                 $message = __('JavaScript files to exclude detected! Review suggestions below.', 'fp-performance-suite');
             }
             
             // Handle auto-detect critical assets
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
+                set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300); // 5 minuti
                 $message = __('Critical assets detected! Review suggestions below.', 'fp-performance-suite');
             }
             
@@ -120,6 +130,9 @@ class Assets extends AbstractPage
                 
                 // Set detected assets for display
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
+                
+                // Pulisci i transient
+                delete_transient('fp_ps_critical_assets_detected');
             }
             
             // Handle apply critical scripts suggestions
@@ -163,6 +176,9 @@ class Assets extends AbstractPage
                 
                 // Reload settings to show updated exclude_js
                 $settings = $optimizer->settings();
+                
+                // Pulisci i transient
+                delete_transient('fp_ps_critical_scripts_detected');
             }
             
             // Handle apply CSS exclusions suggestions
@@ -198,6 +214,9 @@ class Assets extends AbstractPage
                 
                 // Reload settings
                 $settings = $optimizer->settings();
+                
+                // Pulisci i transient
+                delete_transient('fp_ps_exclude_css_detected');
             }
             
             // Handle apply JS exclusions suggestions
@@ -233,6 +252,9 @@ class Assets extends AbstractPage
                 
                 // Reload settings
                 $settings = $optimizer->settings();
+                
+                // Pulisci i transient
+                delete_transient('fp_ps_exclude_js_detected');
             }
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
