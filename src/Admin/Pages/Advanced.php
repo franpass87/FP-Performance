@@ -124,8 +124,11 @@ class Advanced extends AbstractPage
             <div class="fp-ps-card">
                 <div class="fp-ps-actions">
                     <button type="submit" class="button button-primary button-large">
-                        <?php esc_html_e('Save Advanced Settings', 'fp-performance-suite'); ?>
+                        💾 <?php esc_html_e('Salva Tutte le Impostazioni Avanzate', 'fp-performance-suite'); ?>
                     </button>
+                    <p class="description" style="margin-top: 10px;">
+                        <?php esc_html_e('Salva tutte le modifiche apportate nelle sezioni sopra (Critical CSS, Compressione, CDN, Monitoring, ecc.)', 'fp-performance-suite'); ?>
+                    </p>
                 </div>
             </div>
         </form>
@@ -226,6 +229,14 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
                                 <?php esc_html_e('⚠️ Dimensione eccessiva!', 'fp-performance-suite'); ?>
                             </span>
                         </p>
+                        <div style="margin-top: 15px;">
+                            <button type="submit" class="button button-primary">
+                                💾 <?php esc_html_e('Salva Critical CSS', 'fp-performance-suite'); ?>
+                            </button>
+                            <span class="description" style="margin-left: 10px;">
+                                <?php esc_html_e('Salva le modifiche al Critical CSS', 'fp-performance-suite'); ?>
+                            </span>
+                        </div>
                     </td>
                 </tr>
             </table>
