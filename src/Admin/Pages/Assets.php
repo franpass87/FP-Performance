@@ -3,10 +3,10 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Assets\Optimizer;
-use FP\PerfSuite\Services\Assets\LazyLoadManager;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
-use FP\PerfSuite\Services\Assets\ImageOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
+use FP\PerfSuite\Services\Assets\Http2ServerPush;
+use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 
 use function __;
 use function array_filter;
@@ -56,10 +56,10 @@ class Assets extends AbstractPage
     protected function content(): string
     {
         $optimizer = $this->container->get(Optimizer::class);
-        $lazyLoad = $this->container->get(LazyLoadManager::class);
         $fontOptimizer = $this->container->get(FontOptimizer::class);
-        $imageOptimizer = $this->container->get(ImageOptimizer::class);
         $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+        $http2Push = $this->container->get(Http2ServerPush::class);
+        $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
@@ -83,27 +83,14 @@ class Assets extends AbstractPage
                 ]);
                 $message = __('Delivery settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'pagespeed') {
-                // Salva solo le impostazioni PageSpeed (lazy load, font, immagini)
-                $lazyLoad->updateSettings([
-                    'enabled' => !empty($_POST['lazy_load_enabled']),
-                    'images' => !empty($_POST['lazy_load_images']),
-                    'iframes' => !empty($_POST['lazy_load_iframes']),
-                    'skip_first' => (int) ($_POST['lazy_load_skip_first'] ?? 1),
-                ]);
-                
+                // Salva solo le impostazioni PageSpeed (font)
                 $fontOptimizer->updateSettings([
                     'enabled' => !empty($_POST['font_optimizer_enabled']),
                     'optimize_google_fonts' => !empty($_POST['optimize_google_fonts']),
                     'preload_fonts' => !empty($_POST['preload_fonts']),
                     'preconnect_providers' => !empty($_POST['preconnect_providers']),
                 ]);
-                
-                $imageOptimizer->updateSettings([
-                    'enabled' => !empty($_POST['image_optimizer_enabled']),
-                    'force_dimensions' => !empty($_POST['force_dimensions']),
-                    'add_aspect_ratio' => !empty($_POST['add_aspect_ratio']),
-                ]);
-                $message = __('PageSpeed settings saved.', 'fp-performance-suite');
+                $message = __('Font Optimizer settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'third_party') {
                 // Salva solo le impostazioni degli script di terze parti
                 $thirdPartyScripts->update([
@@ -121,14 +108,37 @@ class Assets extends AbstractPage
                     ],
                 ]);
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'http2_push') {
+                $http2Push->update([
+                    'enabled' => !empty($_POST['http2_push_enabled']),
+                    'push_css' => !empty($_POST['http2_push_css']),
+                    'push_js' => !empty($_POST['http2_push_js']),
+                    'push_fonts' => !empty($_POST['http2_push_fonts']),
+                    'push_images' => !empty($_POST['http2_push_images']),
+                    'max_resources' => (int) ($_POST['http2_max_resources'] ?? 10),
+                    'critical_only' => !empty($_POST['http2_critical_only']),
+                ]);
+                $message = __('HTTP/2 Server Push settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'smart_delivery') {
+                $smartDelivery->update([
+                    'enabled' => !empty($_POST['smart_delivery_enabled']),
+                    'detect_connection' => !empty($_POST['smart_detect_connection']),
+                    'save_data_mode' => !empty($_POST['smart_save_data_mode']),
+                    'adaptive_images' => !empty($_POST['smart_adaptive_images']),
+                    'adaptive_videos' => !empty($_POST['smart_adaptive_videos']),
+                    'quality_slow' => (int) ($_POST['smart_quality_slow'] ?? 50),
+                    'quality_moderate' => (int) ($_POST['smart_quality_moderate'] ?? 70),
+                    'quality_fast' => (int) ($_POST['smart_quality_fast'] ?? 85),
+                ]);
+                $message = __('Smart Asset Delivery settings saved.', 'fp-performance-suite');
             }
         }
         $settings = $optimizer->settings();
-        $lazyLoadSettings = $lazyLoad->getSettings();
         $fontSettings = $fontOptimizer->getSettings();
-        $imageSettings = $imageOptimizer->getSettings();
         $thirdPartySettings = $thirdPartyScripts->settings();
         $thirdPartyStatus = $thirdPartyScripts->status();
+        $http2Settings = $http2Push->settings();
+        $smartDeliverySettings = $smartDelivery->settings();
         ob_start();
         ?>
         <?php if ($message) : ?>
@@ -310,60 +320,11 @@ class Assets extends AbstractPage
         </section>
         
         <section class="fp-ps-card" style="margin-top: 20px;">
-            <h2><?php esc_html_e('PageSpeed Optimization', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
-            <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Ottimizzazioni specifiche per migliorare il punteggio Google PageSpeed Insights', 'fp-performance-suite'); ?></p>
+            <h2><?php esc_html_e('Font Optimization', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
+            <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Ottimizza il caricamento dei font per migliorare FCP e CLS', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="pagespeed" />
-                
-                <h3><?php esc_html_e('Lazy Loading', 'fp-performance-suite'); ?></h3>
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Abilita Lazy Loading', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green">
-                            <div class="fp-ps-risk-tooltip green">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">✓</span>
-                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Carica immagini e iframe solo quando sono visibili nel viewport.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Migliora significativamente LCP (-30-50%) e TTI. Riduce il peso iniziale della pagina.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Essenziale per siti con molte immagini. Impatto PageSpeed: +10-15 punti.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
-                    </span>
-                    <input type="checkbox" name="lazy_load_enabled" value="1" <?php checked($lazyLoadSettings['enabled']); ?> />
-                </label>
-                <label class="fp-ps-toggle" style="margin-left: 30px;">
-                    <span class="info">
-                        <strong><?php esc_html_e('Lazy load immagini', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="lazy_load_images" value="1" <?php checked($lazyLoadSettings['images']); ?> />
-                </label>
-                <label class="fp-ps-toggle" style="margin-left: 30px;">
-                    <span class="info">
-                        <strong><?php esc_html_e('Lazy load iframe (YouTube, etc.)', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="lazy_load_iframes" value="1" <?php checked($lazyLoadSettings['iframes']); ?> />
-                </label>
-                <p style="margin-left: 30px;">
-                    <label for="lazy_load_skip_first"><?php esc_html_e('Salta le prime N immagini (hero images)', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="lazy_load_skip_first" id="lazy_load_skip_first" value="<?php echo esc_attr((string) $lazyLoadSettings['skip_first']); ?>" min="0" max="5" style="width: 80px;" />
-                    <span class="description"><?php esc_html_e('Consigliato: 1-2 per evitare di lazy-loadare immagini above-the-fold', 'fp-performance-suite'); ?></span>
-                </p>
-                
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;" />
-                
-                <h3><?php esc_html_e('Ottimizzazione Font', 'fp-performance-suite'); ?></h3>
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita ottimizzazione font', 'fp-performance-suite'); ?></strong>
@@ -409,59 +370,19 @@ class Assets extends AbstractPage
                     <input type="checkbox" name="preconnect_providers" value="1" <?php checked($fontSettings['preconnect_providers']); ?> />
                 </label>
                 
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;" />
-                
-                <h3><?php esc_html_e('Ottimizzazione Immagini', 'fp-performance-suite'); ?></h3>
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Abilita ottimizzazione immagini', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green">
-                            <div class="fp-ps-risk-tooltip green">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">✓</span>
-                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Aggiunge automaticamente dimensioni e aspect-ratio alle immagini.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Previene CLS (Cumulative Layout Shift) e migliora il punteggio Core Web Vitals.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Essenziale per ridurre il CLS. Impatto PageSpeed: +3-5 punti.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
-                    </span>
-                    <input type="checkbox" name="image_optimizer_enabled" value="1" <?php checked($imageSettings['enabled']); ?> />
-                </label>
-                <label class="fp-ps-toggle" style="margin-left: 30px;">
-                    <span class="info">
-                        <strong><?php esc_html_e('Forza dimensioni esplicite (width/height)', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="force_dimensions" value="1" <?php checked($imageSettings['force_dimensions']); ?> />
-                </label>
-                <label class="fp-ps-toggle" style="margin-left: 30px;">
-                    <span class="info">
-                        <strong><?php esc_html_e('Aggiungi CSS aspect-ratio', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="add_aspect_ratio" value="1" <?php checked($imageSettings['add_aspect_ratio']); ?> />
-                </label>
-                
                 <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
                     <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Impatto previsto su PageSpeed:', 'fp-performance-suite'); ?></p>
                     <ul style="margin: 10px 0 0 20px; color: #555;">
-                        <li><?php esc_html_e('Lazy Loading: +10-15 punti Mobile', 'fp-performance-suite'); ?></li>
                         <li><?php esc_html_e('Font Optimization: +5-8 punti Mobile', 'fp-performance-suite'); ?></li>
-                        <li><?php esc_html_e('Image Optimization: +3-5 punti Mobile', 'fp-performance-suite'); ?></li>
                     </ul>
+                    <p style="margin: 10px 0 0 0; color: #555; font-size: 13px;">
+                        <?php esc_html_e('Per ottimizzazioni immagini (Lazy Loading, dimensioni, WebP, AVIF) vai alla sezione', 'fp-performance-suite'); ?> 
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>"><?php esc_html_e('Media Optimization', 'fp-performance-suite'); ?></a>.
+                    </p>
                 </div>
                 
                 <p style="margin-top: 20px;">
-                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni PageSpeed', 'fp-performance-suite'); ?></button>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Font', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
@@ -608,6 +529,184 @@ class Assets extends AbstractPage
                 
                 <p style="margin-top: 20px;">
                     <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Third-Party Scripts', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>⚡ <?php esc_html_e('HTTP/2 Server Push', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span></h2>
+            <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Push automatico di risorse critiche via HTTP/2 Server Push per eliminare round-trip e accelerare il rendering.', 'fp-performance-suite'); ?></p>
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="http2_push" />
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita HTTP/2 Server Push', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator amber">
+                            <div class="fp-ps-risk-tooltip amber">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">⚠</span>
+                                    <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Invia risorse critiche al browser prima ancora che le richieda, eliminando latenza.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce FCP del 20-30%, elimina round-trip per risorse critiche.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Può sprecare banda se push risorse già in cache. Richiede HTTP/2 attivo sul server.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="http2_push_enabled" value="1" <?php checked($http2Settings['enabled']); ?> />
+                </label>
+                
+                <h3><?php esc_html_e('Tipi di Risorse da Pushare', 'fp-performance-suite'); ?></h3>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Push CSS critici', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="http2_push_css" value="1" <?php checked($http2Settings['push_css']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Push JavaScript critici', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="http2_push_js" value="1" <?php checked($http2Settings['push_js']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Push Fonts', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="http2_push_fonts" value="1" <?php checked($http2Settings['push_fonts']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Push Immagini critiche', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('(sconsigliato: troppo pesanti)', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="http2_push_images" value="1" <?php checked($http2Settings['push_images']); ?> />
+                </label>
+                
+                <p>
+                    <label for="http2_max_resources"><?php esc_html_e('Max risorse da pushare', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="http2_max_resources" id="http2_max_resources" value="<?php echo esc_attr((string) $http2Settings['max_resources']); ?>" min="1" max="20" style="width: 80px;" />
+                    <span class="description"><?php esc_html_e('Consigliato: 5-10', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Push solo risorse critiche', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Raccomandato: push solo above-the-fold', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="http2_critical_only" value="1" <?php checked($http2Settings['critical_only']); ?> />
+                </label>
+                
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px;">
+                    <p style="margin: 0; font-weight: 600; color: #856404;"><?php esc_html_e('⚠️ Nota importante:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #856404;">
+                        <li><?php esc_html_e('Richiede HTTP/2 abilitato sul server', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Testa sempre l\'impatto con strumenti come WebPageTest', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('HTTP/3 renderà questa tecnica meno necessaria', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p style="margin-top: 20px;">
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni HTTP/2 Push', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>📱 <?php esc_html_e('Smart Asset Delivery', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span></h2>
+            <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Adatta automaticamente la qualità e il tipo di assets in base alla connessione dell\'utente (2G, 3G, 4G, Save-Data).', 'fp-performance-suite'); ?></p>
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="smart_delivery" />
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Smart Delivery', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rileva automaticamente la velocità di connessione e adatta qualità immagini/video.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Esperienza ottimale per tutti gli utenti, da mobile 2G a fibra ottica. Riduce consumo dati su reti lente.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="smart_delivery_enabled" value="1" <?php checked($smartDeliverySettings['enabled']); ?> />
+                </label>
+                
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Rileva tipo connessione', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Usa Network Information API', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="smart_detect_connection" value="1" <?php checked($smartDeliverySettings['detect_connection']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Rispetta Save-Data mode', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Riduce qualità se utente ha attivato risparmio dati', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="smart_save_data_mode" value="1" <?php checked($smartDeliverySettings['save_data_mode']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Immagini adaptive', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="smart_adaptive_images" value="1" <?php checked($smartDeliverySettings['adaptive_images']); ?> />
+                </label>
+                <label class="fp-ps-toggle" style="margin-left: 30px;">
+                    <span class="info">
+                        <strong><?php esc_html_e('Video adaptive', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adaptive_videos']); ?> />
+                </label>
+                
+                <h3><?php esc_html_e('Qualità per Tipo di Connessione', 'fp-performance-suite'); ?></h3>
+                <p>
+                    <label for="smart_quality_slow"><?php esc_html_e('Qualità connessione lenta (2G)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="smart_quality_slow" id="smart_quality_slow" value="<?php echo esc_attr((string) $smartDeliverySettings['quality_slow']); ?>" min="20" max="100" style="width: 80px;" />
+                    <span class="description"><?php esc_html_e('Default: 50 (bassa qualità, carica veloce)', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="smart_quality_moderate"><?php esc_html_e('Qualità connessione moderata (3G)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="smart_quality_moderate" id="smart_quality_moderate" value="<?php echo esc_attr((string) $smartDeliverySettings['quality_moderate']); ?>" min="20" max="100" style="width: 80px;" />
+                    <span class="description"><?php esc_html_e('Default: 70 (media qualità)', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="smart_quality_fast"><?php esc_html_e('Qualità connessione veloce (4G+)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="smart_quality_fast" id="smart_quality_fast" value="<?php echo esc_attr((string) $smartDeliverySettings['quality_fast']); ?>" min="20" max="100" style="width: 80px;" />
+                    <span class="description"><?php esc_html_e('Default: 85 (alta qualità)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Benefici Smart Delivery:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #555;">
+                        <li><?php esc_html_e('Ottimizzazione automatica per ogni utente', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Riduzione consumo dati su mobile fino al 70%', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Esperienza fluida anche su reti lente', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Supporto Network Information API e Save-Data', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p style="margin-top: 20px;">
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Smart Delivery', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
