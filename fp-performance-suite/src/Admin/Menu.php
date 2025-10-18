@@ -32,6 +32,11 @@ class Menu
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'register']);
+        
+        // Registra gli hook admin_post per il salvataggio delle impostazioni
+        // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
+        add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
+        add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
 
     public function register(): void
@@ -59,6 +64,24 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
         add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
         add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni avanzate
+     */
+    public function handleAdvancedSave(): void
+    {
+        $advancedPage = new Advanced($this->container);
+        $advancedPage->handleSave();
+    }
+
+    /**
+     * Handler per l'esportazione CSV dalla pagina Overview
+     */
+    public function handleOverviewExportCsv(): void
+    {
+        $overviewPage = new Overview($this->container);
+        $overviewPage->exportCsv();
     }
 
     /**

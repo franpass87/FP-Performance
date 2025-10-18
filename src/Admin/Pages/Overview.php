@@ -37,7 +37,9 @@ class Overview extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-        add_action('admin_post_fp_ps_export_csv', [$this, 'exportCsv']);
+        
+        // Note: L'hook admin_post è ora registrato nella classe Menu
+        // per garantire che sia disponibile quando necessario
     }
 
     public function slug(): string
