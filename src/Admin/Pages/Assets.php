@@ -67,6 +67,8 @@ class Assets extends AbstractPage
         // Smart Script Detector
         $smartDetector = new SmartExclusionDetector();
         $criticalScripts = null;
+        $excludeCss = null;
+        $excludeJs = null;
         
         // Critical Assets Detector
         $assetsDetector = new CriticalAssetsDetector();
@@ -77,6 +79,18 @@ class Assets extends AbstractPage
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+            }
+            
+            // Handle auto-detect CSS to exclude
+            if (isset($_POST['auto_detect_exclude_css'])) {
+                $excludeCss = $smartDetector->detectExcludeCss();
+                $message = __('CSS files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+            }
+            
+            // Handle auto-detect JS to exclude
+            if (isset($_POST['auto_detect_exclude_js'])) {
+                $excludeJs = $smartDetector->detectExcludeJs();
+                $message = __('JavaScript files to exclude detected! Review suggestions below.', 'fp-performance-suite');
             }
             
             // Handle auto-detect critical assets
@@ -140,6 +154,76 @@ class Assets extends AbstractPage
                 );
                 
                 // Reload settings to show updated exclude_js
+                $settings = $optimizer->settings();
+            }
+            
+            // Handle apply CSS exclusions suggestions
+            if (isset($_POST['apply_css_exclusions'])) {
+                $excludeCss = $smartDetector->detectExcludeCss();
+                $cssToExclude = [];
+                
+                // Add all detected CSS
+                foreach (['plugin_specific', 'critical_files', 'admin_styles'] as $category) {
+                    if (!empty($excludeCss[$category])) {
+                        foreach ($excludeCss[$category] as $item) {
+                            if ($item['confidence'] >= 0.7) {
+                                $cssToExclude[] = $item['handle'];
+                            }
+                        }
+                    }
+                }
+                
+                // Get current exclude_css setting and merge
+                $currentExclude = !empty($settings['exclude_css']) ? $settings['exclude_css'] : '';
+                $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
+                $mergedExclude = array_unique(array_merge($currentExcludeArray, $cssToExclude));
+                
+                // Update settings
+                $optimizer->update([
+                    'exclude_css' => implode("\n", $mergedExclude),
+                ]);
+                
+                $message = sprintf(
+                    __('Successfully applied %d CSS files to exclusion list!', 'fp-performance-suite'),
+                    count($cssToExclude)
+                );
+                
+                // Reload settings
+                $settings = $optimizer->settings();
+            }
+            
+            // Handle apply JS exclusions suggestions
+            if (isset($_POST['apply_js_exclusions'])) {
+                $excludeJs = $smartDetector->detectExcludeJs();
+                $jsToExclude = [];
+                
+                // Add all detected JS
+                foreach (['core_dependencies', 'plugin_specific', 'inline_dependent'] as $category) {
+                    if (!empty($excludeJs[$category])) {
+                        foreach ($excludeJs[$category] as $item) {
+                            if ($item['confidence'] >= 0.7) {
+                                $jsToExclude[] = $item['handle'];
+                            }
+                        }
+                    }
+                }
+                
+                // Get current exclude_js setting and merge
+                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
+                $mergedExclude = array_unique(array_merge($currentExcludeArray, $jsToExclude));
+                
+                // Update settings
+                $optimizer->update([
+                    'exclude_js' => implode("\n", $mergedExclude),
+                ]);
+                
+                $message = sprintf(
+                    __('Successfully applied %d JavaScript files to exclusion list!', 'fp-performance-suite'),
+                    count($jsToExclude)
+                );
+                
+                // Reload settings
                 $settings = $optimizer->settings();
             }
             // Determina quale form è stato inviato
@@ -466,11 +550,162 @@ class Assets extends AbstractPage
                     </div>
                 <?php endif; ?>
                 
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: #0969da;">🎨 <?php esc_html_e('Smart CSS Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 10px;">
+                        <?php esc_html_e('Let the AI detect CSS files that should not be optimized (combined/minified) automatically.', 'fp-performance-suite'); ?>
+                    </p>
+                    <button type="submit" name="auto_detect_exclude_css" class="button button-secondary">
+                        🔍 <?php esc_html_e('Auto-Detect CSS to Exclude', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($excludeCss) : ?>
+                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('CSS Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
+                        
+                        <?php if (!empty($excludeCss['plugin_specific'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔌 <?php esc_html_e('Plugin-Specific CSS', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($excludeCss['plugin_specific'] as $item) : ?>
+                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
+                                    <?php if (!empty($item['src'])) : ?>
+                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
+                                    <?php endif; ?>
+                                    <em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($excludeCss['critical_files'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🎯 <?php esc_html_e('Critical Theme Files', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($excludeCss['critical_files'] as $item) : ?>
+                                <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
+                                    <?php if (!empty($item['src'])) : ?>
+                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
+                                    <?php endif; ?>
+                                    <em style="color: #0369a1;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($excludeCss['admin_styles'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                ⚙️ <?php esc_html_e('Admin Styles', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach (array_slice($excludeCss['admin_styles'], 0, 5) as $item) : ?>
+                                <div style="background: #f3e8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                    <em style="color: #7c3aed;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
+                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                                <?php esc_html_e('Aggiungi questi CSS alla lista di esclusione qui sotto per evitare problemi di layout.', 'fp-performance-suite'); ?>
+                            </p>
+                            <button type="submit" name="apply_css_exclusions" class="button button-primary">
+                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <p>
                     <label for="exclude_css"><?php esc_html_e('Exclude CSS from optimization', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_css" id="exclude_css" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\nstyle-handle\n/wp-content/themes/mytheme/custom.css', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_css'] ?? ''); ?></textarea>
                     <span class="description"><?php esc_html_e('CSS files to exclude from minification and combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
                 </p>
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: #0969da;">⚡ <?php esc_html_e('Smart JavaScript Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 10px;">
+                        <?php esc_html_e('Let the AI detect JavaScript files that should not be optimized (deferred/combined) automatically.', 'fp-performance-suite'); ?>
+                    </p>
+                    <button type="submit" name="auto_detect_exclude_js" class="button button-secondary">
+                        🔍 <?php esc_html_e('Auto-Detect JS to Exclude', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($excludeJs) : ?>
+                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('JavaScript Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
+                        
+                        <?php if (!empty($excludeJs['plugin_specific'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔌 <?php esc_html_e('Plugin-Specific JavaScript', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($excludeJs['plugin_specific'] as $item) : ?>
+                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
+                                    <?php if (!empty($item['src'])) : ?>
+                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
+                                    <?php endif; ?>
+                                    <em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($excludeJs['core_dependencies'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔗 <?php esc_html_e('Core Dependencies', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach (array_slice($excludeJs['core_dependencies'], 0, 5) as $item) : ?>
+                                <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                    <em style="color: #4338ca;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #6366f1; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($excludeJs['inline_dependent'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                📝 <?php esc_html_e('Scripts with Inline Code', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach (array_slice($excludeJs['inline_dependent'], 0, 5) as $item) : ?>
+                                <div style="background: #fee2e2; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                    <em style="color: #dc2626;"><?php echo esc_html($item['reason']); ?></em>
+                                    <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
+                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                                <?php esc_html_e('Aggiungi questi script alla lista di esclusione qui sotto per evitare problemi di funzionalità.', 'fp-performance-suite'); ?>
+                            </p>
+                            <button type="submit" name="apply_js_exclusions" class="button button-primary">
+                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <p>
                     <label for="exclude_js"><?php esc_html_e('Exclude JavaScript from optimization', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_js" id="exclude_js" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\njquery\njquery-core\n/wp-includes/js/jquery/jquery.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_js'] ?? ''); ?></textarea>
