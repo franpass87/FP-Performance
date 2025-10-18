@@ -20,9 +20,9 @@ class Advanced extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-
-        // Handle form submissions
-        add_action('admin_post_fp_ps_save_advanced', [$this, 'handleSave']);
+        
+        // Note: L'hook admin_post è ora registrato nella classe Menu
+        // per garantire che sia disponibile quando necessario
     }
 
     public function slug(): string
