@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
 use function __;
 use function array_filter;
@@ -62,7 +63,16 @@ class Assets extends AbstractPage
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
         
+        // Smart Script Detector
+        $smartDetector = new SmartExclusionDetector();
+        $criticalScripts = null;
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
+            // Handle auto-detect critical scripts
+            if (isset($_POST['auto_detect_scripts'])) {
+                $criticalScripts = $smartDetector->detectCriticalScripts();
+                $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+            }
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
@@ -324,6 +334,66 @@ class Assets extends AbstractPage
                     <label for="preload"><?php esc_html_e('Preload resources (full URLs)', 'fp-performance-suite'); ?></label>
                     <textarea name="preload" id="preload" rows="4" class="large-text code"><?php echo esc_textarea(implode("\n", $settings['preload'])); ?></textarea>
                 </p>
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Script Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 10px;">
+                        <?php esc_html_e('Let the AI detect critical scripts that should not be optimized automatically.', 'fp-performance-suite'); ?>
+                    </p>
+                    <button type="submit" name="auto_detect_scripts" class="button button-secondary">
+                        🔍 <?php esc_html_e('Auto-Detect Critical Scripts', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($criticalScripts) : ?>
+                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('Critical Scripts Detected', 'fp-performance-suite'); ?></h4>
+                        
+                        <?php if (!empty($criticalScripts['always_exclude'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🛡️ <?php esc_html_e('Always Exclude (Core Dependencies)', 'fp-performance-suite'); ?>
+                            </h5>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                                <?php foreach ($criticalScripts['always_exclude'] as $script) : ?>
+                                    <span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
+                                        <?php echo esc_html($script); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalScripts['plugin_critical'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔌 <?php esc_html_e('Plugin Critical Scripts', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalScripts['plugin_critical'] as $item) : ?>
+                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['pattern']); ?></strong> - 
+                                    <em><?php echo esc_html($item['reason']); ?></em>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalScripts['dependency_critical'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔗 <?php esc_html_e('High-Dependency Scripts', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach (array_slice($criticalScripts['dependency_critical'], 0, 5) as $item) : ?>
+                                <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                    <em><?php echo esc_html($item['reason']); ?></em>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 12px; color: #065f46;">
+                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                                <?php esc_html_e('Aggiungi questi script alla lista di esclusione manuale qui sotto per evitare problemi.', 'fp-performance-suite'); ?>
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <p>
                     <label for="exclude_css"><?php esc_html_e('Exclude CSS from optimization', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_css" id="exclude_css" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\nstyle-handle\n/wp-content/themes/mytheme/custom.css', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_css'] ?? ''); ?></textarea>
