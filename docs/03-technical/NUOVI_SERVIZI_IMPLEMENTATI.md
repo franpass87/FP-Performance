@@ -265,13 +265,66 @@ $settings = [
 ### Descrizione
 Gestisce il caricamento ritardato di script di terze parti (analytics, social, ads).
 
-### Script Supportati
+### Script Supportati (39 totali)
+
+#### Analytics & Tracking
 - 🔍 Google Analytics / GTM
-- 📘 Facebook Pixel
 - 📊 Google Ads
 - 🔥 Hotjar
+- 🔍 Microsoft Clarity
+- 📊 Segment
+- 📈 Mixpanel
+- 🎬 FullStory
+
+#### Social Media Pixels
+- 📘 Facebook Pixel
+- 💼 LinkedIn Insight Tag
+- 🐦 Twitter/X Pixel
+- 🎵 TikTok Pixel
+- 📌 Pinterest Tag
+- 👻 Snapchat Pixel
+
+#### Live Chat & Support
 - 💬 Intercom
-- 📺 YouTube embeds
+- 🎧 Zendesk
+- 💬 Drift
+- 💬 Crisp
+- 💬 Tidio
+- 💬 Tawk.to
+- 💬 LiveChat
+- 🧡 HubSpot
+
+#### E-commerce & Reviews
+- ⭐ Trustpilot
+- 📧 Klaviyo
+- 📧 Mailchimp
+- 📊 ActiveCampaign
+
+#### Payments
+- 💳 Stripe
+- 💳 PayPal
+- 💳 Klarna
+
+#### Testing & Optimization
+- 🧪 Optimizely
+
+#### Compliance & Privacy
+- 🍪 OneTrust
+- 🤖 reCAPTCHA
+
+#### Scheduling & Forms
+- 📅 Calendly
+- 📋 Typeform
+
+#### Media & Embeds
+- 📺 YouTube
+- ▶️ Vimeo
+- 🎵 SoundCloud
+- 🎵 Spotify
+- 🗺️ Google Maps
+
+#### Accessibility
+- ♿ UserWay
 
 ### Strategie di Caricamento
 1. **On Interaction**: Carica al primo scroll/click/hover

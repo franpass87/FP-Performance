@@ -98,6 +98,7 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
             $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
             $container->get(QueryCacheManager::class)->register();
@@ -251,6 +252,11 @@ class Plugin
         
         // Third-Party Script Manager
         $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptManager());
+        
+        // Third-Party Script Detector (AI Auto-detect)
+        $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector(
+            $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
+        ));
         
         // Service Worker / PWA
         $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));

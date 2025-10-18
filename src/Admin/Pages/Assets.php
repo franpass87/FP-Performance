@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
@@ -62,6 +63,7 @@ class Assets extends AbstractPage
         $optimizer = $this->container->get(Optimizer::class);
         $fontOptimizer = $this->container->get(FontOptimizer::class);
         $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+        $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
         $http2Push = $this->container->get(Http2ServerPush::class);
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
@@ -285,6 +287,39 @@ class Assets extends AbstractPage
                         'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
                         'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
                         'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
+                        'linkedin_insight' => ['enabled' => !empty($_POST['third_party_linkedin']), 'delay' => true],
+                        'twitter_pixel' => ['enabled' => !empty($_POST['third_party_twitter']), 'delay' => true],
+                        'tiktok_pixel' => ['enabled' => !empty($_POST['third_party_tiktok']), 'delay' => true],
+                        'pinterest_tag' => ['enabled' => !empty($_POST['third_party_pinterest']), 'delay' => true],
+                        'hubspot' => ['enabled' => !empty($_POST['third_party_hubspot']), 'delay' => true],
+                        'zendesk' => ['enabled' => !empty($_POST['third_party_zendesk']), 'delay' => true],
+                        'drift' => ['enabled' => !empty($_POST['third_party_drift']), 'delay' => true],
+                        'crisp' => ['enabled' => !empty($_POST['third_party_crisp']), 'delay' => true],
+                        'tidio' => ['enabled' => !empty($_POST['third_party_tidio']), 'delay' => true],
+                        'segment' => ['enabled' => !empty($_POST['third_party_segment']), 'delay' => true],
+                        'mixpanel' => ['enabled' => !empty($_POST['third_party_mixpanel']), 'delay' => true],
+                        'mailchimp' => ['enabled' => !empty($_POST['third_party_mailchimp']), 'delay' => true],
+                        'stripe' => ['enabled' => !empty($_POST['third_party_stripe']), 'delay' => true],
+                        'paypal' => ['enabled' => !empty($_POST['third_party_paypal']), 'delay' => true],
+                        'recaptcha' => ['enabled' => !empty($_POST['third_party_recaptcha']), 'delay' => true],
+                        'google_maps' => ['enabled' => !empty($_POST['third_party_gmaps']), 'delay' => true],
+                        'microsoft_clarity' => ['enabled' => !empty($_POST['third_party_clarity']), 'delay' => true],
+                        'vimeo' => ['enabled' => !empty($_POST['third_party_vimeo']), 'delay' => true],
+                        'tawk_to' => ['enabled' => !empty($_POST['third_party_tawk']), 'delay' => true],
+                        'optimizely' => ['enabled' => !empty($_POST['third_party_optimizely']), 'delay' => true],
+                        'trustpilot' => ['enabled' => !empty($_POST['third_party_trustpilot']), 'delay' => true],
+                        'klaviyo' => ['enabled' => !empty($_POST['third_party_klaviyo']), 'delay' => true],
+                        'onetrust' => ['enabled' => !empty($_POST['third_party_onetrust']), 'delay' => true],
+                        'calendly' => ['enabled' => !empty($_POST['third_party_calendly']), 'delay' => true],
+                        'fullstory' => ['enabled' => !empty($_POST['third_party_fullstory']), 'delay' => true],
+                        'snapchat_pixel' => ['enabled' => !empty($_POST['third_party_snapchat']), 'delay' => true],
+                        'soundcloud' => ['enabled' => !empty($_POST['third_party_soundcloud']), 'delay' => true],
+                        'klarna' => ['enabled' => !empty($_POST['third_party_klarna']), 'delay' => true],
+                        'spotify' => ['enabled' => !empty($_POST['third_party_spotify']), 'delay' => true],
+                        'livechat' => ['enabled' => !empty($_POST['third_party_livechat']), 'delay' => true],
+                        'activecampaign' => ['enabled' => !empty($_POST['third_party_activecampaign']), 'delay' => true],
+                        'userway' => ['enabled' => !empty($_POST['third_party_userway']), 'delay' => true],
+                        'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
                     ],
                 ]);
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
@@ -311,6 +346,34 @@ class Assets extends AbstractPage
                     'quality_fast' => (int) ($_POST['smart_quality_fast'] ?? 85),
                 ]);
                 $message = __('Smart Asset Delivery settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'script_detector') {
+                // Handle script detector actions
+                if (isset($_POST['action_scan'])) {
+                    $scriptDetector->scanHomepage();
+                    $message = __('Scan completed! Check suggestions below.', 'fp-performance-suite');
+                } elseif (isset($_POST['action_add_custom'])) {
+                    $scriptDetector->addCustomScript([
+                        'name' => sanitize_text_field($_POST['script_name'] ?? ''),
+                        'patterns' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['script_patterns'] ?? '')))),
+                        'enabled' => !empty($_POST['script_enabled']),
+                        'delay' => !empty($_POST['script_delay']),
+                    ]);
+                    $message = __('Custom script added successfully!', 'fp-performance-suite');
+                } elseif (isset($_POST['action_auto_add'])) {
+                    $hash = sanitize_text_field($_POST['script_hash'] ?? '');
+                    if ($scriptDetector->autoAddFromSuggestion($hash)) {
+                        $message = __('Script automatically added to managed list!', 'fp-performance-suite');
+                    }
+                } elseif (isset($_POST['action_dismiss'])) {
+                    $hash = sanitize_text_field($_POST['script_hash'] ?? '');
+                    $scriptDetector->dismissScript($hash);
+                    $message = __('Suggestion dismissed.', 'fp-performance-suite');
+                } elseif (isset($_POST['action_remove_custom'])) {
+                    $key = sanitize_key($_POST['custom_key'] ?? '');
+                    if ($scriptDetector->removeCustomScript($key)) {
+                        $message = __('Custom script removed.', 'fp-performance-suite');
+                    }
+                }
             }
         }
         $settings = $optimizer->settings();
@@ -1106,6 +1169,283 @@ class Assets extends AbstractPage
                         </span>
                         <input type="checkbox" name="third_party_youtube" value="1" <?php checked($thirdPartySettings['scripts']['youtube']['enabled'] ?? false); ?> />
                     </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💼 LinkedIn Insight</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Insight Tag, Conversion', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_linkedin" value="1" <?php checked($thirdPartySettings['scripts']['linkedin_insight']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🐦 Twitter/X Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Twitter Ads, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_twitter" value="1" <?php checked($thirdPartySettings['scripts']['twitter_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 TikTok Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('TikTok Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tiktok" value="1" <?php checked($thirdPartySettings['scripts']['tiktok_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📌 Pinterest Tag</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Pinterest Conversion', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_pinterest" value="1" <?php checked($thirdPartySettings['scripts']['pinterest_tag']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🧡 HubSpot</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Marketing, CRM, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_hubspot" value="1" <?php checked($thirdPartySettings['scripts']['hubspot']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎧 Zendesk</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Support, Live Chat', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_zendesk" value="1" <?php checked($thirdPartySettings['scripts']['zendesk']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Drift</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Conversational Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_drift" value="1" <?php checked($thirdPartySettings['scripts']['drift']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Crisp</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Live Chat, Messaging', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_crisp" value="1" <?php checked($thirdPartySettings['scripts']['crisp']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 Tidio</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Live Chat, Chatbots', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tidio" value="1" <?php checked($thirdPartySettings['scripts']['tidio']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📊 Segment</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Customer Data Platform', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_segment" value="1" <?php checked($thirdPartySettings['scripts']['segment']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📈 Mixpanel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Product Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_mixpanel" value="1" <?php checked($thirdPartySettings['scripts']['mixpanel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📧 Mailchimp</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Email Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_mailchimp" value="1" <?php checked($thirdPartySettings['scripts']['mailchimp']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 Stripe</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Payment Processing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_stripe" value="1" <?php checked($thirdPartySettings['scripts']['stripe']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 PayPal</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Payment Processing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_paypal" value="1" <?php checked($thirdPartySettings['scripts']['paypal']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🤖 reCAPTCHA</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Google reCAPTCHA', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_recaptcha" value="1" <?php checked($thirdPartySettings['scripts']['recaptcha']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🗺️ Google Maps</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Maps API, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_gmaps" value="1" <?php checked($thirdPartySettings['scripts']['google_maps']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🔍 Microsoft Clarity</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Session Recording, Heatmaps', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_clarity" value="1" <?php checked($thirdPartySettings['scripts']['microsoft_clarity']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>▶️ Vimeo</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Video Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_vimeo" value="1" <?php checked($thirdPartySettings['scripts']['vimeo']['enabled'] ?? false); ?> />
+                    </label>
+                </div>
+                
+                <h4 style="margin-top: 25px; color: #1d2327; font-size: 14px; font-weight: 600; border-bottom: 2px solid #2271b1; padding-bottom: 8px;">
+                    🔥 <?php esc_html_e('Servizi Ad Alto Impatto (Consigliati)', 'fp-performance-suite'); ?>
+                </h4>
+                <p class="description" style="margin: 10px 0 15px 0;"><?php esc_html_e('Servizi particolarmente pesanti che beneficiano molto del ritardo.', 'fp-performance-suite'); ?></p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>💬 Tawk.to</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Free Live Chat - Popolarissimo', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_tawk" value="1" <?php checked($thirdPartySettings['scripts']['tawk_to']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>🧪 Optimizely</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('A/B Testing, Experimentation', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_optimizely" value="1" <?php checked($thirdPartySettings['scripts']['optimizely']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>⭐ Trustpilot</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Reviews Widget, Trust Badge', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_trustpilot" value="1" <?php checked($thirdPartySettings['scripts']['trustpilot']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>📧 Klaviyo</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('E-commerce Email Marketing', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_klaviyo" value="1" <?php checked($thirdPartySettings['scripts']['klaviyo']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #fff7ed; padding: 12px; border-radius: 4px; border: 2px solid #f59e0b;">
+                        <span class="info">
+                            <strong>🍪 OneTrust</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Cookie Consent GDPR/CCPA', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_onetrust" value="1" <?php checked($thirdPartySettings['scripts']['onetrust']['enabled'] ?? false); ?> />
+                    </label>
+                </div>
+                
+                <h4 style="margin-top: 25px; color: #1d2327; font-size: 14px; font-weight: 600; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
+                    ➕ <?php esc_html_e('Altri Servizi Popolari', 'fp-performance-suite'); ?>
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📅 Calendly</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Appointment Scheduling', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_calendly" value="1" <?php checked($thirdPartySettings['scripts']['calendly']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎬 FullStory</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Session Replay, Analytics', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_fullstory" value="1" <?php checked($thirdPartySettings['scripts']['fullstory']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>👻 Snapchat Pixel</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Snap Ads, Conversions', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_snapchat" value="1" <?php checked($thirdPartySettings['scripts']['snapchat_pixel']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 SoundCloud</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Audio Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_soundcloud" value="1" <?php checked($thirdPartySettings['scripts']['soundcloud']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💳 Klarna</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Buy Now Pay Later', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_klarna" value="1" <?php checked($thirdPartySettings['scripts']['klarna']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🎵 Spotify</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Music Player, Embed', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_spotify" value="1" <?php checked($thirdPartySettings['scripts']['spotify']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>💬 LiveChat</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Customer Support Chat', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_livechat" value="1" <?php checked($thirdPartySettings['scripts']['livechat']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📊 ActiveCampaign</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Marketing Automation', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_activecampaign" value="1" <?php checked($thirdPartySettings['scripts']['activecampaign']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>♿ UserWay</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Accessibility Widget', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_userway" value="1" <?php checked($thirdPartySettings['scripts']['userway']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📋 Typeform</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Interactive Forms, Surveys', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_typeform" value="1" <?php checked($thirdPartySettings['scripts']['typeform']['enabled'] ?? false); ?> />
+                    </label>
                 </div>
                 
                 <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
@@ -1120,6 +1460,206 @@ class Assets extends AbstractPage
                 
                 <p style="margin-top: 20px;">
                     <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Third-Party Scripts', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <?php
+        // Get detector data
+        $suggestions = $scriptDetector->getSuggestions();
+        $customScripts = $scriptDetector->getCustomScripts();
+        $stats = $scriptDetector->getStats();
+        ?>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>🤖 <?php esc_html_e('Auto-Detect & Custom Scripts', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">NEW AI</span></h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                <?php esc_html_e('Il sistema rileva automaticamente script di terze parti non gestiti e ti suggerisce di aggiungerli. Puoi anche aggiungere script personalizzati manualmente.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($stats['total_custom'] > 0 || $stats['total_suggestions'] > 0): ?>
+            <div style="background: #f0f9ff; border-left: 4px solid #0891b2; padding: 15px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #0891b2;">📊 <?php esc_html_e('Statistiche Rilevamento:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php printf(esc_html__('Script rilevati totali: %d', 'fp-performance-suite'), $stats['total_detected']); ?></li>
+                    <li><?php printf(esc_html__('Script custom attivi: %d', 'fp-performance-suite'), $stats['total_custom']); ?></li>
+                    <li><?php printf(esc_html__('Nuovi suggerimenti: %d', 'fp-performance-suite'), $stats['total_suggestions']); ?></li>
+                </ul>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Scan Button -->
+            <form method="post" style="margin-bottom: 20px;">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="script_detector" />
+                <button type="submit" name="action_scan" class="button button-secondary">
+                    🔍 <?php esc_html_e('Scansiona Homepage Ora', 'fp-performance-suite'); ?>
+                </button>
+                <p class="description" style="margin-top: 8px;">
+                    <?php esc_html_e('La scansione automatica viene effettuata ogni giorno. Usa questo pulsante per una scansione immediata.', 'fp-performance-suite'); ?>
+                </p>
+            </form>
+            
+            <!-- Suggestions -->
+            <?php if (!empty($suggestions)): ?>
+            <h3 style="margin-top: 25px; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
+                💡 <?php esc_html_e('Script Rilevati - Suggerimenti', 'fp-performance-suite'); ?>
+            </h3>
+            <p class="description" style="margin-bottom: 15px;">
+                <?php esc_html_e('Questi script sono stati rilevati sul tuo sito ma non sono ancora gestiti. Puoi aggiungerli alla lista o ignorarli.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div style="display: grid; gap: 15px;">
+                <?php foreach (array_slice($suggestions, 0, 10) as $suggestion): 
+                    $categoryColors = [
+                        'analytics' => '#3b82f6',
+                        'advertising' => '#f59e0b',
+                        'chat' => '#10b981',
+                        'social' => '#8b5cf6',
+                        'payment' => '#ef4444',
+                        'video' => '#ec4899',
+                        'forms' => '#14b8a6',
+                        'unknown' => '#6b7280',
+                    ];
+                    $color = $categoryColors[$suggestion['category']] ?? '#6b7280';
+                ?>
+                <div style="background: #fff; border: 1px solid #ddd; border-left: 4px solid <?php echo $color; ?>; padding: 15px; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 8px 0; color: #1d2327;">
+                                <?php echo esc_html($suggestion['suggested_name']); ?>
+                                <span style="background: <?php echo $color; ?>; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 8px;">
+                                    <?php echo esc_html($suggestion['category']); ?>
+                                </span>
+                                <?php if ($suggestion['priority'] >= 50): ?>
+                                <span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; margin-left: 4px;">
+                                    HIGH PRIORITY
+                                </span>
+                                <?php endif; ?>
+                            </h4>
+                            <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                                <strong><?php esc_html_e('Dominio:', 'fp-performance-suite'); ?></strong> 
+                                <code><?php echo esc_html($suggestion['domain']); ?></code>
+                            </p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                                <strong><?php esc_html_e('Rilevato:', 'fp-performance-suite'); ?></strong> 
+                                <?php echo $suggestion['occurrences']; ?> volte
+                            </p>
+                            <p style="margin: 8px 0 0 0; font-size: 11px; color: #999;">
+                                <code><?php echo esc_html($suggestion['src']); ?></code>
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-left: 15px;">
+                            <form method="post" style="margin: 0;">
+                                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="form_type" value="script_detector" />
+                                <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
+                                <button type="submit" name="action_auto_add" class="button button-primary button-small">
+                                    ✅ <?php esc_html_e('Aggiungi', 'fp-performance-suite'); ?>
+                                </button>
+                            </form>
+                            <form method="post" style="margin: 0;">
+                                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="form_type" value="script_detector" />
+                                <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
+                                <button type="submit" name="action_dismiss" class="button button-link-delete button-small">
+                                    ❌ <?php esc_html_e('Ignora', 'fp-performance-suite'); ?>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <?php if (count($suggestions) > 10): ?>
+            <p style="margin-top: 15px; color: #666;">
+                <?php printf(esc_html__('Mostrati %d di %d suggerimenti. I più importanti sono elencati per primi.', 'fp-performance-suite'), 10, count($suggestions)); ?>
+            </p>
+            <?php endif; ?>
+            <?php endif; ?>
+            
+            <!-- Custom Scripts List -->
+            <?php if (!empty($customScripts)): ?>
+            <h3 style="margin-top: 30px; border-bottom: 2px solid #8b5cf6; padding-bottom: 8px;">
+                🎯 <?php esc_html_e('Script Custom Gestiti', 'fp-performance-suite'); ?>
+            </h3>
+            
+            <div style="display: grid; gap: 10px; margin-top: 15px;">
+                <?php foreach ($customScripts as $key => $script): ?>
+                <div style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong><?php echo esc_html($script['name']); ?></strong>
+                        <?php if (!empty($script['enabled'])): ?>
+                        <span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">ATTIVO</span>
+                        <?php else: ?>
+                        <span style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">DISATTIVO</span>
+                        <?php endif; ?>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
+                            <?php echo esc_html(implode(', ', $script['patterns'])); ?>
+                        </p>
+                    </div>
+                    <form method="post" style="margin: 0;">
+                        <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                        <input type="hidden" name="form_type" value="script_detector" />
+                        <input type="hidden" name="custom_key" value="<?php echo esc_attr($key); ?>" />
+                        <button type="submit" name="action_remove_custom" class="button button-link-delete button-small" onclick="return confirm('Rimuovere questo script custom?');">
+                            🗑️ <?php esc_html_e('Rimuovi', 'fp-performance-suite'); ?>
+                        </button>
+                    </form>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Add Custom Script Form -->
+            <h3 style="margin-top: 30px; border-bottom: 2px solid #6366f1; padding-bottom: 8px;">
+                ➕ <?php esc_html_e('Aggiungi Script Personalizzato', 'fp-performance-suite'); ?>
+            </h3>
+            
+            <form method="post" style="margin-top: 15px;">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="script_detector" />
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="script_name"><?php esc_html_e('Nome Script', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="script_name" name="script_name" class="regular-text" placeholder="es. My Custom Service" required />
+                            <p class="description"><?php esc_html_e('Nome identificativo per lo script', 'fp-performance-suite'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="script_patterns"><?php esc_html_e('Pattern URL', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <textarea id="script_patterns" name="script_patterns" rows="3" class="large-text code" placeholder="example.com/script.js&#10;cdn.example.com" required></textarea>
+                            <p class="description"><?php esc_html_e('Inserisci uno o più pattern URL (uno per riga). Es: example.com/script.js', 'fp-performance-suite'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Impostazioni', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="script_enabled" value="1" checked />
+                                <?php esc_html_e('Abilita subito', 'fp-performance-suite'); ?>
+                            </label>
+                            <br />
+                            <label>
+                                <input type="checkbox" name="script_delay" value="1" checked />
+                                <?php esc_html_e('Ritarda caricamento', 'fp-performance-suite'); ?>
+                            </label>
+                        </td>
+                    </tr>
+                </table>
+                
+                <p>
+                    <button type="submit" name="action_add_custom" class="button button-primary">
+                        ➕ <?php esc_html_e('Aggiungi Script Custom', 'fp-performance-suite'); ?>
+                    </button>
                 </p>
             </form>
         </section>

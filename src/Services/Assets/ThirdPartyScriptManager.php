@@ -80,6 +80,173 @@ class ThirdPartyScriptManager
                     'patterns' => ['youtube.com/iframe_api', 'youtube.com/embed'],
                     'delay' => true,
                 ],
+                'linkedin_insight' => [
+                    'enabled' => false,
+                    'patterns' => ['snap.licdn.com', 'platform.linkedin.com'],
+                    'delay' => true,
+                ],
+                'twitter_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['static.ads-twitter.com', 'analytics.twitter.com'],
+                    'delay' => true,
+                ],
+                'tiktok_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['analytics.tiktok.com'],
+                    'delay' => true,
+                ],
+                'pinterest_tag' => [
+                    'enabled' => false,
+                    'patterns' => ['ct.pinterest.com', 'pintrk.com'],
+                    'delay' => true,
+                ],
+                'hubspot' => [
+                    'enabled' => false,
+                    'patterns' => ['js.hs-scripts.com', 'js.hubspot.com', 'js.hs-analytics.net'],
+                    'delay' => true,
+                ],
+                'zendesk' => [
+                    'enabled' => false,
+                    'patterns' => ['static.zdassets.com', 'ekr.zdassets.com'],
+                    'delay' => true,
+                ],
+                'drift' => [
+                    'enabled' => false,
+                    'patterns' => ['js.driftt.com'],
+                    'delay' => true,
+                ],
+                'crisp' => [
+                    'enabled' => false,
+                    'patterns' => ['client.crisp.chat'],
+                    'delay' => true,
+                ],
+                'tidio' => [
+                    'enabled' => false,
+                    'patterns' => ['code.tidio.co'],
+                    'delay' => true,
+                ],
+                'segment' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.segment.com'],
+                    'delay' => true,
+                ],
+                'mixpanel' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.mxpnl.com'],
+                    'delay' => true,
+                ],
+                'mailchimp' => [
+                    'enabled' => false,
+                    'patterns' => ['chimpstatic.com/mcjs-connected'],
+                    'delay' => true,
+                ],
+                'stripe' => [
+                    'enabled' => false,
+                    'patterns' => ['js.stripe.com'],
+                    'delay' => true,
+                ],
+                'paypal' => [
+                    'enabled' => false,
+                    'patterns' => ['paypal.com/sdk/js'],
+                    'delay' => true,
+                ],
+                'recaptcha' => [
+                    'enabled' => false,
+                    'patterns' => ['google.com/recaptcha', 'gstatic.com/recaptcha'],
+                    'delay' => true,
+                ],
+                'google_maps' => [
+                    'enabled' => false,
+                    'patterns' => ['maps.googleapis.com', 'maps.google.com'],
+                    'delay' => true,
+                ],
+                'microsoft_clarity' => [
+                    'enabled' => false,
+                    'patterns' => ['clarity.ms'],
+                    'delay' => true,
+                ],
+                'vimeo' => [
+                    'enabled' => false,
+                    'patterns' => ['player.vimeo.com', 'vimeocdn.com'],
+                    'delay' => true,
+                ],
+                // TOP 5 servizi ad alto valore
+                'tawk_to' => [
+                    'enabled' => false,
+                    'patterns' => ['embed.tawk.to'],
+                    'delay' => true,
+                ],
+                'optimizely' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.optimizely.com', 'logx.optimizely.com'],
+                    'delay' => true,
+                ],
+                'trustpilot' => [
+                    'enabled' => false,
+                    'patterns' => ['widget.trustpilot.com', 'invoca.tpcdn.com'],
+                    'delay' => true,
+                ],
+                'klaviyo' => [
+                    'enabled' => false,
+                    'patterns' => ['static.klaviyo.com', 'a.klaviyo.com'],
+                    'delay' => true,
+                ],
+                'onetrust' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.cookielaw.org', 'optanon.blob.core.windows.net'],
+                    'delay' => true,
+                ],
+                // Altri servizi popolari
+                'calendly' => [
+                    'enabled' => false,
+                    'patterns' => ['assets.calendly.com', 'calendly.com/assets'],
+                    'delay' => true,
+                ],
+                'fullstory' => [
+                    'enabled' => false,
+                    'patterns' => ['fullstory.com/s/fs.js', 'rs.fullstory.com'],
+                    'delay' => true,
+                ],
+                'snapchat_pixel' => [
+                    'enabled' => false,
+                    'patterns' => ['sc-static.net/scevent.min.js', 'tr.snapchat.com'],
+                    'delay' => true,
+                ],
+                'soundcloud' => [
+                    'enabled' => false,
+                    'patterns' => ['w.soundcloud.com', 'widget.sndcdn.com'],
+                    'delay' => true,
+                ],
+                'klarna' => [
+                    'enabled' => false,
+                    'patterns' => ['js.klarna.com', 'x.klarnacdn.net'],
+                    'delay' => true,
+                ],
+                'spotify' => [
+                    'enabled' => false,
+                    'patterns' => ['open.spotify.com/embed', 'embed.spotify.com'],
+                    'delay' => true,
+                ],
+                'livechat' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.livechatinc.com', 'cdn.livechat-files.com'],
+                    'delay' => true,
+                ],
+                'activecampaign' => [
+                    'enabled' => false,
+                    'patterns' => ['trackcmp.net', 'trackcmp.com'],
+                    'delay' => true,
+                ],
+                'userway' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.userway.org', 'userway.org/widget.js'],
+                    'delay' => true,
+                ],
+                'typeform' => [
+                    'enabled' => false,
+                    'patterns' => ['embed.typeform.com', 'typeform.com/embed'],
+                    'delay' => true,
+                ],
             ],
         ];
 
@@ -162,6 +329,20 @@ class ThirdPartyScriptManager
             }
 
             foreach ($scriptConfig['patterns'] as $pattern) {
+                if (strpos($src, $pattern) !== false) {
+                    return true;
+                }
+            }
+        }
+
+        // Check against custom scripts
+        $customScripts = $this->getCustomScripts();
+        foreach ($customScripts as $customScript) {
+            if (empty($customScript['enabled']) || empty($customScript['delay'])) {
+                continue;
+            }
+
+            foreach ($customScript['patterns'] as $pattern) {
                 if (strpos($src, $pattern) !== false) {
                     return true;
                 }
@@ -303,7 +484,7 @@ class ThirdPartyScriptManager
     /**
      * Get status
      *
-     * @return array{enabled:bool,delay_all:bool,managed_scripts:int}
+     * @return array{enabled:bool,delay_all:bool,managed_scripts:int,custom_scripts:int}
      */
     public function status(): array
     {
@@ -316,10 +497,20 @@ class ThirdPartyScriptManager
             }
         }
 
+        // Count custom scripts
+        $customScripts = $this->getCustomScripts();
+        $customCount = 0;
+        foreach ($customScripts as $custom) {
+            if (!empty($custom['enabled'])) {
+                $customCount++;
+            }
+        }
+
         return [
             'enabled' => $settings['enabled'],
             'delay_all' => $settings['delay_all'],
             'managed_scripts' => $managedCount,
+            'custom_scripts' => $customCount,
         ];
     }
 }
