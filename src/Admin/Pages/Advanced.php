@@ -685,21 +685,35 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             </div>
             <?php endif; ?>
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="cwv_enabled"><?php esc_html_e('Abilita Monitoring', 'fp-performance-suite'); ?></label>
-                    </th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?>>
-                            <?php esc_html_e('Monitora Core Web Vitals degli utenti reali (RUM)', 'fp-performance-suite'); ?>
-                        </label>
-                        <p class="description">
-                            <?php esc_html_e('Raccoglie metriche reali dai browser degli utenti per avere dati accurati sulle performance percepite.', 'fp-performance-suite'); ?>
-                        </p>
-                    </td>
-                </tr>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Abilita Core Web Vitals Monitoring', 'fp-performance-suite'); ?></strong>
+                    <span class="fp-ps-risk-indicator green">
+                        <div class="fp-ps-risk-tooltip green">
+                            <div class="fp-ps-risk-tooltip-title">
+                                <span class="icon">✓</span>
+                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Monitora in tempo reale LCP, FID, CLS e altre metriche degli utenti reali (RUM).', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Dati reali sulle performance percepite, identificazione problemi specifici, ottimizzazione basata su dati reali.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Essenziale per monitorare le performance reali e il ranking Google. Impact minimo sulle performance.', 'fp-performance-suite'); ?></div>
+                            </div>
+                        </div>
+                    </span>
+                    <small><?php esc_html_e('Raccoglie metriche reali dai browser degli utenti per avere dati accurati sulle performance percepite.', 'fp-performance-suite'); ?></small>
+                </span>
+                <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?> />
+            </label>
+            
+            <table class="form-table" style="margin-top: 20px;">
                 <tr>
                     <th scope="row">
                         <label for="cwv_sample_rate"><?php esc_html_e('Sample Rate', 'fp-performance-suite'); ?></label>
@@ -890,21 +904,39 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             <h2>📱 <?php esc_html_e('Progressive Web App (PWA)', 'fp-performance-suite'); ?></h2>
             <p><?php esc_html_e('Trasforma il sito in una PWA con Service Worker, cache offline e installabilità.', 'fp-performance-suite'); ?></p>
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="pwa_enabled"><?php esc_html_e('Enable PWA', 'fp-performance-suite'); ?></label>
-                    </th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="pwa[enabled]" id="pwa_enabled" value="1" <?php checked($settings['enabled']); ?>>
-                            <?php esc_html_e('Abilita Service Worker e Web App Manifest', 'fp-performance-suite'); ?>
-                        </label>
-                        <p class="description">
-                            <?php esc_html_e('Rende il sito installabile su home screen e funzionante offline.', 'fp-performance-suite'); ?>
-                        </p>
-                    </td>
-                </tr>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Abilita Progressive Web App (PWA)', 'fp-performance-suite'); ?></strong>
+                    <span class="fp-ps-risk-indicator amber">
+                        <div class="fp-ps-risk-tooltip amber">
+                            <div class="fp-ps-risk-tooltip-title">
+                                <span class="icon">⚠</span>
+                                <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Abilita Service Worker per cache offline, installabilità e funzionalità PWA avanzate.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Esperienza app-like, funzionamento offline, installabile su home screen, notifiche push.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Può causare problemi di cache stale, richiede configurazione accurata. Testa approfonditamente prima del deploy.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Consigliato per app-like sites: Ideale per blog, magazine, portali. Sconsigliato per e-commerce senza test approfonditi.', 'fp-performance-suite'); ?></div>
+                            </div>
+                        </div>
+                    </span>
+                    <small><?php esc_html_e('Abilita Service Worker e Web App Manifest. Rende il sito installabile su home screen e funzionante offline.', 'fp-performance-suite'); ?></small>
+                </span>
+                <input type="checkbox" name="pwa[enabled]" id="pwa_enabled" value="1" <?php checked($settings['enabled']); ?> />
+            </label>
+            
+            <table class="form-table" style="margin-top: 20px;">
                 <tr>
                     <th scope="row">
                         <label for="pwa_cache_strategy"><?php esc_html_e('Cache Strategy', 'fp-performance-suite'); ?></label>
@@ -991,21 +1023,35 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             <h2>🔮 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?></h2>
             <p><?php esc_html_e('Prefetch intelligente delle pagine che l\'utente probabilmente visiterà, basato su hover, scroll e viewport.', 'fp-performance-suite'); ?></p>
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="prefetch_enabled"><?php esc_html_e('Enable Prefetching', 'fp-performance-suite'); ?></label>
-                    </th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="prefetch[enabled]" id="prefetch_enabled" value="1" <?php checked($settings['enabled']); ?>>
-                            <?php esc_html_e('Abilita prefetch predittivo dei link', 'fp-performance-suite'); ?>
-                        </label>
-                        <p class="description">
-                            <?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?>
-                        </p>
-                    </td>
-                </tr>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Abilita Predictive Prefetching', 'fp-performance-suite'); ?></strong>
+                    <span class="fp-ps-risk-indicator green">
+                        <div class="fp-ps-risk-tooltip green">
+                            <div class="fp-ps-risk-tooltip-title">
+                                <span class="icon">✓</span>
+                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Precarica intelligentemente le pagine che l\'utente probabilmente visiterà, basato su hover, scroll e viewport.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Navigazione istantanea, esperienza utente migliorata, riduce il tempo percepito di caricamento pagina.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Migliora significativamente la percezione di velocità. Usa strategia "hover" per il miglior rapporto performance/banda.', 'fp-performance-suite'); ?></div>
+                            </div>
+                        </div>
+                    </span>
+                    <small><?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?></small>
+                </span>
+                <input type="checkbox" name="prefetch[enabled]" id="prefetch_enabled" value="1" <?php checked($settings['enabled']); ?> />
+            </label>
+            
+            <table class="form-table" style="margin-top: 20px;">
                 <tr>
                     <th scope="row">
                         <label for="prefetch_strategy"><?php esc_html_e('Strategia', 'fp-performance-suite'); ?></label>

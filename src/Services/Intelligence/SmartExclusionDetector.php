@@ -448,7 +448,12 @@ class SmartExclusionDetector
                 // Applica solo se confidence >= 0.8
                 if ($item['confidence'] >= 0.8) {
                     if (!$dryRun) {
-                        $this->addExclusion($item['url']);
+                        $this->addExclusion($item['url'], [
+                            'type' => 'automatic',
+                            'reason' => $item['reason'],
+                            'confidence' => $item['confidence'],
+                            'plugin' => $item['plugin'] ?? '',
+                        ]);
                     }
                     $results['applied']++;
                     $results['exclusions'][] = $item;
@@ -462,10 +467,28 @@ class SmartExclusionDetector
     }
 
     /**
-     * Aggiungi esclusione
+     * Aggiungi esclusione con metadata
      */
-    private function addExclusion(string $url): void
+    private function addExclusion(string $url, array $metadata = []): void
     {
+        // Salva l'esclusione con metadata separato
+        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        
+        $exclusionId = md5($url . time());
+        
+        $trackedExclusions[$exclusionId] = [
+            'id' => $exclusionId,
+            'url' => $url,
+            'type' => $metadata['type'] ?? 'automatic',
+            'reason' => $metadata['reason'] ?? '',
+            'confidence' => $metadata['confidence'] ?? 0.8,
+            'plugin' => $metadata['plugin'] ?? '',
+            'applied_at' => time(),
+        ];
+        
+        update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+        
+        // Aggiungi anche alla cache page (backward compatibility)
         $settings = get_option('fp_ps_page_cache', []);
         $currentExclusions = $settings['exclude_urls'] ?? '';
         
@@ -476,5 +499,62 @@ class SmartExclusionDetector
             $settings['exclude_urls'] = implode("\n", $exclusionsList);
             update_option('fp_ps_page_cache', $settings);
         }
+    }
+    
+    /**
+     * Ottieni tutte le esclusioni applicate con metadata
+     */
+    public function getAppliedExclusions(): array
+    {
+        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        
+        // Ordina per data di applicazione (più recenti prima)
+        usort($trackedExclusions, function($a, $b) {
+            return $b['applied_at'] - $a['applied_at'];
+        });
+        
+        return $trackedExclusions;
+    }
+    
+    /**
+     * Rimuovi una esclusione
+     */
+    public function removeExclusion(string $exclusionId): bool
+    {
+        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        
+        if (!isset($trackedExclusions[$exclusionId])) {
+            return false;
+        }
+        
+        $url = $trackedExclusions[$exclusionId]['url'];
+        
+        // Rimuovi dai tracked
+        unset($trackedExclusions[$exclusionId]);
+        update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+        
+        // Rimuovi anche dalla cache page
+        $settings = get_option('fp_ps_page_cache', []);
+        $currentExclusions = $settings['exclude_urls'] ?? '';
+        
+        $exclusionsList = array_filter(explode("\n", $currentExclusions));
+        $exclusionsList = array_filter($exclusionsList, fn($item) => $item !== $url);
+        
+        $settings['exclude_urls'] = implode("\n", $exclusionsList);
+        update_option('fp_ps_page_cache', $settings);
+        
+        return true;
+    }
+    
+    /**
+     * Aggiungi esclusione manuale
+     */
+    public function addManualExclusion(string $url, string $reason = ''): void
+    {
+        $this->addExclusion($url, [
+            'type' => 'manual',
+            'reason' => $reason ?: __('Manual exclusion', 'fp-performance-suite'),
+            'confidence' => 1.0,
+        ]);
     }
 }
