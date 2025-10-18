@@ -212,8 +212,9 @@ class Assets extends AbstractPage
                     }
                 }
                 
-                // Get current exclude_js setting and merge with detected scripts
-                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                // Get current exclude_js from POST if present, otherwise from settings
+                // This preserves user's manual edits in the textarea
+                $currentExclude = isset($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $excludeScripts));
                 
@@ -246,8 +247,9 @@ class Assets extends AbstractPage
                     }
                 }
                 
-                // Get current exclude_css setting and merge
-                $currentExclude = !empty($settings['exclude_css']) ? $settings['exclude_css'] : '';
+                // Get current exclude_css from POST if present, otherwise from settings
+                // This preserves user's manual edits in the textarea
+                $currentExclude = isset($_POST['exclude_css']) ? wp_unslash($_POST['exclude_css']) : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $cssToExclude));
                 
@@ -280,8 +282,9 @@ class Assets extends AbstractPage
                     }
                 }
                 
-                // Get current exclude_js setting and merge
-                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                // Get current exclude_js from POST if present, otherwise from settings
+                // This preserves user's manual edits in the textarea
+                $currentExclude = isset($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $jsToExclude));
                 
