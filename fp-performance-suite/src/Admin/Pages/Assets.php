@@ -229,7 +229,13 @@ class Assets extends AbstractPage
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
-            if ($formType === 'delivery') {
+            // Skip form processing if auto-apply buttons were clicked (they handle their own updates)
+            $isAutoApply = isset($_POST['apply_critical_suggestions']) 
+                || isset($_POST['apply_css_exclusions']) 
+                || isset($_POST['apply_js_exclusions'])
+                || isset($_POST['apply_critical_assets_suggestions']);
+            
+            if ($formType === 'delivery' && !$isAutoApply) {
                 // Salva solo le impostazioni di delivery
                 $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
                 $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
