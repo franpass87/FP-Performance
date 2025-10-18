@@ -73,6 +73,49 @@ class Assets extends AbstractPage
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
             }
+            
+            // Handle apply critical scripts suggestions
+            if (isset($_POST['apply_critical_suggestions'])) {
+                $criticalScripts = $smartDetector->detectCriticalScripts();
+                $excludeScripts = [];
+                
+                // Add all always_exclude scripts
+                if (!empty($criticalScripts['always_exclude'])) {
+                    $excludeScripts = array_merge($excludeScripts, $criticalScripts['always_exclude']);
+                }
+                
+                // Add plugin critical scripts patterns
+                if (!empty($criticalScripts['plugin_critical'])) {
+                    foreach ($criticalScripts['plugin_critical'] as $item) {
+                        $excludeScripts[] = $item['pattern'];
+                    }
+                }
+                
+                // Add high-dependency scripts handles
+                if (!empty($criticalScripts['dependency_critical'])) {
+                    foreach ($criticalScripts['dependency_critical'] as $item) {
+                        $excludeScripts[] = $item['handle'];
+                    }
+                }
+                
+                // Get current exclude_js setting and merge with detected scripts
+                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
+                $mergedExclude = array_unique(array_merge($currentExcludeArray, $excludeScripts));
+                
+                // Update settings with merged exclusions
+                $optimizer->update([
+                    'exclude_js' => implode("\n", $mergedExclude),
+                ]);
+                
+                $message = sprintf(
+                    __('Successfully applied %d critical scripts to exclusion list!', 'fp-performance-suite'),
+                    count($excludeScripts)
+                );
+                
+                // Reload settings to show updated exclude_js
+                $settings = $optimizer->settings();
+            }
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
@@ -386,10 +429,13 @@ class Assets extends AbstractPage
                         <?php endif; ?>
                         
                         <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                            <p style="margin: 0; font-size: 12px; color: #065f46;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
                                 💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
                                 <?php esc_html_e('Aggiungi questi script alla lista di esclusione manuale qui sotto per evitare problemi.', 'fp-performance-suite'); ?>
                             </p>
+                            <button type="submit" name="apply_critical_suggestions" class="button button-primary">
+                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
+                            </button>
                         </div>
                     </div>
                 <?php endif; ?>
