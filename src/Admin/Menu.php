@@ -6,11 +6,12 @@ use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Cache;
 use FP\PerfSuite\Admin\Pages\Compatibility;
-use FP\PerfSuite\Admin\Pages\Diagnostics;
-use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Database;
+use FP\PerfSuite\Admin\Pages\Diagnostics;
+use FP\PerfSuite\Admin\Pages\Exclusions;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
@@ -216,6 +217,9 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Compatibility', 'fp-performance-suite'), __('🎨 Compatibility', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-compatibility', [$pages['compatibility'], 'render']);
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('🔧 Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
         
+        // === INTELLIGENCE ===
+        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🧠 Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        
         // === MONITORAGGIO E DIAGNOSTICA ===
         add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
         add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
@@ -240,6 +244,7 @@ class Menu
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
             'compatibility' => new Compatibility($this->container),
+            'exclusions' => new Exclusions($this->container),
             'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),
             'diagnostics' => new Diagnostics($this->container),
