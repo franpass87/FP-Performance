@@ -5,7 +5,11 @@ namespace FP\PerfSuite\Services\Compatibility;
 /**
  * Compatibility Filters
  *
- * Applies theme/builder-specific filters and exclusions
+ * Gestisce compatibilità specifica per tema/builder
+ * Si concentra su: disabilitazione ottimizzazioni negli editor, cache purge, script di ottimizzazione UX
+ * 
+ * NOTA: Le configurazioni asset (script, font, immagini) sono ora gestite da
+ * \FP\PerfSuite\Services\Assets\ThemeAssetConfiguration
  *
  * @package FP\PerfSuite\Services\Compatibility
  * @author Francesco Passeri
@@ -41,50 +45,12 @@ class CompatibilityFilters
     
     /**
      * Register Salient-specific filters
+     * 
+     * NOTA: Esclusioni script e font HTTP/2 sono ora gestiti da ThemeAssetConfiguration
      */
     private function registerSalientFilters(): void
     {
-        // Exclude Salient scripts from delay
-        add_filter('fp_ps_third_party_script_delay', function($should_delay, $src) {
-            $salient_critical = [
-                'salient-',
-                'nectar-',
-                'modernizr',
-                'touchswipe',
-                'jquery',
-            ];
-            
-            foreach ($salient_critical as $pattern) {
-                if (stripos($src, $pattern) !== false) {
-                    return false;
-                }
-            }
-            
-            return $should_delay;
-        }, 10, 2);
-        
-        // Add Salient fonts to HTTP/2 push
-        add_filter('fp_ps_http2_critical_fonts', function($fonts) {
-            $theme_uri = get_template_directory_uri();
-            
-            $salient_fonts = [
-                $theme_uri . '/css/fonts/icomoon.woff2',
-                $theme_uri . '/css/fonts/fontello.woff2',
-                $theme_uri . '/css/fonts/iconsmind.woff2',
-            ];
-            
-            foreach ($salient_fonts as $font_url) {
-                $fonts[] = [
-                    'url' => $font_url,
-                    'as' => 'font',
-                    'type' => 'font/woff2',
-                ];
-            }
-            
-            return $fonts;
-        });
-        
-        // Disable parallax on slow connections
+        // Disable parallax on slow connections (UX optimization)
         add_action('wp_footer', function() {
             ?>
             <script>
@@ -108,18 +74,6 @@ class CompatibilityFilters
             <?php
         }, 999);
         
-        // Force image dimensions to reduce CLS
-        add_filter('wp_get_attachment_image_attributes', function($attr, $attachment) {
-            if (empty($attr['width']) || empty($attr['height'])) {
-                $meta = wp_get_attachment_metadata($attachment->ID);
-                if ($meta && isset($meta['width']) && isset($meta['height'])) {
-                    $attr['width'] = $meta['width'];
-                    $attr['height'] = $meta['height'];
-                }
-            }
-            return $attr;
-        }, 10, 2);
-        
         // Purge edge cache when Salient options change
         add_action('updated_option', function($option_name) {
             if (strpos($option_name, 'salient') === false && 
@@ -142,26 +96,11 @@ class CompatibilityFilters
     
     /**
      * Register Avada-specific filters
+     * 
+     * NOTA: Esclusioni script sono ora gestite da ThemeAssetConfiguration
      */
     private function registerAvadaFilters(): void
     {
-        // Exclude Fusion scripts from delay
-        add_filter('fp_ps_third_party_script_delay', function($should_delay, $src) {
-            $avada_critical = [
-                'fusion-',
-                'avada-',
-                'jquery',
-            ];
-            
-            foreach ($avada_critical as $pattern) {
-                if (stripos($src, $pattern) !== false) {
-                    return false;
-                }
-            }
-            
-            return $should_delay;
-        }, 10, 2);
-        
         // Purge cache when Avada options change
         add_action('updated_option', function($option_name) {
             if (strpos($option_name, 'fusion') === false && 
@@ -184,29 +123,19 @@ class CompatibilityFilters
     
     /**
      * Register Divi-specific filters
+     * 
+     * NOTA: Esclusioni script sono ora gestite da ThemeAssetConfiguration
      */
     private function registerDiviFilters(): void
     {
-        // Exclude Divi scripts from delay
-        add_filter('fp_ps_third_party_script_delay', function($should_delay, $src) {
-            $divi_critical = [
-                'et-',
-                'divi-',
-                'jquery',
-            ];
-            
-            foreach ($divi_critical as $pattern) {
-                if (stripos($src, $pattern) !== false) {
-                    return false;
-                }
-            }
-            
-            return $should_delay;
-        }, 10, 2);
+        // Nessun filtro specifico necessario al momento
+        // Le esclusioni script sono gestite da ThemeAssetConfiguration
     }
     
     /**
      * Register WPBakery-specific filters
+     * 
+     * NOTA: Esclusioni script sono ora gestite da ThemeAssetConfiguration
      */
     private function registerWPBakeryFilters(): void
     {
@@ -219,23 +148,6 @@ class CompatibilityFilters
             }
             return $disable;
         });
-        
-        // Exclude WPBakery scripts from delay
-        add_filter('fp_ps_third_party_script_delay', function($should_delay, $src) {
-            $wpbakery_critical = [
-                'wpbakery',
-                'vc_',
-                'js_composer',
-            ];
-            
-            foreach ($wpbakery_critical as $pattern) {
-                if (stripos($src, $pattern) !== false) {
-                    return false;
-                }
-            }
-            
-            return $should_delay;
-        }, 10, 2);
         
         // Purge cache after WPBakery save
         add_action('save_post', function($post_id, $post) {
@@ -267,6 +179,8 @@ class CompatibilityFilters
     
     /**
      * Register Elementor-specific filters
+     * 
+     * NOTA: Esclusioni script sono ora gestite da ThemeAssetConfiguration
      */
     private function registerElementorFilters(): void
     {
@@ -277,13 +191,5 @@ class CompatibilityFilters
             }
             return $disable;
         });
-        
-        // Exclude Elementor scripts from delay
-        add_filter('fp_ps_third_party_script_delay', function($should_delay, $src) {
-            if (stripos($src, 'elementor') !== false) {
-                return false;
-            }
-            return $should_delay;
-        }, 10, 2);
     }
 }

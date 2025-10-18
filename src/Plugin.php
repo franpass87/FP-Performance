@@ -25,6 +25,7 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
+use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -86,6 +87,7 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+            $container->get(ThemeAssetConfiguration::class)->register();
             $container->get(CompressionManager::class)->register();
             
             // Advanced Performance Services (v1.3.0)
@@ -263,6 +265,9 @@ class Plugin
         
         // Smart Asset Delivery
         $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
+        
+        // Theme Asset Configuration (gestisce asset specifici per tema/builder)
+        $container->set(ThemeAssetConfiguration::class, static fn(ServiceContainer $c) => new ThemeAssetConfiguration($c->get(ThemeDetector::class)));
         
         // Theme Compatibility
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
