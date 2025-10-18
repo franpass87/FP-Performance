@@ -25,6 +25,7 @@
 @import url('components/table.css');
 @import url('components/log-viewer.css');
 @import url('components/actions.css');
+@import url('components/bulk-convert.css');
 
 /* Utilities */
 @import url('utilities/score.css');
