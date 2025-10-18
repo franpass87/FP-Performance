@@ -122,7 +122,7 @@ class Manager
             ]);
             
             return ['success' => true];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return ['error' => sprintf(__('Failed to apply preset: %s', 'fp-performance-suite'), $e->getMessage())];
         }
     }
