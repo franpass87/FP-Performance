@@ -80,6 +80,19 @@ class Routes
             'methods' => 'POST',
             'callback' => [$this, 'presetApply'],
             'permission_callback' => [$this, 'permissionCheck'],
+            'args' => [
+                'id' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_key',
+                    'validate_callback' => function ($param) {
+                        if (empty($param)) {
+                            return new WP_Error('invalid_preset_id', __('Preset ID is required', 'fp-performance-suite'));
+                        }
+                        return true;
+                    },
+                ],
+            ],
         ]);
 
         register_rest_route('fp-ps/v1', '/preset/rollback', [
@@ -225,11 +238,23 @@ class Routes
     public function presetApply(WP_REST_Request $request)
     {
         $id = sanitize_key($request->get_param('id'));
+        
+        if (empty($id)) {
+            Logger::error('Preset apply failed: missing preset ID');
+            return new WP_Error('fp_ps_preset_missing_id', esc_html__('Preset ID is required', 'fp-performance-suite'), ['status' => 400]);
+        }
+        
+        Logger::info('Applying preset via REST API', ['preset_id' => $id]);
+        
         $manager = $this->container->get(PresetManager::class);
         $result = $manager->apply($id);
+        
         if (isset($result['error'])) {
+            Logger::error('Preset apply failed', ['preset_id' => $id, 'error' => $result['error']]);
             return new WP_Error('fp_ps_preset', esc_html($result['error']), ['status' => 400]);
         }
+        
+        Logger::info('Preset applied successfully', ['preset_id' => $id]);
         return rest_ensure_response($result);
     }
 
