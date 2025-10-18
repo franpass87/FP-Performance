@@ -116,7 +116,7 @@ class Presets extends AbstractPage
                         <?php endforeach; ?>
                     </ul>
                     <div class="fp-ps-actions">
-                        <button class="button button-primary" data-fp-preset="<?php echo esc_attr($key); ?>" data-fp-nonce="<?php echo esc_attr($nonce); ?>" data-risk="amber"><?php esc_html_e('Apply Preset', 'fp-performance-suite'); ?></button>
+                        <button type="button" class="button button-primary" data-fp-preset="<?php echo esc_attr($key); ?>" data-fp-nonce="<?php echo esc_attr($nonce); ?>" data-risk="amber"><?php esc_html_e('Apply Preset', 'fp-performance-suite'); ?></button>
                         <?php if ($active === $key) : ?>
                             <form method="post" action="<?php echo esc_url(rest_url('fp-ps/v1/preset/rollback')); ?>">
                                 <input type="hidden" name="_wpnonce" value="<?php echo esc_attr($nonce); ?>" />
