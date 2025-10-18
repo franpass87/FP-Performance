@@ -24,6 +24,26 @@ class Compatibility extends AbstractPage
         $this->detector = $container->get(ThemeDetector::class);
     }
     
+    public function slug(): string
+    {
+        return 'fp-performance-compatibility';
+    }
+    
+    public function title(): string
+    {
+        return __('Compatibilità Tema & Page Builder', 'fp-performance-suite');
+    }
+    
+    public function view(): string
+    {
+        return '';
+    }
+    
+    protected function content(): string
+    {
+        return '';
+    }
+    
     public function render(): void
     {
         $config = $this->detector->getRecommendedConfig();

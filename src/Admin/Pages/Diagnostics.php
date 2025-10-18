@@ -36,6 +36,16 @@ class Diagnostics extends AbstractPage
         return __('Diagnostics', 'fp-performance-suite');
     }
 
+    public function view(): string
+    {
+        return '';
+    }
+
+    protected function content(): string
+    {
+        return '';
+    }
+
     protected function handleActions(): void
     {
         if (!isset($_POST['fp_ps_nonce']) || !wp_verify_nonce($_POST['fp_ps_nonce'], 'fp_ps_diagnostics')) {
