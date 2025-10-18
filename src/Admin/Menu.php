@@ -19,6 +19,14 @@ use function add_action;
 use function add_menu_page;
 use function add_submenu_page;
 use function __;
+use function get_option;
+use function delete_option;
+use function current_user_can;
+use function wp_verify_nonce;
+use function wp_create_nonce;
+use function wp_send_json_error;
+use function wp_send_json_success;
+use function esc_html;
 
 class Menu
 {
@@ -32,6 +40,76 @@ class Menu
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'register']);
+        add_action('admin_notices', [$this, 'showActivationErrors']);
+        add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
+    }
+
+    /**
+     * Mostra eventuali errori di attivazione nell'area admin
+     */
+    public function showActivationErrors(): void
+    {
+        $error = get_option('fp_perfsuite_activation_error');
+        
+        if (!is_array($error) || empty($error)) {
+            return;
+        }
+
+        // Mostra il notice solo agli amministratori
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $message = sprintf(
+            __('FP Performance Suite: Si è verificato un errore durante l\'attivazione del plugin. Errore: %s', 'fp-performance-suite'),
+            esc_html($error['message'] ?? 'Errore sconosciuto')
+        );
+
+        printf(
+            '<div class="notice notice-warning is-dismissible"><p><strong>%s</strong></p><p><a href="#" class="fp-ps-dismiss-activation-error">%s</a></p></div>',
+            $message,
+            __('Nascondi questo messaggio', 'fp-performance-suite')
+        );
+
+        // Script per dismissare il notice
+        ?>
+        <script>
+        jQuery(document).ready(function($) {
+            $('.fp-ps-dismiss-activation-error').on('click', function(e) {
+                e.preventDefault();
+                $.post(ajaxurl, {
+                    action: 'fp_ps_dismiss_activation_error',
+                    nonce: '<?php echo wp_create_nonce('fp_ps_dismiss_error'); ?>'
+                }, function() {
+                    location.reload();
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+
+    /**
+     * Dismissione dell'errore di attivazione via AJAX
+     */
+    public function dismissActivationError(): void
+    {
+        // Verifica il nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_ps_dismiss_error')) {
+            wp_send_json_error(['message' => 'Nonce non valido']);
+            return;
+        }
+
+        // Verifica i permessi
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permessi insufficienti']);
+            return;
+        }
+
+        // Rimuovi l'opzione
+        delete_option('fp_perfsuite_activation_error');
+        
+        wp_send_json_success(['message' => 'Errore dismisso con successo']);
     }
 
     public function register(): void
