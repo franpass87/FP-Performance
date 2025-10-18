@@ -10,12 +10,18 @@ use function esc_html_e;
 use function esc_textarea;
 use function get_option;
 use function sanitize_text_field;
+use function sanitize_email;
 use function selected;
 use function checked;
 use function update_option;
 use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
+use function array_map;
+use function array_filter;
+use function explode;
+use function implode;
+use function trim;
 
 class Settings extends AbstractPage
 {
@@ -52,14 +58,37 @@ class Settings extends AbstractPage
         $options = get_option('fp_ps_settings', [
             'allowed_role' => 'administrator',
             'safety_mode' => true,
+            'exclude_urls' => '',
+            'exclude_roles' => [],
+            'log_level' => 'ERROR',
+            'log_retention_days' => 30,
+            'notification_email' => get_option('admin_email'),
+            'enable_notifications' => false,
         ]);
         $criticalCss = get_option('fp_ps_critical_css', '');
         $message = '';
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_settings_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_settings_nonce']), 'fp-ps-settings')) {
             $options['allowed_role'] = sanitize_text_field($_POST['allowed_role'] ?? 'administrator');
             $options['safety_mode'] = !empty($_POST['safety_mode']);
+            
+            // Global Exclusions
+            $options['exclude_urls'] = sanitize_text_field(wp_unslash($_POST['exclude_urls'] ?? ''));
+            $options['exclude_roles'] = array_map('sanitize_text_field', $_POST['exclude_roles'] ?? []);
+            
+            // Logging Settings
+            $options['log_level'] = sanitize_text_field($_POST['log_level'] ?? 'ERROR');
+            $options['log_retention_days'] = (int) ($_POST['log_retention_days'] ?? 30);
+            
+            // Notifications
+            $options['enable_notifications'] = !empty($_POST['enable_notifications']);
+            $options['notification_email'] = sanitize_email($_POST['notification_email'] ?? get_option('admin_email'));
+            
             update_option('fp_ps_settings', $options);
             update_option('fp_ps_critical_css', wp_unslash($_POST['critical_css'] ?? ''));
+            
+            // Update Logger level
+            \FP\PerfSuite\Utils\Logger::setLevel($options['log_level']);
+            
             $message = __('Settings saved.', 'fp-performance-suite');
         }
         ob_start();
@@ -67,10 +96,10 @@ class Settings extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        <form method="post">
+            <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Access Control', 'fp-performance-suite'); ?></h2>
-            <form method="post">
-                <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
                 <p>
                     <label for="allowed_role"><?php esc_html_e('Minimum role to manage plugin', 'fp-performance-suite'); ?></label>
                     <select name="allowed_role" id="allowed_role">
@@ -104,9 +133,72 @@ class Settings extends AbstractPage
                     <label for="critical_css"><?php esc_html_e('Critical CSS placeholder', 'fp-performance-suite'); ?></label>
                     <textarea name="critical_css" id="critical_css" rows="6" class="large-text code" placeholder="<?php esc_attr_e('Paste above-the-fold CSS or snippet reference.', 'fp-performance-suite'); ?>"><?php echo esc_textarea($criticalCss); ?></textarea>
                 </p>
-                <p><button type="submit" class="button button-primary"><?php esc_html_e('Save Settings', 'fp-performance-suite'); ?></button></p>
-            </form>
         </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Global Exclusions', 'fp-performance-suite'); ?></h2>
+                <p>
+                    <label for="exclude_urls"><?php esc_html_e('Exclude URLs from all optimizations', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_urls" id="exclude_urls" rows="5" class="large-text" placeholder="<?php esc_attr_e('One URL per line. Examples:\n/checkout/\n/my-account/\n/cart/', 'fp-performance-suite'); ?>"><?php echo esc_textarea($options['exclude_urls']); ?></textarea>
+                    <span class="description"><?php esc_html_e('URLs or patterns to exclude from all plugin optimizations. Use one URL per line. Supports wildcards (*).', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label><?php esc_html_e('Exclude optimizations for user roles', 'fp-performance-suite'); ?></label><br>
+                    <?php
+                    $roles = wp_roles()->get_names();
+                    $excludedRoles = $options['exclude_roles'] ?? [];
+                    foreach ($roles as $roleKey => $roleName) :
+                    ?>
+                        <label style="display: inline-block; margin-right: 15px;">
+                            <input type="checkbox" name="exclude_roles[]" value="<?php echo esc_attr($roleKey); ?>" <?php checked(in_array($roleKey, $excludedRoles, true)); ?>>
+                            <?php echo esc_html($roleName); ?>
+                        </label>
+                    <?php endforeach; ?>
+                    <br>
+                    <span class="description"><?php esc_html_e('Users with these roles will not be affected by plugin optimizations (useful for admins during development).', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Logging & Debugging', 'fp-performance-suite'); ?></h2>
+                <p>
+                    <label for="log_level"><?php esc_html_e('Log Level', 'fp-performance-suite'); ?></label>
+                    <select name="log_level" id="log_level">
+                        <option value="ERROR" <?php selected($options['log_level'], 'ERROR'); ?>><?php esc_html_e('ERROR - Only errors', 'fp-performance-suite'); ?></option>
+                        <option value="WARNING" <?php selected($options['log_level'], 'WARNING'); ?>><?php esc_html_e('WARNING - Errors and warnings', 'fp-performance-suite'); ?></option>
+                        <option value="INFO" <?php selected($options['log_level'], 'INFO'); ?>><?php esc_html_e('INFO - Informational messages', 'fp-performance-suite'); ?></option>
+                        <option value="DEBUG" <?php selected($options['log_level'], 'DEBUG'); ?>><?php esc_html_e('DEBUG - All messages (verbose)', 'fp-performance-suite'); ?></option>
+                    </select>
+                    <span class="description"><?php esc_html_e('Higher levels will write more entries to the log. Use DEBUG only during troubleshooting.', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="log_retention_days"><?php esc_html_e('Log Retention Period', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="log_retention_days" id="log_retention_days" value="<?php echo esc_attr($options['log_retention_days']); ?>" min="1" max="365" class="small-text">
+                    <span><?php esc_html_e('days', 'fp-performance-suite'); ?></span>
+                    <span class="description"><?php esc_html_e('Logs older than this will be automatically deleted.', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Email Notifications', 'fp-performance-suite'); ?></h2>
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable Email Notifications', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="enable_notifications" value="1" <?php checked($options['enable_notifications']); ?> />
+                </label>
+                <p class="description"><?php esc_html_e('Receive email alerts for critical errors and important events.', 'fp-performance-suite'); ?></p>
+                <p>
+                    <label for="notification_email"><?php esc_html_e('Notification Email', 'fp-performance-suite'); ?></label>
+                    <input type="email" name="notification_email" id="notification_email" value="<?php echo esc_attr($options['notification_email']); ?>" class="regular-text">
+                    <span class="description"><?php esc_html_e('Email address to receive notifications.', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+        
+        <div class="fp-ps-card">
+            <p><button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Settings', 'fp-performance-suite'); ?></button></p>
+        </div>
+        </form>
         <?php
         return (string) ob_get_clean();
     }

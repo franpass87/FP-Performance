@@ -70,6 +70,9 @@ class Assets extends AbstractPage
                 // Salva solo le impostazioni di delivery
                 $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
                 $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
+                $excludeCss = !empty($_POST['exclude_css']) ? wp_unslash($_POST['exclude_css']) : '';
+                $excludeJs = !empty($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : '';
+                
                 $optimizer->update([
                     'minify_html' => !empty($_POST['minify_html']),
                     'defer_js' => !empty($_POST['defer_js']),
@@ -80,6 +83,8 @@ class Assets extends AbstractPage
                     'heartbeat_admin' => (int) ($_POST['heartbeat_admin'] ?? 60),
                     'combine_css' => !empty($_POST['combine_css']),
                     'combine_js' => !empty($_POST['combine_js']),
+                    'exclude_css' => $excludeCss,
+                    'exclude_js' => $excludeJs,
                 ]);
                 $message = __('Delivery settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'pagespeed') {
@@ -312,6 +317,16 @@ class Assets extends AbstractPage
                 <p>
                     <label for="preload"><?php esc_html_e('Preload resources (full URLs)', 'fp-performance-suite'); ?></label>
                     <textarea name="preload" id="preload" rows="4" class="large-text code"><?php echo esc_textarea(implode("\n", $settings['preload'])); ?></textarea>
+                </p>
+                <p>
+                    <label for="exclude_css"><?php esc_html_e('Exclude CSS from optimization', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_css" id="exclude_css" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\nstyle-handle\n/wp-content/themes/mytheme/custom.css', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_css'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('CSS files to exclude from minification and combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="exclude_js"><?php esc_html_e('Exclude JavaScript from optimization', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_js" id="exclude_js" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\njquery\njquery-core\n/wp-includes/js/jquery/jquery.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_js'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('JavaScript files to exclude from defer/async/combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
                 </p>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Save Asset Settings', 'fp-performance-suite'); ?></button>

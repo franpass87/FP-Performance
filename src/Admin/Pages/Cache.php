@@ -62,9 +62,16 @@ class Cache extends AbstractPage
             if (isset($_POST['fp_ps_page_cache'])) {
                 $enabledRequested = !empty($_POST['page_cache_enabled']);
                 $ttlRequested = (int) ($_POST['page_cache_ttl'] ?? 3600);
+                
+                // Parse exclusions
+                $excludeUrls = !empty($_POST['cache_exclude_urls']) ? wp_unslash($_POST['cache_exclude_urls']) : '';
+                $excludeQueryStrings = !empty($_POST['cache_exclude_query_strings']) ? wp_unslash($_POST['cache_exclude_query_strings']) : '';
+                
                 $pageCache->update([
                     'enabled' => $enabledRequested,
                     'ttl' => $ttlRequested,
+                    'exclude_urls' => $excludeUrls,
+                    'exclude_query_strings' => $excludeQueryStrings,
                 ]);
                 $message = __('Page cache settings saved.', 'fp-performance-suite');
                 $currentSettings = $pageCache->settings();
@@ -166,6 +173,16 @@ class Cache extends AbstractPage
                 <p>
                     <label for="page_cache_ttl"><?php esc_html_e('Cache lifetime (seconds)', 'fp-performance-suite'); ?></label>
                     <input type="number" name="page_cache_ttl" id="page_cache_ttl" value="<?php echo esc_attr((string) $pageSettings['ttl']); ?>" min="60" step="60" />
+                </p>
+                <p>
+                    <label for="cache_exclude_urls"><?php esc_html_e('Exclude URLs from cache', 'fp-performance-suite'); ?></label>
+                    <textarea name="cache_exclude_urls" id="cache_exclude_urls" rows="4" class="large-text" placeholder="<?php esc_attr_e('/cart/\n/checkout/\n/my-account/*', 'fp-performance-suite'); ?>"><?php echo esc_textarea($pageSettings['exclude_urls'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('One URL pattern per line. Supports wildcards (*). Example: /cart/, /checkout/*, /?add-to-cart=*', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="cache_exclude_query_strings"><?php esc_html_e('Exclude query string parameters', 'fp-performance-suite'); ?></label>
+                    <input type="text" name="cache_exclude_query_strings" id="cache_exclude_query_strings" value="<?php echo esc_attr($pageSettings['exclude_query_strings'] ?? ''); ?>" class="large-text" placeholder="<?php esc_attr_e('fbclid, gclid, utm_source, utm_medium', 'fp-performance-suite'); ?>" />
+                    <span class="description"><?php esc_html_e('Comma-separated list of query parameters to ignore (pages with these params will still be cached).', 'fp-performance-suite'); ?></span>
                 </p>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Save Page Cache', 'fp-performance-suite'); ?></button>
