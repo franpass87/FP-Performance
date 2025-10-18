@@ -79,10 +79,25 @@ class Manager
     {
         Logger::info('Attempting to apply preset', ['preset_id' => $id]);
         
-        $preset = $this->presets()[$id] ?? null;
-        if (!$preset) {
-            Logger::error('Preset not found', ['preset_id' => $id]);
-            return ['error' => __('Preset not found', 'fp-performance-suite')];
+        // Check if it's a custom preset
+        if (strpos($id, 'custom_') === 0) {
+            $customKey = substr($id, 7); // Remove 'custom_' prefix
+            $customPresets = get_option('fp_ps_custom_presets', []);
+            
+            if (!isset($customPresets[$customKey])) {
+                Logger::error('Custom preset not found', ['preset_id' => $id, 'custom_key' => $customKey]);
+                return ['error' => __('Custom preset not found', 'fp-performance-suite')];
+            }
+            
+            $preset = $customPresets[$customKey];
+            Logger::debug('Custom preset loaded', ['preset_id' => $id]);
+        } else {
+            // Standard preset
+            $preset = $this->presets()[$id] ?? null;
+            if (!$preset) {
+                Logger::error('Preset not found', ['preset_id' => $id]);
+                return ['error' => __('Preset not found', 'fp-performance-suite')];
+            }
         }
 
         try {
