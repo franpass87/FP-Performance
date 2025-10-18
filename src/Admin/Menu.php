@@ -6,12 +6,12 @@ use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Cache;
 use FP\PerfSuite\Admin\Pages\Compatibility;
+use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
-use FP\PerfSuite\Admin\Pages\Overview;
-use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
@@ -134,7 +134,7 @@ class Menu
                 <a href="#" class="button button-primary fp-ps-dismiss-activation-error">
                     <?php _e('Ho risolto il problema - Nascondi questo messaggio', 'fp-performance-suite'); ?>
                 </a>
-                <a href="<?php echo admin_url('admin.php?page=fp-performance-diagnostics'); ?>" class="button button-secondary" style="margin-left: 10px;">
+                <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-diagnostics'); ?>" class="button button-secondary" style="margin-left: 10px;">
                     <?php _e('Esegui Diagnostica', 'fp-performance-suite'); ?>
                 </a>
                 <a href="https://francescopasseri.com/support" class="button" target="_blank" style="margin-left: 10px;">
@@ -203,18 +203,30 @@ class Menu
             59
         );
 
-        add_submenu_page('fp-performance-suite', __('Overview', 'fp-performance-suite'), __('Overview', 'fp-performance-suite'), $capability, 'fp-performance-suite', [$pages['overview'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🤖 Exclusions', 'fp-performance-suite'), $capability, 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Presets', 'fp-performance-suite'), __('Presets', 'fp-performance-suite'), $capability, 'fp-performance-suite-presets', [$pages['presets'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
+        // === SEZIONE PRINCIPALE ===
+        add_submenu_page('fp-performance-suite', __('Overview', 'fp-performance-suite'), __('📊 Overview', 'fp-performance-suite'), $capability, 'fp-performance-suite', [$pages['overview'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Presets', 'fp-performance-suite'), __('⚡ Presets', 'fp-performance-suite'), $capability, 'fp-performance-suite-presets', [$pages['presets'], 'render']);
+        
+        // === OTTIMIZZAZIONE ===
+        add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
+        
+        // === COMPATIBILITÀ E STRUMENTI ===
         add_submenu_page('fp-performance-suite', __('Compatibility', 'fp-performance-suite'), __('🎨 Compatibility', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-compatibility', [$pages['compatibility'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('🔧 Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
+        
+        // === INTELLIGENCE ===
+        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🧠 Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        
+        // === MONITORAGGIO E DIAGNOSTICA ===
+        add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
+        
+        // === CONFIGURAZIONE AVANZATA ===
+        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('⚙️ Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('⚙️ Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
     }
 
     /**
@@ -228,11 +240,11 @@ class Menu
             'assets' => new Assets($this->container),
             'media' => new Media($this->container),
             'database' => new Database($this->container),
-            'exclusions' => new Exclusions($this->container),
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
             'compatibility' => new Compatibility($this->container),
+            'exclusions' => new Exclusions($this->container),
             'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),
             'diagnostics' => new Diagnostics($this->container),
