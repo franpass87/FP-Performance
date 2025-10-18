@@ -87,87 +87,53 @@ class Scorer
     }
 
     /**
-     * @return array{total:int,breakdown:array<string,int>,suggestions:array<int,string>}
+     * @return array{total:int,breakdown:array<string,int>,breakdown_detailed:array<string,array>,suggestions:array<int,string>}
      */
     public function calculate(): array
     {
         $score = 0;
         $breakdown = [];
+        $breakdownDetailed = [];
         $suggestions = [];
 
-        [$points, $suggestion] = $this->gzipScore();
-        $score += $points;
-        $breakdown[__('GZIP/Brotli', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
+        $categories = [
+            'gzip' => [__('GZIP/Brotli', 'fp-performance-suite'), 10],
+            'browserCache' => [__('Browser cache headers', 'fp-performance-suite'), 10],
+            'pageCache' => [__('Page cache', 'fp-performance-suite'), 15],
+            'assets' => [__('Asset optimization', 'fp-performance-suite'), 20],
+            'webp' => [__('WebP coverage', 'fp-performance-suite'), 15],
+            'database' => [__('Database health', 'fp-performance-suite'), 10],
+            'heartbeat' => [__('Heartbeat throttling', 'fp-performance-suite'), 5],
+            'emoji' => [__('Emoji & embeds', 'fp-performance-suite'), 5],
+            'criticalCss' => [__('Critical CSS', 'fp-performance-suite'), 5],
+            'log' => [__('Logs hygiene', 'fp-performance-suite'), 15],
+        ];
 
-        [$points, $suggestion] = $this->browserCacheScore();
-        $score += $points;
-        $breakdown[__('Browser cache headers', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->pageCacheScore();
-        $score += $points;
-        $breakdown[__('Page cache', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->assetsScore();
-        $score += $points;
-        $breakdown[__('Asset optimization', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->webpScore();
-        $score += $points;
-        $breakdown[__('WebP coverage', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->databaseScore();
-        $score += $points;
-        $breakdown[__('Database health', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->heartbeatScore();
-        $score += $points;
-        $breakdown[__('Heartbeat throttling', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->emojiScore();
-        $score += $points;
-        $breakdown[__('Emoji & embeds', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->criticalCssScore();
-        $score += $points;
-        $breakdown[__('Critical CSS', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
-        }
-
-        [$points, $suggestion] = $this->logScore();
-        $score += $points;
-        $breakdown[__('Logs hygiene', 'fp-performance-suite')] = $points;
-        if ($suggestion) {
-            $suggestions[] = $suggestion;
+        foreach ($categories as $method => [$label, $maxPoints]) {
+            [$points, $suggestion] = $this->{$method . 'Score'}();
+            $score += $points;
+            $breakdown[$label] = $points;
+            
+            $percentage = $maxPoints > 0 ? round(($points / $maxPoints) * 100) : 100;
+            $status = $points >= $maxPoints ? 'complete' : ($points > 0 ? 'partial' : 'missing');
+            
+            $breakdownDetailed[$label] = [
+                'current' => $points,
+                'max' => $maxPoints,
+                'percentage' => $percentage,
+                'status' => $status,
+                'suggestion' => $suggestion,
+            ];
+            
+            if ($suggestion) {
+                $suggestions[] = $suggestion;
+            }
         }
 
         return [
             'total' => min(100, $score),
             'breakdown' => $breakdown,
+            'breakdown_detailed' => $breakdownDetailed,
             'suggestions' => $suggestions,
         ];
     }

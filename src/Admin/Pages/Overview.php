@@ -179,16 +179,46 @@ class Overview extends AbstractPage
         <section class="fp-ps-grid two">
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Score Breakdown', 'fp-performance-suite'); ?></h2>
-                <table class="fp-ps-table" aria-describedby="fp-ps-score-desc">
-                    <tbody>
-                    <?php foreach ($score['breakdown'] as $label => $value) : ?>
-                        <tr>
-                            <th scope="row"><?php echo esc_html($label); ?></th>
-                            <td><strong><?php echo esc_html((string) $value); ?></strong></td>
-                        </tr>
+                <div style="margin-bottom: 15px;">
+                    <?php foreach ($score['breakdown_detailed'] as $label => $details) : 
+                        $statusIcon = $details['status'] === 'complete' ? '✅' : ($details['status'] === 'partial' ? '⚠️' : '❌');
+                        $statusColor = $details['status'] === 'complete' ? '#10b981' : ($details['status'] === 'partial' ? '#f59e0b' : '#ef4444');
+                    ?>
+                        <div class="fp-ps-score-breakdown-item" style="border-left: 4px solid <?php echo esc_attr($statusColor); ?>;">
+                            <div class="fp-ps-score-breakdown-header">
+                                <div class="fp-ps-score-breakdown-label">
+                                    <span style="font-size: 18px;"><?php echo $statusIcon; ?></span>
+                                    <strong><?php echo esc_html($label); ?></strong>
+                                </div>
+                                <span class="fp-ps-score-breakdown-value fp-ps-status-<?php echo esc_attr($details['status']); ?>">
+                                    <?php echo esc_html($details['current']); ?>/<?php echo esc_html($details['max']); ?>
+                                </span>
+                            </div>
+                            
+                            <!-- Barra di progresso -->
+                            <div class="fp-ps-progress-bar">
+                                <div class="fp-ps-progress-fill <?php echo esc_attr($details['status']); ?>" 
+                                     style="width: <?php echo esc_attr($details['percentage']); ?>%;"></div>
+                            </div>
+                            
+                            <?php if ($details['suggestion']) : ?>
+                                <div class="fp-ps-suggestion-box">
+                                    <p>
+                                        <strong style="color: #3b82f6;">💡 <?php esc_html_e('Come migliorare:', 'fp-performance-suite'); ?></strong>
+                                        <?php echo esc_html($details['suggestion']); ?>
+                                    </p>
+                                </div>
+                            <?php elseif ($details['status'] === 'complete') : ?>
+                                <div class="fp-ps-optimized-box">
+                                    <p>
+                                        <strong>✨ <?php esc_html_e('Ottimizzato!', 'fp-performance-suite'); ?></strong>
+                                        <?php esc_html_e('Questa categoria è completamente ottimizzata.', 'fp-performance-suite'); ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     <?php endforeach; ?>
-                    </tbody>
-                </table>
+                </div>
                 <p id="fp-ps-score-desc" class="description">
                     <?php esc_html_e('Higher score indicates better technical readiness for shared hosting.', 'fp-performance-suite'); ?>
                 </p>
@@ -502,8 +532,15 @@ class Overview extends AbstractPage
         
         // Score Breakdown
         fputcsv($output, [__('Score Breakdown', 'fp-performance-suite')]);
-        foreach ($score['breakdown'] as $label => $value) {
-            fputcsv($output, [$label, $value]);
+        fputcsv($output, [__('Category', 'fp-performance-suite'), __('Current', 'fp-performance-suite'), __('Max', 'fp-performance-suite'), __('Status', 'fp-performance-suite'), __('Suggestion', 'fp-performance-suite')]);
+        foreach ($score['breakdown_detailed'] as $label => $details) {
+            fputcsv($output, [
+                $label,
+                $details['current'],
+                $details['max'],
+                $details['status'],
+                $details['suggestion'] ?? __('Optimized', 'fp-performance-suite')
+            ]);
         }
         fputcsv($output, []);
 
