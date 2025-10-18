@@ -323,20 +323,65 @@ class Plugin
 
     public static function onActivate(): void
     {
-        $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
+        try {
+            // Determina la versione del plugin
+            $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
 
-        if (!is_string($version) || '' === $version) {
-            $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
-            $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
+            if (!is_string($version) || '' === $version) {
+                if (!defined('FP_PERF_SUITE_FILE')) {
+                    define('FP_PERF_SUITE_FILE', __DIR__ . '/../fp-performance-suite.php');
+                }
+                $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
+                $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
+            }
+
+            // Salva la versione nelle opzioni
+            update_option('fp_perfsuite_version', $version, false);
+
+            // Inizializza lo scheduler del database cleaner solo se le classi sono disponibili
+            if (class_exists('FP\PerfSuite\Services\DB\Cleaner') && 
+                class_exists('FP\PerfSuite\Utils\Env') && 
+                class_exists('FP\PerfSuite\Utils\RateLimiter')) {
+                
+                $cleaner = new Cleaner(new Env(), new RateLimiter());
+                $cleaner->primeSchedules();
+                $cleaner->maybeSchedule(true);
+            }
+
+            // Log sicuro dell'attivazione
+            if (class_exists('FP\PerfSuite\Utils\Logger')) {
+                Logger::info('Plugin activated', ['version' => $version]);
+            }
+
+            // Trigger action hook se le funzioni WordPress sono disponibili
+            if (function_exists('do_action')) {
+                do_action('fp_ps_plugin_activated', $version);
+            }
+
+        } catch (\Throwable $e) {
+            // Gestione sicura degli errori per prevenire white screen
+            if (function_exists('error_log')) {
+                error_log(sprintf(
+                    '[FP Performance Suite] Errore durante l\'attivazione: %s in %s:%d',
+                    $e->getMessage(),
+                    $e->getFile(),
+                    $e->getLine()
+                ));
+            }
+
+            // Salva l'errore nelle opzioni per il debug
+            if (function_exists('update_option')) {
+                update_option('fp_perfsuite_activation_error', [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'time' => time(),
+                ], false);
+            }
+
+            // Non rilanciare l'eccezione per evitare white screen
+            // Il plugin si attiverà comunque ma senza la configurazione iniziale dello scheduler
         }
-
-        update_option('fp_perfsuite_version', $version);
-        $cleaner = new Cleaner(new Env(), new RateLimiter());
-        $cleaner->primeSchedules();
-        $cleaner->maybeSchedule(true);
-
-        Logger::info('Plugin activated', ['version' => $version]);
-        do_action('fp_ps_plugin_activated', $version);
     }
 
     public static function onDeactivate(): void
