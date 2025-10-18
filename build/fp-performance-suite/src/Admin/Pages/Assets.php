@@ -712,6 +712,15 @@ class Assets extends AbstractPage
                     <span class="description"><?php esc_html_e('JavaScript files to exclude from defer/async/combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
                 </p>
                 
+                <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 6px;">
+                    <button type="submit" class="button button-primary button-large">
+                        💾 <?php esc_html_e('Save Exclusions', 'fp-performance-suite'); ?>
+                    </button>
+                    <span class="description" style="margin-left: 15px; color: #666;">
+                        <?php esc_html_e('Save manual changes to CSS and JavaScript exclusions', 'fp-performance-suite'); ?>
+                    </span>
+                </div>
+                
                 <h3 style="margin-top: 30px;"><?php esc_html_e('Advanced Minification Options', 'fp-performance-suite'); ?></h3>
                 
                 <label class="fp-ps-toggle">
@@ -895,7 +904,7 @@ class Assets extends AbstractPage
                 </div>
                 
                 <p>
-                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Asset Settings', 'fp-performance-suite'); ?></button>
+                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save Delivery Settings', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
