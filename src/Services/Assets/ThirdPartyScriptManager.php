@@ -328,6 +328,10 @@ class ThirdPartyScriptManager
                 continue;
             }
 
+            if (!isset($scriptConfig['patterns']) || !is_array($scriptConfig['patterns'])) {
+                continue;
+            }
+
             foreach ($scriptConfig['patterns'] as $pattern) {
                 if (strpos($src, $pattern) !== false) {
                     return true;
@@ -465,6 +469,10 @@ class ThirdPartyScriptManager
 
         foreach ($matches[1] as $src) {
             foreach ($settings['scripts'] as $name => $config) {
+                if (!isset($config['patterns']) || !is_array($config['patterns'])) {
+                    continue;
+                }
+                
                 foreach ($config['patterns'] as $pattern) {
                     if (strpos($src, $pattern) !== false) {
                         $detected[] = [
