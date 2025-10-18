@@ -63,57 +63,65 @@ class Assets extends AbstractPage
         $message = '';
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
-            $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
-            $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
-            $optimizer->update([
-                'minify_html' => !empty($_POST['minify_html']),
-                'defer_js' => !empty($_POST['defer_js']),
-                'async_js' => !empty($_POST['async_js']),
-                'remove_emojis' => !empty($_POST['remove_emojis']),
-                'dns_prefetch' => $dnsPrefetch,
-                'preload' => $preload,
-                'heartbeat_admin' => (int) ($_POST['heartbeat_admin'] ?? 60),
-                'combine_css' => !empty($_POST['combine_css']),
-                'combine_js' => !empty($_POST['combine_js']),
-            ]);
+            // Determina quale form è stato inviato
+            $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
-            // PageSpeed Optimization settings
-            $lazyLoad->updateSettings([
-                'enabled' => !empty($_POST['lazy_load_enabled']),
-                'images' => !empty($_POST['lazy_load_images']),
-                'iframes' => !empty($_POST['lazy_load_iframes']),
-                'skip_first' => (int) ($_POST['lazy_load_skip_first'] ?? 1),
-            ]);
-            
-            $fontOptimizer->updateSettings([
-                'enabled' => !empty($_POST['font_optimizer_enabled']),
-                'optimize_google_fonts' => !empty($_POST['optimize_google_fonts']),
-                'preload_fonts' => !empty($_POST['preload_fonts']),
-                'preconnect_providers' => !empty($_POST['preconnect_providers']),
-            ]);
-            
-            $imageOptimizer->updateSettings([
-                'enabled' => !empty($_POST['image_optimizer_enabled']),
-                'force_dimensions' => !empty($_POST['force_dimensions']),
-                'add_aspect_ratio' => !empty($_POST['add_aspect_ratio']),
-            ]);
-            
-            $thirdPartyScripts->update([
-                'enabled' => !empty($_POST['third_party_enabled']),
-                'delay_all' => !empty($_POST['third_party_delay_all']),
-                'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
-                'load_on' => sanitize_text_field($_POST['third_party_load_on'] ?? 'interaction'),
-                'scripts' => [
-                    'google_analytics' => ['enabled' => !empty($_POST['third_party_ga']), 'delay' => true],
-                    'facebook_pixel' => ['enabled' => !empty($_POST['third_party_fb']), 'delay' => true],
-                    'google_ads' => ['enabled' => !empty($_POST['third_party_ads']), 'delay' => true],
-                    'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
-                    'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
-                    'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
-                ],
-            ]);
-            
-            $message = __('Asset settings saved.', 'fp-performance-suite');
+            if ($formType === 'delivery') {
+                // Salva solo le impostazioni di delivery
+                $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
+                $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
+                $optimizer->update([
+                    'minify_html' => !empty($_POST['minify_html']),
+                    'defer_js' => !empty($_POST['defer_js']),
+                    'async_js' => !empty($_POST['async_js']),
+                    'remove_emojis' => !empty($_POST['remove_emojis']),
+                    'dns_prefetch' => $dnsPrefetch,
+                    'preload' => $preload,
+                    'heartbeat_admin' => (int) ($_POST['heartbeat_admin'] ?? 60),
+                    'combine_css' => !empty($_POST['combine_css']),
+                    'combine_js' => !empty($_POST['combine_js']),
+                ]);
+                $message = __('Delivery settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'pagespeed') {
+                // Salva solo le impostazioni PageSpeed (lazy load, font, immagini)
+                $lazyLoad->updateSettings([
+                    'enabled' => !empty($_POST['lazy_load_enabled']),
+                    'images' => !empty($_POST['lazy_load_images']),
+                    'iframes' => !empty($_POST['lazy_load_iframes']),
+                    'skip_first' => (int) ($_POST['lazy_load_skip_first'] ?? 1),
+                ]);
+                
+                $fontOptimizer->updateSettings([
+                    'enabled' => !empty($_POST['font_optimizer_enabled']),
+                    'optimize_google_fonts' => !empty($_POST['optimize_google_fonts']),
+                    'preload_fonts' => !empty($_POST['preload_fonts']),
+                    'preconnect_providers' => !empty($_POST['preconnect_providers']),
+                ]);
+                
+                $imageOptimizer->updateSettings([
+                    'enabled' => !empty($_POST['image_optimizer_enabled']),
+                    'force_dimensions' => !empty($_POST['force_dimensions']),
+                    'add_aspect_ratio' => !empty($_POST['add_aspect_ratio']),
+                ]);
+                $message = __('PageSpeed settings saved.', 'fp-performance-suite');
+            } elseif ($formType === 'third_party') {
+                // Salva solo le impostazioni degli script di terze parti
+                $thirdPartyScripts->update([
+                    'enabled' => !empty($_POST['third_party_enabled']),
+                    'delay_all' => !empty($_POST['third_party_delay_all']),
+                    'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
+                    'load_on' => sanitize_text_field($_POST['third_party_load_on'] ?? 'interaction'),
+                    'scripts' => [
+                        'google_analytics' => ['enabled' => !empty($_POST['third_party_ga']), 'delay' => true],
+                        'facebook_pixel' => ['enabled' => !empty($_POST['third_party_fb']), 'delay' => true],
+                        'google_ads' => ['enabled' => !empty($_POST['third_party_ads']), 'delay' => true],
+                        'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
+                        'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
+                        'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
+                    ],
+                ]);
+                $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
+            }
         }
         $settings = $optimizer->settings();
         $lazyLoadSettings = $lazyLoad->getSettings();
@@ -130,6 +138,7 @@ class Assets extends AbstractPage
             <h2><?php esc_html_e('Delivery', 'fp-performance-suite'); ?></h2>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="delivery" />
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Minify HTML output', 'fp-performance-suite'); ?></strong>
@@ -305,6 +314,7 @@ class Assets extends AbstractPage
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Ottimizzazioni specifiche per migliorare il punteggio Google PageSpeed Insights', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="pagespeed" />
                 
                 <h3><?php esc_html_e('Lazy Loading', 'fp-performance-suite'); ?></h3>
                 <label class="fp-ps-toggle">
@@ -474,6 +484,7 @@ class Assets extends AbstractPage
             
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="form_type" value="third_party" />
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
