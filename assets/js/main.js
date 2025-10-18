@@ -20,6 +20,7 @@ import { initLogViewer } from './features/log-viewer.js';
 import { initPresets } from './features/presets.js';
 import { initBulkActions } from './features/bulk-actions.js';
 import { initDarkMode } from './features/dark-mode.js';
+import { initWebPBulkConvert } from './features/webp-bulk-convert.js';
 
 /**
  * Initialize all features on DOM ready
@@ -42,6 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Initialize bulk actions
     initBulkActions();
+    
+    // Initialize WebP bulk conversion with progress tracking
+    initWebPBulkConvert();
 });
 
 /**

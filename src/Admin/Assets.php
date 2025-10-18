@@ -41,6 +41,7 @@ class Assets
         // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
             'confirmLabel' => __('Type PROCEDI to confirm high-risk actions', 'fp-performance-suite'),
             'cancelledLabel' => __('Action cancelled', 'fp-performance-suite'),
             'messages' => [
