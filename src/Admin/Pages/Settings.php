@@ -91,6 +91,22 @@ class Settings extends AbstractPage
             // Mobile Settings
             $options['mobile_separate'] = !empty($_POST['mobile_separate']);
             
+            // Handle Export
+            if (isset($_POST['export_settings'])) {
+                $this->exportSettings();
+                exit;
+            }
+            
+            // Handle Import
+            if (isset($_FILES['import_file']) && !empty($_FILES['import_file']['tmp_name'])) {
+                $importResult = $this->importSettings($_FILES['import_file']);
+                if ($importResult['success']) {
+                    $message = __('Settings imported successfully!', 'fp-performance-suite');
+                } else {
+                    $message = sprintf(__('Import failed: %s', 'fp-performance-suite'), $importResult['error']);
+                }
+            }
+            
             update_option('fp_ps_settings', $options);
             update_option('fp_ps_critical_css', wp_unslash($_POST['critical_css'] ?? ''));
             
@@ -263,11 +279,125 @@ class Settings extends AbstractPage
             <?php endif; ?>
         </section>
         
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Import / Export Configuration', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Export your current configuration to a JSON file or import a previously saved configuration. Perfect for migrating settings between sites or creating backups.', 'fp-performance-suite'); ?></p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="border: 2px solid #00a32a; border-radius: 4px; padding: 20px;">
+                    <h3 style="margin-top: 0; color: #00a32a;">📤 <?php esc_html_e('Export Settings', 'fp-performance-suite'); ?></h3>
+                    <p><?php esc_html_e('Download all current plugin settings as a JSON file.', 'fp-performance-suite'); ?></p>
+                    <button type="submit" name="export_settings" class="button button-secondary button-large" style="width: 100%;">
+                        <?php esc_html_e('Export Configuration', 'fp-performance-suite'); ?>
+                    </button>
+                    <p class="description" style="margin-top: 10px;">
+                        <?php esc_html_e('Exports: Settings, Cache config, Asset optimization, WebP, Lazy Load, Custom Presets', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div style="border: 2px solid #2271b1; border-radius: 4px; padding: 20px;">
+                    <h3 style="margin-top: 0; color: #2271b1;">📥 <?php esc_html_e('Import Settings', 'fp-performance-suite'); ?></h3>
+                    <p><?php esc_html_e('Upload a previously exported JSON configuration file.', 'fp-performance-suite'); ?></p>
+                    <input type="file" name="import_file" accept=".json" style="margin-bottom: 10px; width: 100%;">
+                    <button type="submit" name="import_settings" class="button button-secondary button-large" style="width: 100%;">
+                        <?php esc_html_e('Import Configuration', 'fp-performance-suite'); ?>
+                    </button>
+                    <p class="description" style="margin-top: 10px; color: #d63638;">
+                        <?php esc_html_e('⚠️ Warning: This will overwrite your current settings!', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Use Cases:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Backup configuration before major changes', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Clone settings to another WordPress site', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Share optimized configurations with team', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Quick restore after testing different settings', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </section>
+        
         <div class="fp-ps-card">
             <p><button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Settings', 'fp-performance-suite'); ?></button></p>
         </div>
         </form>
         <?php
         return (string) ob_get_clean();
+    }
+    
+    /**
+     * Export all settings to JSON file
+     */
+    private function exportSettings(): void
+    {
+        $export = [
+            'version' => FP_PERF_SUITE_VERSION,
+            'exported' => current_time('mysql'),
+            'site_url' => get_site_url(),
+            'settings' => [
+                'fp_ps_settings' => get_option('fp_ps_settings', []),
+                'fp_ps_page_cache' => get_option('fp_ps_page_cache', []),
+                'fp_ps_browser_cache' => get_option('fp_ps_browser_cache', []),
+                'fp_ps_asset_optimizer' => get_option('fp_ps_asset_optimizer', []),
+                'fp_ps_webp' => get_option('fp_ps_webp', []),
+                'fp_ps_avif' => get_option('fp_ps_avif', []),
+                'fp_ps_lazy_load' => get_option('fp_ps_lazy_load', []),
+                'fp_ps_image_optimizer' => get_option('fp_ps_image_optimizer', []),
+                'fp_ps_critical_css' => get_option('fp_ps_critical_css', ''),
+                'fp_ps_cdn' => get_option('fp_ps_cdn', []),
+                'fp_ps_compression' => get_option('fp_ps_compression', []),
+                'fp_ps_monitoring' => get_option('fp_ps_monitoring', []),
+                'fp_ps_cwv' => get_option('fp_ps_cwv', []),
+                'fp_ps_custom_presets' => get_option('fp_ps_custom_presets', []),
+                'fp_ps_performance_budget' => get_option('fp_ps_performance_budget', []),
+            ],
+        ];
+        
+        $filename = 'fp-performance-suite-config-' . date('Y-m-d-His') . '.json';
+        
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        echo wp_json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+    
+    /**
+     * Import settings from JSON file
+     */
+    private function importSettings(array $file): array
+    {
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['success' => false, 'error' => __('File upload error', 'fp-performance-suite')];
+        }
+        
+        if ($file['type'] !== 'application/json' && pathinfo($file['name'], PATHINFO_EXTENSION) !== 'json') {
+            return ['success' => false, 'error' => __('Invalid file type. Only JSON files are allowed.', 'fp-performance-suite')];
+        }
+        
+        $content = file_get_contents($file['tmp_name']);
+        if ($content === false) {
+            return ['success' => false, 'error' => __('Could not read file', 'fp-performance-suite')];
+        }
+        
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['success' => false, 'error' => __('Invalid JSON format', 'fp-performance-suite')];
+        }
+        
+        if (!isset($data['settings']) || !is_array($data['settings'])) {
+            return ['success' => false, 'error' => __('Invalid configuration file structure', 'fp-performance-suite')];
+        }
+        
+        // Import all settings
+        foreach ($data['settings'] as $option_name => $option_value) {
+            update_option($option_name, $option_value);
+        }
+        
+        return ['success' => true];
     }
 }
