@@ -432,12 +432,19 @@ class Advanced extends AbstractPage
     public function handleSave(): void
     {
         if (!current_user_can($this->capability())) {
-            wp_die(esc_html__('Permission denied', 'fp-performance-suite'));
+            $redirect_url = add_query_arg(
+                ['error' => '1', 'message' => urlencode(__('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite'))],
+                admin_url('admin.php?page=' . $this->slug())
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
         }
 
-        check_admin_referer('fp_ps_advanced');
-
         try {
+            // Verifica il nonce di sicurezza
+            if (!check_admin_referer('fp_ps_advanced', '_wpnonce', false)) {
+                throw new \Exception(__('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite'));
+            }
             // Save Critical CSS
             if (isset($_POST['critical_css'])) {
                 $criticalCss = new CriticalCss();
