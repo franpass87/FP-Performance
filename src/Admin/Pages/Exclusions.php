@@ -94,6 +94,21 @@ class Exclusions extends AbstractPage
                     $messageType = 'error';
                 }
             }
+            
+            // Handle cleanup duplicates
+            if (isset($_POST['cleanup_duplicates'])) {
+                $stats = $smartDetector->removeDuplicateExclusions();
+                if ($stats['duplicates_removed'] > 0) {
+                    $message = sprintf(
+                        __('✓ Ripulitura completata: %d duplicati rimossi. Totale esclusioni: %d → %d', 'fp-performance-suite'),
+                        $stats['duplicates_removed'],
+                        $stats['total_before'],
+                        $stats['total_after']
+                    );
+                } else {
+                    $message = __('✓ Nessun duplicato trovato. Database già pulito.', 'fp-performance-suite');
+                }
+            }
         }
         
         // Get current exclusions
@@ -224,8 +239,21 @@ class Exclusions extends AbstractPage
 
             <!-- Applied Exclusions Table -->
             <section class="fp-ps-card">
-                <h2>📋 <?php esc_html_e('Esclusioni Applicate', 'fp-performance-suite'); ?></h2>
-                <p><?php esc_html_e('Visualizza e gestisci tutte le esclusioni attualmente attive sul tuo sito.', 'fp-performance-suite'); ?></p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <h2 style="margin: 0;">📋 <?php esc_html_e('Esclusioni Applicate', 'fp-performance-suite'); ?></h2>
+                        <p style="margin: 5px 0 0 0;"><?php esc_html_e('Visualizza e gestisci tutte le esclusioni attualmente attive sul tuo sito.', 'fp-performance-suite'); ?></p>
+                    </div>
+                    <button 
+                        type="submit" 
+                        name="cleanup_duplicates" 
+                        class="button button-secondary"
+                        onclick="return confirm('<?php esc_attr_e('Rimuovere tutti i duplicati? Le esclusioni più recenti verranno mantenute.', 'fp-performance-suite'); ?>');"
+                        style="white-space: nowrap;"
+                    >
+                        🧹 <?php esc_html_e('Ripulisci Duplicati', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
                 
                 <?php if (empty($appliedExclusions)) : ?>
                     <div style="background: #f0f6fc; border: 2px dashed #0969da; border-radius: 6px; padding: 40px; text-align: center; margin-top: 20px;">
