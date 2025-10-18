@@ -13,8 +13,6 @@ use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
 use function date_i18n;
-use function get_date_format;
-use function get_time_format;
 
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
@@ -287,7 +285,7 @@ class Exclusions extends AbstractPage
                                             <?php 
                                             echo esc_html(
                                                 date_i18n(
-                                                    get_date_format() . ' ' . get_time_format(),
+                                                    get_option('date_format') . ' ' . get_option('time_format'),
                                                     $exclusion['applied_at']
                                                 )
                                             );
