@@ -317,17 +317,17 @@ if (file_exists($autoload)) {
     require_once $autoload;
 }
 
-// Initialize object cache with settings from plugin
-$settings = get_option('fp_ps_object_cache', []);
+// IMPORTANT: We cannot call get_option() here because wp_cache_get() is not yet defined
+// WordPress loads object-cache.php before defining cache functions
+// The cache will be initialized later by the plugin's ObjectCacheManager
+// which is registered during the 'plugins_loaded' hook
 
-if (!empty($settings['enabled'])) {
-    // WordPress will use this global $wp_object_cache
-    global $wp_object_cache;
-    
-    // Use native WordPress object cache with persistent backend
-    // The actual implementation is handled by the plugin's ObjectCacheManager
-    $wp_object_cache = new WP_Object_Cache();
-}
+// WordPress will use this global $wp_object_cache
+global $wp_object_cache;
+
+// Use native WordPress object cache
+// The persistent backend connection is managed by FP Performance Suite's ObjectCacheManager
+$wp_object_cache = new WP_Object_Cache();
 
 PHP;
 
