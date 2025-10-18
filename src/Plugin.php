@@ -39,6 +39,7 @@ use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
+use FP\PerfSuite\Utils\InstallationRecovery;
 
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -324,6 +325,9 @@ class Plugin
     public static function onActivate(): void
     {
         try {
+            // Controlli preliminari di sistema
+            self::performSystemChecks();
+
             // Determina la versione del plugin
             $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
 
@@ -348,6 +352,12 @@ class Plugin
                 $cleaner->maybeSchedule(true);
             }
 
+            // Verifica e crea le directory necessarie
+            self::ensureRequiredDirectories();
+
+            // Pulisci eventuali errori precedenti
+            delete_option('fp_perfsuite_activation_error');
+
             // Log sicuro dell'attivazione
             if (class_exists('FP\PerfSuite\Utils\Logger')) {
                 Logger::info('Plugin activated', ['version' => $version]);
@@ -360,28 +370,167 @@ class Plugin
 
         } catch (\Throwable $e) {
             // Gestione sicura degli errori per prevenire white screen
+            $errorDetails = self::formatActivationError($e);
+            
             if (function_exists('error_log')) {
                 error_log(sprintf(
-                    '[FP Performance Suite] Errore durante l\'attivazione: %s in %s:%d',
+                    '[FP Performance Suite] ERRORE CRITICO durante l\'attivazione: %s in %s:%d',
                     $e->getMessage(),
                     $e->getFile(),
                     $e->getLine()
                 ));
             }
 
+            // Tenta il recupero automatico
+            if (class_exists('FP\PerfSuite\Utils\InstallationRecovery')) {
+                $recovered = InstallationRecovery::attemptRecovery($errorDetails);
+                if ($recovered) {
+                    $errorDetails['recovery_attempted'] = true;
+                    $errorDetails['recovery_successful'] = true;
+                    Logger::info('Automatic recovery successful');
+                } else {
+                    $errorDetails['recovery_attempted'] = true;
+                    $errorDetails['recovery_successful'] = false;
+                }
+            }
+
             // Salva l'errore nelle opzioni per il debug
             if (function_exists('update_option')) {
-                update_option('fp_perfsuite_activation_error', [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'time' => time(),
-                ], false);
+                update_option('fp_perfsuite_activation_error', $errorDetails, false);
             }
 
             // Non rilanciare l'eccezione per evitare white screen
             // Il plugin si attiverà comunque ma senza la configurazione iniziale dello scheduler
         }
+    }
+
+    /**
+     * Esegue controlli preliminari di sistema prima dell'attivazione
+     * 
+     * @throws \RuntimeException se i requisiti minimi non sono soddisfatti
+     */
+    private static function performSystemChecks(): void
+    {
+        $errors = [];
+
+        // Verifica versione PHP minima
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+            $errors[] = sprintf(
+                'PHP 7.4.0 o superiore è richiesto. Versione corrente: %s',
+                PHP_VERSION
+            );
+        }
+
+        // Verifica estensioni PHP richieste
+        $requiredExtensions = ['json', 'mbstring', 'fileinfo'];
+        foreach ($requiredExtensions as $ext) {
+            if (!extension_loaded($ext)) {
+                $errors[] = sprintf('Estensione PHP richiesta non trovata: %s', $ext);
+            }
+        }
+
+        // Verifica permessi di scrittura
+        $uploadDir = wp_upload_dir();
+        if (!empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
+            $errors[] = sprintf(
+                'Directory uploads non scrivibile: %s. Verifica i permessi.',
+                $uploadDir['basedir']
+            );
+        }
+
+        // Verifica disponibilità funzioni WordPress critiche
+        $requiredFunctions = ['wp_upload_dir', 'update_option', 'add_action', 'get_option'];
+        foreach ($requiredFunctions as $func) {
+            if (!function_exists($func)) {
+                $errors[] = sprintf('Funzione WordPress richiesta non disponibile: %s', $func);
+            }
+        }
+
+        // Verifica disponibilità classe WP_Filesystem
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        if (!empty($errors)) {
+            throw new \RuntimeException(
+                'Requisiti di sistema non soddisfatti: ' . implode('; ', $errors)
+            );
+        }
+    }
+
+    /**
+     * Assicura che le directory necessarie esistano e siano scrivibili
+     */
+    private static function ensureRequiredDirectories(): void
+    {
+        $uploadDir = wp_upload_dir();
+        $baseDir = $uploadDir['basedir'];
+        
+        if (empty($baseDir)) {
+            return;
+        }
+
+        $requiredDirs = [
+            $baseDir . '/fp-performance-suite',
+            $baseDir . '/fp-performance-suite/cache',
+            $baseDir . '/fp-performance-suite/logs',
+        ];
+
+        foreach ($requiredDirs as $dir) {
+            if (!file_exists($dir)) {
+                wp_mkdir_p($dir);
+                
+                // Crea file .htaccess per proteggere le directory
+                $htaccessFile = $dir . '/.htaccess';
+                if (!file_exists($htaccessFile)) {
+                    file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\n");
+                }
+            }
+        }
+    }
+
+    /**
+     * Formatta i dettagli dell'errore di attivazione
+     * 
+     * @param \Throwable $e L'eccezione catturata
+     * @return array Dettagli dell'errore formattati
+     */
+    private static function formatActivationError(\Throwable $e): array
+    {
+        $errorType = 'unknown';
+        $solution = 'Contatta il supporto con i dettagli dell\'errore.';
+
+        // Identifica il tipo di errore e suggerisci una soluzione
+        $message = $e->getMessage();
+        
+        if (strpos($message, 'PHP') !== false && strpos($message, 'version') !== false) {
+            $errorType = 'php_version';
+            $solution = 'Aggiorna PHP alla versione 7.4 o superiore tramite il pannello di hosting.';
+        } elseif (strpos($message, 'extension') !== false || strpos($message, 'Estensione') !== false) {
+            $errorType = 'php_extension';
+            $solution = 'Abilita le estensioni PHP richieste (json, mbstring, fileinfo) tramite il pannello di hosting.';
+        } elseif (strpos($message, 'permission') !== false || strpos($message, 'scrivibile') !== false) {
+            $errorType = 'permissions';
+            $solution = 'Verifica i permessi delle directory. La directory wp-content/uploads deve essere scrivibile (chmod 755 o 775).';
+        } elseif (strpos($message, 'Class') !== false && strpos($message, 'not found') !== false) {
+            $errorType = 'missing_class';
+            $solution = 'Reinstalla il plugin assicurandoti che tutti i file siano stati caricati correttamente.';
+        } elseif (strpos($message, 'memory') !== false) {
+            $errorType = 'memory_limit';
+            $solution = 'Aumenta il limite di memoria PHP (memory_limit) a almeno 128MB nel file php.ini.';
+        }
+
+        return [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'time' => time(),
+            'type' => $errorType,
+            'solution' => $solution,
+            'trace' => $e->getTraceAsString(),
+            'php_version' => PHP_VERSION,
+            'wp_version' => get_bloginfo('version'),
+        ];
     }
 
     public static function onDeactivate(): void
