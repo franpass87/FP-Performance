@@ -87,6 +87,9 @@ class Overview extends AbstractPage
         $analysis = $analyzer->analyze();
         
         $exportUrl = wp_nonce_url(admin_url('admin-post.php?action=fp_ps_export_csv'), 'fp-ps-export');
+        
+        // Performance history data
+        $history = $this->getPerformanceHistory();
 
         ob_start();
         ?>
@@ -397,6 +400,110 @@ class Overview extends AbstractPage
             <?php endif; ?>
         </section>
 
+        <!-- Performance History Dashboard -->
+        <section class="fp-ps-card" style="margin-top: 30px;">
+            <h2>📊 <?php esc_html_e('Performance History', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Track performance metrics over time to identify trends and regressions.', 'fp-performance-suite'); ?></p>
+            
+            <?php if (!empty($history)) : ?>
+            <!-- Time Period Selector -->
+            <div style="margin: 20px 0;">
+                <label for="history-period" style="font-weight: 600; margin-right: 10px;">
+                    <?php esc_html_e('Period:', 'fp-performance-suite'); ?>
+                </label>
+                <select id="history-period" style="padding: 5px 10px;">
+                    <option value="7"><?php esc_html_e('Last 7 days', 'fp-performance-suite'); ?></option>
+                    <option value="30" selected><?php esc_html_e('Last 30 days', 'fp-performance-suite'); ?></option>
+                    <option value="90"><?php esc_html_e('Last 90 days', 'fp-performance-suite'); ?></option>
+                </select>
+            </div>
+            
+            <!-- Charts Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 30px;">
+                <!-- Load Time Trend -->
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
+                    <h3 style="margin-top: 0; font-size: 16px;">⚡ <?php esc_html_e('Load Time Trend', 'fp-performance-suite'); ?></h3>
+                    <div class="fp-ps-chart" style="height: 200px; position: relative;">
+                        <?php echo $this->renderMiniChart($history, 'load_time', '#3b82f6'); ?>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <?php echo number_format(end($history)['load_time'] * 1000, 0); ?>ms
+                        <?php 
+                        $trend = $this->calculateTrend($history, 'load_time');
+                        $trendColor = $trend < 0 ? '#059669' : '#dc2626';
+                        $trendIcon = $trend < 0 ? '↓' : '↑';
+                        ?>
+                        <span style="color: <?php echo $trendColor; ?>; font-weight: 600;">
+                            <?php echo $trendIcon; ?> <?php echo abs($trend); ?>%
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Database Queries Trend -->
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
+                    <h3 style="margin-top: 0; font-size: 16px;">🗄️ <?php esc_html_e('Database Queries Trend', 'fp-performance-suite'); ?></h3>
+                    <div class="fp-ps-chart" style="height: 200px; position: relative;">
+                        <?php echo $this->renderMiniChart($history, 'db_queries', '#8b5cf6'); ?>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <?php echo number_format(end($history)['db_queries'], 1); ?>
+                        <?php 
+                        $trend = $this->calculateTrend($history, 'db_queries');
+                        $trendColor = $trend < 0 ? '#059669' : '#dc2626';
+                        $trendIcon = $trend < 0 ? '↓' : '↑';
+                        ?>
+                        <span style="color: <?php echo $trendColor; ?>; font-weight: 600;">
+                            <?php echo $trendIcon; ?> <?php echo abs($trend); ?>%
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Memory Usage Trend -->
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
+                    <h3 style="margin-top: 0; font-size: 16px;">💾 <?php esc_html_e('Memory Usage Trend', 'fp-performance-suite'); ?></h3>
+                    <div class="fp-ps-chart" style="height: 200px; position: relative;">
+                        <?php echo $this->renderMiniChart($history, 'memory', '#ec4899'); ?>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <?php echo number_format(end($history)['memory'] / 1024 / 1024, 1); ?>MB
+                        <?php 
+                        $trend = $this->calculateTrend($history, 'memory');
+                        $trendColor = $trend < 0 ? '#059669' : '#dc2626';
+                        $trendIcon = $trend < 0 ? '↓' : '↑';
+                        ?>
+                        <span style="color: <?php echo $trendColor; ?>; font-weight: 600;">
+                            <?php echo $trendIcon; ?> <?php echo abs($trend); ?>%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Historical Stats Summary -->
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 30px;">
+                <h3 style="margin-top: 0; font-size: 14px; font-weight: 600;"><?php esc_html_e('📈 Insights', 'fp-performance-suite'); ?></h3>
+                <ul style="margin: 10px 0 0 20px; font-size: 13px;">
+                    <?php
+                    $insights = $this->generateInsights($history);
+                    foreach ($insights as $insight) :
+                    ?>
+                        <li style="margin-bottom: 5px;">
+                            <strong><?php echo esc_html($insight['title']); ?>:</strong>
+                            <?php echo esc_html($insight['text']); ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php else : ?>
+            <div style="padding: 40px; text-align: center; color: #666;">
+                <p style="font-size: 16px; margin-bottom: 10px;">📊 <?php esc_html_e('No historical data available yet', 'fp-performance-suite'); ?></p>
+                <p style="font-size: 14px;"><?php esc_html_e('Performance data will be collected automatically. Check back in 24 hours.', 'fp-performance-suite'); ?></p>
+            </div>
+            <?php endif; ?>
+        </section>
+        
         <!-- Quick Actions -->
         <section class="fp-ps-card">
             <h2>⚙️ <?php esc_html_e('Quick Actions', 'fp-performance-suite'); ?></h2>
@@ -569,5 +676,168 @@ class Overview extends AbstractPage
         }
 
         exit;
+    }
+    
+    /**
+     * Get performance history data
+     */
+    private function getPerformanceHistory(): array
+    {
+        global $wpdb;
+        
+        $table = $wpdb->prefix . 'fp_ps_performance_history';
+        
+        // Check if table exists  
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") !== $table) {
+            return [];
+        }
+        
+        // Get last 30 days of data
+        $history = $wpdb->get_results(
+            "SELECT DATE(created_at) as date,
+                    AVG(load_time) as load_time,
+                    AVG(db_queries) as db_queries,
+                    AVG(memory_usage) as memory
+             FROM {$table}
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             GROUP BY DATE(created_at)
+             ORDER BY date ASC",
+            ARRAY_A
+        );
+        
+        return $history ?: [];
+    }
+    
+    /**
+     * Render mini chart using ASCII-style bars
+     */
+    private function renderMiniChart(array $data, string $metric, string $color): string
+    {
+        if (empty($data)) {
+            return '';
+        }
+        
+        $values = array_column($data, $metric);
+        $max = max($values);
+        $min = min($values);
+        $range = $max - $min ?: 1;
+        
+        $bars = [];
+        foreach ($values as $value) {
+            $height = (($value - $min) / $range) * 100;
+            $bars[] = sprintf(
+                '<div style="flex: 1; background: %s; height: %.1f%%; min-height: 2px; border-radius: 2px 2px 0 0; opacity: 0.8;"></div>',
+                $color,
+                $height
+            );
+        }
+        
+        return sprintf(
+            '<div style="display: flex; align-items: flex-end; gap: 2px; height: 100%%; padding: 10px 0;">%s</div>',
+            implode('', $bars)
+        );
+    }
+    
+    /**
+     * Calculate trend percentage
+     */
+    private function calculateTrend(array $data, string $metric): int
+    {
+        if (count($data) < 2) {
+            return 0;
+        }
+        
+        $values = array_column($data, $metric);
+        $first = $values[0];
+        $last = end($values);
+        
+        if ($first == 0) {
+            return 0;
+        }
+        
+        $trend = (($last - $first) / $first) * 100;
+        return (int) round($trend);
+    }
+    
+    /**
+     * Generate insights from history
+     */
+    private function generateInsights(array $history): array
+    {
+        $insights = [];
+        
+        if (empty($history)) {
+            return $insights;
+        }
+        
+        // Load time insight
+        $loadTimeTrend = $this->calculateTrend($history, 'load_time');
+        if ($loadTimeTrend < -10) {
+            $insights[] = [
+                'title' => __('Load Time Improvement', 'fp-performance-suite'),
+                'text' => sprintf(__('Load time improved by %d%% in the last 30 days', 'fp-performance-suite'), abs($loadTimeTrend)),
+            ];
+        } elseif ($loadTimeTrend > 10) {
+            $insights[] = [
+                'title' => __('Load Time Degradation', 'fp-performance-suite'),
+                'text' => sprintf(__('Load time increased by %d%% - consider optimization', 'fp-performance-suite'), $loadTimeTrend),
+            ];
+        }
+        
+        // Database queries insight
+        $dbTrend = $this->calculateTrend($history, 'db_queries');
+        if ($dbTrend > 20) {
+            $insights[] = [
+                'title' => __('Database Queries Increase', 'fp-performance-suite'),
+                'text' => sprintf(__('DB queries increased by %d%% - check for inefficient plugins', 'fp-performance-suite'), $dbTrend),
+            ];
+        }
+        
+        // Memory usage insight
+        $memoryTrend = $this->calculateTrend($history, 'memory');
+        if ($memoryTrend > 15) {
+            $insights[] = [
+                'title' => __('Memory Usage Growth', 'fp-performance-suite'),
+                'text' => sprintf(__('Memory usage increased by %d%% - may need PHP memory limit increase', 'fp-performance-suite'), $memoryTrend),
+            ];
+        }
+        
+        // Stability insight
+        $loadTimes = array_column($history, 'load_time');
+        $stdDev = $this->calculateStdDev($loadTimes);
+        $avg = array_sum($loadTimes) / count($loadTimes);
+        $cv = ($stdDev / $avg) * 100;
+        
+        if ($cv < 20) {
+            $insights[] = [
+                'title' => __('Stable Performance', 'fp-performance-suite'),
+                'text' => __('Performance is consistent with low variance - excellent stability', 'fp-performance-suite'),
+            ];
+        } elseif ($cv > 50) {
+            $insights[] = [
+                'title' => __('Unstable Performance', 'fp-performance-suite'),
+                'text' => __('High variance detected - investigate caching or server resources', 'fp-performance-suite'),
+            ];
+        }
+        
+        return $insights;
+    }
+    
+    /**
+     * Calculate standard deviation
+     */
+    private function calculateStdDev(array $values): float
+    {
+        $count = count($values);
+        if ($count < 2) {
+            return 0;
+        }
+        
+        $mean = array_sum($values) / $count;
+        $variance = array_sum(array_map(function($val) use ($mean) {
+            return pow($val - $mean, 2);
+        }, $values)) / $count;
+        
+        return sqrt($variance);
     }
 }

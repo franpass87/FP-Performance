@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
 use function __;
 use function array_filter;
@@ -62,7 +63,16 @@ class Assets extends AbstractPage
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
         
+        // Smart Script Detector
+        $smartDetector = new SmartExclusionDetector();
+        $criticalScripts = null;
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
+            // Handle auto-detect critical scripts
+            if (isset($_POST['auto_detect_scripts'])) {
+                $criticalScripts = $smartDetector->detectCriticalScripts();
+                $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+            }
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
@@ -70,6 +80,9 @@ class Assets extends AbstractPage
                 // Salva solo le impostazioni di delivery
                 $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
                 $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
+                $excludeCss = !empty($_POST['exclude_css']) ? wp_unslash($_POST['exclude_css']) : '';
+                $excludeJs = !empty($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : '';
+                
                 $optimizer->update([
                     'minify_html' => !empty($_POST['minify_html']),
                     'defer_js' => !empty($_POST['defer_js']),
@@ -80,6 +93,14 @@ class Assets extends AbstractPage
                     'heartbeat_admin' => (int) ($_POST['heartbeat_admin'] ?? 60),
                     'combine_css' => !empty($_POST['combine_css']),
                     'combine_js' => !empty($_POST['combine_js']),
+                    'exclude_css' => $excludeCss,
+                    'exclude_js' => $excludeJs,
+                    'minify_inline_css' => !empty($_POST['minify_inline_css']),
+                    'minify_inline_js' => !empty($_POST['minify_inline_js']),
+                    'remove_comments' => !empty($_POST['remove_comments']),
+                    'optimize_google_fonts' => !empty($_POST['optimize_google_fonts_assets']),
+                    'preload_critical_assets' => !empty($_POST['preload_critical_assets']),
+                    'critical_assets_list' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['critical_assets'] ?? '')))),
                 ]);
                 $message = __('Delivery settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'pagespeed') {
@@ -313,8 +334,149 @@ class Assets extends AbstractPage
                     <label for="preload"><?php esc_html_e('Preload resources (full URLs)', 'fp-performance-suite'); ?></label>
                     <textarea name="preload" id="preload" rows="4" class="large-text code"><?php echo esc_textarea(implode("\n", $settings['preload'])); ?></textarea>
                 </p>
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Script Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 10px;">
+                        <?php esc_html_e('Let the AI detect critical scripts that should not be optimized automatically.', 'fp-performance-suite'); ?>
+                    </p>
+                    <button type="submit" name="auto_detect_scripts" class="button button-secondary">
+                        🔍 <?php esc_html_e('Auto-Detect Critical Scripts', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <?php if ($criticalScripts) : ?>
+                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('Critical Scripts Detected', 'fp-performance-suite'); ?></h4>
+                        
+                        <?php if (!empty($criticalScripts['always_exclude'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🛡️ <?php esc_html_e('Always Exclude (Core Dependencies)', 'fp-performance-suite'); ?>
+                            </h5>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                                <?php foreach ($criticalScripts['always_exclude'] as $script) : ?>
+                                    <span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
+                                        <?php echo esc_html($script); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalScripts['plugin_critical'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔌 <?php esc_html_e('Plugin Critical Scripts', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach ($criticalScripts['plugin_critical'] as $item) : ?>
+                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['pattern']); ?></strong> - 
+                                    <em><?php echo esc_html($item['reason']); ?></em>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($criticalScripts['dependency_critical'])) : ?>
+                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                                🔗 <?php esc_html_e('High-Dependency Scripts', 'fp-performance-suite'); ?>
+                            </h5>
+                            <?php foreach (array_slice($criticalScripts['dependency_critical'], 0, 5) as $item) : ?>
+                                <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                    <em><?php echo esc_html($item['reason']); ?></em>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        
+                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 12px; color: #065f46;">
+                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                                <?php esc_html_e('Aggiungi questi script alla lista di esclusione manuale qui sotto per evitare problemi.', 'fp-performance-suite'); ?>
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <p>
-                    <button type="submit" class="button button-primary"><?php esc_html_e('Save Asset Settings', 'fp-performance-suite'); ?></button>
+                    <label for="exclude_css"><?php esc_html_e('Exclude CSS from optimization', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_css" id="exclude_css" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\nstyle-handle\n/wp-content/themes/mytheme/custom.css', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_css'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('CSS files to exclude from minification and combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="exclude_js"><?php esc_html_e('Exclude JavaScript from optimization', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_js" id="exclude_js" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\njquery\njquery-core\n/wp-includes/js/jquery/jquery.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_js'] ?? ''); ?></textarea>
+                    <span class="description"><?php esc_html_e('JavaScript files to exclude from defer/async/combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Advanced Minification Options', 'fp-performance-suite'); ?></h3>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Minify inline CSS', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="minify_inline_css" value="1" <?php checked($settings['minify_inline_css'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Minify CSS code embedded directly in HTML <style> tags. Reduces HTML size.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Minify inline JavaScript', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="minify_inline_js" value="1" <?php checked($settings['minify_inline_js'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Minify JavaScript code embedded in HTML <script> tags. Use with caution.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Remove CSS/JS comments', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="remove_comments" value="1" <?php checked($settings['remove_comments'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Strip all comments from CSS and JavaScript files during optimization.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Optimize Google Fonts loading', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="optimize_google_fonts_assets" value="1" <?php checked($settings['optimize_google_fonts'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Add display=swap and preconnect hints for Google Fonts. Improves FCP score.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Critical Assets Preloading', 'fp-performance-suite'); ?></h3>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable critical assets preloading', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="preload_critical_assets" value="1" <?php checked($settings['preload_critical_assets'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Preload the most important assets to improve initial page load time.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <p>
+                    <label for="critical_assets"><?php esc_html_e('Critical assets to preload', 'fp-performance-suite'); ?></label>
+                    <textarea name="critical_assets" id="critical_assets" rows="5" class="large-text" placeholder="<?php esc_attr_e('/wp-content/themes/mytheme/style.css\n/wp-content/themes/mytheme/hero-image.jpg\n/wp-content/themes/mytheme/main.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea(implode("\n", $settings['critical_assets_list'] ?? [])); ?></textarea>
+                    <span class="description"><?php esc_html_e('Full URLs or paths of critical assets to preload. One per line. Use for above-the-fold resources only.', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Minification Best Practices:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #555;">
+                        <li><?php esc_html_e('Test inline minification thoroughly - can break some scripts', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Only preload 2-3 truly critical assets (hero image, main CSS)', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Too many preload tags can actually slow down the page', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Use browser DevTools to identify render-blocking resources', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p>
+                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Asset Settings', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>

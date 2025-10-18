@@ -87,6 +87,7 @@ class Media extends AbstractPage
                     'images' => !empty($_POST['lazy_load_images']),
                     'iframes' => !empty($_POST['lazy_load_iframes']),
                     'skip_first' => (int) ($_POST['lazy_load_skip_first'] ?? 1),
+                    'threshold' => (int) ($_POST['lazy_load_threshold'] ?? 200),
                 ]);
                 $message = __('Lazy Load settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'image_optimizer') {
@@ -440,6 +441,11 @@ class Media extends AbstractPage
                     <label for="lazy_load_skip_first"><?php esc_html_e('Salta le prime N immagini (hero images)', 'fp-performance-suite'); ?></label>
                     <input type="number" name="lazy_load_skip_first" id="lazy_load_skip_first" value="<?php echo esc_attr((string) $lazyLoadSettings['skip_first']); ?>" min="0" max="5" style="width: 80px;" />
                     <span class="description"><?php esc_html_e('Consigliato: 1-2 per evitare di lazy-loadare immagini above-the-fold', 'fp-performance-suite'); ?></span>
+                </p>
+                <p style="margin-left: 30px;">
+                    <label for="lazy_load_threshold"><?php esc_html_e('Distanza dal viewport (px)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="lazy_load_threshold" id="lazy_load_threshold" value="<?php echo esc_attr((string) ($lazyLoadSettings['threshold'] ?? 200)); ?>" min="0" max="1000" step="50" style="width: 120px;" />
+                    <span class="description"><?php esc_html_e('Inizia a caricare quando l\'elemento è a questa distanza dal viewport. Consigliato: 200-300px', 'fp-performance-suite'); ?></span>
                 </p>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Lazy Load', 'fp-performance-suite'); ?></button>

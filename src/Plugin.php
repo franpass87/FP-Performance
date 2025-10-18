@@ -26,6 +26,7 @@ use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -273,6 +274,9 @@ class Plugin
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
+        
+        // Smart Intelligence Services
+        $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));

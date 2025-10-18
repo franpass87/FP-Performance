@@ -63,6 +63,12 @@ class Database extends AbstractPage
                 $cleaner->update([
                     'schedule' => sanitize_text_field($_POST['schedule'] ?? 'manual'),
                     'batch' => (int) ($_POST['batch'] ?? 200),
+                    'auto_optimize' => !empty($_POST['auto_optimize']),
+                    'optimize_schedule' => sanitize_text_field($_POST['optimize_schedule'] ?? 'weekly'),
+                    'auto_backup' => !empty($_POST['auto_backup']),
+                    'notify_on_cleanup' => !empty($_POST['notify_on_cleanup']),
+                    'cleanup_email' => sanitize_email($_POST['cleanup_email'] ?? get_option('admin_email')),
+                    'max_revisions' => (int) ($_POST['max_revisions'] ?? 5),
                 ]);
                 $message = __('Database settings updated.', 'fp-performance-suite');
             }
@@ -121,8 +127,62 @@ class Database extends AbstractPage
                     <label for="batch"><?php esc_html_e('Batch size', 'fp-performance-suite'); ?></label>
                     <input type="number" name="batch" id="batch" value="<?php echo esc_attr((string) $settings['batch']); ?>" min="50" max="500" />
                 </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Advanced Scheduling Options', 'fp-performance-suite'); ?></h3>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Auto-optimize tables', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="auto_optimize" value="1" <?php checked($settings['auto_optimize'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Automatically optimize database tables during scheduled maintenance. WARNING: This should only be enabled during low-traffic periods.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <p style="margin-left: 30px;">
+                    <label for="optimize_schedule"><?php esc_html_e('Table optimization frequency', 'fp-performance-suite'); ?></label>
+                    <select name="optimize_schedule" id="optimize_schedule">
+                        <option value="weekly" <?php selected($settings['optimize_schedule'] ?? 'weekly', 'weekly'); ?>><?php esc_html_e('Weekly', 'fp-performance-suite'); ?></option>
+                        <option value="biweekly" <?php selected($settings['optimize_schedule'] ?? 'weekly', 'biweekly'); ?>><?php esc_html_e('Every 2 weeks', 'fp-performance-suite'); ?></option>
+                        <option value="monthly" <?php selected($settings['optimize_schedule'] ?? 'weekly', 'monthly'); ?>><?php esc_html_e('Monthly', 'fp-performance-suite'); ?></option>
+                    </select>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Auto-backup before cleanup', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="auto_backup" value="1" <?php checked($settings['auto_backup'] ?? false); ?> />
+                </label>
+                <p class="description" style="margin-left: 30px;">
+                    <?php esc_html_e('Create automatic database backup before running cleanup operations.', 'fp-performance-suite'); ?>
+                </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Notifications', 'fp-performance-suite'); ?></h3>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Email notifications on cleanup', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="notify_on_cleanup" value="1" <?php checked($settings['notify_on_cleanup'] ?? false); ?> />
+                </label>
+                
+                <p style="margin-left: 30px;">
+                    <label for="cleanup_email"><?php esc_html_e('Notification email', 'fp-performance-suite'); ?></label>
+                    <input type="email" name="cleanup_email" id="cleanup_email" value="<?php echo esc_attr($settings['cleanup_email'] ?? get_option('admin_email')); ?>" class="regular-text">
+                </p>
+                
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Cleanup Limits', 'fp-performance-suite'); ?></h3>
+                
                 <p>
-                    <button type="submit" class="button button-secondary"><?php esc_html_e('Save Scheduler', 'fp-performance-suite'); ?></button>
+                    <label for="max_revisions"><?php esc_html_e('Keep last N revisions per post', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="max_revisions" id="max_revisions" value="<?php echo esc_attr((string) ($settings['max_revisions'] ?? 5)); ?>" min="1" max="50" class="small-text">
+                    <span class="description"><?php esc_html_e('Number of most recent revisions to keep (older will be deleted)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Database Settings', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
             

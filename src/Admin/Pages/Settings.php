@@ -10,12 +10,20 @@ use function esc_html_e;
 use function esc_textarea;
 use function get_option;
 use function sanitize_text_field;
+use function sanitize_email;
 use function selected;
 use function checked;
 use function update_option;
 use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
+use function array_map;
+use function array_filter;
+use function explode;
+use function implode;
+use function trim;
+
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
 class Settings extends AbstractPage
 {
@@ -52,14 +60,81 @@ class Settings extends AbstractPage
         $options = get_option('fp_ps_settings', [
             'allowed_role' => 'administrator',
             'safety_mode' => true,
+            'exclude_urls' => '',
+            'exclude_roles' => [],
+            'log_level' => 'ERROR',
+            'log_retention_days' => 30,
+            'notification_email' => get_option('admin_email'),
+            'enable_notifications' => false,
+            'dev_mode' => false,
+            'mobile_separate' => false,
         ]);
         $criticalCss = get_option('fp_ps_critical_css', '');
         $message = '';
+        
+        // Smart Exclusions Detector
+        $smartDetector = new SmartExclusionDetector();
+        $autoDetected = null;
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_settings_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_settings_nonce']), 'fp-ps-settings')) {
+            // Handle auto-detect action
+            if (isset($_POST['auto_detect_exclusions'])) {
+                $autoDetected = $smartDetector->detectSensitiveUrls();
+                $message = __('Auto-detection completed! Review suggestions below.', 'fp-performance-suite');
+            }
+            
+            // Handle auto-apply action
+            if (isset($_POST['auto_apply_exclusions'])) {
+                $result = $smartDetector->autoApplyExclusions(false);
+                $message = sprintf(
+                    __('%d exclusions applied automatically, %d skipped (low confidence).', 'fp-performance-suite'),
+                    $result['applied'],
+                    $result['skipped']
+                );
+            }
             $options['allowed_role'] = sanitize_text_field($_POST['allowed_role'] ?? 'administrator');
             $options['safety_mode'] = !empty($_POST['safety_mode']);
+            
+            // Global Exclusions
+            $options['exclude_urls'] = sanitize_text_field(wp_unslash($_POST['exclude_urls'] ?? ''));
+            $options['exclude_roles'] = array_map('sanitize_text_field', $_POST['exclude_roles'] ?? []);
+            
+            // Logging Settings
+            $options['log_level'] = sanitize_text_field($_POST['log_level'] ?? 'ERROR');
+            $options['log_retention_days'] = (int) ($_POST['log_retention_days'] ?? 30);
+            
+            // Notifications
+            $options['enable_notifications'] = !empty($_POST['enable_notifications']);
+            $options['notification_email'] = sanitize_email($_POST['notification_email'] ?? get_option('admin_email'));
+            
+            // Development Mode
+            $options['dev_mode'] = !empty($_POST['dev_mode']);
+            
+            // Mobile Settings
+            $options['mobile_separate'] = !empty($_POST['mobile_separate']);
+            
+            // Handle Export
+            if (isset($_POST['export_settings'])) {
+                $this->exportSettings();
+                exit;
+            }
+            
+            // Handle Import
+            if (isset($_FILES['import_file']) && !empty($_FILES['import_file']['tmp_name'])) {
+                $importResult = $this->importSettings($_FILES['import_file']);
+                if ($importResult['success']) {
+                    $message = __('Settings imported successfully!', 'fp-performance-suite');
+                } else {
+                    $message = sprintf(__('Import failed: %s', 'fp-performance-suite'), $importResult['error']);
+                }
+            }
+            
             update_option('fp_ps_settings', $options);
             update_option('fp_ps_critical_css', wp_unslash($_POST['critical_css'] ?? ''));
+            
+            // Update Logger level
+            \FP\PerfSuite\Utils\Logger::setLevel($options['log_level']);
+            
             $message = __('Settings saved.', 'fp-performance-suite');
         }
         ob_start();
@@ -67,10 +142,10 @@ class Settings extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        <form method="post">
+            <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Access Control', 'fp-performance-suite'); ?></h2>
-            <form method="post">
-                <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
                 <p>
                     <label for="allowed_role"><?php esc_html_e('Minimum role to manage plugin', 'fp-performance-suite'); ?></label>
                     <select name="allowed_role" id="allowed_role">
@@ -104,10 +179,335 @@ class Settings extends AbstractPage
                     <label for="critical_css"><?php esc_html_e('Critical CSS placeholder', 'fp-performance-suite'); ?></label>
                     <textarea name="critical_css" id="critical_css" rows="6" class="large-text code" placeholder="<?php esc_attr_e('Paste above-the-fold CSS or snippet reference.', 'fp-performance-suite'); ?>"><?php echo esc_textarea($criticalCss); ?></textarea>
                 </p>
-                <p><button type="submit" class="button button-primary"><?php esc_html_e('Save Settings', 'fp-performance-suite'); ?></button></p>
-            </form>
         </section>
+
+        <section class="fp-ps-card">
+            <h2>🤖 <?php esc_html_e('Smart Auto-Exclusions', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Sistema intelligente che rileva automaticamente URL sensibili, script critici e pattern da escludere dalle ottimizzazioni.', 'fp-performance-suite'); ?></p>
+            
+            <div class="fp-ps-actions" style="margin: 20px 0;">
+                <button type="submit" name="auto_detect_exclusions" class="button button-primary button-large">
+                    🔍 <?php esc_html_e('Rileva Automaticamente', 'fp-performance-suite'); ?>
+                </button>
+                <button type="submit" name="auto_apply_exclusions" class="button button-secondary button-large" onclick="return confirm('<?php esc_attr_e('Applicare automaticamente tutte le esclusioni con confidence >= 80%?', 'fp-performance-suite'); ?>');">
+                    ✨ <?php esc_html_e('Applica Automaticamente (High Confidence)', 'fp-performance-suite'); ?>
+                </button>
+            </div>
+            
+            <?php if ($autoDetected) : ?>
+                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 20px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #0969da;">
+                        📊 <?php esc_html_e('Esclusioni Rilevate Automaticamente', 'fp-performance-suite'); ?>
+                    </h3>
+                    
+                    <?php foreach ($autoDetected as $category => $items) : ?>
+                        <?php if (!empty($items)) : ?>
+                            <h4 style="margin-top: 20px; font-size: 14px; text-transform: uppercase; color: #666;">
+                                <?php 
+                                $categoryLabels = [
+                                    'auto_detected' => __('🎯 Standard Sensitive URLs', 'fp-performance-suite'),
+                                    'plugin_based' => __('🔌 Plugin-Based URLs', 'fp-performance-suite'),
+                                    'user_behavior' => __('📈 Behavior-Based URLs', 'fp-performance-suite'),
+                                ];
+                                echo esc_html($categoryLabels[$category] ?? $category);
+                                ?>
+                            </h4>
+                            
+                            <div style="display: grid; gap: 10px; margin-top: 10px;">
+                                <?php foreach ($items as $item) : ?>
+                                    <?php
+                                    $confidence = $item['confidence'] * 100;
+                                    $confidenceColor = $confidence >= 90 ? '#059669' : ($confidence >= 70 ? '#d97706' : '#dc2626');
+                                    ?>
+                                    <div style="background: white; border-left: 4px solid <?php echo $confidenceColor; ?>; padding: 12px; border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="flex: 1;">
+                                                <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 13px;">
+                                                    <?php echo esc_html($item['url']); ?>
+                                                </code>
+                                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                                                    <?php echo esc_html($item['reason']); ?>
+                                                    <?php if (isset($item['plugin'])) : ?>
+                                                        <span style="background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px;">
+                                                            <?php echo esc_html($item['plugin']); ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </p>
+                                            </div>
+                                            <div style="text-align: right; margin-left: 20px;">
+                                                <div style="font-size: 18px; font-weight: 600; color: <?php echo $confidenceColor; ?>;">
+                                                    <?php echo number_format($confidence, 0); ?>%
+                                                </div>
+                                                <div style="font-size: 10px; color: #666;">confidence</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    
+                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 13px; color: #92400e;">
+                            <strong>💡 <?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                            <?php esc_html_e('Le esclusioni con confidence >= 80% sono generalmente sicure da applicare. Quelle con confidence più bassa richiedono revisione manuale.', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;">🧠 <?php esc_html_e('Come Funziona il Sistema Intelligente:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555; font-size: 13px;">
+                    <li><?php esc_html_e('Scansiona automaticamente il sito per URL sensibili (checkout, login, account, etc.)', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Rileva plugin attivi (WooCommerce, EDD, etc.) e applica regole specifiche', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Analizza storico errori per identificare pagine problematiche', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Assegna un punteggio di confidence a ogni esclusione suggerita', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Applica automaticamente solo esclusioni ad alta confidence (>= 80%)', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </section>
+        
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Manual Global Exclusions', 'fp-performance-suite'); ?></h2>
+            <p class="description"><?php esc_html_e('Se necessario, puoi ancora aggiungere esclusioni manuali oltre a quelle rilevate automaticamente.', 'fp-performance-suite'); ?></p>
+                <p>
+                    <label for="exclude_urls"><?php esc_html_e('Exclude URLs from all optimizations', 'fp-performance-suite'); ?></label>
+                    <textarea name="exclude_urls" id="exclude_urls" rows="5" class="large-text" placeholder="<?php esc_attr_e('One URL per line. Examples:\n/checkout/\n/my-account/\n/cart/', 'fp-performance-suite'); ?>"><?php echo esc_textarea($options['exclude_urls']); ?></textarea>
+                    <span class="description"><?php esc_html_e('URLs or patterns to exclude from all plugin optimizations. Use one URL per line. Supports wildcards (*).', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label><?php esc_html_e('Exclude optimizations for user roles', 'fp-performance-suite'); ?></label><br>
+                    <?php
+                    $roles = wp_roles()->get_names();
+                    $excludedRoles = $options['exclude_roles'] ?? [];
+                    foreach ($roles as $roleKey => $roleName) :
+                    ?>
+                        <label style="display: inline-block; margin-right: 15px;">
+                            <input type="checkbox" name="exclude_roles[]" value="<?php echo esc_attr($roleKey); ?>" <?php checked(in_array($roleKey, $excludedRoles, true)); ?>>
+                            <?php echo esc_html($roleName); ?>
+                        </label>
+                    <?php endforeach; ?>
+                    <br>
+                    <span class="description"><?php esc_html_e('Users with these roles will not be affected by plugin optimizations (useful for admins during development).', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Logging & Debugging', 'fp-performance-suite'); ?></h2>
+                <p>
+                    <label for="log_level"><?php esc_html_e('Log Level', 'fp-performance-suite'); ?></label>
+                    <select name="log_level" id="log_level">
+                        <option value="ERROR" <?php selected($options['log_level'], 'ERROR'); ?>><?php esc_html_e('ERROR - Only errors', 'fp-performance-suite'); ?></option>
+                        <option value="WARNING" <?php selected($options['log_level'], 'WARNING'); ?>><?php esc_html_e('WARNING - Errors and warnings', 'fp-performance-suite'); ?></option>
+                        <option value="INFO" <?php selected($options['log_level'], 'INFO'); ?>><?php esc_html_e('INFO - Informational messages', 'fp-performance-suite'); ?></option>
+                        <option value="DEBUG" <?php selected($options['log_level'], 'DEBUG'); ?>><?php esc_html_e('DEBUG - All messages (verbose)', 'fp-performance-suite'); ?></option>
+                    </select>
+                    <span class="description"><?php esc_html_e('Higher levels will write more entries to the log. Use DEBUG only during troubleshooting.', 'fp-performance-suite'); ?></span>
+                </p>
+                <p>
+                    <label for="log_retention_days"><?php esc_html_e('Log Retention Period', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="log_retention_days" id="log_retention_days" value="<?php echo esc_attr($options['log_retention_days']); ?>" min="1" max="365" class="small-text">
+                    <span><?php esc_html_e('days', 'fp-performance-suite'); ?></span>
+                    <span class="description"><?php esc_html_e('Logs older than this will be automatically deleted.', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Email Notifications', 'fp-performance-suite'); ?></h2>
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable Email Notifications', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="enable_notifications" value="1" <?php checked($options['enable_notifications']); ?> />
+                </label>
+                <p class="description"><?php esc_html_e('Receive email alerts for critical errors and important events.', 'fp-performance-suite'); ?></p>
+                <p>
+                    <label for="notification_email"><?php esc_html_e('Notification Email', 'fp-performance-suite'); ?></label>
+                    <input type="email" name="notification_email" id="notification_email" value="<?php echo esc_attr($options['notification_email']); ?>" class="regular-text">
+                    <span class="description"><?php esc_html_e('Email address to receive notifications.', 'fp-performance-suite'); ?></span>
+                </p>
+        </section>
+        
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Developer Options', 'fp-performance-suite'); ?></h2>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Development Mode', 'fp-performance-suite'); ?></strong>
+                    <span class="fp-ps-risk-indicator red">
+                        <div class="fp-ps-risk-tooltip red">
+                            <div class="fp-ps-risk-tooltip-title">
+                                <span class="icon">🔴</span>
+                                <?php esc_html_e('Solo per Sviluppo', 'fp-performance-suite'); ?>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Disabilita tutte le cache, abilita logging verboso e mostra informazioni di debug. Solo per ambiente di sviluppo.', 'fp-performance-suite'); ?></div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Effetti', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text">
+                                    <?php esc_html_e('• Disabilita page cache<br>• Disabilita browser cache<br>• Log level impostato a DEBUG<br>• Mostra informazioni tecniche', 'fp-performance-suite'); ?>
+                                </div>
+                            </div>
+                            <div class="fp-ps-risk-tooltip-section">
+                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Avviso', 'fp-performance-suite'); ?></div>
+                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ MAI ATTIVARE IN PRODUZIONE! Le performance saranno drasticamente ridotte.', 'fp-performance-suite'); ?></div>
+                            </div>
+                        </div>
+                    </span>
+                </span>
+                <input type="checkbox" name="dev_mode" value="1" <?php checked($options['dev_mode']); ?> />
+            </label>
+            <p class="description" style="color: #d63638; font-weight: 600;">
+                <?php esc_html_e('⚠️ ATTENZIONE: Questa modalità riduce significativamente le performance. Da usare solo durante lo sviluppo!', 'fp-performance-suite'); ?>
+            </p>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Mobile Optimization', 'fp-performance-suite'); ?></h2>
+            <label class="fp-ps-toggle">
+                <span class="info">
+                    <strong><?php esc_html_e('Separate Mobile/Desktop Settings', 'fp-performance-suite'); ?></strong>
+                </span>
+                <input type="checkbox" name="mobile_separate" value="1" <?php checked($options['mobile_separate']); ?> />
+            </label>
+            <p class="description">
+                <?php esc_html_e('Abilita cache separata e ottimizzazioni diverse per dispositivi mobile e desktop. Migliora le performance mobile con impostazioni più aggressive.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($options['mobile_separate']) : ?>
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 15px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Impostazioni Mobile Attive:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Cache separata per mobile e desktop', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Lazy load più aggressivo su mobile', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Qualità immagini ottimizzata per connessioni lente', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Script di terze parti ritardati più a lungo', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+            <?php endif; ?>
+        </section>
+        
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Import / Export Configuration', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Export your current configuration to a JSON file or import a previously saved configuration. Perfect for migrating settings between sites or creating backups.', 'fp-performance-suite'); ?></p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="border: 2px solid #00a32a; border-radius: 4px; padding: 20px;">
+                    <h3 style="margin-top: 0; color: #00a32a;">📤 <?php esc_html_e('Export Settings', 'fp-performance-suite'); ?></h3>
+                    <p><?php esc_html_e('Download all current plugin settings as a JSON file.', 'fp-performance-suite'); ?></p>
+                    <button type="submit" name="export_settings" class="button button-secondary button-large" style="width: 100%;">
+                        <?php esc_html_e('Export Configuration', 'fp-performance-suite'); ?>
+                    </button>
+                    <p class="description" style="margin-top: 10px;">
+                        <?php esc_html_e('Exports: Settings, Cache config, Asset optimization, WebP, Lazy Load, Custom Presets', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div style="border: 2px solid #2271b1; border-radius: 4px; padding: 20px;">
+                    <h3 style="margin-top: 0; color: #2271b1;">📥 <?php esc_html_e('Import Settings', 'fp-performance-suite'); ?></h3>
+                    <p><?php esc_html_e('Upload a previously exported JSON configuration file.', 'fp-performance-suite'); ?></p>
+                    <input type="file" name="import_file" accept=".json" style="margin-bottom: 10px; width: 100%;">
+                    <button type="submit" name="import_settings" class="button button-secondary button-large" style="width: 100%;">
+                        <?php esc_html_e('Import Configuration', 'fp-performance-suite'); ?>
+                    </button>
+                    <p class="description" style="margin-top: 10px; color: #d63638;">
+                        <?php esc_html_e('⚠️ Warning: This will overwrite your current settings!', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Use Cases:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Backup configuration before major changes', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Clone settings to another WordPress site', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Share optimized configurations with team', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Quick restore after testing different settings', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </section>
+        
+        <div class="fp-ps-card">
+            <p><button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Settings', 'fp-performance-suite'); ?></button></p>
+        </div>
+        </form>
         <?php
         return (string) ob_get_clean();
+    }
+    
+    /**
+     * Export all settings to JSON file
+     */
+    private function exportSettings(): void
+    {
+        $export = [
+            'version' => FP_PERF_SUITE_VERSION,
+            'exported' => current_time('mysql'),
+            'site_url' => get_site_url(),
+            'settings' => [
+                'fp_ps_settings' => get_option('fp_ps_settings', []),
+                'fp_ps_page_cache' => get_option('fp_ps_page_cache', []),
+                'fp_ps_browser_cache' => get_option('fp_ps_browser_cache', []),
+                'fp_ps_asset_optimizer' => get_option('fp_ps_asset_optimizer', []),
+                'fp_ps_webp' => get_option('fp_ps_webp', []),
+                'fp_ps_avif' => get_option('fp_ps_avif', []),
+                'fp_ps_lazy_load' => get_option('fp_ps_lazy_load', []),
+                'fp_ps_image_optimizer' => get_option('fp_ps_image_optimizer', []),
+                'fp_ps_critical_css' => get_option('fp_ps_critical_css', ''),
+                'fp_ps_cdn' => get_option('fp_ps_cdn', []),
+                'fp_ps_compression' => get_option('fp_ps_compression', []),
+                'fp_ps_monitoring' => get_option('fp_ps_monitoring', []),
+                'fp_ps_cwv' => get_option('fp_ps_cwv', []),
+                'fp_ps_custom_presets' => get_option('fp_ps_custom_presets', []),
+                'fp_ps_performance_budget' => get_option('fp_ps_performance_budget', []),
+            ],
+        ];
+        
+        $filename = 'fp-performance-suite-config-' . date('Y-m-d-His') . '.json';
+        
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        echo wp_json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+    
+    /**
+     * Import settings from JSON file
+     */
+    private function importSettings(array $file): array
+    {
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['success' => false, 'error' => __('File upload error', 'fp-performance-suite')];
+        }
+        
+        if ($file['type'] !== 'application/json' && pathinfo($file['name'], PATHINFO_EXTENSION) !== 'json') {
+            return ['success' => false, 'error' => __('Invalid file type. Only JSON files are allowed.', 'fp-performance-suite')];
+        }
+        
+        $content = file_get_contents($file['tmp_name']);
+        if ($content === false) {
+            return ['success' => false, 'error' => __('Could not read file', 'fp-performance-suite')];
+        }
+        
+        $data = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['success' => false, 'error' => __('Invalid JSON format', 'fp-performance-suite')];
+        }
+        
+        if (!isset($data['settings']) || !is_array($data['settings'])) {
+            return ['success' => false, 'error' => __('Invalid configuration file structure', 'fp-performance-suite')];
+        }
+        
+        // Import all settings
+        foreach ($data['settings'] as $option_name => $option_value) {
+            update_option($option_name, $option_value);
+        }
+        
+        return ['success' => true];
     }
 }
