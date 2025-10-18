@@ -62,6 +62,8 @@ class Media extends AbstractPage
                 ]);
                 $message = __('WebP settings saved.', 'fp-performance-suite');
             }
+            // Bulk conversion is now handled via AJAX
+            // This fallback is kept for compatibility but should not be used
             if (isset($_POST['bulk_convert'])) {
                 $limit = (int) ($_POST['bulk_limit'] ?? 20);
                 $offset = (int) ($_POST['bulk_offset'] ?? 0);
@@ -203,7 +205,7 @@ class Media extends AbstractPage
         </section>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Bulk Convert Library', 'fp-performance-suite'); ?></h2>
-            <form method="post">
+            <form id="fp-ps-webp-bulk-form" method="post">
                 <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="bulk_convert" value="1" />
                 <p>
@@ -215,9 +217,10 @@ class Media extends AbstractPage
                     <input type="number" name="bulk_offset" id="bulk_offset" value="0" min="0" />
                 </p>
                 <p>
-                    <button type="submit" class="button" data-risk="amber"><?php esc_html_e('Run Bulk Conversion', 'fp-performance-suite'); ?></button>
+                    <button type="button" id="fp-ps-webp-bulk-btn" class="button" data-risk="amber" data-status-nonce="<?php echo esc_attr(wp_create_nonce('fp_ps_webp_status')); ?>"><?php esc_html_e('Avvia Conversione Bulk', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
+            <div id="fp-ps-webp-bulk-progress"></div>
             <?php if ($bulkResult) : ?>
                 <?php if (!empty($bulkResult['queued'])) : ?>
                     <p><?php printf(esc_html__('%d items queued for background conversion.', 'fp-performance-suite'), (int) ($bulkResult['total'] ?? 0)); ?></p>
