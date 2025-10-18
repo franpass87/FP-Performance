@@ -193,6 +193,14 @@ class Compatibility extends AbstractPage
             margin: 0 0 10px 0;
             font-size: 16px;
         }
+        .fp-ps-recommendation p {
+            color: #1d2327 !important;
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .fp-ps-recommendation p strong {
+            color: #000 !important;
+        }
         .fp-ps-recommendation .priority {
             float: right;
             font-size: 12px;
