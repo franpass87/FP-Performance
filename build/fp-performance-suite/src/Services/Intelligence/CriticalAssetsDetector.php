@@ -573,8 +573,12 @@ class CriticalAssetsDetector
 
     /**
      * Applica automaticamente i suggerimenti
+     * 
+     * @param bool $dryRun Se true, non salva le modifiche
+     * @param \FP\PerfSuite\Services\Assets\Optimizer|null $optimizer Optimizer instance per salvare correttamente
+     * @return array Risultati dell'applicazione
      */
-    public function autoApplyCriticalAssets(bool $dryRun = true): array
+    public function autoApplyCriticalAssets(bool $dryRun = true, $optimizer = null): array
     {
         $results = [
             'applied' => 0,
@@ -605,10 +609,19 @@ class CriticalAssetsDetector
 
         // Applica se non dry run
         if (!$dryRun && !empty($assetsToPreload)) {
-            $settings = get_option('fp_ps_assets', []);
-            $settings['critical_assets_list'] = $assetsToPreload;
-            $settings['preload_critical_assets'] = true;
-            update_option('fp_ps_assets', $settings);
+            if ($optimizer) {
+                // Usa l'optimizer per salvare correttamente
+                $optimizer->update([
+                    'critical_assets_list' => $assetsToPreload,
+                    'preload_critical_assets' => true,
+                ]);
+            } else {
+                // Fallback al metodo precedente (deprecato)
+                $settings = get_option('fp_ps_assets', []);
+                $settings['critical_assets_list'] = $assetsToPreload;
+                $settings['preload_critical_assets'] = true;
+                update_option('fp_ps_assets', $settings);
+            }
         }
 
         return $results;
