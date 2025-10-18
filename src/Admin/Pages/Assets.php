@@ -9,6 +9,8 @@ use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
+use FP\PerfSuite\Services\Compatibility\ThemeDetector;
+use FP\PerfSuite\Admin\ThemeHints;
 
 use function __;
 use function array_filter;
@@ -71,6 +73,10 @@ class Assets extends AbstractPage
         // Critical Assets Detector
         $assetsDetector = new CriticalAssetsDetector();
         $criticalAssets = null;
+        
+        // Theme-specific hints
+        $themeDetector = $this->container->get(ThemeDetector::class);
+        $hints = new ThemeHints($themeDetector);
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             // Handle auto-detect critical scripts
@@ -734,7 +740,11 @@ class Assets extends AbstractPage
         </section>
         
         <section class="fp-ps-card" style="margin-top: 20px;">
-            <h2>🔌 <?php esc_html_e('Third-Party Script Manager', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
+            <h2>
+                🔌 <?php esc_html_e('Third-Party Script Manager', 'fp-performance-suite'); ?> 
+                <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span>
+                <?php echo $hints->renderInlineHint('third_party_scripts'); ?>
+            </h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Gestisce il caricamento ritardato di script di terze parti (analytics, social, ads) per migliorare i tempi di caricamento iniziali e i Core Web Vitals.', 'fp-performance-suite'); ?></p>
             
             <?php if ($thirdPartyStatus['enabled']): ?>
@@ -880,7 +890,11 @@ class Assets extends AbstractPage
         </section>
         
         <section class="fp-ps-card" style="margin-top: 20px;">
-            <h2>⚡ <?php esc_html_e('HTTP/2 Server Push', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span></h2>
+            <h2>
+                ⚡ <?php esc_html_e('HTTP/2 Server Push', 'fp-performance-suite'); ?> 
+                <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span>
+                <?php echo $hints->renderInlineHint('http2_push'); ?>
+            </h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Push automatico di risorse critiche via HTTP/2 Server Push per eliminare round-trip e accelerare il rendering.', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
@@ -969,7 +983,11 @@ class Assets extends AbstractPage
         </section>
         
         <section class="fp-ps-card" style="margin-top: 20px;">
-            <h2>📱 <?php esc_html_e('Smart Asset Delivery', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span></h2>
+            <h2>
+                📱 <?php esc_html_e('Smart Asset Delivery', 'fp-performance-suite'); ?> 
+                <span class="fp-ps-badge green" style="font-size: 0.7em;">Advanced</span>
+                <?php echo $hints->renderInlineHint('smart_delivery'); ?>
+            </h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Adatta automaticamente la qualità e il tipo di assets in base alla connessione dell\'utente (2G, 3G, 4G, Save-Data).', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
@@ -1056,6 +1074,8 @@ class Assets extends AbstractPage
                 </p>
             </form>
         </section>
+        
+        <?php echo ThemeHints::renderTooltipScript(); ?>
         <?php
         return (string) ob_get_clean();
     }

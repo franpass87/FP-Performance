@@ -7,6 +7,8 @@ use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\Cache\EdgeCacheManager;
+use FP\PerfSuite\Services\Compatibility\ThemeDetector;
+use FP\PerfSuite\Admin\ThemeHints;
 
 use function __;
 use function checked;
@@ -57,6 +59,10 @@ class Cache extends AbstractPage
         $edgeCache = $this->container->get(EdgeCacheManager::class);
         $message = '';
         $headerSettings = $headers->settings();
+        
+        // Theme-specific hints
+        $themeDetector = $this->container->get(ThemeDetector::class);
+        $hints = new ThemeHints($themeDetector);
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_cache_nonce']), 'fp-ps-cache')) {
             if (isset($_POST['fp_ps_page_cache'])) {
@@ -258,7 +264,10 @@ class Cache extends AbstractPage
         </section>
         
         <section class="fp-ps-card">
-            <h2>🗄️ <?php esc_html_e('Object Cache (Redis/Memcached)', 'fp-performance-suite'); ?></h2>
+            <h2>
+                🗄️ <?php esc_html_e('Object Cache (Redis/Memcached)', 'fp-performance-suite'); ?>
+                <?php echo $hints->renderInlineHint('object_cache'); ?>
+            </h2>
             <p><?php esc_html_e('Attiva la cache persistente degli oggetti con Redis o Memcached per ridurre drasticamente le query al database e migliorare le performance del sito.', 'fp-performance-suite'); ?></p>
             
             <?php if ($objectCacheStatus['success']): ?>
@@ -361,7 +370,10 @@ class Cache extends AbstractPage
         </section>
         
         <section class="fp-ps-card" style="margin-top: 20px;">
-            <h2>🌐 <?php esc_html_e('Edge Cache (CDN/WAF)', 'fp-performance-suite'); ?></h2>
+            <h2>
+                🌐 <?php esc_html_e('Edge Cache (CDN/WAF)', 'fp-performance-suite'); ?>
+                <?php echo $hints->renderInlineHint('edge_cache'); ?>
+            </h2>
             <p><?php esc_html_e('Integrazione con cache edge di Cloudflare, Fastly o CloudFront per purge automatico e gestione cache distribuita.', 'fp-performance-suite'); ?></p>
             
             <?php 
@@ -511,6 +523,8 @@ class Cache extends AbstractPage
                 </p>
             </form>
         </section>
+        
+        <?php echo ThemeHints::renderTooltipScript(); ?>
         <?php
         return (string) ob_get_clean();
     }
