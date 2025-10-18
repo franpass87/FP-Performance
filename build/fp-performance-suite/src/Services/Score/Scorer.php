@@ -2,13 +2,17 @@
 
 namespace FP\PerfSuite\Services\Score;
 
-use FP\PerfSuite\Services\Assets\Optimizer;
-use FP\PerfSuite\Services\Assets\LazyLoadManager;
+use FP\PerfSuite\Services\Assets\CriticalCss;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ImageOptimizer;
+use FP\PerfSuite\Services\Assets\LazyLoadManager;
+use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Cache\Headers;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\CDN\CdnManager;
+use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
@@ -45,6 +49,10 @@ class Scorer
     private FontOptimizer $fontOptimizer;
     private ImageOptimizer $imageOptimizer;
     private ThirdPartyScriptManager $thirdPartyScripts;
+    private ?ObjectCacheManager $objectCache = null;
+    private ?CdnManager $cdnManager = null;
+    private ?CriticalCss $criticalCss = null;
+    private ?CompressionManager $compression = null;
 
     public function __construct(
         PageCache $pageCache,
@@ -56,7 +64,11 @@ class Scorer
         LazyLoadManager $lazyLoad,
         FontOptimizer $fontOptimizer,
         ImageOptimizer $imageOptimizer,
-        ThirdPartyScriptManager $thirdPartyScripts
+        ThirdPartyScriptManager $thirdPartyScripts,
+        ?ObjectCacheManager $objectCache = null,
+        ?CdnManager $cdnManager = null,
+        ?CriticalCss $criticalCss = null,
+        ?CompressionManager $compression = null
     ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
@@ -68,6 +80,10 @@ class Scorer
         $this->fontOptimizer = $fontOptimizer;
         $this->imageOptimizer = $imageOptimizer;
         $this->thirdPartyScripts = $thirdPartyScripts;
+        $this->objectCache = $objectCache;
+        $this->cdnManager = $cdnManager;
+        $this->criticalCss = $criticalCss;
+        $this->compression = $compression;
     }
 
     /**
@@ -169,6 +185,27 @@ class Scorer
             $active[] = __('Browser cache headers applied', 'fp-performance-suite');
         }
         
+        // Object Cache (Redis/Memcached)
+        if ($this->objectCache !== null) {
+            $objectCacheSettings = $this->objectCache->settings();
+            if (!empty($objectCacheSettings['enabled'])) {
+                $driver = ucfirst($objectCacheSettings['driver']);
+                $active[] = sprintf(__('%s object cache active', 'fp-performance-suite'), $driver);
+            }
+        }
+        
+        // Compression
+        if ($this->compression !== null) {
+            $compressionStatus = $this->compression->status();
+            if (!empty($compressionStatus['enabled']) && !empty($compressionStatus['active'])) {
+                if (!empty($compressionStatus['brotli_supported'])) {
+                    $active[] = __('Brotli compression active', 'fp-performance-suite');
+                } else {
+                    $active[] = __('GZIP compression active', 'fp-performance-suite');
+                }
+            }
+        }
+        
         // Asset Optimization
         $assetStatus = $this->optimizer->status();
         if (!empty($assetStatus['minify_html'])) {
@@ -188,6 +225,17 @@ class Scorer
         }
         if (!empty($assetStatus['remove_emojis'])) {
             $active[] = __('Emoji scripts removed', 'fp-performance-suite');
+        }
+        
+        // Critical CSS
+        if ($this->criticalCss !== null) {
+            $criticalStatus = $this->criticalCss->status();
+            if (!empty($criticalStatus['enabled'])) {
+                $active[] = sprintf(
+                    __('Critical CSS active (%.1f KB)', 'fp-performance-suite'),
+                    $criticalStatus['size_kb']
+                );
+            }
         }
         
         // Lazy Loading
@@ -244,6 +292,15 @@ class Scorer
         $webpStatus = $this->webp->status();
         if (!empty($webpStatus['enabled'])) {
             $active[] = __('WebP conversion enabled', 'fp-performance-suite');
+        }
+        
+        // CDN
+        if ($this->cdnManager !== null) {
+            $cdnStatus = $this->cdnManager->status();
+            if (!empty($cdnStatus['enabled'])) {
+                $provider = $cdnStatus['provider'] !== 'custom' ? ucfirst($cdnStatus['provider']) : __('Custom', 'fp-performance-suite');
+                $active[] = sprintf(__('CDN active (%s)', 'fp-performance-suite'), $provider);
+            }
         }
         
         return $active;

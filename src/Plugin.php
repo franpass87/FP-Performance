@@ -310,7 +310,24 @@ class Plugin
                 $c->get(DebugToggler::class)
             );
         });
-        $container->set(Scorer::class, static fn(ServiceContainer $c) => new Scorer($c->get(PageCache::class), $c->get(Headers::class), $c->get(Optimizer::class), $c->get(WebPConverter::class), $c->get(Cleaner::class), $c->get(DebugToggler::class)));
+        $container->set(Scorer::class, static function (ServiceContainer $c) {
+            return new Scorer(
+                $c->get(PageCache::class),
+                $c->get(Headers::class),
+                $c->get(Optimizer::class),
+                $c->get(WebPConverter::class),
+                $c->get(Cleaner::class),
+                $c->get(DebugToggler::class),
+                $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class),
+                $c->get(ObjectCacheManager::class),
+                $c->get(\FP\PerfSuite\Services\CDN\CdnManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\CriticalCss::class),
+                $c->get(CompressionManager::class)
+            );
+        });
 
         $container->set(AdminAssets::class, static fn() => new AdminAssets());
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
