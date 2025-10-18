@@ -225,7 +225,7 @@ class ObjectCacheManager
         if (!$this->isAvailable()) {
             return [
                 'success' => false,
-                'message' => 'Nessun backend di object caching disponibile sul server.',
+                'message' => 'Nessun backend di object caching disponibile sul server. È necessario installare Redis, Memcached o APCu.',
             ];
         }
         
@@ -234,6 +234,25 @@ class ObjectCacheManager
             return [
                 'success' => false,
                 'message' => 'La directory wp-content non è scrivibile.',
+            ];
+        }
+        
+        // CRITICAL: Verifica che esista un plugin di object cache dedicato
+        // Il nostro drop-in non può implementare direttamente Redis/Memcached
+        $hasPluginImplementation = $this->hasPluginImplementation();
+        
+        if (!$hasPluginImplementation) {
+            Logger::warning('No dedicated object cache plugin found', [
+                'backend' => $this->availableBackend
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => sprintf(
+                    'Per utilizzare %s è necessario installare un plugin dedicato come "Redis Object Cache" di Till Krüss. Il drop-in generato da FP Performance Suite non può gestire direttamente la connessione %s.',
+                    strtoupper($this->availableBackend),
+                    strtoupper($this->availableBackend)
+                ),
             ];
         }
         
@@ -256,21 +275,6 @@ class ObjectCacheManager
             ];
         }
         
-        // Verifica che funzioni
-        if (!$this->isEnabled()) {
-            // Rollback
-            if (isset($backupPath) && file_exists($backupPath)) {
-                copy($backupPath, $this->dropInPath);
-            } else {
-                unlink($this->dropInPath);
-            }
-            
-            return [
-                'success' => false,
-                'message' => 'Object cache installato ma non funzionante. Verifica la configurazione.',
-            ];
-        }
-        
         Logger::info('Object cache enabled', ['backend' => $this->availableBackend]);
         
         return [
@@ -278,6 +282,29 @@ class ObjectCacheManager
             'message' => sprintf('Object cache attivato con successo (%s).', strtoupper($this->availableBackend)),
             'backend' => $this->availableBackend,
         ];
+    }
+    
+    /**
+     * Verifica se esiste un'implementazione di plugin per object cache
+     */
+    private function hasPluginImplementation(): bool
+    {
+        // Redis Object Cache plugin
+        if (file_exists(WP_PLUGIN_DIR . '/redis-cache/includes/object-cache.php')) {
+            return true;
+        }
+        
+        // Memcached drop-in
+        if (file_exists(WP_CONTENT_DIR . '/object-cache-memcached.php')) {
+            return true;
+        }
+        
+        // Altri plugin comuni
+        if (file_exists(WP_PLUGIN_DIR . '/memcached/object-cache.php')) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -383,17 +410,20 @@ PHP;
             return "require_once '" . $redisPluginFile . "';";
         }
         
-        // Altrimenti usa una implementazione minimale
+        // CRITICAL: Non possiamo implementare Redis qui perché questo file
+        // viene caricato troppo presto nel ciclo di vita di WordPress.
+        // Raccomandiamo l'installazione di un plugin dedicato.
         return <<<'PHP'
-// Basic Redis implementation
-// For full features, install Redis Object Cache plugin
-$GLOBALS['redis_server'] = array(
-    'host' => defined('WP_REDIS_HOST') ? WP_REDIS_HOST : '127.0.0.1',
-    'port' => defined('WP_REDIS_PORT') ? WP_REDIS_PORT : 6379,
-);
-
-// Use WordPress default object cache with Redis
-// This is a placeholder - for production use, install Redis Object Cache plugin
+/**
+ * ATTENZIONE: Per utilizzare Redis Object Cache è necessario installare
+ * un plugin dedicato come "Redis Object Cache" di Till Krüss.
+ * 
+ * Non è possibile implementare Redis direttamente in questo drop-in
+ * perché viene caricato troppo presto nel bootstrap di WordPress.
+ * 
+ * Per ora, WordPress utilizzerà la cache in memoria standard.
+ */
+return;
 PHP;
     }
     
@@ -409,15 +439,15 @@ PHP;
         }
         
         return <<<'PHP'
-// Basic Memcached implementation
-$GLOBALS['memcached_servers'] = array(
-    array(
-        defined('WP_CACHE_HOST') ? WP_CACHE_HOST : '127.0.0.1',
-        defined('WP_CACHE_PORT') ? WP_CACHE_PORT : 11211,
-    ),
-);
-
-// This is a placeholder - for production use, install a proper Memcached drop-in
+/**
+ * ATTENZIONE: Per utilizzare Memcached è necessario un drop-in specifico.
+ * 
+ * Non è possibile implementare Memcached direttamente in questo file
+ * perché viene caricato troppo presto nel bootstrap di WordPress.
+ * 
+ * Per ora, WordPress utilizzerà la cache in memoria standard.
+ */
+return;
 PHP;
     }
     
@@ -427,9 +457,15 @@ PHP;
     private function getApcuImplementation(): string
     {
         return <<<'PHP'
-// Basic APCu implementation
-// APCu is enabled and working
-// This is a minimal implementation
+/**
+ * ATTENZIONE: L'implementazione APCu richiede un drop-in specifico.
+ * 
+ * Non è possibile implementare APCu direttamente in questo file
+ * perché viene caricato troppo presto nel bootstrap di WordPress.
+ * 
+ * Per ora, WordPress utilizzerà la cache in memoria standard.
+ */
+return;
 PHP;
     }
     
