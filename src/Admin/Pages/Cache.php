@@ -6,6 +6,7 @@ use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 
 use function __;
 use function checked;
@@ -13,6 +14,7 @@ use function esc_attr;
 use function esc_html_e;
 use function esc_textarea;
 use function printf;
+use function sanitize_email;
 use function sanitize_text_field;
 use function wp_nonce_field;
 use function wp_unslash;
@@ -26,7 +28,7 @@ class Cache extends AbstractPage
 
     public function title(): string
     {
-        return __('Cache Optimization', 'fp-performance-suite');
+        return __('Cache & Edge', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -52,6 +54,7 @@ class Cache extends AbstractPage
         $pageCache = $this->container->get(PageCache::class);
         $headers = $this->container->get(Headers::class);
         $objectCache = $this->container->get(ObjectCacheManager::class);
+        $edgeCache = $this->container->get(EdgeCacheManager::class);
         $message = '';
         $headerSettings = $headers->settings();
 
@@ -92,6 +95,43 @@ class Cache extends AbstractPage
                     'prefix' => sanitize_text_field($_POST['object_cache_prefix'] ?? 'fp_ps_'),
                 ]);
                 $message = __('Object cache settings saved.', 'fp-performance-suite');
+            }
+            if (isset($_POST['fp_ps_edge_cache'])) {
+                $edgeCacheData = [
+                    'enabled' => !empty($_POST['edge_cache_enabled']),
+                    'provider' => sanitize_text_field($_POST['edge_cache_provider'] ?? 'none'),
+                    'auto_purge' => !empty($_POST['edge_cache_auto_purge']),
+                ];
+                
+                // Cloudflare settings
+                if (!empty($_POST['cloudflare_api_token'])) {
+                    $edgeCacheData['cloudflare'] = [
+                        'api_token' => sanitize_text_field($_POST['cloudflare_api_token']),
+                        'zone_id' => sanitize_text_field($_POST['cloudflare_zone_id'] ?? ''),
+                        'email' => sanitize_email($_POST['cloudflare_email'] ?? ''),
+                    ];
+                }
+                
+                // Fastly settings
+                if (!empty($_POST['fastly_api_key'])) {
+                    $edgeCacheData['fastly'] = [
+                        'api_key' => sanitize_text_field($_POST['fastly_api_key']),
+                        'service_id' => sanitize_text_field($_POST['fastly_service_id'] ?? ''),
+                    ];
+                }
+                
+                // CloudFront settings
+                if (!empty($_POST['cloudfront_access_key'])) {
+                    $edgeCacheData['cloudfront'] = [
+                        'access_key_id' => sanitize_text_field($_POST['cloudfront_access_key']),
+                        'secret_access_key' => sanitize_text_field($_POST['cloudfront_secret_key'] ?? ''),
+                        'distribution_id' => sanitize_text_field($_POST['cloudfront_distribution_id'] ?? ''),
+                        'region' => sanitize_text_field($_POST['cloudfront_region'] ?? 'us-east-1'),
+                    ];
+                }
+                
+                $edgeCache->update($edgeCacheData);
+                $message = __('Edge cache settings saved.', 'fp-performance-suite');
             }
             if (isset($_POST['fp_ps_clear_cache'])) {
                 $pageCache->clear();
@@ -264,6 +304,158 @@ class Cache extends AbstractPage
                 
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Object Cache', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>🌐 <?php esc_html_e('Edge Cache (CDN/WAF)', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Integrazione con cache edge di Cloudflare, Fastly o CloudFront per purge automatico e gestione cache distribuita.', 'fp-performance-suite'); ?></p>
+            
+            <?php 
+            $edgeSettings = $edgeCache->settings();
+            $edgeStatus = $edgeCache->status();
+            ?>
+            
+            <?php if ($edgeStatus['enabled'] && $edgeStatus['connected']): ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Connessione Attiva:', 'fp-performance-suite'); ?></strong>
+                        <?php printf(
+                            esc_html__('Connesso a %s con successo!', 'fp-performance-suite'),
+                            '<strong>' . esc_html(strtoupper($edgeSettings['provider'])) . '</strong>'
+                        ); ?>
+                    </p>
+                </div>
+            <?php elseif ($edgeSettings['enabled']): ?>
+                <div class="notice notice-warning inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Attenzione:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('Edge Cache è abilitato ma la connessione non è riuscita. Verifica le credenziali API.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
+                <input type="hidden" name="fp_ps_edge_cache" value="1" />
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Edge Cache', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Gestisce la cache distribuita su edge server per tempi di risposta ultra-veloci.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Cache globalmente distribuita, TTFB ridotto del 60-80%, purge automatico su aggiornamenti.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="edge_cache_enabled" value="1" <?php checked($edgeSettings['enabled']); ?> />
+                </label>
+                
+                <p>
+                    <label for="edge_cache_provider"><?php esc_html_e('Provider', 'fp-performance-suite'); ?></label>
+                    <select name="edge_cache_provider" id="edge_cache_provider">
+                        <option value="none" <?php selected($edgeSettings['provider'], 'none'); ?>><?php esc_html_e('Nessuno', 'fp-performance-suite'); ?></option>
+                        <option value="cloudflare" <?php selected($edgeSettings['provider'], 'cloudflare'); ?>>Cloudflare</option>
+                        <option value="fastly" <?php selected($edgeSettings['provider'], 'fastly'); ?>>Fastly</option>
+                        <option value="cloudfront" <?php selected($edgeSettings['provider'], 'cloudfront'); ?>>AWS CloudFront</option>
+                    </select>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Auto-purge su aggiornamenti', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Purga automaticamente la cache edge quando pubblichi/aggiorni contenuti', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="edge_cache_auto_purge" value="1" <?php checked($edgeSettings['auto_purge']); ?> />
+                </label>
+                
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;" />
+                
+                <!-- Cloudflare Settings -->
+                <div id="cloudflare-settings" style="<?php echo $edgeSettings['provider'] === 'cloudflare' ? '' : 'display:none;'; ?>">
+                    <h3><?php esc_html_e('Cloudflare Settings', 'fp-performance-suite'); ?></h3>
+                    <p>
+                        <label for="cloudflare_api_token"><?php esc_html_e('API Token', 'fp-performance-suite'); ?></label>
+                        <input type="password" name="cloudflare_api_token" id="cloudflare_api_token" value="<?php echo esc_attr($edgeSettings['cloudflare']['api_token']); ?>" class="regular-text" autocomplete="off" />
+                        <span class="description"><?php esc_html_e('Token API con permessi Zone:Cache Purge', 'fp-performance-suite'); ?></span>
+                    </p>
+                    <p>
+                        <label for="cloudflare_zone_id"><?php esc_html_e('Zone ID', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="cloudflare_zone_id" id="cloudflare_zone_id" value="<?php echo esc_attr($edgeSettings['cloudflare']['zone_id']); ?>" class="regular-text" />
+                    </p>
+                    <p>
+                        <label for="cloudflare_email"><?php esc_html_e('Email (opzionale)', 'fp-performance-suite'); ?></label>
+                        <input type="email" name="cloudflare_email" id="cloudflare_email" value="<?php echo esc_attr($edgeSettings['cloudflare']['email']); ?>" class="regular-text" />
+                    </p>
+                </div>
+                
+                <!-- Fastly Settings -->
+                <div id="fastly-settings" style="<?php echo $edgeSettings['provider'] === 'fastly' ? '' : 'display:none;'; ?>">
+                    <h3><?php esc_html_e('Fastly Settings', 'fp-performance-suite'); ?></h3>
+                    <p>
+                        <label for="fastly_api_key"><?php esc_html_e('API Key', 'fp-performance-suite'); ?></label>
+                        <input type="password" name="fastly_api_key" id="fastly_api_key" value="<?php echo esc_attr($edgeSettings['fastly']['api_key']); ?>" class="regular-text" autocomplete="off" />
+                    </p>
+                    <p>
+                        <label for="fastly_service_id"><?php esc_html_e('Service ID', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="fastly_service_id" id="fastly_service_id" value="<?php echo esc_attr($edgeSettings['fastly']['service_id']); ?>" class="regular-text" />
+                    </p>
+                </div>
+                
+                <!-- CloudFront Settings -->
+                <div id="cloudfront-settings" style="<?php echo $edgeSettings['provider'] === 'cloudfront' ? '' : 'display:none;'; ?>">
+                    <h3><?php esc_html_e('AWS CloudFront Settings', 'fp-performance-suite'); ?></h3>
+                    <p>
+                        <label for="cloudfront_access_key"><?php esc_html_e('Access Key ID', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="cloudfront_access_key" id="cloudfront_access_key" value="<?php echo esc_attr($edgeSettings['cloudfront']['access_key_id']); ?>" class="regular-text" />
+                    </p>
+                    <p>
+                        <label for="cloudfront_secret_key"><?php esc_html_e('Secret Access Key', 'fp-performance-suite'); ?></label>
+                        <input type="password" name="cloudfront_secret_key" id="cloudfront_secret_key" value="<?php echo esc_attr($edgeSettings['cloudfront']['secret_access_key']); ?>" class="regular-text" autocomplete="off" />
+                    </p>
+                    <p>
+                        <label for="cloudfront_distribution_id"><?php esc_html_e('Distribution ID', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="cloudfront_distribution_id" id="cloudfront_distribution_id" value="<?php echo esc_attr($edgeSettings['cloudfront']['distribution_id']); ?>" class="regular-text" />
+                    </p>
+                    <p>
+                        <label for="cloudfront_region"><?php esc_html_e('Region', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="cloudfront_region" id="cloudfront_region" value="<?php echo esc_attr($edgeSettings['cloudfront']['region']); ?>" class="regular-text" />
+                        <span class="description"><?php esc_html_e('Default: us-east-1', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+                
+                <script>
+                document.getElementById('edge_cache_provider').addEventListener('change', function() {
+                    document.getElementById('cloudflare-settings').style.display = this.value === 'cloudflare' ? 'block' : 'none';
+                    document.getElementById('fastly-settings').style.display = this.value === 'fastly' ? 'block' : 'none';
+                    document.getElementById('cloudfront-settings').style.display = this.value === 'cloudfront' ? 'block' : 'none';
+                });
+                </script>
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin: 15px 0;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Benefici Edge Cache:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #555;">
+                        <li><?php esc_html_e('Cache distribuita globalmente su centinaia di PoP', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('TTFB ridotto del 60-80% per utenti internazionali', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Purge automatico quando aggiorni contenuti', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Protezione DDoS e sicurezza inclusa', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Edge Cache', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>

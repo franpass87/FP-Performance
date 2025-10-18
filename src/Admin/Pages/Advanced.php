@@ -9,6 +9,8 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
 use FP\PerfSuite\Services\Reports\ScheduledReports;
+use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
+use FP\PerfSuite\Services\Assets\PredictivePrefetching;
 
 /**
  * Advanced Features Admin Page
@@ -105,6 +107,12 @@ class Advanced extends AbstractPage
             
             <!-- Scheduled Reports Section -->
             <?php echo $this->renderReportsSection(); ?>
+            
+            <!-- PWA / Service Worker Section -->
+            <?php echo $this->renderPWASection(); ?>
+            
+            <!-- Predictive Prefetching Section -->
+            <?php echo $this->renderPrefetchingSection(); ?>
             
             <!-- Save Button -->
             <div class="fp-ps-card">
@@ -628,6 +636,191 @@ class Advanced extends AbstractPage
         return ob_get_clean();
     }
 
+    private function renderPWASection(): string
+    {
+        $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+        $settings = $serviceWorker->settings();
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>📱 <?php esc_html_e('Progressive Web App (PWA)', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Trasforma il sito in una PWA con Service Worker, cache offline e installabilità.', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_enabled"><?php esc_html_e('Enable PWA', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="pwa[enabled]" id="pwa_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Abilita Service Worker e Web App Manifest', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Rende il sito installabile su home screen e funzionante offline.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_cache_strategy"><?php esc_html_e('Cache Strategy', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <select name="pwa[cache_strategy]" id="pwa_cache_strategy">
+                            <option value="network_first" <?php selected($settings['cache_strategy'], 'network_first'); ?>><?php esc_html_e('Network First (consigliato)', 'fp-performance-suite'); ?></option>
+                            <option value="cache_first" <?php selected($settings['cache_strategy'], 'cache_first'); ?>><?php esc_html_e('Cache First (veloce)', 'fp-performance-suite'); ?></option>
+                            <option value="stale_while_revalidate" <?php selected($settings['cache_strategy'], 'stale_while_revalidate'); ?>><?php esc_html_e('Stale While Revalidate', 'fp-performance-suite'); ?></option>
+                        </select>
+                        <p class="description"><?php esc_html_e('Strategia di caching del Service Worker', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Cosa cachare', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_assets]" value="1" <?php checked($settings['cache_assets']); ?>>
+                                <?php esc_html_e('Assets statici (CSS, JS, immagini)', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_pages]" value="1" <?php checked($settings['cache_pages']); ?>>
+                                <?php esc_html_e('Pagine HTML', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[cache_api]" value="1" <?php checked($settings['cache_api']); ?>>
+                                <?php esc_html_e('Chiamate API (avanzato)', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="pwa[offline_page]" value="1" <?php checked($settings['offline_page']); ?>>
+                                <?php esc_html_e('Pagina offline custom', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_update_interval"><?php esc_html_e('Intervallo aggiornamento (secondi)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="pwa[update_interval]" id="pwa_update_interval" value="<?php echo esc_attr($settings['update_interval']); ?>" min="3600" max="604800" class="small-text">
+                        <span><?php esc_html_e('secondi', 'fp-performance-suite'); ?></span>
+                        <p class="description"><?php esc_html_e('Ogni quanto aggiornare la cache (default: 24h)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="pwa_max_cache_size"><?php esc_html_e('Max dimensione cache (MB)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="pwa[max_cache_size]" id="pwa_max_cache_size" value="<?php echo esc_attr($settings['max_cache_size']); ?>" min="10" max="500" class="small-text">
+                        <span>MB</span>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #856404;"><?php esc_html_e('⚠️ Requisiti PWA:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #856404;">
+                    <li><?php esc_html_e('HTTPS obbligatorio per Service Worker', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Testa approfonditamente prima di attivare in produzione', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Il Service Worker può cachare dati non aggiornati', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    private function renderPrefetchingSection(): string
+    {
+        $prefetching = $this->container->get(PredictivePrefetching::class);
+        $settings = $prefetching->settings();
+
+        ob_start();
+        ?>
+        <div class="fp-ps-card">
+            <h2>🔮 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Prefetch intelligente delle pagine che l\'utente probabilmente visiterà, basato su hover, scroll e viewport.', 'fp-performance-suite'); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_enabled"><?php esc_html_e('Enable Prefetching', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="prefetch[enabled]" id="prefetch_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <?php esc_html_e('Abilita prefetch predittivo dei link', 'fp-performance-suite'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_strategy"><?php esc_html_e('Strategia', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <select name="prefetch[strategy]" id="prefetch_strategy">
+                            <option value="hover" <?php selected($settings['strategy'], 'hover'); ?>><?php esc_html_e('Hover (consigliato)', 'fp-performance-suite'); ?></option>
+                            <option value="visible" <?php selected($settings['strategy'], 'visible'); ?>><?php esc_html_e('Visible in viewport', 'fp-performance-suite'); ?></option>
+                            <option value="viewport" <?php selected($settings['strategy'], 'viewport'); ?>><?php esc_html_e('Near viewport', 'fp-performance-suite'); ?></option>
+                            <option value="mouse-tracking" <?php selected($settings['strategy'], 'mouse-tracking'); ?>><?php esc_html_e('Mouse tracking (aggressivo)', 'fp-performance-suite'); ?></option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Trigger', 'fp-performance-suite'); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="checkbox" name="prefetch[prefetch_on_hover]" value="1" <?php checked($settings['prefetch_on_hover']); ?>>
+                                <?php esc_html_e('Prefetch su hover link', 'fp-performance-suite'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="prefetch[prefetch_on_visible]" value="1" <?php checked($settings['prefetch_on_visible']); ?>>
+                                <?php esc_html_e('Prefetch link visibili', 'fp-performance-suite'); ?>
+                            </label>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_delay"><?php esc_html_e('Delay (ms)', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="prefetch[delay]" id="prefetch_delay" value="<?php echo esc_attr($settings['delay']); ?>" min="0" max="2000" step="50" class="small-text">
+                        <span>ms</span>
+                        <p class="description"><?php esc_html_e('Ritardo prima del prefetch (default: 100ms)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="prefetch_max"><?php esc_html_e('Max prefetch simultanei', 'fp-performance-suite'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="prefetch[max_prefetch]" id="prefetch_max" value="<?php echo esc_attr($settings['max_prefetch']); ?>" min="1" max="10" class="small-text">
+                        <p class="description"><?php esc_html_e('Limite per evitare sovraccarico (consigliato: 3)', 'fp-performance-suite'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            
+            <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Benefici Prefetching:', 'fp-performance-suite'); ?></p>
+                <ul style="margin: 10px 0 0 20px; color: #555;">
+                    <li><?php esc_html_e('Navigazione quasi istantanea tra pagine', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Riduce il tempo di caricamento percepito a ~0ms', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Intelligente: prefetch solo pagine con alta probabilità di click', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Rispetta Save-Data e connessioni lente', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
     public function handleSave(): void
     {
         if (!current_user_can($this->capability())) {
@@ -720,6 +913,28 @@ class Advanced extends AbstractPage
             $reportsSettings['enabled'] = isset($_POST['reports']['enabled']);
             
             $reports->update($reportsSettings);
+
+            // Save PWA / Service Worker settings
+            $serviceWorker = $this->container->get(ServiceWorkerManager::class);
+            if (isset($_POST['pwa'])) {
+                $pwaData = wp_unslash($_POST['pwa']);
+                $pwaData['enabled'] = isset($_POST['pwa']['enabled']);
+                $pwaData['cache_assets'] = isset($_POST['pwa']['cache_assets']);
+                $pwaData['cache_pages'] = isset($_POST['pwa']['cache_pages']);
+                $pwaData['cache_api'] = isset($_POST['pwa']['cache_api']);
+                $pwaData['offline_page'] = isset($_POST['pwa']['offline_page']);
+                $serviceWorker->update($pwaData);
+            }
+
+            // Save Predictive Prefetching settings
+            $prefetching = $this->container->get(PredictivePrefetching::class);
+            if (isset($_POST['prefetch'])) {
+                $prefetchData = wp_unslash($_POST['prefetch']);
+                $prefetchData['enabled'] = isset($_POST['prefetch']['enabled']);
+                $prefetchData['prefetch_on_hover'] = isset($_POST['prefetch']['prefetch_on_hover']);
+                $prefetchData['prefetch_on_visible'] = isset($_POST['prefetch']['prefetch_on_visible']);
+                $prefetching->update($prefetchData);
+            }
 
             // Redirect con successo
             $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));

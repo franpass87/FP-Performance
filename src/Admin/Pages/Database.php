@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Services\DB\QueryCacheManager;
 
 use function __;
 use function array_map;
@@ -54,6 +55,7 @@ class Database extends AbstractPage
     protected function content(): string
     {
         $cleaner = $this->container->get(Cleaner::class);
+        $queryCache = $this->container->get(QueryCacheManager::class);
         $message = '';
         $results = [];
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_db_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_db_nonce']), 'fp-ps-db')) {
@@ -69,6 +71,15 @@ class Database extends AbstractPage
                 $dry = !empty($_POST['dry_run']);
                 $results = $cleaner->cleanup($scope, $dry, (int) ($_POST['batch'] ?? 200));
                 $message = $dry ? __('Dry run completed.', 'fp-performance-suite') : __('Cleanup completed.', 'fp-performance-suite');
+            }
+            if (isset($_POST['save_query_cache'])) {
+                $queryCache->update([
+                    'enabled' => !empty($_POST['query_cache_enabled']),
+                    'ttl' => (int) ($_POST['query_cache_ttl'] ?? 3600),
+                    'max_size' => (int) ($_POST['query_cache_max_size'] ?? 1000),
+                    'cache_selects_only' => !empty($_POST['query_cache_selects_only']),
+                ]);
+                $message = __('Query cache settings saved.', 'fp-performance-suite');
             }
         }
         $settings = $cleaner->settings();
@@ -198,6 +209,119 @@ class Database extends AbstractPage
                     </tbody>
                 </table>
             <?php endif; ?>
+        </section>
+        
+        <section class="fp-ps-card" style="margin-top: 20px;">
+            <h2>🚀 <?php esc_html_e('Query Cache', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Cache delle query database pesanti per ridurre il carico sul database e migliorare i tempi di risposta.', 'fp-performance-suite'); ?></p>
+            
+            <?php 
+            $queryCacheSettings = $queryCache->settings();
+            $queryCacheStats = $queryCache->getStats();
+            ?>
+            
+            <?php if ($queryCacheSettings['enabled']): ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong>
+                        <?php printf(
+                            esc_html__('Attivo - %d queries cached, Hit rate: %.1f%%', 'fp-performance-suite'),
+                            $queryCacheStats['cached_count'],
+                            $queryCacheStats['hit_rate']
+                        ); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                <input type="hidden" name="save_query_cache" value="1" />
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Query Cache', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator amber">
+                            <div class="fp-ps-risk-tooltip amber">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">⚠</span>
+                                    <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Memorizza i risultati delle query SELECT per evitare esecuzioni ripetute.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduzione del 40-60% delle query database, tempi di risposta più veloci per query complesse.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Dati potrebbero non essere aggiornati immediatamente. Usa TTL basso per dati che cambiano frequentemente.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="query_cache_enabled" value="1" <?php checked($queryCacheSettings['enabled']); ?> />
+                </label>
+                
+                <p>
+                    <label for="query_cache_ttl"><?php esc_html_e('Cache TTL (secondi)', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="query_cache_ttl" id="query_cache_ttl" value="<?php echo esc_attr((string) $queryCacheSettings['ttl']); ?>" min="60" max="86400" class="small-text" />
+                    <span class="description"><?php esc_html_e('Durata cache per query (60-86400 secondi)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="query_cache_max_size"><?php esc_html_e('Max queries cached', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="query_cache_max_size" id="query_cache_max_size" value="<?php echo esc_attr((string) $queryCacheSettings['max_size']); ?>" min="100" max="10000" class="small-text" />
+                    <span class="description"><?php esc_html_e('Numero massimo di query da mantenere in cache', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Cache solo SELECT queries', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Raccomandato: cache solo query di lettura, non INSERT/UPDATE/DELETE', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="query_cache_selects_only" value="1" <?php checked($queryCacheSettings['cache_selects_only']); ?> />
+                </label>
+                
+                <?php if (!empty($queryCacheStats) && $queryCacheSettings['enabled']): ?>
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                    <h4 style="margin-top: 0;"><?php esc_html_e('Statistiche Cache', 'fp-performance-suite'); ?></h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;">
+                        <div>
+                            <div style="font-size: 12px; color: #666;"><?php esc_html_e('Cache Hits', 'fp-performance-suite'); ?></div>
+                            <div style="font-size: 24px; font-weight: bold; color: #00a32a;"><?php echo number_format($queryCacheStats['hits']); ?></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #666;"><?php esc_html_e('Cache Misses', 'fp-performance-suite'); ?></div>
+                            <div style="font-size: 24px; font-weight: bold; color: #d63638;"><?php echo number_format($queryCacheStats['misses']); ?></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #666;"><?php esc_html_e('Hit Rate', 'fp-performance-suite'); ?></div>
+                            <div style="font-size: 24px; font-weight: bold;"><?php echo number_format($queryCacheStats['hit_rate'], 1); ?>%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #666;"><?php esc_html_e('Queries Cached', 'fp-performance-suite'); ?></div>
+                            <div style="font-size: 24px; font-weight: bold;"><?php echo number_format($queryCacheStats['cached_count']); ?></div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin: 15px 0;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Quando usare Query Cache:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #555;">
+                        <li><?php esc_html_e('Siti con query complesse e pesanti', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Dati che non cambiano frequentemente', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Complementare all\'Object Cache per massime performance', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Monitoring: verifica l\'hit rate, deve essere >70% per essere efficace', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Query Cache', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
         </section>
         <?php
         return (string) ob_get_clean();
