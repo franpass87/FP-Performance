@@ -272,18 +272,36 @@ class Media extends AbstractPage
                         </span>
                     </h2>
                     <p class="fp-ps-bulk-convert-description">
-                        <?php esc_html_e('Converti automaticamente tutte le immagini esistenti della tua libreria media in formato WebP per ottenere immagini più leggere e prestazioni migliori.', 'fp-performance-suite'); ?>
+                        <?php esc_html_e('Questa funzione analizza la tua libreria media WordPress e converte tutte le immagini JPEG e PNG in formato WebP. Le immagini WebP sono più leggere del 30-40% senza perdita di qualità visibile, migliorando i tempi di caricamento del tuo sito.', 'fp-performance-suite'); ?>
                     </p>
                 </div>
             </div>
             
             <!-- Statistics Grid -->
+            <?php 
+                $totalImages = $status['total_images'] ?? 0;
+                $convertedImages = $status['converted_images'] ?? 0;
+                $toConvert = $totalImages - $convertedImages;
+                $hasImages = $totalImages > 0;
+            ?>
+            <?php if (!$hasImages) : ?>
+            <div class="fp-ps-info-box" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-left-color: #0ea5e9; margin-bottom: 20px;">
+                <div class="fp-ps-info-icon">💡</div>
+                <div class="fp-ps-info-content">
+                    <strong style="color: #0c4a6e;"><?php esc_html_e('Nessuna immagine trovata nella libreria media', 'fp-performance-suite'); ?></strong>
+                    <p style="color: #075985; font-size: 13px; margin: 8px 0 0 0;">
+                        <?php esc_html_e('Carica alcune immagini nella tua libreria media per iniziare la conversione WebP. Le nuove immagini verranno convertite automaticamente se hai abilitato "Enable WebP on upload" qui sopra.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+            <?php else : ?>
             <div class="fp-ps-bulk-stats-grid">
                 <div class="fp-ps-stat-card">
                     <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📚</div>
                     <div class="fp-ps-stat-content">
                         <div class="fp-ps-stat-label"><?php esc_html_e('Totale Immagini', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($status['total_images'] ?? 0); ?></div>
+                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($totalImages); ?></div>
+                        <small style="color: #64748b; font-size: 11px; margin-top: 4px;"><?php esc_html_e('Nella libreria media', 'fp-performance-suite'); ?></small>
                     </div>
                 </div>
                 
@@ -291,26 +309,36 @@ class Media extends AbstractPage
                     <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #1f9d55 0%, #0ea372 100%);">✅</div>
                     <div class="fp-ps-stat-content">
                         <div class="fp-ps-stat-label"><?php esc_html_e('Già Convertite', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($status['converted_images'] ?? 0); ?></div>
+                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($convertedImages); ?></div>
+                        <small style="color: #64748b; font-size: 11px; margin-top: 4px;"><?php esc_html_e('Hanno già il formato WebP', 'fp-performance-suite'); ?></small>
                     </div>
                 </div>
                 
-                <div class="fp-ps-stat-card">
+                <div class="fp-ps-stat-card" style="<?php echo $toConvert > 0 ? 'border-color: #f59e0b; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);' : ''; ?>">
                     <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">⏳</div>
                     <div class="fp-ps-stat-content">
                         <div class="fp-ps-stat-label"><?php esc_html_e('Da Convertire', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-stat-value"><?php echo number_format_i18n(($status['total_images'] ?? 0) - ($status['converted_images'] ?? 0)); ?></div>
+                        <div class="fp-ps-stat-value" style="<?php echo $toConvert > 0 ? 'color: #ea580c;' : ''; ?>"><?php echo number_format_i18n($toConvert); ?></div>
+                        <small style="color: #64748b; font-size: 11px; margin-top: 4px;">
+                            <?php if ($toConvert > 0) : ?>
+                                <?php esc_html_e('Clicca il pulsante sotto per convertirle', 'fp-performance-suite'); ?>
+                            <?php else : ?>
+                                <?php esc_html_e('Tutte le immagini sono convertite!', 'fp-performance-suite'); ?>
+                            <?php endif; ?>
+                        </small>
                     </div>
                 </div>
                 
-                <div class="fp-ps-stat-card">
+                <div class="fp-ps-stat-card" style="<?php echo $status['coverage'] >= 80 ? 'border-color: #10b981; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);' : ''; ?>">
                     <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📊</div>
                     <div class="fp-ps-stat-content">
                         <div class="fp-ps-stat-label"><?php esc_html_e('Copertura WebP', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-stat-value"><?php printf('%s%%', number_format_i18n($status['coverage'], 1)); ?></div>
+                        <div class="fp-ps-stat-value" style="<?php echo $status['coverage'] >= 80 ? 'color: #059669;' : ''; ?>"><?php printf('%s%%', number_format_i18n($status['coverage'], 1)); ?></div>
+                        <small style="color: #64748b; font-size: 11px; margin-top: 4px;"><?php esc_html_e('Percentuale immagini WebP', 'fp-performance-suite'); ?></small>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
             
             <!-- Bulk Conversion Form -->
             <form id="fp-ps-webp-bulk-form" method="post" class="fp-ps-bulk-convert-form">
@@ -348,13 +376,29 @@ class Media extends AbstractPage
                     </div>
                     
                     <div class="fp-ps-bulk-action-wrapper">
-                        <button type="button" id="fp-ps-webp-bulk-btn" class="button button-primary button-hero fp-ps-bulk-start-btn" data-risk="amber" data-status-nonce="<?php echo esc_attr(wp_create_nonce('fp_ps_webp_status')); ?>">
+                        <button type="button" id="fp-ps-webp-bulk-btn" class="button button-primary button-hero fp-ps-bulk-start-btn" data-risk="amber" data-status-nonce="<?php echo esc_attr(wp_create_nonce('fp_ps_webp_status')); ?>" <?php echo !$hasImages || $toConvert === 0 ? 'disabled' : ''; ?>>
                             <span class="fp-ps-btn-icon">🚀</span>
-                            <?php esc_html_e('Avvia Conversione Bulk', 'fp-performance-suite'); ?>
+                            <?php 
+                                if (!$hasImages) {
+                                    esc_html_e('Nessuna immagine da convertire', 'fp-performance-suite');
+                                } elseif ($toConvert === 0) {
+                                    esc_html_e('Tutte le immagini sono già convertite', 'fp-performance-suite');
+                                } else {
+                                    printf(esc_html__('Converti %s immagini in WebP', 'fp-performance-suite'), number_format_i18n($toConvert));
+                                }
+                            ?>
                         </button>
                         <p class="fp-ps-bulk-hint">
                             <span class="fp-ps-hint-icon">💡</span>
-                            <?php esc_html_e('La conversione avviene in background. Puoi continuare a lavorare normalmente.', 'fp-performance-suite'); ?>
+                            <?php 
+                                if ($hasImages && $toConvert > 0) {
+                                    esc_html_e('La conversione avviene in background. Puoi continuare a lavorare normalmente.', 'fp-performance-suite');
+                                } elseif ($hasImages && $toConvert === 0) {
+                                    esc_html_e('Ottimo! Tutte le tue immagini sono già in formato WebP.', 'fp-performance-suite');
+                                } else {
+                                    esc_html_e('Carica delle immagini nella libreria media per iniziare.', 'fp-performance-suite');
+                                }
+                            ?>
                         </p>
                     </div>
                 </div>
@@ -383,9 +427,10 @@ class Media extends AbstractPage
                 <div class="fp-ps-info-content">
                     <strong><?php esc_html_e('Come funziona la conversione bulk?', 'fp-performance-suite'); ?></strong>
                     <ul class="fp-ps-info-list">
-                        <li><?php esc_html_e('✓ Converte tutte le immagini JPEG e PNG in formato WebP', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Scansiona la libreria media e trova tutte le immagini JPEG e PNG', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Converte ogni immagine in formato WebP (più leggero del 30-40%)', 'fp-performance-suite'); ?></li>
                         <li><?php esc_html_e('✓ Processa le immagini in batch per evitare timeout del server', 'fp-performance-suite'); ?></li>
-                        <li><?php esc_html_e('✓ Mantiene le immagini originali (se configurato nelle impostazioni)', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Mantiene le immagini originali per compatibilità (se configurato sopra)', 'fp-performance-suite'); ?></li>
                         <li><?php esc_html_e('✓ Puoi interrompere e riprendere la conversione in qualsiasi momento', 'fp-performance-suite'); ?></li>
                     </ul>
                 </div>
