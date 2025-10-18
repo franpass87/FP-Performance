@@ -88,51 +88,98 @@ class Assets extends AbstractPage
         $excludeJs = get_transient('fp_ps_exclude_js_detected');
         $criticalAssets = get_transient('fp_ps_critical_assets_detected');
         
+        // Handle success messages from redirects
+        if (isset($_GET['msg'])) {
+            $msgType = sanitize_text_field($_GET['msg']);
+            $count = isset($_GET['count']) ? intval($_GET['count']) : 0;
+            
+            switch ($msgType) {
+                case 'scripts_detected':
+                    $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+                    break;
+                case 'css_detected':
+                    $message = __('CSS files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                    break;
+                case 'js_detected':
+                    $message = __('JavaScript files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                    break;
+                case 'assets_detected':
+                    $message = __('Critical assets detected! Review suggestions below.', 'fp-performance-suite');
+                    break;
+                case 'scripts_applied':
+                    $message = sprintf(
+                        __('Successfully applied %d critical scripts to exclusion list!', 'fp-performance-suite'),
+                        $count
+                    );
+                    break;
+                case 'css_applied':
+                    $message = sprintf(
+                        __('Successfully applied %d CSS files to exclusion list!', 'fp-performance-suite'),
+                        $count
+                    );
+                    break;
+                case 'js_applied':
+                    $message = sprintf(
+                        __('Successfully applied %d JavaScript files to exclusion list!', 'fp-performance-suite'),
+                        $count
+                    );
+                    break;
+                case 'assets_applied':
+                    $message = sprintf(
+                        __('Successfully applied %d critical assets to preload list!', 'fp-performance-suite'),
+                        $count
+                    );
+                    break;
+            }
+        }
+        
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             // Handle auto-detect critical scripts
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300); // 5 minuti
-                $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+                // Redirect to avoid form resubmission
+                wp_safe_redirect(add_query_arg('msg', 'scripts_detected', $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle auto-detect CSS to exclude
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
                 set_transient('fp_ps_exclude_css_detected', $excludeCss, 300); // 5 minuti
-                $message = __('CSS files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                // Redirect to avoid form resubmission
+                wp_safe_redirect(add_query_arg('msg', 'css_detected', $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle auto-detect JS to exclude
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
                 set_transient('fp_ps_exclude_js_detected', $excludeJs, 300); // 5 minuti
-                $message = __('JavaScript files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                // Redirect to avoid form resubmission
+                wp_safe_redirect(add_query_arg('msg', 'js_detected', $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle auto-detect critical assets
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
                 set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300); // 5 minuti
-                $message = __('Critical assets detected! Review suggestions below.', 'fp-performance-suite');
+                // Redirect to avoid form resubmission
+                wp_safe_redirect(add_query_arg('msg', 'assets_detected', $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle apply critical assets suggestions
             if (isset($_POST['apply_critical_assets_suggestions'])) {
                 $result = $assetsDetector->autoApplyCriticalAssets(false);
-                $message = sprintf(
-                    __('Successfully applied %d critical assets to preload list!', 'fp-performance-suite'),
-                    $result['applied']
-                );
-                
-                // Reload settings to show updated critical assets
-                $settings = $optimizer->settings();
-                
-                // Set detected assets for display
-                $criticalAssets = $assetsDetector->detectCriticalAssets();
                 
                 // Pulisci i transient
                 delete_transient('fp_ps_critical_assets_detected');
+                
+                // Redirect with success message
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle apply critical scripts suggestions
@@ -169,16 +216,12 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                $message = sprintf(
-                    __('Successfully applied %d critical scripts to exclusion list!', 'fp-performance-suite'),
-                    count($excludeScripts)
-                );
-                
-                // Reload settings to show updated exclude_js
-                $settings = $optimizer->settings();
-                
                 // Pulisci i transient
                 delete_transient('fp_ps_critical_scripts_detected');
+                
+                // Redirect with success message
+                wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle apply CSS exclusions suggestions
@@ -207,16 +250,12 @@ class Assets extends AbstractPage
                     'exclude_css' => implode("\n", $mergedExclude),
                 ]);
                 
-                $message = sprintf(
-                    __('Successfully applied %d CSS files to exclusion list!', 'fp-performance-suite'),
-                    count($cssToExclude)
-                );
-                
-                // Reload settings
-                $settings = $optimizer->settings();
-                
                 // Pulisci i transient
                 delete_transient('fp_ps_exclude_css_detected');
+                
+                // Redirect with success message
+                wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
+                exit;
             }
             
             // Handle apply JS exclusions suggestions
@@ -245,16 +284,12 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                $message = sprintf(
-                    __('Successfully applied %d JavaScript files to exclusion list!', 'fp-performance-suite'),
-                    count($jsToExclude)
-                );
-                
-                // Reload settings
-                $settings = $optimizer->settings();
-                
                 // Pulisci i transient
                 delete_transient('fp_ps_exclude_js_detected');
+                
+                // Redirect with success message
+                wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
+                exit;
             }
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
