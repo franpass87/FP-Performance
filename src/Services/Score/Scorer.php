@@ -3,6 +3,10 @@
 namespace FP\PerfSuite\Services\Score;
 
 use FP\PerfSuite\Services\Assets\Optimizer;
+use FP\PerfSuite\Services\Assets\LazyLoadManager;
+use FP\PerfSuite\Services\Assets\FontOptimizer;
+use FP\PerfSuite\Services\Assets\ImageOptimizer;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
@@ -10,6 +14,7 @@ use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
 
 use function __;
+use function _n;
 use function apache_get_modules;
 use function apply_filters;
 use function file_exists;
@@ -23,6 +28,7 @@ use function in_array;
 use function ini_get;
 use function is_array;
 use function is_string;
+use function sprintf;
 use function stripos;
 use function strtotime;
 use function trim;
@@ -35,15 +41,33 @@ class Scorer
     private WebPConverter $webp;
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
+    private LazyLoadManager $lazyLoad;
+    private FontOptimizer $fontOptimizer;
+    private ImageOptimizer $imageOptimizer;
+    private ThirdPartyScriptManager $thirdPartyScripts;
 
-    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler)
-    {
+    public function __construct(
+        PageCache $pageCache,
+        Headers $headers,
+        Optimizer $optimizer,
+        WebPConverter $webp,
+        Cleaner $cleaner,
+        DebugToggler $debugToggler,
+        LazyLoadManager $lazyLoad,
+        FontOptimizer $fontOptimizer,
+        ImageOptimizer $imageOptimizer,
+        ThirdPartyScriptManager $thirdPartyScripts
+    ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
         $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->debugToggler = $debugToggler;
+        $this->lazyLoad = $lazyLoad;
+        $this->fontOptimizer = $fontOptimizer;
+        $this->imageOptimizer = $imageOptimizer;
+        $this->thirdPartyScripts = $thirdPartyScripts;
     }
 
     /**
@@ -135,6 +159,8 @@ class Scorer
     public function activeOptimizations(): array
     {
         $active = [];
+        
+        // Cache
         if ($this->pageCache->isEnabled()) {
             $active[] = __('Page caching enabled', 'fp-performance-suite');
         }
@@ -142,17 +168,84 @@ class Scorer
         if (!empty($headerStatus['enabled'])) {
             $active[] = __('Browser cache headers applied', 'fp-performance-suite');
         }
+        
+        // Asset Optimization
         $assetStatus = $this->optimizer->status();
+        if (!empty($assetStatus['minify_html'])) {
+            $active[] = __('HTML minification active', 'fp-performance-suite');
+        }
         if (!empty($assetStatus['defer_js'])) {
             $active[] = __('Defer JS active', 'fp-performance-suite');
+        }
+        if (!empty($assetStatus['async_js'])) {
+            $active[] = __('Async JS active', 'fp-performance-suite');
+        }
+        if (!empty($assetStatus['combine_css'])) {
+            $active[] = __('CSS combination active', 'fp-performance-suite');
+        }
+        if (!empty($assetStatus['combine_js'])) {
+            $active[] = __('JS combination active', 'fp-performance-suite');
         }
         if (!empty($assetStatus['remove_emojis'])) {
             $active[] = __('Emoji scripts removed', 'fp-performance-suite');
         }
+        
+        // Lazy Loading
+        $lazyLoadStatus = $this->lazyLoad->status();
+        if (!empty($lazyLoadStatus['enabled'])) {
+            if (!empty($lazyLoadStatus['images_enabled'])) {
+                $active[] = __('Lazy loading images enabled', 'fp-performance-suite');
+            }
+            if (!empty($lazyLoadStatus['iframes_enabled'])) {
+                $active[] = __('Lazy loading iframes enabled', 'fp-performance-suite');
+            }
+        }
+        
+        // Font Optimization
+        $fontStatus = $this->fontOptimizer->status();
+        if (!empty($fontStatus['enabled'])) {
+            if (!empty($fontStatus['google_fonts_optimized'])) {
+                $active[] = __('Google Fonts optimized', 'fp-performance-suite');
+            }
+            if (!empty($fontStatus['preload_enabled'])) {
+                $active[] = __('Font preloading active', 'fp-performance-suite');
+            }
+        }
+        
+        // Image Optimization
+        $imageStatus = $this->imageOptimizer->status();
+        if (!empty($imageStatus['enabled'])) {
+            if (!empty($imageStatus['force_dimensions'])) {
+                $active[] = __('Image dimensions optimization active', 'fp-performance-suite');
+            }
+            if (!empty($imageStatus['aspect_ratio'])) {
+                $active[] = __('Image aspect-ratio CSS active', 'fp-performance-suite');
+            }
+        }
+        
+        // Third-Party Scripts
+        $thirdPartyStatus = $this->thirdPartyScripts->status();
+        if (!empty($thirdPartyStatus['enabled'])) {
+            $managedCount = $thirdPartyStatus['managed_scripts'];
+            if ($managedCount > 0) {
+                $active[] = sprintf(
+                    _n(
+                        'Third-party scripts manager active (%d script)',
+                        'Third-party scripts manager active (%d scripts)',
+                        $managedCount,
+                        'fp-performance-suite'
+                    ),
+                    $managedCount
+                );
+            }
+        }
+        
+        // WebP
         $webpStatus = $this->webp->status();
         if (!empty($webpStatus['enabled'])) {
             $active[] = __('WebP conversion enabled', 'fp-performance-suite');
         }
+        
         return $active;
     }
 
@@ -230,18 +323,50 @@ class Scorer
     private function assetsScore(): array
     {
         $status = $this->optimizer->status();
+        $lazyLoadStatus = $this->lazyLoad->status();
+        $fontStatus = $this->fontOptimizer->status();
+        $imageStatus = $this->imageOptimizer->status();
+        
         $points = 0;
         $suggestions = [];
+        
+        // HTML minification (5 points)
         if (!empty($status['minify_html'])) {
             $points += 5;
         } else {
             $suggestions[] = __('Enable HTML/CSS minification to reduce payload.', 'fp-performance-suite');
         }
+        
+        // JS deferring (5 points)
         if (!empty($status['defer_js'])) {
             $points += 5;
         } else {
             $suggestions[] = __('Consider deferring non-critical JavaScript.', 'fp-performance-suite');
         }
+        
+        // Lazy loading (3 points)
+        if (!empty($lazyLoadStatus['enabled']) && !empty($lazyLoadStatus['images_enabled'])) {
+            $points += 3;
+        } else {
+            $suggestions[] = __('Enable lazy loading for images to improve initial load time.', 'fp-performance-suite');
+        }
+        
+        // Font optimization (2 points)
+        if (!empty($fontStatus['enabled']) && !empty($fontStatus['google_fonts_optimized'])) {
+            $points += 2;
+        }
+        
+        // Image optimization (2 points)
+        if (!empty($imageStatus['enabled']) && !empty($imageStatus['force_dimensions'])) {
+            $points += 2;
+        }
+        
+        // Third-party scripts (3 points)
+        $thirdPartyStatus = $this->thirdPartyScripts->status();
+        if (!empty($thirdPartyStatus['enabled']) && $thirdPartyStatus['managed_scripts'] > 0) {
+            $points += 3;
+        }
+        
         return [$points, implode(' ', $suggestions) ?: null];
     }
 
