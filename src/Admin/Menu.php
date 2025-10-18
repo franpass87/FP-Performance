@@ -5,7 +5,6 @@ namespace FP\PerfSuite\Admin;
 use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Cache;
-use FP\PerfSuite\Admin\Pages\Compatibility;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
@@ -45,6 +44,7 @@ class Menu
         add_action('admin_menu', [$this, 'register']);
         add_action('admin_notices', [$this, 'showActivationErrors']);
         add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
+        add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
         
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
@@ -192,6 +192,29 @@ class Menu
         
         wp_send_json_success(['message' => 'Errore dismisso con successo']);
     }
+    
+    /**
+     * Dismissione del notice Salient via AJAX
+     */
+    public function dismissSalientNotice(): void
+    {
+        // Verifica il nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_ps_dismiss_salient')) {
+            wp_send_json_error(['message' => 'Nonce non valido']);
+            return;
+        }
+
+        // Verifica i permessi
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permessi insufficienti']);
+            return;
+        }
+
+        // Salva la preferenza per l'utente corrente
+        update_user_meta(get_current_user_id(), 'fp_ps_dismiss_salient_notice', true);
+        
+        wp_send_json_success(['message' => 'Notice dismisso con successo']);
+    }
 
     public function register(): void
     {
@@ -218,8 +241,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         
-        // === COMPATIBILITÀ E STRUMENTI ===
-        add_submenu_page('fp-performance-suite', __('Compatibility', 'fp-performance-suite'), __('🎨 Compatibility', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-compatibility', [$pages['compatibility'], 'render']);
+        // === STRUMENTI ===
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('🔧 Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
         
         // === INTELLIGENCE ===
@@ -266,7 +288,6 @@ class Menu
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
-            'compatibility' => new Compatibility($this->container),
             'exclusions' => new Exclusions($this->container),
             'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),

@@ -7,6 +7,8 @@ use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
+use FP\PerfSuite\Services\Compatibility\ThemeDetector;
+use FP\PerfSuite\Admin\ThemeHints;
 
 use function __;
 use function add_action;
@@ -92,9 +94,52 @@ class Overview extends AbstractPage
         
         // Performance history data
         $history = $this->getPerformanceHistory();
+        
+        // Theme-specific hints
+        $themeDetector = $this->container->get(ThemeDetector::class);
+        $hints = new ThemeHints($themeDetector);
+        $salientNotice = $hints->getSalientNotice();
 
         ob_start();
         ?>
+        
+        <?php if ($salientNotice && !get_user_meta(get_current_user_id(), 'fp_ps_dismiss_salient_notice', true)): ?>
+        <div class="notice notice-info is-dismissible fp-ps-salient-notice" style="border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: #1e40af;">
+                🎨 <?php printf(esc_html__('Configurazione Ottimizzata per %s', 'fp-performance-suite'), esc_html($salientNotice['theme'])); ?>
+            </h3>
+            <p style="font-size: 14px; margin: 10px 0;">
+                <?php echo $salientNotice['message']; ?>
+            </p>
+            <div style="background: #dbeafe; padding: 12px; border-radius: 4px; margin: 12px 0;">
+                <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af;">
+                    🚀 <?php esc_html_e('Ottimizzazioni raccomandate ad alta priorità:', 'fp-performance-suite'); ?>
+                </p>
+                <ul style="margin: 5px 0 0 20px; color: #1e3a8a;">
+                    <?php foreach ($salientNotice['recommended_services'] as $service): ?>
+                        <li><?php echo esc_html($service); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <p style="margin-top: 12px;">
+                <strong>💡 <?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
+                <?php esc_html_e('Troverai badge e tooltip specifici per il tuo tema nelle sezioni Cache e Assets. I suggerimenti sono personalizzati per', 'fp-performance-suite'); ?> <?php echo esc_html($salientNotice['theme'] . ' + ' . $salientNotice['builder']); ?>.
+            </p>
+            <button type="button" class="notice-dismiss" data-dismiss="salient-notice"><span class="screen-reader-text"><?php esc_html_e('Dismiss this notice', 'fp-performance-suite'); ?></span></button>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            $('.fp-ps-salient-notice .notice-dismiss').on('click', function() {
+                $.post(ajaxurl, {
+                    action: 'fp_ps_dismiss_salient_notice',
+                    nonce: '<?php echo wp_create_nonce('fp_ps_dismiss_salient'); ?>'
+                });
+                $('.fp-ps-salient-notice').fadeOut(300);
+            });
+        });
+        </script>
+        <?php endif; ?>
         
         <!-- Header con Score e Metriche Principali -->
         <section class="fp-ps-grid three">

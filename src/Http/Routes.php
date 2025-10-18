@@ -3,7 +3,6 @@
 namespace FP\PerfSuite\Http;
 
 use FP\PerfSuite\ServiceContainer;
-use FP\PerfSuite\Http\Ajax\CompatibilityAjax;
 use FP\PerfSuite\Http\Ajax\CriticalCssAjax;
 use FP\PerfSuite\Http\Ajax\RecommendationsAjax;
 use FP\PerfSuite\Http\Ajax\WebPAjax;
@@ -40,9 +39,6 @@ class Routes
         add_action('rest_api_init', [$this, 'register']);
         
         // Register AJAX handlers
-        $compatAjax = new CompatibilityAjax($this->container);
-        $compatAjax->register();
-        
         $recommendationsAjax = new RecommendationsAjax($this->container);
         $recommendationsAjax->register();
         
