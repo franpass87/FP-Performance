@@ -332,6 +332,10 @@ class Assets extends AbstractPage
                     'preload_critical_assets' => !empty($_POST['preload_critical_assets']),
                     'critical_assets_list' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['critical_assets'] ?? '')))),
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio per mostrare i valori aggiornati
+                $settings = $optimizer->settings();
+                
                 $message = __('Delivery settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'pagespeed') {
                 // Salva solo le impostazioni PageSpeed (font)
@@ -341,6 +345,10 @@ class Assets extends AbstractPage
                     'preload_fonts' => !empty($_POST['preload_fonts']),
                     'preconnect_providers' => !empty($_POST['preconnect_providers']),
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio
+                $fontSettings = $fontOptimizer->getSettings();
+                
                 $message = __('Font Optimizer settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'third_party') {
                 // Salva solo le impostazioni degli script di terze parti
@@ -391,6 +399,10 @@ class Assets extends AbstractPage
                         'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
                     ],
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio
+                $thirdPartySettings = $thirdPartyScripts->settings();
+                
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'http2_push') {
                 $http2Push->update([
@@ -446,10 +458,8 @@ class Assets extends AbstractPage
             }
         }
         
-        // Ricarica le impostazioni dopo il POST per mostrare i valori aggiornati
-        $settings = $optimizer->settings();
-        $fontSettings = $fontOptimizer->getSettings();
-        $thirdPartySettings = $thirdPartyScripts->settings();
+        // Le impostazioni principali sono già state caricate all'inizio
+        // Carichiamo solo le impostazioni rimanenti necessarie per il rendering
         $thirdPartyStatus = $thirdPartyScripts->status();
         $http2Settings = $http2Push->settings();
         $smartDeliverySettings = $smartDelivery->settings();

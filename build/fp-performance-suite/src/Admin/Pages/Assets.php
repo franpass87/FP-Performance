@@ -68,6 +68,12 @@ class Assets extends AbstractPage
         $smartDelivery = $this->container->get(SmartAssetDelivery::class);
         $message = '';
         
+        // Carica le impostazioni correnti PRIMA del blocco POST
+        // per permettere la lettura delle esclusioni esistenti quando si applicano le nuove
+        $settings = $optimizer->settings();
+        $fontSettings = $fontOptimizer->getSettings();
+        $thirdPartySettings = $thirdPartyScripts->settings();
+        
         // Smart Script Detector
         $smartDetector = new SmartExclusionDetector();
         $criticalScripts = null;
@@ -216,8 +222,8 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_critical_scripts_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_critical_scripts_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
@@ -250,8 +256,8 @@ class Assets extends AbstractPage
                     'exclude_css' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_exclude_css_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_exclude_css_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
@@ -284,8 +290,8 @@ class Assets extends AbstractPage
                     'exclude_js' => implode("\n", $mergedExclude),
                 ]);
                 
-                // Pulisci i transient
-                delete_transient('fp_ps_exclude_js_detected');
+                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
+                // delete_transient('fp_ps_exclude_js_detected');
                 
                 // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
@@ -326,6 +332,10 @@ class Assets extends AbstractPage
                     'preload_critical_assets' => !empty($_POST['preload_critical_assets']),
                     'critical_assets_list' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['critical_assets'] ?? '')))),
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio per mostrare i valori aggiornati
+                $settings = $optimizer->settings();
+                
                 $message = __('Delivery settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'pagespeed') {
                 // Salva solo le impostazioni PageSpeed (font)
@@ -335,6 +345,10 @@ class Assets extends AbstractPage
                     'preload_fonts' => !empty($_POST['preload_fonts']),
                     'preconnect_providers' => !empty($_POST['preconnect_providers']),
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio
+                $fontSettings = $fontOptimizer->getSettings();
+                
                 $message = __('Font Optimizer settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'third_party') {
                 // Salva solo le impostazioni degli script di terze parti
@@ -385,6 +399,10 @@ class Assets extends AbstractPage
                         'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
                     ],
                 ]);
+                
+                // Ricarica le impostazioni dopo il salvataggio
+                $thirdPartySettings = $thirdPartyScripts->settings();
+                
                 $message = __('Third-Party Script settings saved.', 'fp-performance-suite');
             } elseif ($formType === 'http2_push') {
                 $http2Push->update([
@@ -439,9 +457,9 @@ class Assets extends AbstractPage
                 }
             }
         }
-        $settings = $optimizer->settings();
-        $fontSettings = $fontOptimizer->getSettings();
-        $thirdPartySettings = $thirdPartyScripts->settings();
+        
+        // Le impostazioni principali sono già state caricate all'inizio
+        // Carichiamo solo le impostazioni rimanenti necessarie per il rendering
         $thirdPartyStatus = $thirdPartyScripts->status();
         $http2Settings = $http2Push->settings();
         $smartDeliverySettings = $smartDelivery->settings();
