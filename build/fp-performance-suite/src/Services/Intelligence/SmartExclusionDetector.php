@@ -627,14 +627,6 @@ class SmartExclusionDetector
         // Salva l'esclusione con metadata separato
         $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
         
-        // CONTROLLO DUPLICATI: Verifica se l'URL esiste già
-        foreach ($trackedExclusions as $existingExclusion) {
-            if ($existingExclusion['url'] === $url) {
-                // URL già esistente, non aggiungere duplicato
-                return;
-            }
-        }
-        
         $exclusionId = md5($url . time());
         
         $trackedExclusions[$exclusionId] = [
@@ -717,80 +709,5 @@ class SmartExclusionDetector
             'reason' => $reason ?: __('Manual exclusion', 'fp-performance-suite'),
             'confidence' => 1.0,
         ]);
-    }
-    
-    /**
-     * Rimuovi esclusioni duplicate dal database
-     * 
-     * @return array Statistiche sulla rimozione
-     */
-    public function removeDuplicateExclusions(): array
-    {
-        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
-        
-        $stats = [
-            'total_before' => count($trackedExclusions),
-            'duplicates_removed' => 0,
-            'total_after' => 0,
-            'duplicate_urls' => [],
-        ];
-        
-        // Raggruppa per URL
-        $urlGroups = [];
-        foreach ($trackedExclusions as $id => $exclusion) {
-            $url = $exclusion['url'];
-            if (!isset($urlGroups[$url])) {
-                $urlGroups[$url] = [];
-            }
-            $urlGroups[$url][$id] = $exclusion;
-        }
-        
-        // Mantieni solo la più recente per ogni URL
-        $cleanedExclusions = [];
-        foreach ($urlGroups as $url => $group) {
-            if (count($group) > 1) {
-                // Duplicato trovato
-                $stats['duplicates_removed'] += count($group) - 1;
-                $stats['duplicate_urls'][] = $url;
-                
-                // Mantieni solo quella con applied_at più recente
-                uasort($group, function($a, $b) {
-                    return $b['applied_at'] - $a['applied_at'];
-                });
-                
-                // Prendi solo la prima (più recente)
-                $cleanedExclusions[array_key_first($group)] = reset($group);
-            } else {
-                // Non duplicato, mantieni
-                $cleanedExclusions[array_key_first($group)] = reset($group);
-            }
-        }
-        
-        $stats['total_after'] = count($cleanedExclusions);
-        
-        // Salva le esclusioni ripulite
-        update_option('fp_ps_tracked_exclusions', $cleanedExclusions);
-        
-        // Ripulisci anche la cache page
-        $this->cleanupCachePageExclusions();
-        
-        return $stats;
-    }
-    
-    /**
-     * Ripulisci duplicati nella configurazione cache page
-     */
-    private function cleanupCachePageExclusions(): void
-    {
-        $settings = get_option('fp_ps_page_cache', []);
-        $currentExclusions = $settings['exclude_urls'] ?? '';
-        
-        $exclusionsList = array_filter(explode("\n", $currentExclusions));
-        
-        // Rimuovi duplicati mantenendo l'ordine
-        $exclusionsList = array_unique($exclusionsList);
-        
-        $settings['exclude_urls'] = implode("\n", $exclusionsList);
-        update_option('fp_ps_page_cache', $settings);
     }
 }
