@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 
 use function __;
 use function checked;
@@ -50,6 +51,7 @@ class Cache extends AbstractPage
     {
         $pageCache = $this->container->get(PageCache::class);
         $headers = $this->container->get(Headers::class);
+        $objectCache = $this->container->get(ObjectCacheManager::class);
         $message = '';
         $headerSettings = $headers->settings();
 
@@ -80,6 +82,17 @@ class Cache extends AbstractPage
                 ]);
                 $message = __('Browser cache settings saved.', 'fp-performance-suite');
             }
+            if (isset($_POST['fp_ps_object_cache'])) {
+                $objectCache->update([
+                    'enabled' => !empty($_POST['object_cache_enabled']),
+                    'driver' => sanitize_text_field($_POST['object_cache_driver'] ?? 'auto'),
+                    'host' => sanitize_text_field($_POST['object_cache_host'] ?? '127.0.0.1'),
+                    'port' => (int) ($_POST['object_cache_port'] ?? 6379),
+                    'password' => sanitize_text_field($_POST['object_cache_password'] ?? ''),
+                    'prefix' => sanitize_text_field($_POST['object_cache_prefix'] ?? 'fp_ps_'),
+                ]);
+                $message = __('Object cache settings saved.', 'fp-performance-suite');
+            }
             if (isset($_POST['fp_ps_clear_cache'])) {
                 $pageCache->clear();
                 $message = __('Page cache cleared.', 'fp-performance-suite');
@@ -88,6 +101,8 @@ class Cache extends AbstractPage
 
         $pageSettings = $pageCache->settings();
         $headerSettings = $headers->settings();
+        $objectCacheSettings = $objectCache->settings();
+        $objectCacheStatus = $objectCache->testConnection();
         $status = $pageCache->status();
 
         ob_start();
@@ -146,6 +161,109 @@ class Cache extends AbstractPage
                 </p>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Save Headers', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+        
+        <section class="fp-ps-card">
+            <h2>🗄️ <?php esc_html_e('Object Cache (Redis/Memcached)', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Attiva la cache persistente degli oggetti con Redis o Memcached per ridurre drasticamente le query al database e migliorare le performance del sito.', 'fp-performance-suite'); ?></p>
+            
+            <?php if ($objectCacheStatus['success']): ?>
+                <div class="notice notice-success inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Connessione Attiva:', 'fp-performance-suite'); ?></strong>
+                        <?php printf(
+                            esc_html__('Connesso a %s con successo!', 'fp-performance-suite'),
+                            '<strong>' . esc_html(strtoupper($objectCacheStatus['driver'])) . '</strong>'
+                        ); ?>
+                    </p>
+                </div>
+            <?php elseif ($objectCacheSettings['enabled']): ?>
+                <div class="notice notice-warning inline" style="margin: 15px 0;">
+                    <p>
+                        <strong><?php esc_html_e('Attenzione:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('Object Cache è abilitato ma la connessione non è riuscita. Verifica le impostazioni.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
+                <input type="hidden" name="fp_ps_object_cache" value="1" />
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Object Cache', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Memorizza gli oggetti WordPress in Redis o Memcached invece del database, riducendo le query del 60-80%.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduzione drastica delle query database, tempi di risposta più veloci, scalabilità migliorata.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Essenziale per siti con alto traffico. Richiede Redis o Memcached installato sul server.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="object_cache_enabled" value="1" <?php checked($objectCacheSettings['enabled']); ?> />
+                </label>
+                
+                <p>
+                    <label for="object_cache_driver"><?php esc_html_e('Driver', 'fp-performance-suite'); ?></label>
+                    <select name="object_cache_driver" id="object_cache_driver">
+                        <option value="auto" <?php selected($objectCacheSettings['driver'], 'auto'); ?>><?php esc_html_e('Auto (Rileva automaticamente)', 'fp-performance-suite'); ?></option>
+                        <option value="redis" <?php selected($objectCacheSettings['driver'], 'redis'); ?>>Redis</option>
+                        <option value="memcached" <?php selected($objectCacheSettings['driver'], 'memcached'); ?>>Memcached</option>
+                    </select>
+                    <span class="description"><?php esc_html_e('Seleziona il backend di caching da utilizzare', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="object_cache_host"><?php esc_html_e('Host', 'fp-performance-suite'); ?></label>
+                    <input type="text" name="object_cache_host" id="object_cache_host" value="<?php echo esc_attr($objectCacheSettings['host']); ?>" class="regular-text" />
+                    <span class="description"><?php esc_html_e('Indirizzo del server (default: 127.0.0.1)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="object_cache_port"><?php esc_html_e('Porta', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="object_cache_port" id="object_cache_port" value="<?php echo esc_attr((string) $objectCacheSettings['port']); ?>" class="small-text" min="1" max="65535" />
+                    <span class="description"><?php esc_html_e('Porta di connessione (Redis default: 6379, Memcached: 11211)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="object_cache_password"><?php esc_html_e('Password (opzionale)', 'fp-performance-suite'); ?></label>
+                    <input type="password" name="object_cache_password" id="object_cache_password" value="<?php echo esc_attr($objectCacheSettings['password']); ?>" class="regular-text" autocomplete="off" />
+                    <span class="description"><?php esc_html_e('Password per Redis se richiesta', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <p>
+                    <label for="object_cache_prefix"><?php esc_html_e('Prefisso chiavi', 'fp-performance-suite'); ?></label>
+                    <input type="text" name="object_cache_prefix" id="object_cache_prefix" value="<?php echo esc_attr($objectCacheSettings['prefix']); ?>" class="regular-text" />
+                    <span class="description"><?php esc_html_e('Prefisso per le chiavi cache (utile per multi-sito)', 'fp-performance-suite'); ?></span>
+                </p>
+                
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin: 15px 0;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;"><?php esc_html_e('💡 Requisiti:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #555;">
+                        <li><?php esc_html_e('Redis o Memcached deve essere installato e in esecuzione sul server', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('L\'estensione PHP corrispondente (php-redis o php-memcached) deve essere attiva', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Contatta il tuo hosting provider se non sai come installare questi servizi', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+                
+                <p>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Salva Impostazioni Object Cache', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
