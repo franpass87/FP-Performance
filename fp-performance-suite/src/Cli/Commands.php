@@ -8,6 +8,8 @@ use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
 use FP\PerfSuite\Services\DB\DatabaseOptimizer;
+use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
+use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Logger;
@@ -122,6 +124,16 @@ class Commands
             $this->dbOptimize($assoc_args);
         } elseif ($subcommand === 'analyze') {
             $this->dbAnalyze();
+        } elseif ($subcommand === 'health') {
+            $this->dbHealth();
+        } elseif ($subcommand === 'fragmentation') {
+            $this->dbFragmentation();
+        } elseif ($subcommand === 'plugin-cleanup') {
+            $this->dbPluginCleanup();
+        } elseif ($subcommand === 'report') {
+            $this->dbReport($assoc_args);
+        } elseif ($subcommand === 'convert-engine') {
+            $this->dbConvertEngine($assoc_args);
         } else {
             \WP_CLI::error("Unknown db subcommand: {$subcommand}");
         }
@@ -254,6 +266,245 @@ class Commands
             }
         } catch (\Throwable $e) {
             \WP_CLI::error('Failed to analyze database: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Advanced database health check
+     */
+    private function dbHealth(): void
+    {
+        try {
+            $reportService = new DatabaseReportService();
+            
+            \WP_CLI::log('Running database health check...');
+            
+            $health = $reportService->getHealthScore();
+            
+            \WP_CLI::log("\n" . \WP_CLI::colorize('%G=== Database Health Score ===%n'));
+            \WP_CLI::log('Score: ' . $health['score'] . '%');
+            \WP_CLI::log('Grade: ' . $health['grade']);
+            \WP_CLI::log('Status: ' . ucfirst($health['status']));
+            
+            if (!empty($health['issues'])) {
+                \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Issues Found ===%n'));
+                foreach ($health['issues'] as $issue) {
+                    $color = match($issue['severity']) {
+                        'high' => '%R',
+                        'medium' => '%Y',
+                        'low' => '%C',
+                        default => '%G'
+                    };
+                    \WP_CLI::log(\WP_CLI::colorize("{$color}• {$issue['issue']} (penalty: {$issue['penalty']})%n"));
+                }
+                
+                \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Recommendations ===%n'));
+                foreach ($health['recommendations'] as $rec) {
+                    \WP_CLI::log("  {$rec}");
+                }
+            } else {
+                \WP_CLI::success('Database is in excellent health!');
+            }
+            
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to check database health: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Analyze fragmentation
+     */
+    private function dbFragmentation(): void
+    {
+        try {
+            $container = Plugin::container();
+            $optimizer = $container->get(DatabaseOptimizer::class);
+            
+            \WP_CLI::log('Analyzing database fragmentation...');
+            
+            $fragmentation = $optimizer->analyzeFragmentation();
+            
+            \WP_CLI::log("\n" . \WP_CLI::colorize('%G=== Fragmentation Analysis ===%n'));
+            \WP_CLI::log('Fragmented tables: ' . $fragmentation['total_fragmented']);
+            \WP_CLI::log('Total wasted space: ' . $fragmentation['total_wasted_mb'] . ' MB');
+            
+            if (!empty($fragmentation['fragmented_tables'])) {
+                \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Top Fragmented Tables ===%n'));
+                
+                $table = new \cli\Table();
+                $table->setHeaders(['Table', 'Fragmentation %', 'Wasted MB', 'Severity']);
+                
+                foreach (array_slice($fragmentation['fragmented_tables'], 0, 10) as $tbl) {
+                    $table->addRow([
+                        $tbl['table'],
+                        number_format($tbl['fragmentation_pct'], 2),
+                        number_format($tbl['wasted_mb'], 2),
+                        strtoupper($tbl['severity'])
+                    ]);
+                }
+                
+                $table->display();
+                
+                \WP_CLI::log("\n" . \WP_CLI::colorize('%CRun "wp fp db optimize" to defragment tables.%n'));
+            } else {
+                \WP_CLI::success('No significant fragmentation detected!');
+            }
+            
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to analyze fragmentation: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Analyze plugin-specific cleanup opportunities
+     */
+    private function dbPluginCleanup(): void
+    {
+        try {
+            $pluginOptimizer = new PluginSpecificOptimizer();
+            
+            \WP_CLI::log('Analyzing plugin-specific cleanup opportunities...');
+            
+            $opportunities = $pluginOptimizer->analyzeInstalledPlugins();
+            
+            if (empty($opportunities['opportunities'])) {
+                \WP_CLI::log('No supported plugins found for cleanup.');
+                return;
+            }
+            
+            \WP_CLI::log("\n" . \WP_CLI::colorize('%G=== Plugin Cleanup Opportunities ===%n'));
+            \WP_CLI::log('Total potential savings: ' . number_format($opportunities['total_potential_savings_mb'], 2) . ' MB');
+            \WP_CLI::log('Total items to clean: ' . number_format($opportunities['total_items_to_clean']));
+            
+            foreach ($opportunities['opportunities'] as $plugin => $data) {
+                \WP_CLI::log("\n" . \WP_CLI::colorize("%Y{$data['plugin_name']}:%n"));
+                \WP_CLI::log('  Items: ' . number_format($data['total_items']));
+                \WP_CLI::log('  Potential savings: ~' . number_format($data['potential_savings_mb'], 2) . ' MB');
+                
+                if (!empty($data['recommendations'])) {
+                    foreach ($data['recommendations'] as $rec) {
+                        \WP_CLI::log('  ' . \WP_CLI::colorize('%C→%n ') . $rec['message']);
+                    }
+                }
+            }
+            
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to analyze plugin cleanup: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Generate and export database report
+     */
+    private function dbReport(array $assoc_args): void
+    {
+        try {
+            $reportService = new DatabaseReportService();
+            $format = $assoc_args['format'] ?? 'text';
+            
+            \WP_CLI::log('Generating database report...');
+            
+            $report = $reportService->generateCompleteReport();
+            
+            switch ($format) {
+                case 'json':
+                    $output = $reportService->exportJSON($report);
+                    $filename = 'fp-db-report-' . date('Y-m-d-His') . '.json';
+                    file_put_contents($filename, $output);
+                    \WP_CLI::success("Report saved to: {$filename}");
+                    break;
+                    
+                case 'csv':
+                    $output = $reportService->exportCSV($report);
+                    $filename = 'fp-db-report-' . date('Y-m-d-His') . '.csv';
+                    file_put_contents($filename, $output);
+                    \WP_CLI::success("Report saved to: {$filename}");
+                    break;
+                    
+                case 'text':
+                default:
+                    // Display summary
+                    \WP_CLI::log("\n" . \WP_CLI::colorize('%G=== Database Report ===%n'));
+                    \WP_CLI::log('Generated: ' . $report['generated_at_formatted']);
+                    \WP_CLI::log('Database size: ' . $report['current_snapshot']['size']['total_mb'] . ' MB');
+                    \WP_CLI::log('Overhead: ' . $report['current_snapshot']['size']['free_mb'] . ' MB');
+                    
+                    // Health score
+                    $health = $reportService->getHealthScore();
+                    \WP_CLI::log("\nHealth Score: " . $health['score'] . '% (Grade: ' . $health['grade'] . ')');
+                    
+                    // Trends
+                    if (isset($report['trends']['size'])) {
+                        \WP_CLI::log("\nGrowth rate: " . number_format($report['trends']['size']['growth_per_day_mb'], 2) . ' MB/day');
+                        \WP_CLI::log('30-day projection: ' . number_format($report['trends']['projection_30_days'], 2) . ' MB');
+                    }
+                    
+                    \WP_CLI::log("\n" . \WP_CLI::colorize('%CUse --format=json or --format=csv for detailed reports.%n'));
+                    break;
+            }
+            
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to generate report: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Convert MyISAM tables to InnoDB
+     */
+    private function dbConvertEngine(array $assoc_args): void
+    {
+        try {
+            $container = Plugin::container();
+            $optimizer = $container->get(DatabaseOptimizer::class);
+            
+            $table = $assoc_args['table'] ?? null;
+            $all = $assoc_args['all'] ?? false;
+            
+            if (!$table && !$all) {
+                \WP_CLI::error('Please specify --table=<name> or --all');
+                return;
+            }
+            
+            if ($all) {
+                $engines = $optimizer->analyzeStorageEngines();
+                
+                if (empty($engines['myisam_tables'])) {
+                    \WP_CLI::success('No MyISAM tables found!');
+                    return;
+                }
+                
+                \WP_CLI::log('Found ' . count($engines['myisam_tables']) . ' MyISAM tables.');
+                \WP_CLI::confirm('Convert all to InnoDB?');
+                
+                $converted = 0;
+                $failed = 0;
+                
+                foreach ($engines['myisam_tables'] as $tbl) {
+                    \WP_CLI::log("Converting {$tbl['table']}...");
+                    $result = $optimizer->convertToInnoDB($tbl['table']);
+                    
+                    if ($result['success']) {
+                        $converted++;
+                    } else {
+                        $failed++;
+                        \WP_CLI::warning($result['message']);
+                    }
+                }
+                
+                \WP_CLI::success("Converted {$converted} tables. Failed: {$failed}");
+            } else {
+                \WP_CLI::log("Converting {$table} to InnoDB...");
+                $result = $optimizer->convertToInnoDB($table);
+                
+                if ($result['success']) {
+                    \WP_CLI::success($result['message']);
+                } else {
+                    \WP_CLI::error($result['message']);
+                }
+            }
+            
+        } catch (\Throwable $e) {
+            \WP_CLI::error('Failed to convert storage engine: ' . $e->getMessage());
         }
     }
 
@@ -550,16 +801,25 @@ class Commands
         \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Available Commands ===%n'));
         \WP_CLI::log('  cache clear          - Clear page cache');
         \WP_CLI::log('  cache status         - Show cache status');
+        \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Database Commands ===%n'));
         \WP_CLI::log('  db cleanup           - Run database cleanup');
         \WP_CLI::log('  db status            - Show database status');
         \WP_CLI::log('  db optimize          - Optimize database tables');
         \WP_CLI::log('  db analyze           - Analyze database and get recommendations');
+        \WP_CLI::log('  db health            - Advanced database health check');
+        \WP_CLI::log('  db fragmentation     - Analyze database fragmentation');
+        \WP_CLI::log('  db plugin-cleanup    - Analyze plugin-specific cleanup opportunities');
+        \WP_CLI::log('  db report            - Generate and export database report');
+        \WP_CLI::log('  db convert-engine    - Convert MyISAM tables to InnoDB');
+        \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Cache Commands ===%n'));
         \WP_CLI::log('  object-cache status  - Show object cache status');
         \WP_CLI::log('  object-cache enable  - Enable object cache');
         \WP_CLI::log('  object-cache disable - Disable object cache');
         \WP_CLI::log('  object-cache flush   - Flush object cache');
+        \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Media Commands ===%n'));
         \WP_CLI::log('  webp convert         - Convert images to WebP');
         \WP_CLI::log('  webp status          - Show WebP status');
+        \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Other Commands ===%n'));
         \WP_CLI::log('  score                - Calculate performance score');
         \WP_CLI::log('  info                 - Show this information');
     }

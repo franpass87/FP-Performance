@@ -258,11 +258,13 @@ class AVIFConverter
         $uploadPath = $uploadDir['basedir'] ?? '';
         $filePath = $uploadPath . $relativePath;
 
+        // Check if AVIF exists using filesystem path
         if (!$this->pathHelper->avifExists($filePath)) {
             return $url;
         }
 
-        return $this->pathHelper->getAVIFPath($url);
+        // Build AVIF URL correctly (add .avif to original URL)
+        return $url . '.avif';
     }
 
     /**

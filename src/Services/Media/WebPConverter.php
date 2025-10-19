@@ -179,23 +179,34 @@ class WebPConverter
     }
 
     /**
-     * Calculate WebP coverage percentage
+     * Count total images in media library
      *
-     * @return float Percentage of images converted to WebP
+     * @return int Total number of images
      */
-    public function coverage(): float
+    public function countTotalImages(): int
     {
         $attachments = wp_count_attachments('image');
         $count = 0;
 
-        if (is_object($attachments) && property_exists($attachments, 'inherit')) {
-            $count = (int) $attachments->inherit;
+        if (is_object($attachments)) {
+            // Sum all image statuses (inherit, publish, private, etc.)
+            foreach ($attachments as $status => $num) {
+                if ($status !== 'trash') {
+                    $count += (int) $num;
+                }
+            }
         }
 
-        if ($count === 0) {
-            return 100.0;
-        }
+        return $count;
+    }
 
+    /**
+     * Count converted images (with WebP)
+     *
+     * @return int Number of images with WebP version
+     */
+    public function countConvertedImages(): int
+    {
         global $wpdb;
         $query = $wpdb->prepare(
             "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
@@ -204,26 +215,47 @@ class WebPConverter
         );
 
         if ($query === false) {
-            return 0.0;
+            return 0;
         }
 
-        $webp = (int) $wpdb->get_var($query);
-        return min(100.0, ($webp / $count) * 100);
+        return (int) $wpdb->get_var($query);
+    }
+
+    /**
+     * Calculate WebP coverage percentage
+     *
+     * @return float Percentage of images converted to WebP
+     */
+    public function coverage(): float
+    {
+        $total = $this->countTotalImages();
+
+        if ($total === 0) {
+            return 100.0;
+        }
+
+        $webp = $this->countConvertedImages();
+        return min(100.0, ($webp / $total) * 100);
     }
 
     /**
      * Get conversion status
      *
-     * @return array{enabled:bool,quality:int,coverage:float,auto_deliver:bool}
+     * @return array{enabled:bool,quality:int,coverage:float,auto_deliver:bool,total_images:int,converted_images:int}
      */
     public function status(): array
     {
         $settings = $this->settings();
+        $totalImages = $this->countTotalImages();
+        $convertedImages = $this->countConvertedImages();
+        
         return [
             'enabled' => $settings['enabled'],
             'quality' => $settings['quality'],
-            'coverage' => $this->coverage(),
+            'coverage' => $totalImages > 0 ? min(100.0, ($convertedImages / $totalImages) * 100) : 100.0,
             'auto_deliver' => $settings['auto_deliver'],
+            'total_images' => $totalImages,
+            'converted_images' => $convertedImages,
         ];
     }
 
@@ -314,7 +346,7 @@ class WebPConverter
         $uploadPath = $uploadDir['basedir'] ?? '';
         $filePath = $uploadPath . $relativePath;
 
-        // Get WebP path
+        // Get WebP filesystem path
         $webpPath = $this->pathHelper->getWebPPath($filePath);
 
         // Check if WebP exists
@@ -322,8 +354,11 @@ class WebPConverter
             return $url;
         }
 
-        // Build WebP URL
-        $webpUrl = $this->pathHelper->getWebPPath($url);
+        // Build WebP URL correctly (replace extension in URL, not in path)
+        // Remove original extension and add .webp
+        $pathInfo = pathinfo($url);
+        $webpUrl = ($pathInfo['dirname'] !== '.' ? $pathInfo['dirname'] . '/' : '') . 
+                   ($pathInfo['filename'] ?? '') . '.webp';
 
         // Log delivery (only in debug mode to avoid spam)
         if (defined('WP_DEBUG') && WP_DEBUG) {

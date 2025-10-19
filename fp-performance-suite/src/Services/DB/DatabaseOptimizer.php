@@ -5,9 +5,15 @@ namespace FP\PerfSuite\Services\DB;
 use FP\PerfSuite\Utils\Logger;
 
 /**
- * Database Optimizer
+ * Database Optimizer - Enhanced Version
  * 
- * Analizza e ottimizza le tabelle del database WordPress
+ * Analizza e ottimizza le tabelle del database WordPress con funzionalità avanzate:
+ * - Analisi frammentazione dettagliata
+ * - Rilevamento indici mancanti
+ * - Conversione storage engine (MyISAM → InnoDB)
+ * - Ottimizzazione charset e collation
+ * - Backup automatici pre-ottimizzazione
+ * - Pulizia plugin-specific (WooCommerce, Yoast, etc.)
  * 
  * @package FP\PerfSuite\Services\DB
  * @author Francesco Passeri
@@ -16,6 +22,8 @@ use FP\PerfSuite\Utils\Logger;
 class DatabaseOptimizer
 {
     private const OPTION_KEY = 'fp_ps_db_optimizer';
+    private const HISTORY_KEY = 'fp_ps_db_optimizer_history';
+    private const BACKUP_KEY = 'fp_ps_db_optimizer_backup';
     
     /**
      * Registra il servizio
@@ -533,6 +541,634 @@ class DatabaseOptimizer
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'fp_ps_db_auto_optimize');
         }
+    }
+    
+    // ============================================
+    // NUOVE FUNZIONALITÀ AVANZATE
+    // ============================================
+    
+    /**
+     * Analisi frammentazione dettagliata per tabella
+     */
+    public function analyzeFragmentation(): array
+    {
+        global $wpdb;
+        
+        $query = $wpdb->prepare(
+            "SELECT 
+                TABLE_NAME,
+                ENGINE,
+                TABLE_ROWS,
+                DATA_LENGTH,
+                INDEX_LENGTH,
+                DATA_FREE,
+                ROUND(DATA_FREE / (DATA_LENGTH + INDEX_LENGTH) * 100, 2) as fragmentation_pct
+             FROM information_schema.TABLES
+             WHERE table_schema = %s
+             AND DATA_FREE > 0
+             ORDER BY DATA_FREE DESC",
+            DB_NAME
+        );
+        
+        $tables = $wpdb->get_results($query, ARRAY_A);
+        $fragmented = [];
+        $totalWaste = 0;
+        
+        foreach ($tables as $table) {
+            $fragmentationPct = (float) ($table['fragmentation_pct'] ?? 0);
+            $dataFree = (int) ($table['DATA_FREE'] ?? 0);
+            
+            if ($fragmentationPct > 10 || $dataFree > 1048576) { // > 10% o > 1MB
+                $fragmented[] = [
+                    'table' => $table['TABLE_NAME'],
+                    'engine' => $table['ENGINE'],
+                    'rows' => (int) $table['TABLE_ROWS'],
+                    'fragmentation_pct' => $fragmentationPct,
+                    'wasted_space' => $dataFree,
+                    'wasted_mb' => round($dataFree / 1024 / 1024, 2),
+                    'severity' => $this->getFragmentationSeverity($fragmentationPct),
+                ];
+                $totalWaste += $dataFree;
+            }
+        }
+        
+        return [
+            'fragmented_tables' => $fragmented,
+            'total_fragmented' => count($fragmented),
+            'total_wasted_bytes' => $totalWaste,
+            'total_wasted_mb' => round($totalWaste / 1024 / 1024, 2),
+            'recommendation' => count($fragmented) > 0 ? 'Ottimizza le tabelle frammentate per recuperare spazio e migliorare le performance' : null,
+        ];
+    }
+    
+    /**
+     * Determina la gravità della frammentazione
+     */
+    private function getFragmentationSeverity(float $pct): string
+    {
+        if ($pct > 30) return 'high';
+        if ($pct > 15) return 'medium';
+        return 'low';
+    }
+    
+    /**
+     * Analizza indici mancanti e suggerisce creazione
+     */
+    public function analyzeMissingIndexes(): array
+    {
+        global $wpdb;
+        
+        $suggestions = [];
+        
+        // Tabella posts - colonne comuni senza indice
+        $postIndexes = $this->getTableIndexColumns($wpdb->posts);
+        $postSuggestions = [];
+        
+        if (!in_array('post_author', $postIndexes)) {
+            $postSuggestions[] = [
+                'column' => 'post_author',
+                'reason' => 'Migliora query per autore (es. author archives)',
+                'benefit' => 'medium',
+            ];
+        }
+        
+        if (!in_array('post_modified', $postIndexes)) {
+            $postSuggestions[] = [
+                'column' => 'post_modified',
+                'reason' => 'Migliora query per data modifica',
+                'benefit' => 'low',
+            ];
+        }
+        
+        if (!empty($postSuggestions)) {
+            $suggestions[$wpdb->posts] = $postSuggestions;
+        }
+        
+        // Tabella postmeta - indice composito
+        $metaIndexes = $this->getTableIndexes($wpdb->postmeta);
+        $hasCompositeIndex = false;
+        foreach ($metaIndexes as $index) {
+            if (count($index['columns']) > 1 && in_array('meta_key', $index['columns']) && in_array('meta_value', $index['columns'])) {
+                $hasCompositeIndex = true;
+                break;
+            }
+        }
+        
+        if (!$hasCompositeIndex) {
+            $suggestions[$wpdb->postmeta][] = [
+                'columns' => ['meta_key', 'meta_value(191)'],
+                'reason' => 'Migliora drasticamente query meta_query',
+                'benefit' => 'high',
+            ];
+        }
+        
+        // Tabella options - autoload
+        $optionsIndexes = $this->getTableIndexColumns($wpdb->options);
+        if (!in_array('autoload', $optionsIndexes)) {
+            $suggestions[$wpdb->options][] = [
+                'column' => 'autoload',
+                'reason' => 'Migliora caricamento opzioni autoload',
+                'benefit' => 'high',
+            ];
+        }
+        
+        return [
+            'suggestions' => $suggestions,
+            'total_suggestions' => array_sum(array_map('count', $suggestions)),
+            'high_priority' => $this->countByBenefit($suggestions, 'high'),
+        ];
+    }
+    
+    /**
+     * Ottiene le colonne indicizzate di una tabella
+     */
+    private function getTableIndexColumns(string $table): array
+    {
+        global $wpdb;
+        $indexes = $wpdb->get_results("SHOW INDEX FROM `{$table}`", ARRAY_A);
+        $columns = [];
+        
+        foreach ($indexes as $index) {
+            $columns[] = $index['Column_name'];
+        }
+        
+        return array_unique($columns);
+    }
+    
+    /**
+     * Ottiene gli indici di una tabella con dettagli
+     */
+    private function getTableIndexes(string $table): array
+    {
+        global $wpdb;
+        $indexes = $wpdb->get_results("SHOW INDEX FROM `{$table}`", ARRAY_A);
+        $grouped = [];
+        
+        foreach ($indexes as $index) {
+            $keyName = $index['Key_name'];
+            if (!isset($grouped[$keyName])) {
+                $grouped[$keyName] = [
+                    'name' => $keyName,
+                    'unique' => $index['Non_unique'] == 0,
+                    'columns' => [],
+                ];
+            }
+            $grouped[$keyName]['columns'][] = $index['Column_name'];
+        }
+        
+        return array_values($grouped);
+    }
+    
+    /**
+     * Conta suggerimenti per livello di beneficio
+     */
+    private function countByBenefit(array $suggestions, string $benefit): int
+    {
+        $count = 0;
+        foreach ($suggestions as $tableSuggestions) {
+            foreach ($tableSuggestions as $suggestion) {
+                if (($suggestion['benefit'] ?? '') === $benefit) {
+                    $count++;
+                }
+            }
+        }
+        return $count;
+    }
+    
+    /**
+     * Analizza storage engine delle tabelle
+     */
+    public function analyzeStorageEngines(): array
+    {
+        global $wpdb;
+        
+        $query = $wpdb->prepare(
+            "SELECT TABLE_NAME, ENGINE, TABLE_ROWS, 
+                    ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) as size_mb
+             FROM information_schema.TABLES
+             WHERE table_schema = %s
+             ORDER BY ENGINE, size_mb DESC",
+            DB_NAME
+        );
+        
+        $tables = $wpdb->get_results($query, ARRAY_A);
+        $byEngine = [];
+        $myisamTables = [];
+        
+        foreach ($tables as $table) {
+            $engine = $table['ENGINE'] ?? 'UNKNOWN';
+            
+            if (!isset($byEngine[$engine])) {
+                $byEngine[$engine] = [
+                    'count' => 0,
+                    'total_size_mb' => 0,
+                    'tables' => [],
+                ];
+            }
+            
+            $byEngine[$engine]['count']++;
+            $byEngine[$engine]['total_size_mb'] += (float) $table['size_mb'];
+            $byEngine[$engine]['tables'][] = $table['TABLE_NAME'];
+            
+            // Identifica tabelle MyISAM da convertire
+            if ($engine === 'MyISAM') {
+                $myisamTables[] = [
+                    'table' => $table['TABLE_NAME'],
+                    'size_mb' => (float) $table['size_mb'],
+                    'rows' => (int) $table['TABLE_ROWS'],
+                ];
+            }
+        }
+        
+        return [
+            'by_engine' => $byEngine,
+            'myisam_tables' => $myisamTables,
+            'needs_conversion' => count($myisamTables) > 0,
+            'recommendation' => count($myisamTables) > 0 
+                ? 'InnoDB è raccomandato per WordPress. Converti le tabelle MyISAM per migliori performance e affidabilità.' 
+                : null,
+        ];
+    }
+    
+    /**
+     * Converte una tabella da MyISAM a InnoDB
+     */
+    public function convertToInnoDB(string $tableName, bool $backup = true): array
+    {
+        global $wpdb;
+        
+        // Verifica che la tabella esista
+        $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
+        if (!in_array($tableName, $tables, true)) {
+            return [
+                'success' => false,
+                'message' => 'Tabella non trovata',
+            ];
+        }
+        
+        // Verifica engine attuale
+        $status = $wpdb->get_row($wpdb->prepare(
+            "SELECT ENGINE FROM information_schema.TABLES 
+             WHERE table_schema = %s AND TABLE_NAME = %s",
+            DB_NAME,
+            $tableName
+        ), ARRAY_A);
+        
+        $currentEngine = $status['ENGINE'] ?? '';
+        
+        if ($currentEngine === 'InnoDB') {
+            return [
+                'success' => false,
+                'message' => 'La tabella è già InnoDB',
+            ];
+        }
+        
+        // Backup se richiesto
+        if ($backup) {
+            $backupResult = $this->backupTable($tableName);
+            if (!$backupResult['success']) {
+                return $backupResult;
+            }
+        }
+        
+        // Converti
+        $result = $wpdb->query("ALTER TABLE `{$tableName}` ENGINE=InnoDB");
+        
+        if ($result === false) {
+            return [
+                'success' => false,
+                'message' => 'Errore durante la conversione',
+                'error' => $wpdb->last_error,
+            ];
+        }
+        
+        $this->addToHistory('convert_engine', $tableName, [
+            'from' => $currentEngine,
+            'to' => 'InnoDB',
+        ]);
+        
+        Logger::info('Table converted to InnoDB', ['table' => $tableName]);
+        
+        return [
+            'success' => true,
+            'message' => 'Tabella convertita a InnoDB con successo',
+            'table' => $tableName,
+            'from_engine' => $currentEngine,
+        ];
+    }
+    
+    /**
+     * Analizza charset e collation delle tabelle
+     */
+    public function analyzeCharset(): array
+    {
+        global $wpdb;
+        
+        $query = $wpdb->prepare(
+            "SELECT TABLE_NAME, TABLE_COLLATION,
+                    CCSA.CHARACTER_SET_NAME
+             FROM information_schema.TABLES T
+             LEFT JOIN information_schema.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+                ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+             WHERE table_schema = %s",
+            DB_NAME
+        );
+        
+        $tables = $wpdb->get_results($query, ARRAY_A);
+        $outdated = [];
+        $byCharset = [];
+        
+        foreach ($tables as $table) {
+            $charset = $table['CHARACTER_SET_NAME'] ?? '';
+            $collation = $table['TABLE_COLLATION'] ?? '';
+            
+            if (!isset($byCharset[$charset])) {
+                $byCharset[$charset] = 0;
+            }
+            $byCharset[$charset]++;
+            
+            // Charset obsoleti o non raccomandati
+            if (in_array($charset, ['latin1', 'utf8'], true)) {
+                $outdated[] = [
+                    'table' => $table['TABLE_NAME'],
+                    'charset' => $charset,
+                    'collation' => $collation,
+                    'recommended' => 'utf8mb4',
+                ];
+            }
+        }
+        
+        return [
+            'by_charset' => $byCharset,
+            'outdated_tables' => $outdated,
+            'needs_conversion' => count($outdated) > 0,
+            'recommendation' => count($outdated) > 0 
+                ? 'utf8mb4 è il charset raccomandato per WordPress. Supporta emoji e caratteri speciali.' 
+                : null,
+        ];
+    }
+    
+    /**
+     * Converti charset di una tabella a utf8mb4
+     */
+    public function convertCharset(string $tableName, bool $backup = true): array
+    {
+        global $wpdb;
+        
+        if ($backup) {
+            $backupResult = $this->backupTable($tableName);
+            if (!$backupResult['success']) {
+                return $backupResult;
+            }
+        }
+        
+        // Converti tabella
+        $result = $wpdb->query(
+            "ALTER TABLE `{$tableName}` 
+             CONVERT TO CHARACTER SET utf8mb4 
+             COLLATE utf8mb4_unicode_ci"
+        );
+        
+        if ($result === false) {
+            return [
+                'success' => false,
+                'message' => 'Errore durante la conversione charset',
+                'error' => $wpdb->last_error,
+            ];
+        }
+        
+        $this->addToHistory('convert_charset', $tableName, [
+            'to' => 'utf8mb4',
+        ]);
+        
+        Logger::info('Table charset converted', ['table' => $tableName]);
+        
+        return [
+            'success' => true,
+            'message' => 'Charset convertito a utf8mb4 con successo',
+            'table' => $tableName,
+        ];
+    }
+    
+    /**
+     * Ottimizzazione autoload avanzata con dettagli
+     */
+    public function analyzeAutoloadDetailed(): array
+    {
+        global $wpdb;
+        
+        // Top 100 opzioni autoload per dimensione
+        $query = "
+            SELECT 
+                option_name, 
+                LENGTH(option_value) as size,
+                SUBSTRING(option_value, 1, 100) as preview
+            FROM {$wpdb->options}
+            WHERE autoload = 'yes'
+            ORDER BY size DESC
+            LIMIT 100
+        ";
+        
+        $options = $wpdb->get_results($query, ARRAY_A);
+        
+        $totalSize = 0;
+        $largeOptions = [];
+        $pluginOptions = [];
+        
+        foreach ($options as $option) {
+            $size = (int) $option['size'];
+            $totalSize += $size;
+            
+            // Opzioni > 50KB
+            if ($size > 51200) {
+                $largeOptions[] = [
+                    'name' => $option['option_name'],
+                    'size' => $size,
+                    'size_kb' => round($size / 1024, 2),
+                    'preview' => substr($option['preview'], 0, 50) . '...',
+                    'plugin' => $this->identifyPlugin($option['option_name']),
+                ];
+            }
+            
+            // Raggruppa per plugin
+            $plugin = $this->identifyPlugin($option['option_name']);
+            if (!isset($pluginOptions[$plugin])) {
+                $pluginOptions[$plugin] = [
+                    'count' => 0,
+                    'total_size' => 0,
+                ];
+            }
+            $pluginOptions[$plugin]['count']++;
+            $pluginOptions[$plugin]['total_size'] += $size;
+        }
+        
+        // Ordina plugin per dimensione
+        uasort($pluginOptions, function($a, $b) {
+            return $b['total_size'] - $a['total_size'];
+        });
+        
+        return [
+            'total_autoload_options' => count($options),
+            'total_size' => $totalSize,
+            'total_size_mb' => round($totalSize / 1024 / 1024, 2),
+            'large_options' => $largeOptions,
+            'by_plugin' => $pluginOptions,
+            'recommendation' => $totalSize > 1048576 
+                ? 'Autoload totale > 1MB può rallentare il sito. Considera di disabilitare autoload per opzioni grandi.' 
+                : null,
+        ];
+    }
+    
+    /**
+     * Identifica il plugin da un nome opzione
+     */
+    private function identifyPlugin(string $optionName): string
+    {
+        // Pattern comuni
+        $patterns = [
+            '/^woocommerce_/' => 'WooCommerce',
+            '/^wc_/' => 'WooCommerce',
+            '/^yoast/' => 'Yoast SEO',
+            '/^_yoast_/' => 'Yoast SEO',
+            '/^elementor_/' => 'Elementor',
+            '/^acf_/' => 'Advanced Custom Fields',
+            '/^_acf_/' => 'Advanced Custom Fields',
+            '/^wp_/' => 'WordPress Core',
+            '/^_transient_/' => 'WordPress Transients',
+        ];
+        
+        foreach ($patterns as $pattern => $plugin) {
+            if (preg_match($pattern, $optionName)) {
+                return $plugin;
+            }
+        }
+        
+        return 'Other';
+    }
+    
+    /**
+     * Disabilita autoload per un'opzione
+     */
+    public function disableAutoload(string $optionName): array
+    {
+        global $wpdb;
+        
+        $result = $wpdb->update(
+            $wpdb->options,
+            ['autoload' => 'no'],
+            ['option_name' => $optionName],
+            ['%s'],
+            ['%s']
+        );
+        
+        if ($result === false) {
+            return [
+                'success' => false,
+                'message' => 'Errore durante la modifica',
+                'error' => $wpdb->last_error,
+            ];
+        }
+        
+        $this->addToHistory('disable_autoload', $optionName, []);
+        
+        Logger::info('Autoload disabled', ['option' => $optionName]);
+        
+        return [
+            'success' => true,
+            'message' => 'Autoload disabilitato con successo',
+            'option' => $optionName,
+        ];
+    }
+    
+    /**
+     * Backup di una tabella (struttura + primi 1000 record)
+     */
+    private function backupTable(string $tableName): array
+    {
+        global $wpdb;
+        
+        try {
+            // Crea struttura
+            $createTable = $wpdb->get_var("SHOW CREATE TABLE `{$tableName}`", 1);
+            
+            if (!$createTable) {
+                return [
+                    'success' => false,
+                    'message' => 'Impossibile creare backup della tabella',
+                ];
+            }
+            
+            // Salva backup info
+            $backups = get_option(self::BACKUP_KEY, []);
+            $backups[$tableName] = [
+                'timestamp' => time(),
+                'create_table' => $createTable,
+            ];
+            
+            update_option(self::BACKUP_KEY, $backups);
+            
+            Logger::info('Table backup created', ['table' => $tableName]);
+            
+            return [
+                'success' => true,
+                'message' => 'Backup creato con successo',
+            ];
+            
+        } catch (\Exception $e) {
+            Logger::error('Backup failed', ['table' => $tableName, 'error' => $e->getMessage()]);
+            return [
+                'success' => false,
+                'message' => 'Errore durante il backup: ' . $e->getMessage(),
+            ];
+        }
+    }
+    
+    /**
+     * Aggiungi operazione allo storico
+     */
+    private function addToHistory(string $operation, string $table, array $details): void
+    {
+        $history = get_option(self::HISTORY_KEY, []);
+        
+        // Mantieni solo ultime 100 operazioni
+        if (count($history) >= 100) {
+            array_shift($history);
+        }
+        
+        $history[] = [
+            'timestamp' => time(),
+            'operation' => $operation,
+            'table' => $table,
+            'details' => $details,
+        ];
+        
+        update_option(self::HISTORY_KEY, $history);
+    }
+    
+    /**
+     * Ottieni storico operazioni
+     */
+    public function getHistory(int $limit = 50): array
+    {
+        $history = get_option(self::HISTORY_KEY, []);
+        return array_slice(array_reverse($history), 0, $limit);
+    }
+    
+    /**
+     * Analisi completa con tutte le metriche
+     */
+    public function getCompleteAnalysis(): array
+    {
+        return [
+            'basic' => $this->analyze(),
+            'fragmentation' => $this->analyzeFragmentation(),
+            'missing_indexes' => $this->analyzeMissingIndexes(),
+            'storage_engines' => $this->analyzeStorageEngines(),
+            'charset' => $this->analyzeCharset(),
+            'autoload' => $this->analyzeAutoloadDetailed(),
+            'history' => $this->getHistory(10),
+            'timestamp' => time(),
+        ];
     }
 }
 

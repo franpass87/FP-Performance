@@ -5,6 +5,8 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
 use FP\PerfSuite\Services\DB\DatabaseOptimizer;
+use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
+use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 
 use function __;
@@ -60,6 +62,8 @@ class Database extends AbstractPage
         $queryMonitor = $this->container->get(DatabaseQueryMonitor::class);
         $optimizer = $this->container->get(DatabaseOptimizer::class);
         $objectCache = $this->container->get(ObjectCacheManager::class);
+        $pluginOptimizer = new PluginSpecificOptimizer();
+        $reportService = new DatabaseReportService();
         
         $message = '';
         $results = [];
@@ -94,6 +98,42 @@ class Database extends AbstractPage
                 $result = $objectCache->uninstall();
                 $message = $result['message'];
             }
+            // Nuove azioni
+            if (isset($_POST['convert_to_innodb'])) {
+                $table = sanitize_text_field($_POST['table_name'] ?? '');
+                $result = $optimizer->convertToInnoDB($table);
+                $message = $result['message'];
+            }
+            if (isset($_POST['convert_charset'])) {
+                $table = sanitize_text_field($_POST['table_name'] ?? '');
+                $result = $optimizer->convertCharset($table);
+                $message = $result['message'];
+            }
+            if (isset($_POST['disable_autoload'])) {
+                $option = sanitize_text_field($_POST['option_name'] ?? '');
+                $result = $optimizer->disableAutoload($option);
+                $message = $result['message'];
+            }
+            if (isset($_POST['cleanup_woocommerce'])) {
+                $tasks = array_map('sanitize_text_field', (array) ($_POST['wc_tasks'] ?? []));
+                $results = $pluginOptimizer->cleanupWooCommerce($tasks);
+                $message = __('WooCommerce cleanup completato.', 'fp-performance-suite');
+            }
+            if (isset($_POST['cleanup_elementor'])) {
+                $tasks = array_map('sanitize_text_field', (array) ($_POST['elementor_tasks'] ?? []));
+                $results = $pluginOptimizer->cleanupElementor($tasks);
+                $message = __('Elementor cleanup completato.', 'fp-performance-suite');
+            }
+            if (isset($_POST['create_snapshot'])) {
+                $label = sanitize_text_field($_POST['snapshot_label'] ?? '');
+                $reportService->createSnapshot($label);
+                $message = __('Snapshot creato con successo.', 'fp-performance-suite');
+            }
+            if (isset($_POST['export_report'])) {
+                $format = sanitize_text_field($_POST['report_format'] ?? 'json');
+                $this->downloadReport($reportService, $format);
+                return ''; // Download triggered
+            }
         }
         $settings = $cleaner->settings();
         $status = $cleaner->status();
@@ -112,11 +152,21 @@ class Database extends AbstractPage
             'orphan_usermeta' => __('Orphan user meta', 'fp-performance-suite'),
             'optimize_tables' => __('Optimize tables', 'fp-performance-suite'),
         ];
-        // Ottieni dati per le nuove sezioni
+        // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor->getLastAnalysis();
         $dbAnalysis = $optimizer->analyze();
         $cacheInfo = $objectCache->getBackendInfo();
         $cacheStats = $objectCache->getStatistics();
+        
+        // Nuovi dati avanzati
+        $fragmentation = $optimizer->analyzeFragmentation();
+        $missingIndexes = $optimizer->analyzeMissingIndexes();
+        $storageEngines = $optimizer->analyzeStorageEngines();
+        $charset = $optimizer->analyzeCharset();
+        $autoloadDetailed = $optimizer->analyzeAutoloadDetailed();
+        $pluginOpportunities = $pluginOptimizer->analyzeInstalledPlugins();
+        $healthScore = $reportService->getHealthScore();
+        $trends = $reportService->analyzeTrends();
         
         ob_start();
         ?>
@@ -311,6 +361,328 @@ class Database extends AbstractPage
             </form>
         </section>
         
+        <!-- Health Score Dashboard -->
+        <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h2 style="color: white;"><?php esc_html_e('💯 Database Health Score', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid three" style="margin: 20px 0;">
+                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
+                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['score']); ?>%</div>
+                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Punteggio', 'fp-performance-suite'); ?></div>
+                </div>
+                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
+                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['grade']); ?></div>
+                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Voto', 'fp-performance-suite'); ?></div>
+                </div>
+                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
+                    <div class="stat-value" style="font-size: 24px; color: white;"><?php echo esc_html(ucfirst($healthScore['status'])); ?></div>
+                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Stato', 'fp-performance-suite'); ?></div>
+                </div>
+            </div>
+            
+            <?php if (!empty($healthScore['issues'])) : ?>
+                <div style="margin-top: 20px; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 4px;">
+                    <h3 style="color: white; margin-top: 0;"><?php esc_html_e('Problemi Rilevati:', 'fp-performance-suite'); ?></h3>
+                    <ul style="color: rgba(255,255,255,0.95); margin: 0;">
+                        <?php foreach ($healthScore['recommendations'] as $rec) : ?>
+                            <li><?php echo esc_html($rec); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </section>
+        
+        <!-- Advanced Analysis Tabs -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🔬 Analisi Avanzate', 'fp-performance-suite'); ?></h2>
+            
+            <!-- Fragmentation Analysis -->
+            <?php if (!empty($fragmentation['fragmented_tables'])) : ?>
+                <div style="margin: 20px 0;">
+                    <h3><?php esc_html_e('📊 Frammentazione Tabelle', 'fp-performance-suite'); ?></h3>
+                    <p><strong><?php esc_html_e('Spazio recuperabile:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($fragmentation['total_wasted_mb'], 2)); ?> MB</p>
+                    
+                    <table class="fp-ps-table">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Tabella', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Frammentazione %', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Spazio Sprecato', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Gravità', 'fp-performance-suite'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (array_slice($fragmentation['fragmented_tables'], 0, 10) as $table) : ?>
+                                <tr>
+                                    <td><code><?php echo esc_html($table['table']); ?></code></td>
+                                    <td><?php echo esc_html(number_format_i18n($table['fragmentation_pct'], 2)); ?>%</td>
+                                    <td><?php echo esc_html(number_format_i18n($table['wasted_mb'], 2)); ?> MB</td>
+                                    <td>
+                                        <?php if ($table['severity'] === 'high') : ?>
+                                            <span style="color: #dc3232;">🔴 <?php esc_html_e('Alta', 'fp-performance-suite'); ?></span>
+                                        <?php elseif ($table['severity'] === 'medium') : ?>
+                                            <span style="color: #f0b429;">🟡 <?php esc_html_e('Media', 'fp-performance-suite'); ?></span>
+                                        <?php else : ?>
+                                            <span style="color: #46b450;">🟢 <?php esc_html_e('Bassa', 'fp-performance-suite'); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Storage Engine Analysis -->
+            <?php if (!empty($storageEngines['myisam_tables'])) : ?>
+                <div style="margin: 20px 0;">
+                    <h3><?php esc_html_e('⚙️ Storage Engine', 'fp-performance-suite'); ?></h3>
+                    <div class="notice notice-warning" style="margin: 10px 0;">
+                        <p><strong><?php echo esc_html(count($storageEngines['myisam_tables'])); ?> tabelle MyISAM rilevate.</strong></p>
+                        <p><?php esc_html_e('InnoDB è raccomandato per WordPress. Offre migliori performance, affidabilità e supporto transazioni.', 'fp-performance-suite'); ?></p>
+                    </div>
+                    
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; font-weight: bold;"><?php esc_html_e('Mostra tabelle MyISAM', 'fp-performance-suite'); ?></summary>
+                        <ul style="margin-top: 10px;">
+                            <?php foreach ($storageEngines['myisam_tables'] as $table) : ?>
+                                <li>
+                                    <code><?php echo esc_html($table['table']); ?></code> 
+                                    (<?php echo esc_html(number_format_i18n($table['size_mb'], 2)); ?> MB)
+                                    <form method="post" style="display: inline;">
+                                        <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                                        <input type="hidden" name="convert_to_innodb" value="1" />
+                                        <input type="hidden" name="table_name" value="<?php echo esc_attr($table['table']); ?>" />
+                                        <button type="submit" class="button button-small"><?php esc_html_e('Converti a InnoDB', 'fp-performance-suite'); ?></button>
+                                    </form>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </details>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Charset Analysis -->
+            <?php if (!empty($charset['outdated_tables'])) : ?>
+                <div style="margin: 20px 0;">
+                    <h3><?php esc_html_e('🔤 Charset Obsoleti', 'fp-performance-suite'); ?></h3>
+                    <div class="notice notice-info" style="margin: 10px 0;">
+                        <p><strong><?php echo esc_html(count($charset['outdated_tables'])); ?> tabelle con charset obsoleto.</strong></p>
+                        <p><?php esc_html_e('utf8mb4 è il charset raccomandato. Supporta emoji e tutti i caratteri Unicode.', 'fp-performance-suite'); ?></p>
+                    </div>
+                    
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; font-weight: bold;"><?php esc_html_e('Mostra tabelle da convertire', 'fp-performance-suite'); ?></summary>
+                        <ul style="margin-top: 10px;">
+                            <?php foreach (array_slice($charset['outdated_tables'], 0, 20) as $table) : ?>
+                                <li>
+                                    <code><?php echo esc_html($table['table']); ?></code> 
+                                    (<?php echo esc_html($table['charset']); ?>)
+                                    <form method="post" style="display: inline;">
+                                        <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                                        <input type="hidden" name="convert_charset" value="1" />
+                                        <input type="hidden" name="table_name" value="<?php echo esc_attr($table['table']); ?>" />
+                                        <button type="submit" class="button button-small"><?php esc_html_e('Converti a utf8mb4', 'fp-performance-suite'); ?></button>
+                                    </form>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </details>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Autoload Optimization -->
+            <?php if (!empty($autoloadDetailed['large_options'])) : ?>
+                <div style="margin: 20px 0;">
+                    <h3><?php esc_html_e('⚡ Opzioni Autoload Grandi', 'fp-performance-suite'); ?></h3>
+                    <p><strong><?php esc_html_e('Dimensione totale autoload:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($autoloadDetailed['total_size_mb'], 2)); ?> MB</p>
+                    
+                    <?php if ($autoloadDetailed['total_size_mb'] > 1) : ?>
+                        <div class="notice notice-warning" style="margin: 10px 0;">
+                            <p><?php esc_html_e('Autoload > 1MB può rallentare significativamente ogni richiesta. Disabilita autoload per opzioni grandi.', 'fp-performance-suite'); ?></p>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <table class="fp-ps-table">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Opzione', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Plugin', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Dimensione', 'fp-performance-suite'); ?></th>
+                                <th><?php esc_html_e('Azione', 'fp-performance-suite'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (array_slice($autoloadDetailed['large_options'], 0, 10) as $option) : ?>
+                                <tr>
+                                    <td><code style="font-size: 11px;"><?php echo esc_html(substr($option['name'], 0, 40)); ?>...</code></td>
+                                    <td><?php echo esc_html($option['plugin']); ?></td>
+                                    <td><?php echo esc_html(number_format_i18n($option['size_kb'], 2)); ?> KB</td>
+                                    <td>
+                                        <form method="post" style="display: inline;">
+                                            <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                                            <input type="hidden" name="disable_autoload" value="1" />
+                                            <input type="hidden" name="option_name" value="<?php echo esc_attr($option['name']); ?>" />
+                                            <button type="submit" class="button button-small" data-risk="amber"><?php esc_html_e('Disabilita Autoload', 'fp-performance-suite'); ?></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Missing Indexes -->
+            <?php if (!empty($missingIndexes['suggestions'])) : ?>
+                <div style="margin: 20px 0;">
+                    <h3><?php esc_html_e('🔍 Indici Mancanti', 'fp-performance-suite'); ?></h3>
+                    <p><?php echo esc_html($missingIndexes['total_suggestions']); ?> <?php esc_html_e('suggerimenti trovati', 'fp-performance-suite'); ?> 
+                        (<?php echo esc_html($missingIndexes['high_priority']); ?> <?php esc_html_e('alta priorità', 'fp-performance-suite'); ?>)</p>
+                    
+                    <div class="notice notice-info" style="margin: 10px 0;">
+                        <p><?php esc_html_e('Gli indici mancanti possono rallentare significativamente le query. Considera di crearli manualmente.', 'fp-performance-suite'); ?></p>
+                    </div>
+                    
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; font-weight: bold;"><?php esc_html_e('Mostra suggerimenti', 'fp-performance-suite'); ?></summary>
+                        <?php foreach ($missingIndexes['suggestions'] as $table => $suggestions) : ?>
+                            <div style="margin: 10px 0; padding: 10px; background: #f0f0f1;">
+                                <strong><?php echo esc_html($table); ?></strong>
+                                <ul>
+                                    <?php foreach ($suggestions as $suggestion) : ?>
+                                        <li>
+                                            <?php if (isset($suggestion['column'])) : ?>
+                                                <code><?php echo esc_html($suggestion['column']); ?></code>
+                                            <?php else : ?>
+                                                <code><?php echo esc_html(implode(', ', $suggestion['columns'])); ?></code>
+                                            <?php endif; ?>
+                                            - <?php echo esc_html($suggestion['reason']); ?>
+                                            <span style="color: <?php echo $suggestion['benefit'] === 'high' ? '#dc3232' : '#f0b429'; ?>;">
+                                                (<?php echo esc_html(ucfirst($suggestion['benefit'])); ?> benefit)
+                                            </span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endforeach; ?>
+                    </details>
+                </div>
+            <?php endif; ?>
+        </section>
+        
+        <!-- Plugin-Specific Cleanup -->
+        <?php if (!empty($pluginOpportunities['opportunities'])) : ?>
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🔌 Ottimizzazioni Plugin-Specific', 'fp-performance-suite'); ?></h2>
+            <p class="description"><?php esc_html_e('Opportunità di pulizia specifiche per i plugin installati.', 'fp-performance-suite'); ?></p>
+            
+            <div style="margin: 20px 0; padding: 15px; background: #e7f7ef; border-left: 4px solid #46b450;">
+                <h3 style="margin-top: 0; color: #1d8f3d;"><?php esc_html_e('💾 Risparmio Potenziale', 'fp-performance-suite'); ?></h3>
+                <p style="font-size: 18px; margin: 0;"><strong><?php echo esc_html(number_format_i18n($pluginOpportunities['total_potential_savings_mb'], 2)); ?> MB</strong> possono essere recuperati</p>
+                <p style="margin: 5px 0 0 0;"><?php echo esc_html(number_format_i18n($pluginOpportunities['total_items_to_clean'])); ?> elementi da pulire</p>
+            </div>
+            
+            <?php foreach ($pluginOpportunities['opportunities'] as $pluginKey => $data) : ?>
+                <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                    <h3 style="margin-top: 0;"><?php echo esc_html($data['plugin_name']); ?></h3>
+                    
+                    <div class="fp-ps-grid two">
+                        <div>
+                            <p><strong><?php esc_html_e('Elementi:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($data['total_items'])); ?></p>
+                        </div>
+                        <div>
+                            <p><strong><?php esc_html_e('Risparmio:', 'fp-performance-suite'); ?></strong> ~<?php echo esc_html(number_format_i18n($data['potential_savings_mb'], 2)); ?> MB</p>
+                        </div>
+                    </div>
+                    
+                    <?php if (!empty($data['recommendations'])) : ?>
+                        <div style="margin-top: 10px;">
+                            <?php foreach ($data['recommendations'] as $rec) : ?>
+                                <div class="notice notice-<?php echo $rec['type']; ?>" style="margin: 5px 0; padding: 10px;">
+                                    <p style="margin: 0;"><?php echo esc_html($rec['message']); ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($pluginKey === 'woocommerce' && !empty($data['analysis'])) : ?>
+                        <form method="post" style="margin-top: 10px;">
+                            <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                            <input type="hidden" name="cleanup_woocommerce" value="1" />
+                            <label><input type="checkbox" name="wc_tasks[]" value="sessions" /> <?php esc_html_e('Pulisci sessioni scadute', 'fp-performance-suite'); ?> (<?php echo esc_html(number_format_i18n($data['analysis']['sessions'])); ?>)</label><br />
+                            <label><input type="checkbox" name="wc_tasks[]" value="old_orders" /> <?php esc_html_e('Elimina ordini vecchi (>30gg)', 'fp-performance-suite'); ?> (<?php echo esc_html(number_format_i18n($data['analysis']['pending_orders'] + $data['analysis']['failed_orders'])); ?>)</label><br />
+                            <label><input type="checkbox" name="wc_tasks[]" value="action_scheduler" /> <?php esc_html_e('Pulisci log Action Scheduler', 'fp-performance-suite'); ?></label><br />
+                            <button type="submit" class="button button-secondary" style="margin-top: 10px;"><?php esc_html_e('Esegui Pulizia WooCommerce', 'fp-performance-suite'); ?></button>
+                        </form>
+                    <?php endif; ?>
+                    
+                    <?php if ($pluginKey === 'elementor' && !empty($data['analysis'])) : ?>
+                        <form method="post" style="margin-top: 10px;">
+                            <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                            <input type="hidden" name="cleanup_elementor" value="1" />
+                            <label><input type="checkbox" name="elementor_tasks[]" value="revisions" /> <?php esc_html_e('Elimina revisioni Elementor', 'fp-performance-suite'); ?> (<?php echo esc_html(number_format_i18n($data['analysis']['revisions'])); ?>)</label><br />
+                            <label><input type="checkbox" name="elementor_tasks[]" value="css_cache" /> <?php esc_html_e('Rigenera cache CSS', 'fp-performance-suite'); ?></label><br />
+                            <button type="submit" class="button button-secondary" style="margin-top: 10px;"><?php esc_html_e('Esegui Pulizia Elementor', 'fp-performance-suite'); ?></button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </section>
+        <?php endif; ?>
+        
+        <!-- Reports & Trends -->
+        <?php if (isset($trends['size'])) : ?>
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('📊 Report & Trend', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid two" style="margin: 20px 0;">
+                <div>
+                    <h3><?php esc_html_e('Crescita Database', 'fp-performance-suite'); ?></h3>
+                    <p><strong><?php esc_html_e('Per giorno:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($trends['size']['growth_per_day_mb'], 2)); ?> MB/giorno</p>
+                    <p><strong><?php esc_html_e('Proiezione 30 giorni:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($trends['projection_30_days'], 2)); ?> MB</p>
+                    <p><strong><?php esc_html_e('Proiezione 90 giorni:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($trends['projection_90_days'], 2)); ?> MB</p>
+                </div>
+                <div>
+                    <h3><?php esc_html_e('Periodo Analizzato', 'fp-performance-suite'); ?></h3>
+                    <p><strong><?php esc_html_e('Dal:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($trends['period']['from']); ?></p>
+                    <p><strong><?php esc_html_e('Al:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($trends['period']['to']); ?></p>
+                    <p><strong><?php esc_html_e('Giorni:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($trends['period']['days'], 1)); ?></p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3><?php esc_html_e('Export Report', 'fp-performance-suite'); ?></h3>
+                <form method="post" style="display: inline-block; margin-right: 10px;">
+                    <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <input type="hidden" name="export_report" value="1" />
+                    <input type="hidden" name="report_format" value="json" />
+                    <button type="submit" class="button button-secondary"><?php esc_html_e('📥 Export JSON', 'fp-performance-suite'); ?></button>
+                </form>
+                <form method="post" style="display: inline-block;">
+                    <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <input type="hidden" name="export_report" value="1" />
+                    <input type="hidden" name="report_format" value="csv" />
+                    <button type="submit" class="button button-secondary"><?php esc_html_e('📥 Export CSV', 'fp-performance-suite'); ?></button>
+                </form>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3><?php esc_html_e('Crea Snapshot', 'fp-performance-suite'); ?></h3>
+                <form method="post" style="display: flex; gap: 10px; align-items: flex-end;">
+                    <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <div>
+                        <label for="snapshot_label"><?php esc_html_e('Etichetta (opzionale):', 'fp-performance-suite'); ?></label>
+                        <input type="text" name="snapshot_label" id="snapshot_label" class="regular-text" placeholder="<?php esc_attr_e('es. Prima dell\'ottimizzazione', 'fp-performance-suite'); ?>" />
+                    </div>
+                    <input type="hidden" name="create_snapshot" value="1" />
+                    <button type="submit" class="button button-secondary"><?php esc_html_e('📸 Crea Snapshot', 'fp-performance-suite'); ?></button>
+                </form>
+                <p class="description"><?php esc_html_e('Gli snapshot ti permettono di monitorare l\'evoluzione del database nel tempo.', 'fp-performance-suite'); ?></p>
+            </div>
+        </section>
+        <?php endif; ?>
+        
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
@@ -422,5 +794,29 @@ class Database extends AbstractPage
         </section>
         <?php
         return (string) ob_get_clean();
+    }
+    
+    /**
+     * Download report file
+     */
+    private function downloadReport(DatabaseReportService $reportService, string $format): void
+    {
+        $report = $reportService->generateCompleteReport();
+        
+        if ($format === 'json') {
+            $content = $reportService->exportJSON($report);
+            $filename = 'fp-performance-db-report-' . date('Y-m-d') . '.json';
+            $contentType = 'application/json';
+        } else {
+            $content = $reportService->exportCSV($report);
+            $filename = 'fp-performance-db-report-' . date('Y-m-d') . '.csv';
+            $contentType = 'text/csv';
+        }
+        
+        header('Content-Type: ' . $contentType);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($content));
+        echo $content;
+        exit;
     }
 }
