@@ -55,6 +55,18 @@ class Settings extends AbstractPage
 
     protected function content(): string
     {
+        // Gestisci il reset dei permessi se richiesto
+        if (isset($_GET['fp_reset_permissions']) && $_GET['fp_reset_permissions'] === '1') {
+            if (isset($_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'fp_reset_permissions')) {
+                update_option('fp_ps_settings', ['allowed_role' => 'administrator']);
+                $message = '<div class="notice notice-success"><p><strong>' . 
+                          esc_html__('✅ Permessi reimpostati con successo!', 'fp-performance-suite') . 
+                          '</strong> ' . 
+                          esc_html__('Le impostazioni dei permessi sono state ripristinate ai valori predefiniti.', 'fp-performance-suite') . 
+                          '</p></div>';
+            }
+        }
+        
         $options = get_option('fp_ps_settings', [
             'allowed_role' => 'administrator',
             'safety_mode' => true,
@@ -68,7 +80,10 @@ class Settings extends AbstractPage
             'mobile_separate' => false,
         ]);
         $criticalCss = get_option('fp_ps_critical_css', '');
-        $message = '';
+        
+        if (!isset($message)) {
+            $message = '';
+        }
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_settings_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_settings_nonce']), 'fp-ps-settings')) {
             $options['allowed_role'] = sanitize_text_field($_POST['allowed_role'] ?? 'administrator');

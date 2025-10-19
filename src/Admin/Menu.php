@@ -220,7 +220,47 @@ class Menu
     public function register(): void
     {
         $pages = $this->pages();
+        
+        // Ottieni la capability richiesta con fallback sicuro
         $capability = Capabilities::required();
+        
+        // Validazione: assicurati che la capability sia valida
+        if (empty($capability) || !is_string($capability)) {
+            $capability = 'manage_options';
+            error_log('[FP Performance Suite] ATTENZIONE: Capability non valida, uso manage_options come fallback');
+        }
+        
+        // Sistema di auto-riparazione: se l'utente corrente è un admin ma non ha accesso,
+        // ripristina automaticamente le impostazioni predefinite
+        if (current_user_can('manage_options') && !current_user_can($capability)) {
+            error_log('[FP Performance Suite] EMERGENZA: Admin bloccato! Ripristino impostazioni predefinite...');
+            
+            // Ripristina le impostazioni
+            $current_settings = get_option('fp_ps_settings', []);
+            $current_settings['allowed_role'] = 'administrator';
+            update_option('fp_ps_settings', $current_settings);
+            
+            // Aggiorna la capability
+            $capability = 'manage_options';
+            
+            // Notifica l'admin
+            add_action('admin_notices', function() {
+                ?>
+                <div class="notice notice-warning is-dismissible">
+                    <p>
+                        <strong><?php esc_html_e('FP Performance Suite - Auto-riparazione eseguita', 'fp-performance-suite'); ?></strong><br>
+                        <?php esc_html_e('È stato rilevato un problema con i permessi di accesso. Le impostazioni sono state automaticamente ripristinate ai valori predefiniti.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <?php
+            });
+        }
+        
+        // Log per debug
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[FP Performance Suite] Registrazione menu con capability: ' . $capability);
+            error_log('[FP Performance Suite] Utente corrente può accedere: ' . (current_user_can($capability) ? 'SI' : 'NO'));
+        }
 
         add_menu_page(
             __('FP Performance Suite', 'fp-performance-suite'),
