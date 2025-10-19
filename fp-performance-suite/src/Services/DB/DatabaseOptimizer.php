@@ -289,9 +289,10 @@ class DatabaseOptimizer
             ];
         }
         
-        $result = $wpdb->query("OPTIMIZE TABLE `{$tableName}`");
+        // Usa get_results() invece di query() perché OPTIMIZE TABLE restituisce un result set
+        $result = $wpdb->get_results("OPTIMIZE TABLE `{$tableName}`", ARRAY_A);
         
-        if ($result === false) {
+        if ($result === false || !empty($wpdb->last_error)) {
             return [
                 'success' => false,
                 'message' => 'Errore durante l\'ottimizzazione',
@@ -299,12 +300,30 @@ class DatabaseOptimizer
             ];
         }
         
-        Logger::info('Table optimized', ['table' => $tableName]);
+        // Verifica il risultato dell'ottimizzazione
+        $success = true;
+        foreach ($result as $row) {
+            if (isset($row['Msg_type']) && $row['Msg_type'] === 'error') {
+                $success = false;
+                break;
+            }
+        }
+        
+        if (!$success) {
+            return [
+                'success' => false,
+                'message' => 'Errore durante l\'ottimizzazione della tabella',
+                'error' => isset($row['Msg_text']) ? $row['Msg_text'] : 'Unknown error',
+            ];
+        }
+        
+        Logger::info('Table optimized', ['table' => $tableName, 'result' => $result]);
         
         return [
             'success' => true,
             'message' => 'Tabella ottimizzata con successo',
             'table' => $tableName,
+            'details' => $result,
         ];
     }
     
