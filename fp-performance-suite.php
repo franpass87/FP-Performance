@@ -8,6 +8,10 @@
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
  * Domain Path: /languages
+ * GitHub Plugin URI: https://github.com/franpass87/FP-Performance
+ * Primary Branch: main
+ * Requires at least: 5.8
+ * Requires PHP: 7.4
  */
 
 defined('ABSPATH') || exit;
