@@ -30,6 +30,10 @@ use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer;
+use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
+use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
+use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
 use FP\PerfSuite\Services\Media\WebPConverter;
@@ -79,6 +83,10 @@ class Plugin
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // Database Optimization Services
+            $container->get(DatabaseOptimizer::class)->register();
+            $container->get(DatabaseQueryMonitor::class)->register();
             
             // Security services
             $container->get(HtaccessSecurity::class)->register();
@@ -325,6 +333,12 @@ class Plugin
             );
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
+        
+        // Database Optimization Services (v1.4.0)
+        $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
+        $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());
+        $container->set(PluginSpecificOptimizer::class, static fn() => new PluginSpecificOptimizer());
+        $container->set(DatabaseReportService::class, static fn() => new DatabaseReportService());
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {
