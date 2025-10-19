@@ -88,18 +88,158 @@ class SmartExclusionDetector
             'auto_detected' => [],
             'plugin_based' => [],
             'user_behavior' => [],
+            'already_protected' => [],
         ];
 
+        // Ottieni pattern già protetti di default nel PageCache
+        $alreadyProtected = $this->getBuiltInProtections();
+
         // 1. Rileva URL sensibili standard
-        $exclusions['auto_detected'] = $this->detectStandardSensitiveUrls();
+        $autoDetected = $this->detectStandardSensitiveUrls();
+        $exclusions['auto_detected'] = $this->filterOutProtected($autoDetected, $alreadyProtected);
 
         // 2. Rileva basandosi sui plugin attivi
-        $exclusions['plugin_based'] = $this->detectPluginBasedUrls();
+        $pluginBased = $this->detectPluginBasedUrls();
+        $exclusions['plugin_based'] = $this->filterOutProtected($pluginBased, $alreadyProtected);
 
         // 3. Rileva da comportamento utente (errori, slow pages)
         $exclusions['user_behavior'] = $this->detectFromBehavior();
 
+        // 4. Mostra cosa è già protetto (informativo)
+        $exclusions['already_protected'] = $alreadyProtected;
+
         return $exclusions;
+    }
+
+    /**
+     * Ottieni tutte le protezioni built-in nel PageCache
+     * 
+     * @return array Lista di pattern già protetti di default
+     */
+    private function getBuiltInProtections(): array
+    {
+        return [
+            // WordPress Core - già protetti nel PageCache
+            'core' => [
+                '/xmlrpc.php',
+                '/wp-cron.php',
+                '/wp-login.php',
+                '/wp-signup.php',
+                '/wp-trackback.php',
+                '/wp-comments-post.php',
+                '/wp-sitemap',
+                'sitemap.xml',
+                'sitemap_index.xml',
+                '/feed/',
+                '/rss/',
+                '/atom/',
+                'robots.txt',
+                '/wp-json/',
+                '/wp-admin/',
+            ],
+
+            // WooCommerce - già protetto
+            'woocommerce' => [
+                '/cart',
+                '/checkout',
+                '/my-account',
+                '/add-to-cart',
+                '/remove-from-cart',
+                '/wc-ajax',
+                '/wc-api',
+            ],
+
+            // Easy Digital Downloads - già protetto
+            'edd' => [
+                '/edd-ajax',
+                '/edd-api',
+                '/purchase',
+                '/downloads',
+            ],
+
+            // MemberPress - già protetto
+            'memberpress' => [
+                '/membership',
+                '/register',
+                '/mepr',
+            ],
+
+            // LearnDash - già protetto
+            'learndash' => [
+                '/courses/',
+                '/lessons/',
+                '/topic/',
+                '/quiz/',
+            ],
+
+            // bbPress - già protetto
+            'bbpress' => [
+                '/forums/',
+                '/forum/',
+                '/topic/',
+                '/reply/',
+            ],
+
+            // BuddyPress - già protetto
+            'buddypress' => [
+                '/members/',
+                '/groups/',
+                '/activity/',
+                '/profile/',
+            ],
+
+            // Conditional tags già protetti
+            'conditional_tags' => [
+                'is_cart()',
+                'is_checkout()',
+                'is_account_page()',
+                'is_preview()',
+                'is_customize_preview()',
+                'is_feed()',
+                'is_search()',
+                'is_404()',
+            ],
+        ];
+    }
+
+    /**
+     * Filtra gli URL che sono già protetti di default
+     * 
+     * @param array $detected URL rilevati
+     * @param array $protected URL già protetti
+     * @return array URL filtrati (solo quelli non ancora protetti)
+     */
+    private function filterOutProtected(array $detected, array $protected): array
+    {
+        $filtered = [];
+        $allProtectedPatterns = [];
+
+        // Appiattisci l'array delle protezioni
+        foreach ($protected as $category => $patterns) {
+            if ($category !== 'conditional_tags') {
+                $allProtectedPatterns = array_merge($allProtectedPatterns, $patterns);
+            }
+        }
+
+        foreach ($detected as $item) {
+            $url = $item['url'] ?? $item['pattern'] ?? '';
+            $isProtected = false;
+
+            // Controlla se questo URL è già coperto dalle protezioni built-in
+            foreach ($allProtectedPatterns as $protectedPattern) {
+                if (strpos($url, $protectedPattern) !== false || strpos($protectedPattern, $url) !== false) {
+                    $isProtected = true;
+                    break;
+                }
+            }
+
+            // Aggiungi solo se NON è già protetto
+            if (!$isProtected) {
+                $filtered[] = $item;
+            }
+        }
+
+        return $filtered;
     }
 
     /**

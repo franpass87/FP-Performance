@@ -23,6 +23,11 @@ class LazyLoadManager
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
+            // CRITICAL: Skip lazy loading on checkout (payment logos must be visible!)
+            if ($this->shouldSkipPage()) {
+                return;
+            }
+
             // Image lazy loading
             if ($this->getSetting('images', true)) {
                 add_filter('wp_get_attachment_image_attributes', [$this, 'addLazyLoadToImage'], 10, 3);
@@ -42,6 +47,44 @@ class LazyLoadManager
 
             Logger::debug('LazyLoadManager registered');
         }
+    }
+
+    /**
+     * Check if lazy loading should be skipped on this page
+     *
+     * @return bool
+     */
+    private function shouldSkipPage(): bool
+    {
+        // Skip on WooCommerce checkout (payment logos critical!)
+        if (function_exists('is_checkout') && is_checkout()) {
+            return true;
+        }
+
+        // Skip on cart (coupon images, etc)
+        if (function_exists('is_cart') && is_cart()) {
+            return true;
+        }
+
+        // Check URL patterns for payment/forms
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+            
+            $criticalPatterns = [
+                '/checkout',
+                '/payment',
+                '/stripe',
+                '/paypal',
+            ];
+
+            foreach ($criticalPatterns as $pattern) {
+                if (strpos($requestUri, $pattern) !== false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

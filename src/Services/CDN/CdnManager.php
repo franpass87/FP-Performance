@@ -106,6 +106,25 @@ class CdnManager
             return $url;
         }
 
+        // CRITICAL: Skip payment gateway and external service URLs
+        $criticalDomains = [
+            'stripe.com', 'stripe.js', 'js.stripe.com',
+            'paypal.com', 'paypalobjects.com',
+            'google.com/recaptcha', 'gstatic.com/recaptcha',
+            'square.com', 'squareup.com',
+            'authorize.net', 'authorizenet.com',
+            'braintreegateway.com', 'braintree-api.com',
+            'mollie.com', 'klarna.com',
+            'facebook.net', 'connect.facebook.net',
+            'googleapis.com', 'google-analytics.com',
+        ];
+
+        foreach ($criticalDomains as $domain) {
+            if (strpos($url, $domain) !== false) {
+                return $url; // Don't CDN external services!
+            }
+        }
+
         // Check excluded extensions
         $extension = strtolower(pathinfo($url, PATHINFO_EXTENSION));
         if (in_array($extension, $settings['excluded_extensions'], true)) {

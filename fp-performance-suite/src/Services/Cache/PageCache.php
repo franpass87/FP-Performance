@@ -607,6 +607,210 @@ class PageCache implements CacheInterface
             return false;
         }
 
+        // Exclude REST API requests
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return false;
+        }
+
+        // Exclude AJAX requests
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return false;
+        }
+
+        // Exclude WP-Cron requests
+        if (defined('DOING_CRON') && DOING_CRON) {
+            return false;
+        }
+
+        // Exclude special WordPress pages
+        if (function_exists('is_preview') && is_preview()) {
+            return false;
+        }
+
+        if (function_exists('is_customize_preview') && is_customize_preview()) {
+            return false;
+        }
+
+        if (function_exists('is_feed') && is_feed()) {
+            return false;
+        }
+
+        if (function_exists('is_search') && is_search()) {
+            return false;
+        }
+
+        if (function_exists('is_404') && is_404()) {
+            return false;
+        }
+
+        // Check URL patterns
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+            
+            // Exclude REST API endpoints
+            $restPrefix = rest_get_url_prefix();
+            if (strpos($requestUri, '/' . $restPrefix . '/') !== false || strpos($requestUri, '/' . $restPrefix) !== false) {
+                return false;
+            }
+
+            // Exclude critical WordPress files
+            $excludeFiles = [
+                '/xmlrpc.php',
+                '/wp-cron.php',
+                '/wp-login.php',
+                '/wp-signup.php',
+                '/wp-trackback.php',
+                '/wp-comments-post.php',
+                '/wp-sitemap',      // WordPress 5.5+ core sitemaps
+                'sitemap.xml',      // SEO plugin sitemaps
+                'sitemap_index.xml',
+                '/feed/',
+                '/rss/',
+                '/atom/',
+                'robots.txt',
+            ];
+
+            // WooCommerce critical pages
+            $woocommercePages = [
+                '/cart',
+                '/checkout',
+                '/my-account',
+                '/add-to-cart',
+                '/remove-from-cart',
+                '/wc-ajax',
+                '/wc-api',
+                '?add-to-cart=',
+                '?remove_item=',
+            ];
+
+            // Easy Digital Downloads
+            $eddPages = [
+                '/edd-ajax',
+                '/edd-api',
+                '/purchase',
+                '/downloads',
+                '?edd_action=',
+            ];
+
+            // MemberPress
+            $memberpressPages = [
+                '/membership',
+                '/register',
+                '/mepr',
+                '/account',
+            ];
+
+            // LearnDash
+            $learnDashPages = [
+                '/courses/',
+                '/lessons/',
+                '/topic/',
+                '/quiz/',
+            ];
+
+            // bbPress
+            $bbPressPages = [
+                '/forums/',
+                '/forum/',
+                '/topic/',
+                '/reply/',
+            ];
+
+            // BuddyPress
+            $buddyPressPages = [
+                '/members/',
+                '/groups/',
+                '/activity/',
+                '/profile/',
+            ];
+
+            // WP Rocket & LMS compatibility
+            $otherPages = [
+                '/lms/',
+                '/course/',
+                '/lesson/',
+            ];
+
+            // CRITICAL: Password reset, email verification, webhooks
+            $securityPages = [
+                '?action=lostpassword',
+                '?action=rp',
+                '?action=resetpass',
+                '?verify=',
+                '?confirmation=',
+                '?activation=',
+                '?token=',
+                '/verify-email',
+                '/two-factor',
+                '/2fa',
+            ];
+
+            // Payment webhooks
+            $webhookPages = [
+                '/wc-api/',
+                '/paypal-ipn',
+                '/stripe-webhook',
+                '/payment-callback',
+                '/payment-return',
+                '/payment-webhook',
+            ];
+
+            // WooCommerce Advanced
+            $wooAdvanced = [
+                '/my-account/subscriptions',
+                '/my-account/bookings',
+                '/my-account/memberships',
+                '/wishlist',
+                '/compare',
+            ];
+
+            // Multivendor
+            $multivendor = [
+                '/dashboard',
+                '/vendor-dashboard',
+                '/wcfm',
+            ];
+
+            // Merge all plugin patterns
+            $excludePluginPages = array_merge(
+                $excludeFiles,
+                $woocommercePages,
+                $eddPages,
+                $memberpressPages,
+                $learnDashPages,
+                $bbPressPages,
+                $buddyPressPages,
+                $otherPages,
+                $securityPages,
+                $webhookPages,
+                $wooAdvanced,
+                $multivendor
+            );
+
+            foreach ($excludePluginPages as $pattern) {
+                if (strpos($requestUri, $pattern) !== false) {
+                    return false;
+                }
+            }
+        }
+
+        // WooCommerce conditional tags (more reliable)
+        if (function_exists('is_cart') && is_cart()) {
+            return false;
+        }
+
+        if (function_exists('is_checkout') && is_checkout()) {
+            return false;
+        }
+
+        if (function_exists('is_account_page') && is_account_page()) {
+            return false;
+        }
+
+        if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url()) {
+            return false;
+        }
+
         if ($this->hasPrivateCookies()) {
             return false;
         }
@@ -616,8 +820,70 @@ class PageCache implements CacheInterface
             return false;
         }
 
+        // Smart query parameter check (whitelist tracking params)
         if (!empty($_GET)) {
-            return false;
+            // Tracking params are safe to cache
+            $safeTrackingParams = [
+                'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+                'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid',
+                '_ga', '_gl', 'ref', 'referrer',
+                'fb_action_ids', 'fb_action_types', 'fb_source',
+                'igshid', 'share',
+            ];
+
+            // Dynamic params must NOT be cached
+            $dynamicParams = [
+                // Search & Filter
+                's', 'search', 'query', 'filter', 'orderby', 'order',
+                'paged', 'page', 'offset', 'per_page',
+                'min_price', 'max_price', 'rating_filter',
+                // E-commerce actions
+                'add-to-cart', 'remove_item', 'added-to-cart',
+                'add-to-wishlist', 'remove-from-wishlist', 'wishlist_id',
+                'add_to_compare',
+                // Authentication & Security
+                'action', 'verify', 'token', 'confirmation', 'activation',
+                'reset', 'rp', 'key', 'otp', 'code',
+                // Payment
+                'paypal', 'stripe', 'payment_method', 'order_id', 'transaction_id',
+                // Subscriptions & Bookings
+                'cancel_subscription', 'resubscribe', 'subscription_id',
+                'booking_id', 'cancel_booking',
+                // Forms
+                'form_id', 'form_submit', 'wpcf7', 'gf_page', 'subscribe', 'newsletter',
+                // Multivendor
+                'dokan_pro', 'wcfm-', 'wc_vendors',
+                // LMS
+                'quiz_id', 'question', 'attempt', 'cert_id',
+                // Localization (user-specific)
+                'currency', 'lang', 'language',
+                // Redirects
+                'redirect_to', 'return_url',
+            ];
+
+            $hasDynamicParams = false;
+            foreach ($_GET as $key => $value) {
+                // Skip safe tracking params
+                if (in_array($key, $safeTrackingParams, true)) {
+                    continue;
+                }
+
+                // Check if it's a dynamic param
+                foreach ($dynamicParams as $dynamicParam) {
+                    if ($key === $dynamicParam || strpos($key, $dynamicParam) === 0) {
+                        $hasDynamicParams = true;
+                        break 2;
+                    }
+                }
+
+                // If unknown param (not safe, not in dynamic list), exclude it to be safe
+                $hasDynamicParams = true;
+                break;
+            }
+
+            if ($hasDynamicParams) {
+                return false;
+            }
         }
 
         return true;

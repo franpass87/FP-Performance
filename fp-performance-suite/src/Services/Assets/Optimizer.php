@@ -70,7 +70,7 @@ class Optimizer
     {
         $settings = $this->settings();
 
-        if (!is_admin()) {
+        if (!is_admin() && !$this->isRestOrAjaxRequest()) {
             // HTML Minification
             if (!empty($settings['minify_html'])) {
                 add_action('template_redirect', [$this, 'startBuffer'], 1);
@@ -492,5 +492,117 @@ class Optimizer
     public function getJsCombiner(): JsCombiner
     {
         return $this->jsCombiner;
+    }
+
+    /**
+     * Check if current request should skip optimization
+     *
+     * @return bool
+     */
+    private function isRestOrAjaxRequest(): bool
+    {
+        // Check for REST API request
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return true;
+        }
+
+        // Check for AJAX request
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return true;
+        }
+
+        // Check for WP-Cron request
+        if (defined('DOING_CRON') && DOING_CRON) {
+            return true;
+        }
+
+        // Check for Customizer preview
+        if (function_exists('is_customize_preview') && is_customize_preview()) {
+            return true;
+        }
+
+        // Check for post preview
+        if (function_exists('is_preview') && is_preview()) {
+            return true;
+        }
+
+        // Check URL patterns
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+            
+            // Check for WP-JSON in URL
+            $restPrefix = rest_get_url_prefix();
+            if (strpos($requestUri, '/' . $restPrefix . '/') !== false || strpos($requestUri, '/' . $restPrefix) !== false) {
+                return true;
+            }
+
+            // Exclude critical WordPress files and endpoints
+            $excludeFiles = [
+                '/xmlrpc.php',
+                '/wp-cron.php',
+                '/wp-login.php',
+                '/wp-signup.php',
+                '/wp-trackback.php',
+                '/wp-comments-post.php',
+                '/wp-sitemap',
+                'sitemap.xml',
+                '/feed/',
+                '/rss/',
+                '/atom/',
+            ];
+
+            // WooCommerce critical pages
+            $woocommercePages = [
+                '/cart',
+                '/checkout',
+                '/my-account',
+                '/wc-ajax',
+                '/wc-api',
+                '?add-to-cart=',
+            ];
+
+            // Easy Digital Downloads
+            $eddPages = [
+                '/edd-ajax',
+                '/edd-api',
+                '/purchase',
+                '?edd_action=',
+            ];
+
+            // MemberPress, LearnDash, bbPress, BuddyPress
+            $otherPluginPages = [
+                '/membership',
+                '/mepr',
+                '/courses/',
+                '/lessons/',
+                '/forums/',
+                '/members/',
+                '/groups/',
+                '/activity/',
+            ];
+
+            $excludePluginPages = array_merge($excludeFiles, $woocommercePages, $eddPages, $otherPluginPages);
+
+            foreach ($excludePluginPages as $file) {
+                if (strpos($requestUri, $file) !== false) {
+                    return true;
+                }
+            }
+        }
+
+        // WooCommerce conditional tags
+        if (function_exists('is_cart') && is_cart()) {
+            return true;
+        }
+
+        if (function_exists('is_checkout') && is_checkout()) {
+            return true;
+        }
+
+        if (function_exists('is_account_page') && is_account_page()) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -19,7 +19,44 @@ use function strpos;
 class ScriptOptimizer
 {
     /** @var array<int, string> */
-    private array $skipHandles = ['jquery', 'jquery-core', 'jquery-migrate'];
+    private array $skipHandles = [
+        // Core jQuery (must load first)
+        'jquery', 'jquery-core', 'jquery-migrate', 'jquery-ui-core',
+        
+        // WooCommerce (critical for checkout)
+        'wc-checkout', 'wc-cart', 'wc-cart-fragments', 'wc-add-to-cart',
+        'wc-add-to-cart-variation', 'woocommerce', 'wc-single-product',
+        'wc-country-select', 'wc-address-i18n', 'selectWoo',
+        
+        // Payment Gateways (must load synchronously!)
+        'stripe', 'stripe-js', 'stripe-v3', 'stripe-checkout',
+        'paypal-sdk', 'paypal-checkout-sdk', 'paypal-button',
+        'square', 'square-js', 'authorize-net', 'braintree',
+        'mollie-components', 'klarna-payments',
+        
+        // Forms (validation must work)
+        'contact-form-7', 'wpcf7-recaptcha',
+        'gform_gravityforms', 'gform_conditional_logic', 'gform_json',
+        'wpforms', 'wpforms-validation', 'ninja-forms',
+        'elementor-frontend', 'elementor-pro-frontend',
+        
+        // LMS (quiz, video, interactive)
+        'learndash', 'learndash-script', 'learndash-front',
+        'tutor', 'tutor-frontend', 'sensei-frontend',
+        'lifterlms', 'llms-student',
+        
+        // Multivendor (dashboard critical)
+        'dokan-scripts', 'dokan-vendor-dashboard',
+        'wcfm-scripts', 'wcfm-admin',
+        'wc-vendors', 'wcv-frontend',
+        
+        // reCAPTCHA (must load before form)
+        'google-recaptcha', 'recaptcha', 'google-invisible-recaptcha',
+        
+        // Other critical
+        'wc-password-strength-meter', 'password-strength-meter',
+        'wp-mediaelement', 'mediaelement',
+    ];
 
     /**
      * Filter script tag to add defer/async attributes
