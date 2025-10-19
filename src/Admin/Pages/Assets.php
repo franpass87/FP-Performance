@@ -140,102 +140,80 @@ class Assets extends AbstractPage
         }
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
-            // Handle auto-detect critical scripts
+            
+            // ============================================
+            // SEZIONE CENTRALIZZATA AUTOMAZIONI AI
+            // ============================================
+            
+            // Auto-detect critical scripts
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
-                set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300); // 5 minuti
-                // Redirect to avoid form resubmission
+                set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300);
                 wp_safe_redirect(add_query_arg('msg', 'scripts_detected', $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle auto-detect CSS to exclude
+            // Auto-detect CSS to exclude
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
-                set_transient('fp_ps_exclude_css_detected', $excludeCss, 300); // 5 minuti
-                // Redirect to avoid form resubmission
+                set_transient('fp_ps_exclude_css_detected', $excludeCss, 300);
                 wp_safe_redirect(add_query_arg('msg', 'css_detected', $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle auto-detect JS to exclude
+            // Auto-detect JS to exclude
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
-                set_transient('fp_ps_exclude_js_detected', $excludeJs, 300); // 5 minuti
-                // Redirect to avoid form resubmission
+                set_transient('fp_ps_exclude_js_detected', $excludeJs, 300);
                 wp_safe_redirect(add_query_arg('msg', 'js_detected', $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle auto-detect critical assets
+            // Auto-detect critical assets
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
-                set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300); // 5 minuti
-                // Redirect to avoid form resubmission
+                set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300);
                 wp_safe_redirect(add_query_arg('msg', 'assets_detected', $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle apply critical assets suggestions
-            if (isset($_POST['apply_critical_assets_suggestions'])) {
-                $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
-                
-                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
-                // delete_transient('fp_ps_critical_assets_detected');
-                
-                // Redirect with success message
-                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
-                exit;
-            }
-            
-            // Handle apply critical scripts suggestions
+            // Apply critical scripts suggestions
             if (isset($_POST['apply_critical_suggestions'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 $excludeScripts = [];
                 
-                // Add all always_exclude scripts
+                // Collect all scripts to exclude
                 if (!empty($criticalScripts['always_exclude'])) {
                     $excludeScripts = array_merge($excludeScripts, $criticalScripts['always_exclude']);
                 }
-                
-                // Add plugin critical scripts patterns
                 if (!empty($criticalScripts['plugin_critical'])) {
                     foreach ($criticalScripts['plugin_critical'] as $item) {
                         $excludeScripts[] = $item['pattern'];
                     }
                 }
-                
-                // Add high-dependency scripts handles
                 if (!empty($criticalScripts['dependency_critical'])) {
                     foreach ($criticalScripts['dependency_critical'] as $item) {
                         $excludeScripts[] = $item['handle'];
                     }
                 }
                 
-                // Get current exclude_js setting and merge with detected scripts
-                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                // Merge with current textarea value (preserves user's manual edits)
+                $currentExclude = isset($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $excludeScripts));
                 
-                // Update settings with merged exclusions
-                $optimizer->update([
-                    'exclude_js' => implode("\n", $mergedExclude),
-                ]);
+                $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
-                // delete_transient('fp_ps_critical_scripts_detected');
-                
-                // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle apply CSS exclusions suggestions
+            // Apply CSS exclusions suggestions
             if (isset($_POST['apply_css_exclusions'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
                 $cssToExclude = [];
                 
-                // Add all detected CSS
+                // Collect CSS with high confidence
                 foreach (['plugin_specific', 'critical_files', 'admin_styles'] as $category) {
                     if (!empty($excludeCss[$category])) {
                         foreach ($excludeCss[$category] as $item) {
@@ -246,30 +224,23 @@ class Assets extends AbstractPage
                     }
                 }
                 
-                // Get current exclude_css setting and merge
-                $currentExclude = !empty($settings['exclude_css']) ? $settings['exclude_css'] : '';
+                // Merge with current textarea value (preserves user's manual edits)
+                $currentExclude = isset($_POST['exclude_css']) ? wp_unslash($_POST['exclude_css']) : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $cssToExclude));
                 
-                // Update settings
-                $optimizer->update([
-                    'exclude_css' => implode("\n", $mergedExclude),
-                ]);
+                $optimizer->update(['exclude_css' => implode("\n", $mergedExclude)]);
                 
-                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
-                // delete_transient('fp_ps_exclude_css_detected');
-                
-                // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
-            // Handle apply JS exclusions suggestions
+            // Apply JS exclusions suggestions
             if (isset($_POST['apply_js_exclusions'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
                 $jsToExclude = [];
                 
-                // Add all detected JS
+                // Collect JS with high confidence
                 foreach (['core_dependencies', 'plugin_specific', 'inline_dependent'] as $category) {
                     if (!empty($excludeJs[$category])) {
                         foreach ($excludeJs[$category] as $item) {
@@ -280,33 +251,32 @@ class Assets extends AbstractPage
                     }
                 }
                 
-                // Get current exclude_js setting and merge
-                $currentExclude = !empty($settings['exclude_js']) ? $settings['exclude_js'] : '';
+                // Merge with current textarea value (preserves user's manual edits)
+                $currentExclude = isset($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
                 $currentExcludeArray = array_filter(array_map('trim', explode("\n", $currentExclude)));
                 $mergedExclude = array_unique(array_merge($currentExcludeArray, $jsToExclude));
                 
-                // Update settings
-                $optimizer->update([
-                    'exclude_js' => implode("\n", $mergedExclude),
-                ]);
+                $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                // NON cancellare i transient - mantieni la lista visibile dopo l'applicazione
-                // delete_transient('fp_ps_exclude_js_detected');
-                
-                // Redirect with success message
                 wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
                 exit;
             }
+            
+            // Apply critical assets suggestions
+            if (isset($_POST['apply_critical_assets_suggestions'])) {
+                $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+            
+            // ============================================
+            // SEZIONE SALVATAGGIO IMPOSTAZIONI STANDARD
+            // ============================================
+            
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
-            // Skip form processing if auto-apply buttons were clicked (they handle their own updates)
-            $isAutoApply = isset($_POST['apply_critical_suggestions']) 
-                || isset($_POST['apply_css_exclusions']) 
-                || isset($_POST['apply_js_exclusions'])
-                || isset($_POST['apply_critical_assets_suggestions']);
-            
-            if ($formType === 'delivery' && !$isAutoApply) {
+            if ($formType === 'delivery') {
                 // Salva solo le impostazioni di delivery
                 $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
                 $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
