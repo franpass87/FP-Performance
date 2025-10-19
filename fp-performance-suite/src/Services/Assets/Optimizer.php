@@ -152,6 +152,14 @@ class Optimizer
             'combine_css' => false,
             'combine_js' => false,
             'critical_css_handles' => [],
+            'exclude_css' => '',
+            'exclude_js' => '',
+            'minify_inline_css' => false,
+            'minify_inline_js' => false,
+            'remove_comments' => false,
+            'optimize_google_fonts' => false,
+            'preload_critical_assets' => false,
+            'critical_assets_list' => [],
         ];
         $options = get_option(self::OPTION, []);
 
@@ -167,6 +175,9 @@ class Optimizer
         }
         if (isset($options['critical_css_handles']) && is_string($options['critical_css_handles'])) {
             $options['critical_css_handles'] = $this->sanitizeHandleList($options['critical_css_handles']);
+        }
+        if (isset($options['critical_assets_list']) && is_string($options['critical_assets_list'])) {
+            $options['critical_assets_list'] = $this->sanitizeUrlList($options['critical_assets_list']);
         }
 
         return wp_parse_args($options, $defaults);
@@ -188,6 +199,14 @@ class Optimizer
             'combine_css' => $this->resolveFlag($settings, 'combine_css', $current['combine_css']),
             'combine_js' => $this->resolveFlag($settings, 'combine_js', $current['combine_js']),
             'critical_css_handles' => isset($settings['critical_css_handles']) ? $this->sanitizeHandleList($settings['critical_css_handles']) : $current['critical_css_handles'],
+            'exclude_css' => isset($settings['exclude_css']) ? $settings['exclude_css'] : $current['exclude_css'],
+            'exclude_js' => isset($settings['exclude_js']) ? $settings['exclude_js'] : $current['exclude_js'],
+            'minify_inline_css' => $this->resolveFlag($settings, 'minify_inline_css', $current['minify_inline_css']),
+            'minify_inline_js' => $this->resolveFlag($settings, 'minify_inline_js', $current['minify_inline_js']),
+            'remove_comments' => $this->resolveFlag($settings, 'remove_comments', $current['remove_comments']),
+            'optimize_google_fonts' => $this->resolveFlag($settings, 'optimize_google_fonts', $current['optimize_google_fonts']),
+            'preload_critical_assets' => $this->resolveFlag($settings, 'preload_critical_assets', $current['preload_critical_assets']),
+            'critical_assets_list' => isset($settings['critical_assets_list']) ? (is_array($settings['critical_assets_list']) ? $settings['critical_assets_list'] : $this->sanitizeUrlList($settings['critical_assets_list'])) : $current['critical_assets_list'],
         ];
         update_option(self::OPTION, $new);
     }

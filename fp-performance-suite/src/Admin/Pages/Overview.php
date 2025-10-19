@@ -37,7 +37,9 @@ class Overview extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-        add_action('admin_post_fp_ps_export_csv', [$this, 'exportCsv']);
+        
+        // Note: L'hook admin_post è ora registrato nella classe Menu
+        // per garantire che sia disponibile quando necessario
     }
 
     public function slug(): string
@@ -97,7 +99,7 @@ class Overview extends AbstractPage
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Technical SEO Score', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0;">
-                    <?php echo esc_html((string) $score['total']); ?>
+                    <?php echo esc_html((string) $score['total']); ?><span style="font-size: 24px;">/100</span>
                 </div>
                 <p class="description">
                     <?php esc_html_e('Configuration optimization score', 'fp-performance-suite'); ?>
@@ -179,16 +181,46 @@ class Overview extends AbstractPage
         <section class="fp-ps-grid two">
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Score Breakdown', 'fp-performance-suite'); ?></h2>
-                <table class="fp-ps-table" aria-describedby="fp-ps-score-desc">
-                    <tbody>
-                    <?php foreach ($score['breakdown'] as $label => $value) : ?>
-                        <tr>
-                            <th scope="row"><?php echo esc_html($label); ?></th>
-                            <td><strong><?php echo esc_html((string) $value); ?></strong></td>
-                        </tr>
+                <div style="margin-bottom: 15px;">
+                    <?php foreach ($score['breakdown_detailed'] as $label => $details) : 
+                        $statusIcon = $details['status'] === 'complete' ? '✅' : ($details['status'] === 'partial' ? '⚠️' : '❌');
+                        $statusColor = $details['status'] === 'complete' ? '#10b981' : ($details['status'] === 'partial' ? '#f59e0b' : '#ef4444');
+                    ?>
+                        <div class="fp-ps-score-breakdown-item" style="border-left: 4px solid <?php echo esc_attr($statusColor); ?>;">
+                            <div class="fp-ps-score-breakdown-header">
+                                <div class="fp-ps-score-breakdown-label">
+                                    <span style="font-size: 18px;"><?php echo $statusIcon; ?></span>
+                                    <strong><?php echo esc_html($label); ?></strong>
+                                </div>
+                                <span class="fp-ps-score-breakdown-value fp-ps-status-<?php echo esc_attr($details['status']); ?>">
+                                    <?php echo esc_html($details['current']); ?>/<?php echo esc_html($details['max']); ?>
+                                </span>
+                            </div>
+                            
+                            <!-- Barra di progresso -->
+                            <div class="fp-ps-progress-bar">
+                                <div class="fp-ps-progress-fill <?php echo esc_attr($details['status']); ?>" 
+                                     style="width: <?php echo esc_attr($details['percentage']); ?>%;"></div>
+                            </div>
+                            
+                            <?php if ($details['suggestion']) : ?>
+                                <div class="fp-ps-suggestion-box">
+                                    <p>
+                                        <strong style="color: #3b82f6;">💡 <?php esc_html_e('Come migliorare:', 'fp-performance-suite'); ?></strong>
+                                        <?php echo esc_html($details['suggestion']); ?>
+                                    </p>
+                                </div>
+                            <?php elseif ($details['status'] === 'complete') : ?>
+                                <div class="fp-ps-optimized-box">
+                                    <p>
+                                        <strong>✨ <?php esc_html_e('Ottimizzato!', 'fp-performance-suite'); ?></strong>
+                                        <?php esc_html_e('Questa categoria è completamente ottimizzata.', 'fp-performance-suite'); ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     <?php endforeach; ?>
-                    </tbody>
-                </table>
+                </div>
                 <p id="fp-ps-score-desc" class="description">
                     <?php esc_html_e('Higher score indicates better technical readiness for shared hosting.', 'fp-performance-suite'); ?>
                 </p>
@@ -241,10 +273,21 @@ class Overview extends AbstractPage
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
+                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
                         <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
                     </p>
+                    <?php if (!empty($issue['action_id'])) : ?>
+                    <div style="text-align: right;">
+                        <button 
+                            type="button" 
+                            class="button button-primary fp-ps-apply-recommendation" 
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
+                            style="font-size: 13px;">
+                            ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
+                        </button>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -271,10 +314,21 @@ class Overview extends AbstractPage
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
+                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
                         <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
                     </p>
+                    <?php if (!empty($issue['action_id'])) : ?>
+                    <div style="text-align: right;">
+                        <button 
+                            type="button" 
+                            class="button button-primary fp-ps-apply-recommendation" 
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
+                            style="font-size: 13px;">
+                            ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
+                        </button>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -301,10 +355,21 @@ class Overview extends AbstractPage
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
+                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
                         <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
                     </p>
+                    <?php if (!empty($issue['action_id'])) : ?>
+                    <div style="text-align: right;">
+                        <button 
+                            type="button" 
+                            class="button button-primary fp-ps-apply-recommendation" 
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
+                            style="font-size: 13px;">
+                            ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
+                        </button>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -360,6 +425,72 @@ class Overview extends AbstractPage
             </div>
         </section>
         
+        <!-- JavaScript per applicazione suggerimenti -->
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $('.fp-ps-apply-recommendation').on('click', function(e) {
+                e.preventDefault();
+                
+                var $button = $(this);
+                var actionId = $button.data('action-id');
+                var originalText = $button.html();
+                
+                // Conferma prima di applicare
+                if (!confirm('<?php echo esc_js(__('Sei sicuro di voler applicare questo suggerimento?', 'fp-performance-suite')); ?>')) {
+                    return;
+                }
+                
+                // Disabilita bottone e mostra loading
+                $button.prop('disabled', true).html('⏳ <?php echo esc_js(__('Applicazione in corso...', 'fp-performance-suite')); ?>');
+                
+                // Invia richiesta AJAX
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'fp_ps_apply_recommendation',
+                        action_id: actionId,
+                        nonce: '<?php echo wp_create_nonce('fp_ps_apply_recommendation'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $button.html('✅ <?php echo esc_js(__('Applicato!', 'fp-performance-suite')); ?>')
+                                   .removeClass('button-primary')
+                                   .addClass('button-secondary')
+                                   .css('background-color', '#059669')
+                                   .css('border-color', '#059669')
+                                   .css('color', '#fff');
+                            
+                            // Mostra messaggio di successo
+                            var $issueCard = $button.closest('div[style*="border-left"]');
+                            $issueCard.css({
+                                'opacity': '0.6',
+                                'transition': 'opacity 0.3s'
+                            });
+                            
+                            // Notifica WordPress
+                            if (typeof wp !== 'undefined' && wp.a11y && wp.a11y.speak) {
+                                wp.a11y.speak('<?php echo esc_js(__('Suggerimento applicato con successo', 'fp-performance-suite')); ?>');
+                            }
+                            
+                            // Ricarica la pagina dopo 2 secondi per mostrare i nuovi risultati
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $button.prop('disabled', false).html(originalText);
+                            alert('<?php echo esc_js(__('Errore:', 'fp-performance-suite')); ?> ' + (response.data.message || '<?php echo esc_js(__('Errore sconosciuto', 'fp-performance-suite')); ?>'));
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $button.prop('disabled', false).html(originalText);
+                        alert('<?php echo esc_js(__('Errore di comunicazione con il server:', 'fp-performance-suite')); ?> ' + error);
+                    }
+                });
+            });
+        });
+        </script>
+        
         <?php
         return (string) ob_get_clean();
     }
@@ -403,8 +534,15 @@ class Overview extends AbstractPage
         
         // Score Breakdown
         fputcsv($output, [__('Score Breakdown', 'fp-performance-suite')]);
-        foreach ($score['breakdown'] as $label => $value) {
-            fputcsv($output, [$label, $value]);
+        fputcsv($output, [__('Category', 'fp-performance-suite'), __('Current', 'fp-performance-suite'), __('Max', 'fp-performance-suite'), __('Status', 'fp-performance-suite'), __('Suggestion', 'fp-performance-suite')]);
+        foreach ($score['breakdown_detailed'] as $label => $details) {
+            fputcsv($output, [
+                $label,
+                $details['current'],
+                $details['max'],
+                $details['status'],
+                $details['suggestion'] ?? __('Optimized', 'fp-performance-suite')
+            ]);
         }
         fputcsv($output, []);
 

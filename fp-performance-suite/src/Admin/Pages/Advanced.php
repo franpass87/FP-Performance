@@ -20,9 +20,9 @@ class Advanced extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-
-        // Handle form submissions
-        add_action('admin_post_fp_ps_save_advanced', [$this, 'handleSave']);
+        
+        // Note: L'hook admin_post è ora registrato nella classe Menu
+        // per garantire che sia disponibile quando necessario
     }
 
     public function slug(): string
@@ -432,12 +432,19 @@ class Advanced extends AbstractPage
     public function handleSave(): void
     {
         if (!current_user_can($this->capability())) {
-            wp_die(esc_html__('Permission denied', 'fp-performance-suite'));
+            $redirect_url = add_query_arg(
+                ['error' => '1', 'message' => urlencode(__('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite'))],
+                admin_url('admin.php?page=' . $this->slug())
+            );
+            wp_safe_redirect($redirect_url);
+            exit;
         }
 
-        check_admin_referer('fp_ps_advanced');
-
         try {
+            // Verifica il nonce di sicurezza
+            if (!check_admin_referer('fp_ps_advanced', '_wpnonce', false)) {
+                throw new \Exception(__('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite'));
+            }
             // Save Critical CSS
             if (isset($_POST['critical_css'])) {
                 $criticalCss = new CriticalCss();
@@ -457,22 +464,40 @@ class Advanced extends AbstractPage
             }
 
             // Save CDN settings
-            if (isset($_POST['cdn'])) {
-                $cdn = new CdnManager();
-                $cdn->update(wp_unslash($_POST['cdn']));
-            }
+            $cdn = new CdnManager();
+            $currentCdn = $cdn->settings();
+            
+            // Prepara i settings CDN preservando i campi non presenti nel form
+            $cdnSettings = array_merge($currentCdn, wp_unslash($_POST['cdn'] ?? []));
+            
+            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
+            $cdnSettings['enabled'] = isset($_POST['cdn']['enabled']);
+            
+            $cdn->update($cdnSettings);
 
             // Save Monitoring settings
-            if (isset($_POST['monitoring'])) {
-                $monitor = PerformanceMonitor::instance();
-                $monitor->update(wp_unslash($_POST['monitoring']));
-            }
+            $monitor = PerformanceMonitor::instance();
+            $currentMonitoring = $monitor->settings();
+            
+            // Prepara i settings Monitoring preservando i campi non presenti nel form
+            $monitoringSettings = array_merge($currentMonitoring, wp_unslash($_POST['monitoring'] ?? []));
+            
+            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
+            $monitoringSettings['enabled'] = isset($_POST['monitoring']['enabled']);
+            
+            $monitor->update($monitoringSettings);
 
             // Save Reports settings
-            if (isset($_POST['reports'])) {
-                $reports = new ScheduledReports();
-                $reports->update(wp_unslash($_POST['reports']));
-            }
+            $reports = new ScheduledReports();
+            $currentReports = $reports->settings();
+            
+            // Prepara i settings Reports preservando i campi non presenti nel form
+            $reportsSettings = array_merge($currentReports, wp_unslash($_POST['reports'] ?? []));
+            
+            // Gestisci esplicitamente le checkbox (non inviate se non selezionate)
+            $reportsSettings['enabled'] = isset($_POST['reports']['enabled']);
+            
+            $reports->update($reportsSettings);
 
             // Redirect con successo
             $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));

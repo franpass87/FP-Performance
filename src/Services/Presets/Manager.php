@@ -2,12 +2,14 @@
 
 namespace FP\PerfSuite\Services\Presets;
 
+use FP\PerfSuite\Services\Assets\LazyLoadManager;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Utils\Logger;
 
 use function __;
 
@@ -21,8 +23,9 @@ class Manager
     private WebPConverter $webp;
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
+    private LazyLoadManager $lazyLoad;
 
-    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler)
+    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler, LazyLoadManager $lazyLoad)
     {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
@@ -30,6 +33,7 @@ class Manager
         $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->debugToggler = $debugToggler;
+        $this->lazyLoad = $lazyLoad;
     }
 
     /**
@@ -76,32 +80,137 @@ class Manager
 
     public function apply(string $id): array
     {
-        $preset = $this->presets()[$id] ?? null;
-        if (!$preset) {
-            return ['error' => __('Preset not found', 'fp-performance-suite')];
+        Logger::info('Attempting to apply preset', ['preset_id' => $id]);
+        
+        // Check if it's a custom preset
+        if (strpos($id, 'custom_') === 0) {
+            $customKey = substr($id, 7); // Remove 'custom_' prefix
+            $customPresets = get_option('fp_ps_custom_presets', []);
+            
+            if (!isset($customPresets[$customKey])) {
+                Logger::error('Custom preset not found', ['preset_id' => $id, 'custom_key' => $customKey]);
+                return ['error' => __('Custom preset not found', 'fp-performance-suite')];
+            }
+            
+            $preset = $customPresets[$customKey];
+            Logger::debug('Custom preset loaded', ['preset_id' => $id]);
+        } else {
+            // Standard preset
+            $preset = $this->presets()[$id] ?? null;
+            if (!$preset) {
+                Logger::error('Preset not found', ['preset_id' => $id]);
+                return ['error' => __('Preset not found', 'fp-performance-suite')];
+            }
         }
 
-        $config = $preset['config'];
-        $previous = [
-            'page_cache' => $this->pageCache->settings(),
-            'browser_cache' => $this->headers->settings(),
-            'assets' => $this->optimizer->settings(),
-            'webp' => $this->webp->settings(),
-            'db' => $this->cleaner->settings(),
-        ];
-        $this->pageCache->update($config['page_cache']);
-        $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), $config['assets']));
-        $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
-        $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), ['heartbeat_admin' => $config['heartbeat']]));
+        try {
+            $config = $preset['config'];
+            Logger::debug('Preset config loaded', ['config' => $config]);
+            
+            // Save current settings for potential rollback
+            Logger::debug('Retrieving current settings for rollback');
+            try {
+                $previous = [
+                    'page_cache' => $this->pageCache->settings(),
+                    'browser_cache' => $this->headers->settings(),
+                    'assets' => $this->optimizer->settings(),
+                    'webp' => $this->webp->settings(),
+                    'db' => $this->cleaner->settings(),
+                    'lazy_load' => $this->lazyLoad->settings(),
+                ];
+                Logger::debug('Current settings retrieved successfully');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to retrieve current settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to retrieve current settings: ' . $e->getMessage(), 0, $e);
+            }
+            
+            // Apply preset settings
+            Logger::debug('Applying page cache settings');
+            try {
+                $this->pageCache->update($config['page_cache'] ?? []);
+                Logger::debug('Page cache settings applied');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to update page cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to update page cache: ' . $e->getMessage(), 0, $e);
+            }
+            
+            if (isset($config['browser_cache'])) {
+                Logger::debug('Applying browser cache settings');
+                try {
+                    $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
+                    Logger::debug('Browser cache settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update browser cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update browser cache: ' . $e->getMessage(), 0, $e);
+                }
+            }
+            
+            // Merge assets and heartbeat settings into a single update call
+            Logger::debug('Applying asset settings');
+            try {
+                $assetSettings = array_merge($this->optimizer->settings(), $config['assets'] ?? []);
+                if (isset($config['heartbeat'])) {
+                    $assetSettings['heartbeat_admin'] = $config['heartbeat'];
+                }
+                $this->optimizer->update($assetSettings);
+                Logger::debug('Asset settings applied');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to update asset settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to update asset settings: ' . $e->getMessage(), 0, $e);
+            }
+            
+            if (isset($config['webp'])) {
+                Logger::debug('Applying WebP settings');
+                try {
+                    $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
+                    Logger::debug('WebP settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update WebP settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update WebP settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
+            
+            if (isset($config['db'])) {
+                Logger::debug('Applying database settings');
+                try {
+                    $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
+                    Logger::debug('Database settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update database settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update database settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
+            
+            if (isset($config['lazy_load'])) {
+                Logger::debug('Applying lazy load settings');
+                try {
+                    $this->lazyLoad->update(array_merge($this->lazyLoad->settings(), $config['lazy_load']));
+                    Logger::debug('Lazy load settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update lazy load settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update lazy load settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
 
-        update_option(self::OPTION, [
-            'active' => $id,
-            'applied_at' => time(),
-            'previous' => $previous,
-        ]);
-        return ['success' => true];
+            Logger::debug('Saving preset metadata');
+            try {
+                update_option(self::OPTION, [
+                    'active' => $id,
+                    'applied_at' => time(),
+                    'previous' => $previous,
+                ]);
+                Logger::debug('Preset metadata saved');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to save preset metadata', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to save preset metadata: ' . $e->getMessage(), 0, $e);
+            }
+            
+            Logger::info('Preset applied successfully', ['preset_id' => $id]);
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            Logger::error('Failed to apply preset', ['preset_id' => $id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return ['error' => sprintf(__('Failed to apply preset: %s', 'fp-performance-suite'), $e->getMessage())];
+        }
     }
 
     public function rollback(): bool
@@ -116,6 +225,9 @@ class Manager
         $this->optimizer->update($prev['assets']);
         $this->webp->update($prev['webp']);
         $this->cleaner->update($prev['db']);
+        if (isset($prev['lazy_load'])) {
+            $this->lazyLoad->update($prev['lazy_load']);
+        }
         update_option(self::OPTION, ['active' => null, 'applied_at' => time(), 'previous' => []]);
         return true;
     }

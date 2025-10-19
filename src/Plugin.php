@@ -19,11 +19,20 @@ use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
+use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
+use FP\PerfSuite\Services\Compatibility\ThemeDetector;
+use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
+use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Env;
@@ -32,6 +41,7 @@ use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
+use FP\PerfSuite\Utils\InstallationRecovery;
 
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -68,7 +78,7 @@ class Plugin
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
 
-            // New services (v1.1.0)
+            // Cache services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
             $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
@@ -78,9 +88,26 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
-            
-            // Compression service
+            $container->get(ThemeAssetConfiguration::class)->register();
             $container->get(CompressionManager::class)->register();
+            
+            // Advanced Performance Services (v1.3.0)
+            $container->get(ObjectCacheManager::class)->register();
+            $container->get(EdgeCacheManager::class)->register();
+            $container->get(AVIFConverter::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
+            $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
+            $container->get(QueryCacheManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+            
+            // Theme Compatibility (v1.3.0)
+            $container->get(ThemeCompatibility::class)->register();
+            $container->get(CompatibilityFilters::class)->register();
         });
 
         // Register WP-CLI commands
@@ -181,7 +208,7 @@ class Plugin
             );
         });
 
-        // New services
+        // v1.1.0 Services
         $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
         $container->set(\FP\PerfSuite\Services\CDN\CdnManager::class, static fn() => new \FP\PerfSuite\Services\CDN\CdnManager());
         $container->set(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, static fn() => \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance());
@@ -198,6 +225,67 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)
             );
         });
+        
+        // v1.3.0 Advanced Performance Services
+        
+        // Object Cache (Redis/Memcached)
+        $container->set(ObjectCacheManager::class, static fn() => new ObjectCacheManager());
+        
+        // Edge Cache Providers
+        $container->set(EdgeCacheManager::class, static fn() => new EdgeCacheManager());
+        
+        // AVIF Image Converter
+        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter());
+        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper());
+        $container->set(AVIFConverter::class, static function (ServiceContainer $c) {
+            return new AVIFConverter(
+                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class),
+                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)
+            );
+        });
+        
+        // HTTP/2 Server Push
+        $container->set(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, static fn() => new \FP\PerfSuite\Services\Assets\Http2ServerPush());
+        
+        // Critical CSS Automation
+        $container->set(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCssAutomation());
+        
+        // Third-Party Script Manager
+        $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptManager());
+        
+        // Third-Party Script Detector (AI Auto-detect)
+        $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector(
+            $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
+        ));
+        
+        // Service Worker / PWA
+        $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
+        
+        // Core Web Vitals Monitor
+        $container->set(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class, static fn() => new \FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor());
+        
+        // Database Query Cache
+        $container->set(QueryCacheManager::class, static fn() => new QueryCacheManager());
+        
+        // Predictive Prefetching
+        $container->set(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class, static fn() => new \FP\PerfSuite\Services\Assets\PredictivePrefetching());
+        
+        // Smart Asset Delivery
+        $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
+        
+        // Theme Asset Configuration (gestisce asset specifici per tema/builder)
+        $container->set(ThemeAssetConfiguration::class, static fn(ServiceContainer $c) => new ThemeAssetConfiguration($c->get(ThemeDetector::class)));
+        
+        // Theme Compatibility
+        $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
+        $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
+        $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
+        
+        // Smart Intelligence Services
+        $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());
+        $container->set(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator(
+            $c->get(SmartExclusionDetector::class)
+        ));
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
@@ -232,10 +320,28 @@ class Plugin
                 $c->get(Optimizer::class),
                 $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
-                $c->get(DebugToggler::class)
+                $c->get(DebugToggler::class),
+                $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)
             );
         });
-        $container->set(Scorer::class, static fn(ServiceContainer $c) => new Scorer($c->get(PageCache::class), $c->get(Headers::class), $c->get(Optimizer::class), $c->get(WebPConverter::class), $c->get(Cleaner::class), $c->get(DebugToggler::class)));
+        $container->set(Scorer::class, static function (ServiceContainer $c) {
+            return new Scorer(
+                $c->get(PageCache::class),
+                $c->get(Headers::class),
+                $c->get(Optimizer::class),
+                $c->get(WebPConverter::class),
+                $c->get(Cleaner::class),
+                $c->get(DebugToggler::class),
+                $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class),
+                $c->get(ObjectCacheManager::class),
+                $c->get(\FP\PerfSuite\Services\CDN\CdnManager::class),
+                $c->get(\FP\PerfSuite\Services\Assets\CriticalCss::class),
+                $c->get(CompressionManager::class)
+            );
+        });
 
         $container->set(AdminAssets::class, static fn() => new AdminAssets());
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
@@ -254,20 +360,213 @@ class Plugin
 
     public static function onActivate(): void
     {
-        $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
+        try {
+            // Controlli preliminari di sistema
+            self::performSystemChecks();
 
-        if (!is_string($version) || '' === $version) {
-            $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
-            $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
+            // Determina la versione del plugin
+            $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
+
+            if (!is_string($version) || '' === $version) {
+                if (!defined('FP_PERF_SUITE_FILE')) {
+                    define('FP_PERF_SUITE_FILE', __DIR__ . '/../fp-performance-suite.php');
+                }
+                $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
+                $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
+            }
+
+            // Salva la versione nelle opzioni
+            update_option('fp_perfsuite_version', $version, false);
+
+            // Inizializza lo scheduler del database cleaner solo se le classi sono disponibili
+            if (class_exists('FP\PerfSuite\Services\DB\Cleaner') && 
+                class_exists('FP\PerfSuite\Utils\Env') && 
+                class_exists('FP\PerfSuite\Utils\RateLimiter')) {
+                
+                $cleaner = new Cleaner(new Env(), new RateLimiter());
+                $cleaner->primeSchedules();
+                $cleaner->maybeSchedule(true);
+            }
+
+            // Verifica e crea le directory necessarie
+            self::ensureRequiredDirectories();
+
+            // Pulisci eventuali errori precedenti
+            delete_option('fp_perfsuite_activation_error');
+
+            // Log sicuro dell'attivazione
+            if (class_exists('FP\PerfSuite\Utils\Logger')) {
+                Logger::info('Plugin activated', ['version' => $version]);
+            }
+
+            // Trigger action hook se le funzioni WordPress sono disponibili
+            if (function_exists('do_action')) {
+                do_action('fp_ps_plugin_activated', $version);
+            }
+
+        } catch (\Throwable $e) {
+            // Gestione sicura degli errori per prevenire white screen
+            $errorDetails = self::formatActivationError($e);
+            
+            if (function_exists('error_log')) {
+                error_log(sprintf(
+                    '[FP Performance Suite] ERRORE CRITICO durante l\'attivazione: %s in %s:%d',
+                    $e->getMessage(),
+                    $e->getFile(),
+                    $e->getLine()
+                ));
+            }
+
+            // Tenta il recupero automatico
+            if (class_exists('FP\PerfSuite\Utils\InstallationRecovery')) {
+                $recovered = InstallationRecovery::attemptRecovery($errorDetails);
+                if ($recovered) {
+                    $errorDetails['recovery_attempted'] = true;
+                    $errorDetails['recovery_successful'] = true;
+                    Logger::info('Automatic recovery successful');
+                } else {
+                    $errorDetails['recovery_attempted'] = true;
+                    $errorDetails['recovery_successful'] = false;
+                }
+            }
+
+            // Salva l'errore nelle opzioni per il debug
+            if (function_exists('update_option')) {
+                update_option('fp_perfsuite_activation_error', $errorDetails, false);
+            }
+
+            // Non rilanciare l'eccezione per evitare white screen
+            // Il plugin si attiverà comunque ma senza la configurazione iniziale dello scheduler
+        }
+    }
+
+    /**
+     * Esegue controlli preliminari di sistema prima dell'attivazione
+     * 
+     * @throws \RuntimeException se i requisiti minimi non sono soddisfatti
+     */
+    private static function performSystemChecks(): void
+    {
+        $errors = [];
+
+        // Verifica versione PHP minima
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+            $errors[] = sprintf(
+                'PHP 7.4.0 o superiore è richiesto. Versione corrente: %s',
+                PHP_VERSION
+            );
         }
 
-        update_option('fp_perfsuite_version', $version);
-        $cleaner = new Cleaner(new Env(), new RateLimiter());
-        $cleaner->primeSchedules();
-        $cleaner->maybeSchedule(true);
+        // Verifica estensioni PHP richieste
+        $requiredExtensions = ['json', 'mbstring', 'fileinfo'];
+        foreach ($requiredExtensions as $ext) {
+            if (!extension_loaded($ext)) {
+                $errors[] = sprintf('Estensione PHP richiesta non trovata: %s', $ext);
+            }
+        }
 
-        Logger::info('Plugin activated', ['version' => $version]);
-        do_action('fp_ps_plugin_activated', $version);
+        // Verifica permessi di scrittura
+        $uploadDir = wp_upload_dir();
+        if (!empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
+            $errors[] = sprintf(
+                'Directory uploads non scrivibile: %s. Verifica i permessi.',
+                $uploadDir['basedir']
+            );
+        }
+
+        // Verifica disponibilità funzioni WordPress critiche
+        $requiredFunctions = ['wp_upload_dir', 'update_option', 'add_action', 'get_option'];
+        foreach ($requiredFunctions as $func) {
+            if (!function_exists($func)) {
+                $errors[] = sprintf('Funzione WordPress richiesta non disponibile: %s', $func);
+            }
+        }
+
+        // Verifica disponibilità classe WP_Filesystem
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        if (!empty($errors)) {
+            throw new \RuntimeException(
+                'Requisiti di sistema non soddisfatti: ' . implode('; ', $errors)
+            );
+        }
+    }
+
+    /**
+     * Assicura che le directory necessarie esistano e siano scrivibili
+     */
+    private static function ensureRequiredDirectories(): void
+    {
+        $uploadDir = wp_upload_dir();
+        $baseDir = $uploadDir['basedir'];
+        
+        if (empty($baseDir)) {
+            return;
+        }
+
+        $requiredDirs = [
+            $baseDir . '/fp-performance-suite',
+            $baseDir . '/fp-performance-suite/cache',
+            $baseDir . '/fp-performance-suite/logs',
+        ];
+
+        foreach ($requiredDirs as $dir) {
+            if (!file_exists($dir)) {
+                wp_mkdir_p($dir);
+                
+                // Crea file .htaccess per proteggere le directory
+                $htaccessFile = $dir . '/.htaccess';
+                if (!file_exists($htaccessFile)) {
+                    file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\n");
+                }
+            }
+        }
+    }
+
+    /**
+     * Formatta i dettagli dell'errore di attivazione
+     * 
+     * @param \Throwable $e L'eccezione catturata
+     * @return array Dettagli dell'errore formattati
+     */
+    private static function formatActivationError(\Throwable $e): array
+    {
+        $errorType = 'unknown';
+        $solution = 'Contatta il supporto con i dettagli dell\'errore.';
+
+        // Identifica il tipo di errore e suggerisci una soluzione
+        $message = $e->getMessage();
+        
+        if (strpos($message, 'PHP') !== false && strpos($message, 'version') !== false) {
+            $errorType = 'php_version';
+            $solution = 'Aggiorna PHP alla versione 7.4 o superiore tramite il pannello di hosting.';
+        } elseif (strpos($message, 'extension') !== false || strpos($message, 'Estensione') !== false) {
+            $errorType = 'php_extension';
+            $solution = 'Abilita le estensioni PHP richieste (json, mbstring, fileinfo) tramite il pannello di hosting.';
+        } elseif (strpos($message, 'permission') !== false || strpos($message, 'scrivibile') !== false) {
+            $errorType = 'permissions';
+            $solution = 'Verifica i permessi delle directory. La directory wp-content/uploads deve essere scrivibile (chmod 755 o 775).';
+        } elseif (strpos($message, 'Class') !== false && strpos($message, 'not found') !== false) {
+            $errorType = 'missing_class';
+            $solution = 'Reinstalla il plugin assicurandoti che tutti i file siano stati caricati correttamente.';
+        } elseif (strpos($message, 'memory') !== false) {
+            $errorType = 'memory_limit';
+            $solution = 'Aumenta il limite di memoria PHP (memory_limit) a almeno 128MB nel file php.ini.';
+        }
+
+        return [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'time' => time(),
+            'type' => $errorType,
+            'solution' => $solution,
+            'trace' => $e->getTraceAsString(),
+            'php_version' => PHP_VERSION,
+            'wp_version' => get_bloginfo('version'),
+        ];
     }
 
     public static function onDeactivate(): void

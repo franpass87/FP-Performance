@@ -271,24 +271,36 @@ class CriticalCss
 
         $filtered = [];
 
-        // Split into rules (very basic)
-        $rules = preg_split('/}/', $css);
+        // Remove comments first to avoid issues
+        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css) ?? $css;
 
-        foreach ($rules as $rule) {
-            $rule = trim($rule);
-            if (empty($rule)) {
-                continue;
-            }
+        // Split into rules using a more robust regex that handles nested braces
+        // Match selector { properties } including media queries
+        if (preg_match_all('/([^{]+)\{([^{}]*(?:\{[^}]*\}[^{}]*)*)\}/s', $css, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $selector = trim($match[1]);
+                $properties = trim($match[2]);
+                
+                if (empty($selector) || empty($properties)) {
+                    continue;
+                }
 
-            foreach ($aboveFoldPatterns as $pattern) {
-                if (stripos($rule, $pattern) !== false) {
-                    $filtered[] = $rule . '}';
+                foreach ($aboveFoldPatterns as $pattern) {
+                    if (stripos($selector, $pattern) !== false) {
+                        // Properly reconstruct the CSS rule
+                        $filtered[] = $selector . '{' . $properties . '}';
+                        break;
+                    }
+                }
+                
+                // Limit to prevent excessive CSS
+                if (count($filtered) >= 50) {
                     break;
                 }
             }
         }
 
-        return implode("\n", array_slice($filtered, 0, 50)); // Max 50 rules
+        return implode("\n", $filtered);
     }
 
     /**

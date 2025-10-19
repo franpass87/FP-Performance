@@ -201,30 +201,147 @@ class Media extends AbstractPage
             </form>
             <p class="description"><?php printf(esc_html__('Current WebP coverage: %s%%', 'fp-performance-suite'), number_format_i18n($status['coverage'], 2)); ?></p>
         </section>
-        <section class="fp-ps-card">
-            <h2><?php esc_html_e('Bulk Convert Library', 'fp-performance-suite'); ?></h2>
-            <form method="post">
+        
+        <!-- Bulk Convert Library - Modernized UI -->
+        <section class="fp-ps-card fp-ps-bulk-convert-section">
+            <div class="fp-ps-bulk-convert-header">
+                <div class="fp-ps-bulk-convert-title-wrapper">
+                    <h2 style="margin-bottom: 8px;">
+                        <span class="fp-ps-bulk-icon">🔄</span>
+                        <?php esc_html_e('Conversione Bulk della Libreria Media', 'fp-performance-suite'); ?>
+                        <span class="fp-ps-risk-indicator amber">
+                            <div class="fp-ps-risk-tooltip amber">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">⚠</span>
+                                    <?php esc_html_e('Operazione Pesante', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Converte tutte le immagini esistenti nella tua libreria media in formato WebP.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Processa le immagini in batch per evitare timeout. Puoi interrompere e riprendere in qualsiasi momento.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </h2>
+                    <p class="fp-ps-bulk-convert-description">
+                        <?php esc_html_e('Converti automaticamente tutte le immagini esistenti della tua libreria media in formato WebP per ottenere immagini più leggere e prestazioni migliori.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Statistics Grid -->
+            <div class="fp-ps-bulk-stats-grid">
+                <div class="fp-ps-stat-card">
+                    <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📚</div>
+                    <div class="fp-ps-stat-content">
+                        <div class="fp-ps-stat-label"><?php esc_html_e('Totale Immagini', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($status['total_images'] ?? 0); ?></div>
+                    </div>
+                </div>
+                
+                <div class="fp-ps-stat-card">
+                    <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #1f9d55 0%, #0ea372 100%);">✅</div>
+                    <div class="fp-ps-stat-content">
+                        <div class="fp-ps-stat-label"><?php esc_html_e('Già Convertite', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-stat-value"><?php echo number_format_i18n($status['converted_images'] ?? 0); ?></div>
+                    </div>
+                </div>
+                
+                <div class="fp-ps-stat-card">
+                    <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">⏳</div>
+                    <div class="fp-ps-stat-content">
+                        <div class="fp-ps-stat-label"><?php esc_html_e('Da Convertire', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-stat-value"><?php echo number_format_i18n(($status['total_images'] ?? 0) - ($status['converted_images'] ?? 0)); ?></div>
+                    </div>
+                </div>
+                
+                <div class="fp-ps-stat-card">
+                    <div class="fp-ps-stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📊</div>
+                    <div class="fp-ps-stat-content">
+                        <div class="fp-ps-stat-label"><?php esc_html_e('Copertura WebP', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-stat-value"><?php printf('%s%%', number_format_i18n($status['coverage'], 1)); ?></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bulk Conversion Form -->
+            <form method="post" class="fp-ps-bulk-convert-form">
                 <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="bulk_convert" value="1" />
-                <p>
-                    <label for="bulk_limit"><?php esc_html_e('Items per batch', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="bulk_limit" id="bulk_limit" value="20" min="5" max="200" />
-                </p>
-                <p>
-                    <label for="bulk_offset"><?php esc_html_e('Offset', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="bulk_offset" id="bulk_offset" value="0" min="0" />
-                </p>
-                <p>
-                    <button type="submit" class="button" data-risk="amber"><?php esc_html_e('Run Bulk Conversion', 'fp-performance-suite'); ?></button>
-                </p>
+                
+                <div class="fp-ps-bulk-convert-controls">
+                    <div class="fp-ps-bulk-settings">
+                        <details class="fp-ps-advanced-settings">
+                            <summary class="fp-ps-advanced-toggle">
+                                <span class="fp-ps-settings-icon">⚙️</span>
+                                <?php esc_html_e('Impostazioni Avanzate', 'fp-performance-suite'); ?>
+                                <span class="fp-ps-toggle-arrow">▼</span>
+                            </summary>
+                            <div class="fp-ps-advanced-content">
+                                <div class="fp-ps-form-row">
+                                    <div class="fp-ps-form-field">
+                                        <label for="bulk_limit">
+                                            <strong><?php esc_html_e('Immagini per batch', 'fp-performance-suite'); ?></strong>
+                                            <small class="description"><?php esc_html_e('Numero di immagini da processare per volta', 'fp-performance-suite'); ?></small>
+                                        </label>
+                                        <input type="number" name="bulk_limit" id="bulk_limit" value="20" min="5" max="200" class="fp-ps-number-input" />
+                                    </div>
+                                    
+                                    <div class="fp-ps-form-field">
+                                        <label for="bulk_offset">
+                                            <strong><?php esc_html_e('Offset (avanzato)', 'fp-performance-suite'); ?></strong>
+                                            <small class="description"><?php esc_html_e('Inizia dalla immagine N (lascia 0 per iniziare dall\'inizio)', 'fp-performance-suite'); ?></small>
+                                        </label>
+                                        <input type="number" name="bulk_offset" id="bulk_offset" value="0" min="0" class="fp-ps-number-input" />
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div class="fp-ps-bulk-action-wrapper">
+                        <button type="submit" class="button button-primary button-hero fp-ps-bulk-start-btn" data-risk="amber">
+                            <span class="fp-ps-btn-icon">🚀</span>
+                            <?php esc_html_e('Avvia Conversione Bulk', 'fp-performance-suite'); ?>
+                        </button>
+                        <p class="fp-ps-bulk-hint">
+                            <span class="fp-ps-hint-icon">💡</span>
+                            <?php esc_html_e('La conversione avviene in background. Puoi continuare a lavorare normalmente.', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+                </div>
             </form>
+            
             <?php if ($bulkResult) : ?>
-                <?php if (!empty($bulkResult['queued'])) : ?>
-                    <p><?php printf(esc_html__('%d items queued for background conversion.', 'fp-performance-suite'), (int) ($bulkResult['total'] ?? 0)); ?></p>
-                <?php else : ?>
-                    <p><?php printf(esc_html__('%1$d items processed out of %2$d.', 'fp-performance-suite'), (int) $bulkResult['converted'], (int) $bulkResult['total']); ?></p>
-                <?php endif; ?>
+                <div class="fp-ps-bulk-result">
+                    <?php if (!empty($bulkResult['queued'])) : ?>
+                        <div class="notice notice-success inline">
+                            <p><strong>✅ <?php printf(esc_html__('%d immagini accodate per la conversione in background.', 'fp-performance-suite'), (int) ($bulkResult['total'] ?? 0)); ?></strong></p>
+                        </div>
+                    <?php else : ?>
+                        <div class="notice notice-info inline">
+                            <p><strong>📊 <?php printf(esc_html__('%1$d immagini processate su %2$d totali.', 'fp-performance-suite'), (int) $bulkResult['converted'], (int) $bulkResult['total']); ?></strong></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
+            
+            <!-- Info Box -->
+            <div class="fp-ps-info-box">
+                <div class="fp-ps-info-icon">ℹ️</div>
+                <div class="fp-ps-info-content">
+                    <strong><?php esc_html_e('Come funziona la conversione bulk?', 'fp-performance-suite'); ?></strong>
+                    <ul class="fp-ps-info-list">
+                        <li><?php esc_html_e('✓ Converte tutte le immagini JPEG e PNG in formato WebP', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Processa le immagini in batch per evitare timeout del server', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Mantiene le immagini originali (se configurato nelle impostazioni)', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('✓ Puoi interrompere e riprendere la conversione in qualsiasi momento', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+            </div>
         </section>
         <?php
         return (string) ob_get_clean();

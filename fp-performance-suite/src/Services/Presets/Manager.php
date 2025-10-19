@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Utils\Logger;
 
 use function __;
 
@@ -76,32 +77,110 @@ class Manager
 
     public function apply(string $id): array
     {
+        Logger::info('Attempting to apply preset', ['preset_id' => $id]);
+        
         $preset = $this->presets()[$id] ?? null;
         if (!$preset) {
+            Logger::error('Preset not found', ['preset_id' => $id]);
             return ['error' => __('Preset not found', 'fp-performance-suite')];
         }
 
-        $config = $preset['config'];
-        $previous = [
-            'page_cache' => $this->pageCache->settings(),
-            'browser_cache' => $this->headers->settings(),
-            'assets' => $this->optimizer->settings(),
-            'webp' => $this->webp->settings(),
-            'db' => $this->cleaner->settings(),
-        ];
-        $this->pageCache->update($config['page_cache']);
-        $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), $config['assets']));
-        $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
-        $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
-        $this->optimizer->update(array_merge($this->optimizer->settings(), ['heartbeat_admin' => $config['heartbeat']]));
+        try {
+            $config = $preset['config'];
+            Logger::debug('Preset config loaded', ['config' => $config]);
+            
+            // Save current settings for potential rollback
+            Logger::debug('Retrieving current settings for rollback');
+            try {
+                $previous = [
+                    'page_cache' => $this->pageCache->settings(),
+                    'browser_cache' => $this->headers->settings(),
+                    'assets' => $this->optimizer->settings(),
+                    'webp' => $this->webp->settings(),
+                    'db' => $this->cleaner->settings(),
+                ];
+                Logger::debug('Current settings retrieved successfully');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to retrieve current settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to retrieve current settings: ' . $e->getMessage(), 0, $e);
+            }
+            
+            // Apply preset settings
+            Logger::debug('Applying page cache settings');
+            try {
+                $this->pageCache->update($config['page_cache'] ?? []);
+                Logger::debug('Page cache settings applied');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to update page cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to update page cache: ' . $e->getMessage(), 0, $e);
+            }
+            
+            if (isset($config['browser_cache'])) {
+                Logger::debug('Applying browser cache settings');
+                try {
+                    $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
+                    Logger::debug('Browser cache settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update browser cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update browser cache: ' . $e->getMessage(), 0, $e);
+                }
+            }
+            
+            // Merge assets and heartbeat settings into a single update call
+            Logger::debug('Applying asset settings');
+            try {
+                $assetSettings = array_merge($this->optimizer->settings(), $config['assets'] ?? []);
+                if (isset($config['heartbeat'])) {
+                    $assetSettings['heartbeat_admin'] = $config['heartbeat'];
+                }
+                $this->optimizer->update($assetSettings);
+                Logger::debug('Asset settings applied');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to update asset settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to update asset settings: ' . $e->getMessage(), 0, $e);
+            }
+            
+            if (isset($config['webp'])) {
+                Logger::debug('Applying WebP settings');
+                try {
+                    $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
+                    Logger::debug('WebP settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update WebP settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update WebP settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
+            
+            if (isset($config['db'])) {
+                Logger::debug('Applying database settings');
+                try {
+                    $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
+                    Logger::debug('Database settings applied');
+                } catch (\Throwable $e) {
+                    Logger::error('Failed to update database settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    throw new \RuntimeException('Failed to update database settings: ' . $e->getMessage(), 0, $e);
+                }
+            }
 
-        update_option(self::OPTION, [
-            'active' => $id,
-            'applied_at' => time(),
-            'previous' => $previous,
-        ]);
-        return ['success' => true];
+            Logger::debug('Saving preset metadata');
+            try {
+                update_option(self::OPTION, [
+                    'active' => $id,
+                    'applied_at' => time(),
+                    'previous' => $previous,
+                ]);
+                Logger::debug('Preset metadata saved');
+            } catch (\Throwable $e) {
+                Logger::error('Failed to save preset metadata', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                throw new \RuntimeException('Failed to save preset metadata: ' . $e->getMessage(), 0, $e);
+            }
+            
+            Logger::info('Preset applied successfully', ['preset_id' => $id]);
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            Logger::error('Failed to apply preset', ['preset_id' => $id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return ['error' => sprintf(__('Failed to apply preset: %s', 'fp-performance-suite'), $e->getMessage())];
+        }
     }
 
     public function rollback(): bool

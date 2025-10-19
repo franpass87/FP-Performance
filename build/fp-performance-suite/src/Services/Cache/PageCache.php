@@ -166,9 +166,12 @@ class PageCache implements CacheInterface
             if ($deleted) {
                 Logger::info('Cache purged for URL', ['url' => $url]);
                 do_action('fp_ps_cache_purged_url', $url);
+            } else {
+                Logger::debug('Cache file does not exist for URL', ['url' => $url]);
             }
 
-            return $deleted;
+            // Return true even if file doesn't exist - the result is the same (no cache for this URL)
+            return true;
         } catch (\Throwable $e) {
             Logger::error('Failed to purge URL cache', $e);
             return false;

@@ -63,13 +63,18 @@ class PageCache implements CacheInterface
     }
 
     /**
-     * @return array{enabled:bool,ttl:int}
+     * @return array{enabled:bool,ttl:int,exclude_urls:string,exclude_query_strings:string,warming_enabled:bool,warming_urls:string,warming_schedule:string}
      */
     public function settings(): array
     {
         $defaults = [
             'enabled' => false,
             'ttl' => self::DEFAULT_TTL,
+            'exclude_urls' => '',
+            'exclude_query_strings' => '',
+            'warming_enabled' => false,
+            'warming_urls' => '',
+            'warming_schedule' => 'hourly',
         ];
         $options = wp_parse_args(get_option(self::OPTION, []), $defaults);
         $ttl = isset($options['ttl']) ? (int) $options['ttl'] : $defaults['ttl'];
@@ -83,6 +88,11 @@ class PageCache implements CacheInterface
         return [
             'enabled' => $enabled,
             'ttl' => $normalizedTtl,
+            'exclude_urls' => $options['exclude_urls'] ?? '',
+            'exclude_query_strings' => $options['exclude_query_strings'] ?? '',
+            'warming_enabled' => !empty($options['warming_enabled']),
+            'warming_urls' => $options['warming_urls'] ?? '',
+            'warming_schedule' => $options['warming_schedule'] ?? 'hourly',
         ];
     }
 
@@ -111,6 +121,21 @@ class PageCache implements CacheInterface
         update_option(self::OPTION, [
             'enabled' => $enabled,
             'ttl' => $ttl > 0 ? $ttl : 0,
+            'exclude_urls' => array_key_exists('exclude_urls', $settings) 
+                ? $settings['exclude_urls'] 
+                : $current['exclude_urls'],
+            'exclude_query_strings' => array_key_exists('exclude_query_strings', $settings) 
+                ? $settings['exclude_query_strings'] 
+                : $current['exclude_query_strings'],
+            'warming_enabled' => array_key_exists('warming_enabled', $settings) 
+                ? !empty($settings['warming_enabled']) 
+                : $current['warming_enabled'],
+            'warming_urls' => array_key_exists('warming_urls', $settings) 
+                ? $settings['warming_urls'] 
+                : $current['warming_urls'],
+            'warming_schedule' => array_key_exists('warming_schedule', $settings) 
+                ? $settings['warming_schedule'] 
+                : $current['warming_schedule'],
         ]);
     }
 
@@ -166,9 +191,12 @@ class PageCache implements CacheInterface
             if ($deleted) {
                 Logger::info('Cache purged for URL', ['url' => $url]);
                 do_action('fp_ps_cache_purged_url', $url);
+            } else {
+                Logger::debug('Cache file does not exist for URL', ['url' => $url]);
             }
 
-            return $deleted;
+            // Return true even if file doesn't exist - the result is the same (no cache for this URL)
+            return true;
         } catch (\Throwable $e) {
             Logger::error('Failed to purge URL cache', $e);
             return false;

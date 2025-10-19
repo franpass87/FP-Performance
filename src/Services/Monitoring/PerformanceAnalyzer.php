@@ -55,9 +55,9 @@ class PerformanceAnalyzer
      * Analizza i problemi di performance e restituisce raccomandazioni
      *
      * @return array{
-     *     critical: array<int, array{issue: string, impact: string, solution: string, priority: int}>,
-     *     warnings: array<int, array{issue: string, impact: string, solution: string, priority: int}>,
-     *     recommendations: array<int, array{issue: string, impact: string, solution: string, priority: int}>,
+     *     critical: array<int, array{issue: string, impact: string, solution: string, priority: int, action_id?: string, action_params?: array}>,
+     *     warnings: array<int, array{issue: string, impact: string, solution: string, priority: int, action_id?: string, action_params?: array}>,
+     *     recommendations: array<int, array{issue: string, impact: string, solution: string, priority: int, action_id?: string, action_params?: array}>,
      *     score: int,
      *     summary: string
      * }
@@ -112,6 +112,8 @@ class PerformanceAnalyzer
                 'impact' => __('Ogni richiesta rigenera l\'HTML completo, causando carico elevato sul server e tempi di risposta lunghi (300-1000ms vs 10-50ms con cache).', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Cache e attiva "Abilita page cache". Questo memorizzerà l\'HTML su disco riducendo il carico del server del 70-90%.', 'fp-performance-suite'),
                 'priority' => 100,
+                'action_id' => 'enable_page_cache',
+                'action_params' => [],
             ];
         }
 
@@ -123,6 +125,8 @@ class PerformanceAnalyzer
                 'impact' => __('I browser ricaricano asset statici (CSS, JS, immagini) ad ogni visita, sprecando banda e rallentando il caricamento delle pagine.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Cache > Browser Cache e attiva gli headers. Questo dirà ai browser di mantenere in cache gli asset per 30 giorni.', 'fp-performance-suite'),
                 'priority' => 85,
+                'action_id' => 'enable_browser_cache',
+                'action_params' => [],
             ];
         }
     }
@@ -138,6 +142,8 @@ class PerformanceAnalyzer
                 'impact' => __('L\'HTML contiene spazi bianchi e commenti non necessari, aumentando la dimensione delle pagine del 10-20%.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Minify HTML". Rimuove spazi bianchi e commenti, riducendo il peso delle pagine.', 'fp-performance-suite'),
                 'priority' => 60,
+                'action_id' => 'enable_minify_html',
+                'action_params' => [],
             ];
         }
 
@@ -148,6 +154,8 @@ class PerformanceAnalyzer
                 'impact' => __('Gli script bloccano il rendering della pagina, causando un ritardo visibile (200-500ms) prima che il contenuto appaia.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Defer JavaScript". Gli script verranno caricati dopo il contenuto principale, migliorando il First Contentful Paint.', 'fp-performance-suite'),
                 'priority' => 80,
+                'action_id' => 'enable_defer_js',
+                'action_params' => [],
             ];
         }
 
@@ -158,6 +166,8 @@ class PerformanceAnalyzer
                 'impact' => __('WordPress carica script emoji non necessari (70KB), aggiungendo richieste HTTP e rallentando il caricamento di 50-100ms.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Remove Emoji Scripts". Elimina script non necessari su siti moderni.', 'fp-performance-suite'),
                 'priority' => 50,
+                'action_id' => 'remove_emojis',
+                'action_params' => [],
             ];
         }
 
@@ -245,24 +255,29 @@ class PerformanceAnalyzer
     {
         // Controlla compressione GZIP/Brotli
         $hasCompression = false;
+        $hasEvidence = false;
         
         if (function_exists('ini_get')) {
             $zlibCompression = ini_get('zlib.output_compression');
             if ($zlibCompression && (int) $zlibCompression === 1) {
                 $hasCompression = true;
+                $hasEvidence = true;
             }
         }
 
         if (!$hasCompression && function_exists('apache_get_modules')) {
             $modules = apache_get_modules();
             if (is_array($modules)) {
+                $hasEvidence = true; // Abbiamo evidenza dalla chiamata apache_get_modules
                 if (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true)) {
                     $hasCompression = true;
                 }
             }
         }
 
-        if (!$hasCompression) {
+        // Solo se abbiamo evidenza chiara che la compressione NON è attiva, mostra l'errore
+        // Se non possiamo verificare ($hasEvidence = false), non mostrare falsi positivi
+        if (!$hasCompression && $hasEvidence) {
             $issues['critical'][] = [
                 'issue' => __('Compressione GZIP/Brotli non rilevata', 'fp-performance-suite'),
                 'impact' => __('Senza compressione, HTML/CSS/JS vengono trasferiti in dimensioni 3-5x maggiori (es. 300KB invece di 60KB), rallentando drasticamente il caricamento.', 'fp-performance-suite'),

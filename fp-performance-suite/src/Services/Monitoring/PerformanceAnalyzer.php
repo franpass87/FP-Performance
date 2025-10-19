@@ -245,24 +245,29 @@ class PerformanceAnalyzer
     {
         // Controlla compressione GZIP/Brotli
         $hasCompression = false;
+        $hasEvidence = false;
         
         if (function_exists('ini_get')) {
             $zlibCompression = ini_get('zlib.output_compression');
             if ($zlibCompression && (int) $zlibCompression === 1) {
                 $hasCompression = true;
+                $hasEvidence = true;
             }
         }
 
         if (!$hasCompression && function_exists('apache_get_modules')) {
             $modules = apache_get_modules();
             if (is_array($modules)) {
+                $hasEvidence = true; // Abbiamo evidenza dalla chiamata apache_get_modules
                 if (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true)) {
                     $hasCompression = true;
                 }
             }
         }
 
-        if (!$hasCompression) {
+        // Solo se abbiamo evidenza chiara che la compressione NON è attiva, mostra l'errore
+        // Se non possiamo verificare ($hasEvidence = false), non mostrare falsi positivi
+        if (!$hasCompression && $hasEvidence) {
             $issues['critical'][] = [
                 'issue' => __('Compressione GZIP/Brotli non rilevata', 'fp-performance-suite'),
                 'impact' => __('Senza compressione, HTML/CSS/JS vengono trasferiti in dimensioni 3-5x maggiori (es. 300KB invece di 60KB), rallentando drasticamente il caricamento.', 'fp-performance-suite'),
