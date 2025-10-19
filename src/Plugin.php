@@ -27,6 +27,7 @@ use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
+use FP\PerfSuite\Services\Security\HtaccessSecurity;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -78,6 +79,9 @@ class Plugin
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // Security services
+            $container->get(HtaccessSecurity::class)->register();
 
             // Cache services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
@@ -293,6 +297,9 @@ class Plugin
         
         // Backend Optimizer
         $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
+        
+        // Security Services
+        $container->set(HtaccessSecurity::class, static fn(ServiceContainer $c) => new HtaccessSecurity($c->get(Htaccess::class), $c->get(Env::class)));
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));

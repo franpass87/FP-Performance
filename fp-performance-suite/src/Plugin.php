@@ -26,6 +26,8 @@ use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
+use FP\PerfSuite\Services\Security\HtaccessSecurity;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Logs\DebugToggler;
@@ -34,6 +36,7 @@ use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
+use FP\PerfSuite\Services\Admin\BackendOptimizer;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Htaccess;
@@ -76,6 +79,9 @@ class Plugin
             $container->get(Optimizer::class)->register();
             $container->get(WebPConverter::class)->register();
             $container->get(Cleaner::class)->register();
+            
+            // Security services
+            $container->get(HtaccessSecurity::class)->register();
 
             // Cache services (v1.1.0)
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
@@ -97,6 +103,7 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
             $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
             $container->get(QueryCacheManager::class)->register();
@@ -106,6 +113,9 @@ class Plugin
             // Theme Compatibility (v1.3.0)
             $container->get(ThemeCompatibility::class)->register();
             $container->get(CompatibilityFilters::class)->register();
+            
+            // Backend Optimizer
+            $container->get(BackendOptimizer::class)->init();
         });
 
         // Register WP-CLI commands
@@ -251,6 +261,11 @@ class Plugin
         // Third-Party Script Manager
         $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptManager());
         
+        // Third-Party Script Detector (AI Auto-detect)
+        $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector(
+            $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
+        ));
+        
         // Service Worker / PWA
         $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
         
@@ -273,6 +288,18 @@ class Plugin
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
+        
+        // Smart Intelligence Services
+        $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());
+        $container->set(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator(
+            $c->get(SmartExclusionDetector::class)
+        ));
+        
+        // Backend Optimizer
+        $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
+        
+        // Security Services
+        $container->set(HtaccessSecurity::class, static fn(ServiceContainer $c) => new HtaccessSecurity($c->get(Htaccess::class), $c->get(Env::class)));
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
@@ -307,7 +334,8 @@ class Plugin
                 $c->get(Optimizer::class),
                 $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
-                $c->get(DebugToggler::class)
+                $c->get(DebugToggler::class),
+                $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)
             );
         });
         $container->set(Scorer::class, static function (ServiceContainer $c) {

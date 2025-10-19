@@ -13,6 +13,7 @@ use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
+use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Tools;
 use FP\PerfSuite\ServiceContainer;
@@ -285,6 +286,7 @@ class Menu
         
         // === STRUMENTI ===
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('🔧 Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Security', 'fp-performance-suite'), __('🛡️ Security', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-security', [$pages['security'], 'render']);
         
         // === INTELLIGENCE ===
         add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🧠 Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
@@ -331,6 +333,7 @@ class Menu
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
+            'security' => new Security($this->container),
             'exclusions' => new Exclusions($this->container),
             'advanced' => new Advanced($this->container),
             'settings' => new Settings($this->container),

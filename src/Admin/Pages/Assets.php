@@ -94,6 +94,20 @@ class Assets extends AbstractPage
         $excludeJs = get_transient('fp_ps_exclude_js_detected');
         $criticalAssets = get_transient('fp_ps_critical_assets_detected');
         
+        // Fallback: se i transient sono vuoti, esegui il rilevamento in tempo reale
+        if (!$criticalScripts && !$excludeCss && !$excludeJs && !$criticalAssets) {
+            $criticalScripts = $smartDetector->detectCriticalScripts();
+            $excludeCss = $smartDetector->detectExcludeCss();
+            $excludeJs = $smartDetector->detectExcludeJs();
+            $criticalAssets = $assetsDetector->detectCriticalAssets();
+            
+            // Salva i risultati per la prossima volta
+            set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300);
+            set_transient('fp_ps_exclude_css_detected', $excludeCss, 300);
+            set_transient('fp_ps_exclude_js_detected', $excludeJs, 300);
+            set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300);
+        }
+        
         // Handle success messages from redirects
         if (isset($_GET['msg'])) {
             $msgType = sanitize_text_field($_GET['msg']);
@@ -148,32 +162,48 @@ class Assets extends AbstractPage
             // Auto-detect critical scripts
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
+                $count = count(array_merge(
+                    $criticalScripts['always_exclude'] ?? [],
+                    $criticalScripts['plugin_critical'] ?? [],
+                    $criticalScripts['dependency_critical'] ?? []
+                ));
                 set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300);
-                wp_safe_redirect(add_query_arg('msg', 'scripts_detected', $_SERVER['REQUEST_URI']));
+                wp_safe_redirect(add_query_arg(['msg' => 'scripts_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
             // Auto-detect CSS to exclude
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
+                $count = count(array_merge(
+                    $excludeCss['plugin_specific'] ?? [],
+                    $excludeCss['critical_files'] ?? [],
+                    $excludeCss['admin_styles'] ?? []
+                ));
                 set_transient('fp_ps_exclude_css_detected', $excludeCss, 300);
-                wp_safe_redirect(add_query_arg('msg', 'css_detected', $_SERVER['REQUEST_URI']));
+                wp_safe_redirect(add_query_arg(['msg' => 'css_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
             // Auto-detect JS to exclude
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
+                $count = count(array_merge(
+                    $excludeJs['plugin_specific'] ?? [],
+                    $excludeJs['core_dependencies'] ?? [],
+                    $excludeJs['inline_dependent'] ?? []
+                ));
                 set_transient('fp_ps_exclude_js_detected', $excludeJs, 300);
-                wp_safe_redirect(add_query_arg('msg', 'js_detected', $_SERVER['REQUEST_URI']));
+                wp_safe_redirect(add_query_arg(['msg' => 'js_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
             // Auto-detect critical assets
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
+                $count = $criticalAssets['summary']['total_assets'] ?? 0;
                 set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300);
-                wp_safe_redirect(add_query_arg('msg', 'assets_detected', $_SERVER['REQUEST_URI']));
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
