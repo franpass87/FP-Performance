@@ -110,7 +110,7 @@ class ResourceHintsManager
      */
     public function setPreconnectUrls($urls): void
     {
-        if (is_string($urls)) {
+        if (is_string($urls) && $urls !== '') {
             $urls = preg_split('/[\r\n,]+/', $urls) ?: [];
             $formatted = [];
             foreach ($urls as $url) {
@@ -159,7 +159,7 @@ class ResourceHintsManager
      */
     private function sanitizeUrlList($value): array
     {
-        if (is_string($value)) {
+        if (is_string($value) && $value !== '') {
             $value = preg_split('/[\r\n,]+/', $value) ?: [];
         }
 

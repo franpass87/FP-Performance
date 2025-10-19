@@ -35,6 +35,7 @@ use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
+use FP\PerfSuite\Services\Admin\BackendOptimizer;
 use FP\PerfSuite\Utils\Env;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Htaccess;
@@ -108,6 +109,9 @@ class Plugin
             // Theme Compatibility (v1.3.0)
             $container->get(ThemeCompatibility::class)->register();
             $container->get(CompatibilityFilters::class)->register();
+            
+            // Backend Optimizer
+            $container->get(BackendOptimizer::class)->init();
         });
 
         // Register WP-CLI commands
@@ -286,6 +290,9 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator(
             $c->get(SmartExclusionDetector::class)
         ));
+        
+        // Backend Optimizer
+        $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
 
         $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
         $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));

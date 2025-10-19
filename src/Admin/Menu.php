@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin;
 
 use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
+use FP\PerfSuite\Admin\Pages\Backend;
 use FP\PerfSuite\Admin\Pages\Cache;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
@@ -240,6 +241,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         
         // === STRUMENTI ===
         add_submenu_page('fp-performance-suite', __('Tools', 'fp-performance-suite'), __('🔧 Tools', 'fp-performance-suite'), $capability, 'fp-performance-suite-tools', [$pages['tools'], 'render']);
@@ -285,6 +287,7 @@ class Menu
             'assets' => new Assets($this->container),
             'media' => new Media($this->container),
             'database' => new Database($this->container),
+            'backend' => new Backend($this->container),
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),

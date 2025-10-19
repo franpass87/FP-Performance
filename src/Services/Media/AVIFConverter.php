@@ -108,11 +108,14 @@ class AVIFConverter
      * Generate AVIF on attachment upload/update
      *
      * @param array $metadata Attachment metadata
-     * @param int $attachment_id Attachment ID
+     * @param int|string $attachment_id Attachment ID
      * @return array Modified metadata
      */
-    public function generateAVIF(array $metadata, int $attachment_id): array
+    public function generateAVIF(array $metadata, int|string $attachment_id): array
     {
+        // Ensure attachment_id is an integer (WordPress may pass it as string)
+        $attachment_id = (int) $attachment_id;
+        
         $settings = $this->settings();
         
         if (!$settings['enabled'] || !$this->imageConverter->isAvailable()) {
@@ -266,12 +269,12 @@ class AVIFConverter
      * Filter attachment image source
      *
      * @param array|false $image Image data
-     * @param int $attachment_id Attachment ID
+     * @param int|string $attachment_id Attachment ID
      * @param string|int[] $size Image size
      * @param bool $icon Whether icon
      * @return array|false Modified image data
      */
-    public function filterAttachmentImageSrc($image, int $attachment_id, $size, bool $icon)
+    public function filterAttachmentImageSrc($image, int|string $attachment_id, $size, bool $icon)
     {
         if (!is_array($image) || empty($image[0])) {
             return $image;
@@ -288,10 +291,10 @@ class AVIFConverter
      * @param array $size_array Size array
      * @param string $image_src Image source
      * @param array $image_meta Image metadata
-     * @param int $attachment_id Attachment ID
+     * @param int|string $attachment_id Attachment ID
      * @return array Modified sources
      */
-    public function filterImageSrcset(array $sources, array $size_array, string $image_src, array $image_meta, int $attachment_id): array
+    public function filterImageSrcset(array $sources, array $size_array, string $image_src, array $image_meta, int|string $attachment_id): array
     {
         foreach ($sources as $key => $source) {
             if (!empty($source['url'])) {
@@ -333,7 +336,11 @@ class AVIFConverter
                         $rewritten = [];
 
                         foreach ($sources as $source) {
-                            $parts = preg_split('/\s+/', trim($source));
+                            $trimmed = trim($source);
+                            if ($trimmed === '') {
+                                continue;
+                            }
+                            $parts = preg_split('/\s+/', $trimmed);
                             if (!empty($parts[0])) {
                                 $parts[0] = $this->rewriteImageUrl($parts[0]);
                                 $rewritten[] = implode(' ', $parts);

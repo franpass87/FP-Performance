@@ -358,7 +358,7 @@ class Optimizer
      */
     private function sanitizeUrlList($value): array
     {
-        if (is_string($value)) {
+        if (is_string($value) && $value !== '') {
             $value = preg_split('/[\r\n,]+/', $value) ?: [];
         }
 
@@ -397,7 +397,7 @@ class Optimizer
      */
     private function sanitizeHandleList($value): array
     {
-        if (is_string($value)) {
+        if (is_string($value) && $value !== '') {
             $value = preg_split('/[\r\n,]+/', $value) ?: [];
         }
 

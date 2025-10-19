@@ -96,13 +96,16 @@ class SmartAssetDelivery
      * Filter image quality based on connection
      *
      * @param array|false $image Image data
-     * @param int $attachment_id Attachment ID
+     * @param int|string $attachment_id Attachment ID
      * @param string|int[] $size Image size
      * @param bool $icon Whether icon
      * @return array|false Modified image data
      */
-    public function filterImageQuality($image, int $attachment_id, $size, bool $icon)
+    public function filterImageQuality($image, int|string $attachment_id, $size, bool $icon)
     {
+        // Ensure attachment_id is an integer (WordPress may pass it as string)
+        $attachment_id = (int) $attachment_id;
+        
         if (!is_array($image) || empty($image[0])) {
             return $image;
         }

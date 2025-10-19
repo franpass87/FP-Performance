@@ -114,6 +114,11 @@ class CriticalCss
 
         // Allow filtering before output
         $css = apply_filters('fp_ps_critical_css_output', $css);
+        
+        // Ensure CSS is a string after filtering (PHP 8.1+ compatibility)
+        if (!is_string($css) || empty($css)) {
+            return;
+        }
 
         echo "\n<!-- FP Performance Suite - Critical CSS -->\n";
         echo '<style id="fp-critical-css">' . "\n";
