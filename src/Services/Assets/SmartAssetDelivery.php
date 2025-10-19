@@ -98,10 +98,10 @@ class SmartAssetDelivery
      * @param array|false $image Image data
      * @param int|string $attachment_id Attachment ID
      * @param string|int[] $size Image size
-     * @param bool $icon Whether icon
+     * @param bool|array $icon Whether icon (can be array in some WordPress versions)
      * @return array|false Modified image data
      */
-    public function filterImageQuality($image, int|string $attachment_id, $size, bool $icon)
+    public function filterImageQuality($image, int|string $attachment_id, $size, bool|array $icon = false)
     {
         // Ensure attachment_id is an integer (WordPress may pass it as string)
         $attachment_id = (int) $attachment_id;
