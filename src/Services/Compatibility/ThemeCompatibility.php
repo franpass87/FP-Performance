@@ -36,8 +36,8 @@ class ThemeCompatibility
         // Apply compatibility rules
         add_action('init', [$this, 'applyCompatibilityRules'], 15);
         
-        // Admin notice for recommendations
-        add_action('admin_notices', [$this, 'showCompatibilityNotice']);
+        // Admin notice for recommendations - REMOVED: Notice obsoleto con link rotti
+        // add_action('admin_notices', [$this, 'showCompatibilityNotice']);
     }
     
     /**
@@ -312,137 +312,38 @@ class ThemeCompatibility
     
     /**
      * Show admin notice with compatibility recommendations
+     * 
+     * @deprecated Notice rimosso - i suggerimenti sono ora integrati inline nelle pagine Cache e Assets
      */
     public function showCompatibilityNotice(): void
     {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-        
-        // Show only once
-        if (get_transient('fp_ps_compat_notice_shown')) {
-            return;
-        }
-        
-        $config = $this->detector->getRecommendedConfig();
-        $settings = $this->settings();
-        
-        // Don't show if auto-apply is enabled and already applied
-        if ($this->autoApply && !empty($settings['applied'])) {
-            return;
-        }
-        
-        // Special notice for Salient
-        if ($this->detector->isSalient()) {
-            $this->showSalientNotice($config);
-            return;
-        }
-        
-        // Generic notice
-        $this->showGenericNotice($config);
+        // Metodo deprecato - notice rimosso per evitare link rotti
+        // I suggerimenti sono ora mostrati come badge contestuali nelle pagine Cache e Assets
+        return;
     }
     
     /**
      * Show Salient-specific notice
+     * 
+     * @deprecated Metodo rimosso - notice obsoleto con link rotti
      */
     private function showSalientNotice(array $config): void
     {
-        $builder = $config['page_builder']['name'];
-        $settings = $this->settings();
-        
-        ?>
-        <div class="notice notice-info is-dismissible fp-ps-compat-notice">
-            <h3>🎨 FP Performance Suite - Rilevato Salient + <?php echo esc_html($builder); ?></h3>
-            <p>
-                <strong>Configurazione ottimizzata disponibile!</strong><br>
-                Abbiamo rilevato che stai usando <strong>Salient</strong> con <strong><?php echo esc_html($builder); ?></strong>.
-                Possiamo configurare automaticamente il plugin per massime performance.
-            </p>
-            <p><strong>Servizi raccomandati:</strong></p>
-            <ul style="list-style: disc; margin-left: 20px;">
-                <li>✅ <strong>Object Cache</strong> - Riduce query database del 70%</li>
-                <li>✅ <strong>Core Web Vitals Monitor</strong> - Monitora CLS (critico per animazioni Salient)</li>
-                <li>✅ <strong>Third-Party Scripts</strong> - Ritarda Analytics/Pixel senza bloccare Salient</li>
-                <li>✅ <strong>Smart Delivery</strong> - Ottimizza per mobile e connessioni lente</li>
-                <li>✅ <strong>HTTP/2 Push</strong> - Push font icons Salient</li>
-                <li>⚠️ <strong>AVIF</strong> - Da testare (può avere problemi con slider/lightbox)</li>
-            </ul>
-            <p>
-                <a href="<?php echo admin_url('admin.php?page=fp-performance-compatibility'); ?>" class="button button-primary">
-                    📋 Visualizza Raccomandazioni Dettagliate
-                </a>
-                <a href="#" class="button fp-ps-apply-compat" data-nonce="<?php echo wp_create_nonce('fp_ps_apply_compat'); ?>">
-                    ⚡ Applica Configurazione Automatica
-                </a>
-                <a href="#" class="button fp-ps-dismiss-compat">
-                    Ricordamelo dopo
-                </a>
-            </p>
-        </div>
-        <script>
-        jQuery(document).ready(function($) {
-            $('.fp-ps-apply-compat').on('click', function(e) {
-                e.preventDefault();
-                if (!confirm('Applicare la configurazione ottimizzata per Salient + <?php echo esc_js($builder); ?>?\n\nQuesto aggiornerà le impostazioni dei servizi.')) {
-                    return;
-                }
-                
-                var $btn = $(this).prop('disabled', true).text('⏳ Applicando...');
-                
-                $.post(ajaxurl, {
-                    action: 'fp_ps_apply_compatibility',
-                    nonce: $(this).data('nonce')
-                }, function(response) {
-                    if (response.success) {
-                        $btn.text('✅ Applicato!').removeClass('button').addClass('button-primary');
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        alert('Errore: ' + (response.data || 'Sconosciuto'));
-                        $btn.prop('disabled', false).text('⚡ Applica Configurazione Automatica');
-                    }
-                });
-            });
-            
-            $('.fp-ps-dismiss-compat').on('click', function(e) {
-                e.preventDefault();
-                $('.fp-ps-compat-notice').fadeOut();
-                $.post(ajaxurl, {
-                    action: 'fp_ps_dismiss_compat_notice'
-                });
-            });
-        });
-        </script>
-        <?php
-        
-        set_transient('fp_ps_compat_notice_shown', true, WEEK_IN_SECONDS);
+        // Metodo deprecato - notice rimosso per evitare link rotti
+        // I suggerimenti sono ora mostrati come badge contestuali nelle pagine Cache e Assets
+        return;
     }
     
     /**
      * Show generic compatibility notice
+     * 
+     * @deprecated Metodo rimosso - notice obsoleto con link rotti
      */
     private function showGenericNotice(array $config): void
     {
-        $theme = $config['theme']['name'];
-        $builder = $config['page_builder']['name'];
-        
-        ?>
-        <div class="notice notice-info is-dismissible">
-            <h3>🚀 FP Performance Suite - Configurazione Disponibile</h3>
-            <p>
-                Tema rilevato: <strong><?php echo esc_html($theme); ?></strong><br>
-                Page Builder: <strong><?php echo esc_html($builder); ?></strong>
-            </p>
-            <p>
-                <a href="<?php echo admin_url('admin.php?page=fp-performance-compatibility'); ?>" class="button button-primary">
-                    Visualizza Raccomandazioni
-                </a>
-            </p>
-        </div>
-        <?php
-        
-        set_transient('fp_ps_compat_notice_shown', true, WEEK_IN_SECONDS);
+        // Metodo deprecato - notice rimosso per evitare link rotti
+        // I suggerimenti sono ora mostrati come badge contestuali nelle pagine Cache e Assets
+        return;
     }
     
     /**
