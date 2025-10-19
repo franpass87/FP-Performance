@@ -280,8 +280,16 @@ class Assets extends AbstractPage
                 // Salva solo le impostazioni di delivery
                 $dnsPrefetch = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['dns_prefetch'] ?? ''))));
                 $preload = array_filter(array_map('trim', explode("\n", wp_unslash($_POST['preload'] ?? ''))));
-                $excludeCss = !empty($_POST['exclude_css']) ? wp_unslash($_POST['exclude_css']) : '';
-                $excludeJs = !empty($_POST['exclude_js']) ? wp_unslash($_POST['exclude_js']) : '';
+                
+                // Preserva le esclusioni esistenti se i campi non sono presenti nel POST
+                // Questo previene la sovrascrittura accidentale delle esclusioni dell'automazione
+                // Se i campi sono presenti ma vuoti, l'utente intenzionalmente li ha cancellati
+                $excludeCss = isset($_POST['exclude_css']) 
+                    ? wp_unslash($_POST['exclude_css']) 
+                    : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
+                $excludeJs = isset($_POST['exclude_js']) 
+                    ? wp_unslash($_POST['exclude_js']) 
+                    : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
                 
                 $optimizer->update([
                     'minify_html' => !empty($_POST['minify_html']),
