@@ -438,6 +438,295 @@ class Assets extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- Auto-Configuration Section for Assets -->
+        <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+            <h2 style="color: white; margin-top: 0;">
+                🤖 <?php esc_html_e('Configurazione Automatica Intelligente Assets', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 15px;">
+                <?php esc_html_e('Sistema AI che rileva, consiglia e applica automaticamente le migliori impostazioni di ottimizzazione per CSS, JavaScript e asset critici del tuo sito.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 20px; margin: 20px 0; backdrop-filter: blur(10px);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo $criticalScripts ? count(array_merge(
+                                $criticalScripts['always_exclude'] ?? [],
+                                $criticalScripts['plugin_critical'] ?? [],
+                                $criticalScripts['dependency_critical'] ?? []
+                            )) : '0'; ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('Script Critici Rilevati', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo $excludeCss ? count(array_merge(
+                                $excludeCss['plugin_specific'] ?? [],
+                                $excludeCss['critical_files'] ?? [],
+                                $excludeCss['admin_styles'] ?? []
+                            )) : '0'; ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('CSS da Escludere', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo $excludeJs ? count(array_merge(
+                                $excludeJs['plugin_specific'] ?? [],
+                                $excludeJs['core_dependencies'] ?? [],
+                                $excludeJs['inline_dependent'] ?? []
+                            )) : '0'; ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('JavaScript da Escludere', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #ffd700;">
+                            <?php echo $criticalAssets ? ($criticalAssets['summary']['total_assets'] ?? 0) : '0'; ?>
+                        </div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">
+                            <?php esc_html_e('Asset Critici Rilevati', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" style="margin-top: 20px;">
+                <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="submit" name="auto_detect_scripts" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        🔍 <?php esc_html_e('Rileva Script Critici', 'fp-performance-suite'); ?>
+                    </button>
+                    <button type="submit" name="auto_detect_exclude_css" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        🎨 <?php esc_html_e('Rileva CSS da Escludere', 'fp-performance-suite'); ?>
+                    </button>
+                    <button type="submit" name="auto_detect_exclude_js" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        ⚡ <?php esc_html_e('Rileva JS da Escludere', 'fp-performance-suite'); ?>
+                    </button>
+                    <button type="submit" name="auto_detect_critical_assets" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                        🚀 <?php esc_html_e('Rileva Asset Critici', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 15px;">
+                    <?php if ($criticalScripts) : ?>
+                    <button type="submit" name="apply_critical_suggestions" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                        ✨ <?php esc_html_e('Applica Script Critici', 'fp-performance-suite'); ?>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($excludeCss) : ?>
+                    <button type="submit" name="apply_css_exclusions" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                        ✨ <?php esc_html_e('Applica Esclusioni CSS', 'fp-performance-suite'); ?>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($excludeJs) : ?>
+                    <button type="submit" name="apply_js_exclusions" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                        ✨ <?php esc_html_e('Applica Esclusioni JS', 'fp-performance-suite'); ?>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($criticalAssets) : ?>
+                    <button type="submit" name="apply_critical_assets_suggestions" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                        ✨ <?php esc_html_e('Applica Asset Critici', 'fp-performance-suite'); ?>
+                    </button>
+                    <?php endif; ?>
+                    <button type="button" class="button" onclick="document.getElementById('fp-ps-assets-auto-config-details').style.display = document.getElementById('fp-ps-assets-auto-config-details').style.display === 'none' ? 'block' : 'none';" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                        📋 <?php esc_html_e('Mostra Dettagli', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Dettagli Suggerimenti -->
+            <div id="fp-ps-assets-auto-config-details" style="display: none; margin-top: 25px; background: rgba(255,255,255,0.95); color: #333; border-radius: 8px; padding: 20px;">
+                <h3 style="margin-top: 0; color: #667eea;">
+                    <?php esc_html_e('Dettagli Suggerimenti Rilevati', 'fp-performance-suite'); ?>
+                </h3>
+                
+                <!-- Script Critici -->
+                <?php if ($criticalScripts) : ?>
+                <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #0ea5e9;">🔍 <?php esc_html_e('Script Critici Rilevati', 'fp-performance-suite'); ?></h4>
+                    
+                    <?php if (!empty($criticalScripts['always_exclude'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🛡️ <?php esc_html_e('Always Exclude (Core Dependencies)', 'fp-performance-suite'); ?>
+                        </h5>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                            <?php foreach ($criticalScripts['always_exclude'] as $script) : ?>
+                                <span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
+                                    <?php echo esc_html($script); ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($criticalScripts['plugin_critical'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔌 <?php esc_html_e('Plugin Critical Scripts', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach ($criticalScripts['plugin_critical'] as $item) : ?>
+                            <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['pattern']); ?></strong> - 
+                                <em><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($criticalScripts['dependency_critical'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔗 <?php esc_html_e('High-Dependency Scripts', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($criticalScripts['dependency_critical'], 0, 5) as $item) : ?>
+                            <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                <em><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <!-- CSS da Escludere -->
+                <?php if ($excludeCss) : ?>
+                <div style="margin-bottom: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #f59e0b;">🎨 <?php esc_html_e('CSS Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
+                    
+                    <?php if (!empty($excludeCss['plugin_specific'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔌 <?php esc_html_e('Plugin-Specific CSS', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($excludeCss['plugin_specific'], 0, 10) as $item) : ?>
+                            <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['handle']); ?></strong>
+                                <?php if (!empty($item['src'])) : ?>
+                                    <br><small style="color: #555;"><?php echo esc_html($item['src']); ?></small>
+                                <?php endif; ?>
+                                <br><em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($excludeCss['critical_files'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🎯 <?php esc_html_e('Critical Theme Files', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($excludeCss['critical_files'], 0, 5) as $item) : ?>
+                            <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                <em><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <!-- JavaScript da Escludere -->
+                <?php if ($excludeJs) : ?>
+                <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #10b981;">⚡ <?php esc_html_e('JavaScript Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
+                    
+                    <?php if (!empty($excludeJs['plugin_specific'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔌 <?php esc_html_e('Plugin-Specific JavaScript', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($excludeJs['plugin_specific'], 0, 10) as $item) : ?>
+                            <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['handle']); ?></strong>
+                                <?php if (!empty($item['src'])) : ?>
+                                    <br><small style="color: #555;"><?php echo esc_html($item['src']); ?></small>
+                                <?php endif; ?>
+                                <br><em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($excludeJs['core_dependencies'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔗 <?php esc_html_e('Core Dependencies', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($excludeJs['core_dependencies'], 0, 5) as $item) : ?>
+                            <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html($item['handle']); ?></strong> - 
+                                <em><?php echo esc_html($item['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <!-- Asset Critici -->
+                <?php if ($criticalAssets) : ?>
+                <div style="margin-bottom: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #f59e0b;">🚀 <?php esc_html_e('Critical Assets Detected', 'fp-performance-suite'); ?></h4>
+                    
+                    <p style="font-size: 13px; color: #666;">
+                        <?php printf(
+                            __('Trovati %d asset critici: %d CSS, %d immagini, %d font, %d JS', 'fp-performance-suite'),
+                            $criticalAssets['summary']['total_assets'],
+                            $criticalAssets['summary']['by_type']['css'],
+                            $criticalAssets['summary']['by_type']['images'],
+                            $criticalAssets['summary']['by_type']['fonts'],
+                            $criticalAssets['summary']['by_type']['js']
+                        ); ?>
+                    </p>
+                    
+                    <?php if (!empty($criticalAssets['css'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🎨 <?php esc_html_e('Critical CSS Files', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($criticalAssets['css'], 0, 5) as $asset) : ?>
+                            <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
+                                <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
+                                <em style="color: #0369a1;"><?php echo esc_html($asset['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($criticalAssets['images'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🖼️ <?php esc_html_e('Critical Images', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($criticalAssets['images'], 0, 5) as $asset) : ?>
+                            <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html(basename($asset['url'])); ?></strong>
+                                <?php if (isset($asset['dimensions'])) : ?>
+                                    <span style="color: #666;">(<?php echo esc_html($asset['dimensions']); ?>)</span>
+                                <?php endif; ?>
+                                <br><em style="color: #b45309;"><?php echo esc_html($asset['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($criticalAssets['fonts'])) : ?>
+                        <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
+                            🔤 <?php esc_html_e('Critical Fonts', 'fp-performance-suite'); ?>
+                        </h5>
+                        <?php foreach (array_slice($criticalAssets['fonts'], 0, 5) as $asset) : ?>
+                            <div style="background: #f3e8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
+                                <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
+                                <em style="color: #7c3aed;"><?php echo esc_html($asset['reason']); ?></em>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!$criticalScripts && !$excludeCss && !$excludeJs && !$criticalAssets) : ?>
+                <div style="padding: 15px; background: #e7f5ff; border-left: 4px solid #2271b1; border-radius: 4px; text-align: center;">
+                    <p style="margin: 0; color: #2271b1;">
+                        ℹ️ <?php esc_html_e('Nessun suggerimento disponibile. Clicca sui pulsanti di rilevamento sopra per analizzare il tuo sito.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </section>
+        
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Delivery', 'fp-performance-suite'); ?></h2>
             <form method="post">
@@ -607,225 +896,11 @@ class Assets extends AbstractPage
                     <label for="preload"><?php esc_html_e('Preload resources (full URLs)', 'fp-performance-suite'); ?></label>
                     <textarea name="preload" id="preload" rows="4" class="large-text code"><?php echo esc_textarea(implode("\n", $settings['preload'])); ?></textarea>
                 </p>
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                    <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Script Detection', 'fp-performance-suite'); ?></h4>
-                    <p style="font-size: 13px; margin-bottom: 10px;">
-                        <?php esc_html_e('Let the AI detect critical scripts that should not be optimized automatically.', 'fp-performance-suite'); ?>
-                    </p>
-                    <button type="submit" name="auto_detect_scripts" class="button button-secondary">
-                        🔍 <?php esc_html_e('Auto-Detect Critical Scripts', 'fp-performance-suite'); ?>
-                    </button>
-                </div>
-                
-                <?php if ($criticalScripts) : ?>
-                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('Critical Scripts Detected', 'fp-performance-suite'); ?></h4>
-                        
-                        <?php if (!empty($criticalScripts['always_exclude'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🛡️ <?php esc_html_e('Always Exclude (Core Dependencies)', 'fp-performance-suite'); ?>
-                            </h5>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
-                                <?php foreach ($criticalScripts['always_exclude'] as $script) : ?>
-                                    <span style="background: #dc2626; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px;">
-                                        <?php echo esc_html($script); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalScripts['plugin_critical'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔌 <?php esc_html_e('Plugin Critical Scripts', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalScripts['plugin_critical'] as $item) : ?>
-                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['pattern']); ?></strong> - 
-                                    <em><?php echo esc_html($item['reason']); ?></em>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalScripts['dependency_critical'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔗 <?php esc_html_e('High-Dependency Scripts', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach (array_slice($criticalScripts['dependency_critical'], 0, 5) as $item) : ?>
-                                <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
-                                    <em><?php echo esc_html($item['reason']); ?></em>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
-                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
-                                <?php esc_html_e('Aggiungi questi script alla lista di esclusione manuale qui sotto per evitare problemi.', 'fp-performance-suite'); ?>
-                            </p>
-                            <button type="submit" name="apply_critical_suggestions" class="button button-primary">
-                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                    <h4 style="margin-top: 0; color: #0969da;">🎨 <?php esc_html_e('Smart CSS Detection', 'fp-performance-suite'); ?></h4>
-                    <p style="font-size: 13px; margin-bottom: 10px;">
-                        <?php esc_html_e('Let the AI detect CSS files that should not be optimized (combined/minified) automatically.', 'fp-performance-suite'); ?>
-                    </p>
-                    <button type="submit" name="auto_detect_exclude_css" class="button button-secondary">
-                        🔍 <?php esc_html_e('Auto-Detect CSS to Exclude', 'fp-performance-suite'); ?>
-                    </button>
-                </div>
-                
-                <?php if ($excludeCss) : ?>
-                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('CSS Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
-                        
-                        <?php if (!empty($excludeCss['plugin_specific'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔌 <?php esc_html_e('Plugin-Specific CSS', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($excludeCss['plugin_specific'] as $item) : ?>
-                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
-                                    <?php if (!empty($item['src'])) : ?>
-                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
-                                    <?php endif; ?>
-                                    <em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($excludeCss['critical_files'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🎯 <?php esc_html_e('Critical Theme Files', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($excludeCss['critical_files'] as $item) : ?>
-                                <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
-                                    <?php if (!empty($item['src'])) : ?>
-                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
-                                    <?php endif; ?>
-                                    <em style="color: #0369a1;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($excludeCss['admin_styles'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                ⚙️ <?php esc_html_e('Admin Styles', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach (array_slice($excludeCss['admin_styles'], 0, 5) as $item) : ?>
-                                <div style="background: #f3e8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
-                                    <em style="color: #7c3aed;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
-                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
-                                <?php esc_html_e('Aggiungi questi CSS alla lista di esclusione qui sotto per evitare problemi di layout.', 'fp-performance-suite'); ?>
-                            </p>
-                            <button type="submit" name="apply_css_exclusions" class="button button-primary">
-                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
                 <p>
                     <label for="exclude_css"><?php esc_html_e('Exclude CSS from optimization', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_css" id="exclude_css" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\nstyle-handle\n/wp-content/themes/mytheme/custom.css', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_css'] ?? ''); ?></textarea>
                     <span class="description"><?php esc_html_e('CSS files to exclude from minification and combine. Use script handle or partial URL.', 'fp-performance-suite'); ?></span>
                 </p>
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                    <h4 style="margin-top: 0; color: #0969da;">⚡ <?php esc_html_e('Smart JavaScript Detection', 'fp-performance-suite'); ?></h4>
-                    <p style="font-size: 13px; margin-bottom: 10px;">
-                        <?php esc_html_e('Let the AI detect JavaScript files that should not be optimized (deferred/combined) automatically.', 'fp-performance-suite'); ?>
-                    </p>
-                    <button type="submit" name="auto_detect_exclude_js" class="button button-secondary">
-                        🔍 <?php esc_html_e('Auto-Detect JS to Exclude', 'fp-performance-suite'); ?>
-                    </button>
-                </div>
-                
-                <?php if ($excludeJs) : ?>
-                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('JavaScript Files to Exclude Detected', 'fp-performance-suite'); ?></h4>
-                        
-                        <?php if (!empty($excludeJs['plugin_specific'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔌 <?php esc_html_e('Plugin-Specific JavaScript', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($excludeJs['plugin_specific'] as $item) : ?>
-                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong><br>
-                                    <?php if (!empty($item['src'])) : ?>
-                                        <small style="color: #555;"><?php echo esc_html($item['src']); ?></small><br>
-                                    <?php endif; ?>
-                                    <em style="color: #b45309;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($excludeJs['core_dependencies'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔗 <?php esc_html_e('Core Dependencies', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach (array_slice($excludeJs['core_dependencies'], 0, 5) as $item) : ?>
-                                <div style="background: #e0e7ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
-                                    <em style="color: #4338ca;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #6366f1; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($excludeJs['inline_dependent'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                📝 <?php esc_html_e('Scripts with Inline Code', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach (array_slice($excludeJs['inline_dependent'], 0, 5) as $item) : ?>
-                                <div style="background: #fee2e2; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html($item['handle']); ?></strong> - 
-                                    <em style="color: #dc2626;"><?php echo esc_html($item['reason']); ?></em>
-                                    <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($item['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
-                                💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong>
-                                <?php esc_html_e('Aggiungi questi script alla lista di esclusione qui sotto per evitare problemi di funzionalità.', 'fp-performance-suite'); ?>
-                            </p>
-                            <button type="submit" name="apply_js_exclusions" class="button button-primary">
-                                ✅ <?php esc_html_e('Applica Suggerimenti Automaticamente', 'fp-performance-suite'); ?>
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
                 <p>
                     <label for="exclude_js"><?php esc_html_e('Exclude JavaScript from optimization', 'fp-performance-suite'); ?></label>
                     <textarea name="exclude_js" id="exclude_js" rows="4" class="large-text code" placeholder="<?php esc_attr_e('One handle or URL per line. Examples:\njquery\njquery-core\n/wp-includes/js/jquery/jquery.js', 'fp-performance-suite'); ?>"><?php echo esc_textarea($settings['exclude_js'] ?? ''); ?></textarea>
@@ -894,118 +969,6 @@ class Assets extends AbstractPage
                 <p class="description" style="margin-left: 30px;">
                     <?php esc_html_e('Preload the most important assets to improve initial page load time.', 'fp-performance-suite'); ?>
                 </p>
-                
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                    <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Asset Detection', 'fp-performance-suite'); ?></h4>
-                    <p style="font-size: 13px; margin-bottom: 10px;">
-                        <?php esc_html_e('Let the AI automatically detect critical assets (CSS, images, fonts) that should be preloaded for optimal performance.', 'fp-performance-suite'); ?>
-                    </p>
-                    <button type="submit" name="auto_detect_critical_assets" class="button button-secondary">
-                        🔍 <?php esc_html_e('Auto-Detect Critical Assets', 'fp-performance-suite'); ?>
-                    </button>
-                </div>
-                
-                <?php if ($criticalAssets) : ?>
-                    <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                        <h4 style="margin-top: 0; color: #059669;">✨ <?php esc_html_e('Critical Assets Detected', 'fp-performance-suite'); ?></h4>
-                        
-                        <?php if (!empty($criticalAssets['css'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🎨 <?php esc_html_e('Critical CSS Files', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalAssets['css'] as $asset) : ?>
-                                <div style="background: #e0f2fe; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
-                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
-                                    <em style="color: #0369a1;"><?php echo esc_html($asset['reason']); ?></em>
-                                    <span style="background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalAssets['images'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🖼️ <?php esc_html_e('Critical Images', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalAssets['images'] as $asset) : ?>
-                                <div style="background: #fef3c7; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong>
-                                    <?php if (isset($asset['dimensions'])) : ?>
-                                        <span style="color: #666;">(<?php echo esc_html($asset['dimensions']); ?>)</span>
-                                    <?php endif; ?>
-                                    <br>
-                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
-                                    <em style="color: #b45309;"><?php echo esc_html($asset['reason']); ?></em>
-                                    <span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalAssets['fonts'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                🔤 <?php esc_html_e('Critical Fonts', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalAssets['fonts'] as $asset) : ?>
-                                <div style="background: #f3e8ff; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
-                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
-                                    <em style="color: #7c3aed;"><?php echo esc_html($asset['reason']); ?></em>
-                                    <span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalAssets['js'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                ⚡ <?php esc_html_e('Critical JavaScript', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalAssets['js'] as $asset) : ?>
-                                <div style="background: #fee2e2; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <strong><?php echo esc_html(basename($asset['url'])); ?></strong><br>
-                                    <small style="color: #555;"><?php echo esc_html($asset['url']); ?></small><br>
-                                    <em style="color: #dc2626;"><?php echo esc_html($asset['reason']); ?></em>
-                                    <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
-                                        <?php echo esc_html(round($asset['confidence'] * 100)); ?>% confidence
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($criticalAssets['summary']['recommendations'])) : ?>
-                            <h5 style="font-size: 13px; text-transform: uppercase; color: #666; margin-top: 15px;">
-                                💡 <?php esc_html_e('Recommendations', 'fp-performance-suite'); ?>
-                            </h5>
-                            <?php foreach ($criticalAssets['summary']['recommendations'] as $rec) : ?>
-                                <div style="background: <?php echo $rec['type'] === 'warning' ? '#fef3c7' : '#dbeafe'; ?>; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 12px;">
-                                    <?php echo $rec['type'] === 'warning' ? '⚠️' : 'ℹ️'; ?> <?php echo esc_html($rec['message']); ?>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        
-                        <div style="background: #d1fae5; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #065f46;">
-                                💡 <strong><?php esc_html_e('Summary:', 'fp-performance-suite'); ?></strong>
-                                <?php printf(
-                                    __('Found %d critical assets: %d CSS, %d images, %d fonts, %d JS', 'fp-performance-suite'),
-                                    $criticalAssets['summary']['total_assets'],
-                                    $criticalAssets['summary']['by_type']['css'],
-                                    $criticalAssets['summary']['by_type']['images'],
-                                    $criticalAssets['summary']['by_type']['fonts'],
-                                    $criticalAssets['summary']['by_type']['js']
-                                ); ?>
-                            </p>
-                            <button type="submit" name="apply_critical_assets_suggestions" class="button button-primary">
-                                ✅ <?php esc_html_e('Apply Suggestions Automatically', 'fp-performance-suite'); ?>
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
                 
                 <p>
                     <label for="critical_assets">
