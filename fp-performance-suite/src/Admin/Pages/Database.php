@@ -103,12 +103,16 @@ class Database extends AbstractPage
                 $message = sprintf(__('Ottimizzate %d tabelle.', 'fp-performance-suite'), count($results['optimized'] ?? []));
             }
             if (isset($_POST['enable_object_cache'])) {
-                $result = $objectCache->install();
-                $message = $result['message'];
+                $settings = $objectCache->settings();
+                $settings['enabled'] = true;
+                $objectCache->update($settings);
+                $message = __('Object Cache abilitato.', 'fp-performance-suite');
             }
             if (isset($_POST['disable_object_cache'])) {
-                $result = $objectCache->uninstall();
-                $message = $result['message'];
+                $settings = $objectCache->settings();
+                $settings['enabled'] = false;
+                $objectCache->update($settings);
+                $message = __('Object Cache disabilitato.', 'fp-performance-suite');
             }
             // Nuove azioni - verifica disponibilità servizi
             if (isset($_POST['convert_to_innodb']) && $optimizer) {
@@ -167,8 +171,20 @@ class Database extends AbstractPage
         // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
         $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
-        $cacheInfo = $objectCache->getBackendInfo();
-        $cacheStats = $objectCache->getStatistics();
+        
+        // Object Cache - usa metodi esistenti
+        $cacheSettings = $objectCache->settings();
+        $cacheStats = $objectCache->getStats();
+        $cacheEnabled = $cacheSettings['enabled'] ?? false;
+        $cacheDriver = $cacheSettings['driver'] ?? 'none';
+        
+        // Crea struttura compatibile per la vista
+        $cacheInfo = [
+            'available' => $this->isObjectCacheAvailable(),
+            'enabled' => $cacheEnabled,
+            'name' => ucfirst($cacheDriver),
+            'description' => $this->getDriverDescription($cacheDriver),
+        ];
         
         // Nuovi dati avanzati - solo se i servizi sono disponibili
         $fragmentation = $optimizer ? $optimizer->analyzeFragmentation() : ['fragmented_tables' => [], 'total_wasted_mb' => 0];
@@ -290,18 +306,25 @@ class Database extends AbstractPage
                     <?php if ($cacheInfo['enabled']) : ?>
                         <p><strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong> <span style="color: #46b450;">● <?php esc_html_e('Attivo', 'fp-performance-suite'); ?></span></p>
                         
-                        <?php if ($cacheStats['enabled']) : ?>
+                        <?php 
+                        $hits = $cacheStats['hits'] ?? 0;
+                        $misses = $cacheStats['misses'] ?? 0;
+                        $total = $hits + $misses;
+                        $ratio = $total > 0 ? round(($hits / $total) * 100, 1) : 0;
+                        ?>
+                        
+                        <?php if ($hits > 0 || $misses > 0) : ?>
                             <div class="fp-ps-grid three" style="margin: 20px 0;">
                                 <div class="fp-ps-stat-box">
-                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($cacheStats['hits'] ?? 0)); ?></div>
+                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($hits)); ?></div>
                                     <div class="stat-label"><?php esc_html_e('Cache Hits', 'fp-performance-suite'); ?></div>
                                 </div>
                                 <div class="fp-ps-stat-box">
-                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($cacheStats['misses'] ?? 0)); ?></div>
+                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($misses)); ?></div>
                                     <div class="stat-label"><?php esc_html_e('Cache Misses', 'fp-performance-suite'); ?></div>
                                 </div>
                                 <div class="fp-ps-stat-box">
-                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($cacheStats['ratio'] ?? 0, 1)); ?>%</div>
+                                    <div class="stat-value"><?php echo esc_html(number_format_i18n($ratio, 1)); ?>%</div>
                                     <div class="stat-label"><?php esc_html_e('Hit Ratio', 'fp-performance-suite'); ?></div>
                                 </div>
                             </div>
@@ -852,5 +875,43 @@ class Database extends AbstractPage
         header('Content-Length: ' . strlen($content));
         echo $content;
         exit;
+    }
+    
+    /**
+     * Verifica se object cache è disponibile
+     */
+    private function isObjectCacheAvailable(): bool
+    {
+        // Verifica Redis
+        if (class_exists('Redis')) {
+            return true;
+        }
+        
+        // Verifica Memcached
+        if (class_exists('Memcached')) {
+            return true;
+        }
+        
+        // Verifica APCu
+        if (function_exists('apcu_fetch')) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Ottieni descrizione del driver
+     */
+    private function getDriverDescription(string $driver): string
+    {
+        $descriptions = [
+            'redis' => __('Redis è il backend più performante. Ideale per siti ad alto traffico.', 'fp-performance-suite'),
+            'memcached' => __('Memcached è veloce e affidabile. Ottimo per siti di medie dimensioni.', 'fp-performance-suite'),
+            'apcu' => __('APCu è un cache in-memory PHP. Buono per hosting condivisi.', 'fp-performance-suite'),
+            'none' => __('Nessun backend di object caching configurato.', 'fp-performance-suite'),
+        ];
+        
+        return $descriptions[$driver] ?? $descriptions['none'];
     }
 }
