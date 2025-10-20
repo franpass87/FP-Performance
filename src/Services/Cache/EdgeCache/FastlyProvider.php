@@ -38,7 +38,7 @@ class FastlyProvider implements EdgeCacheProvider
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('Fastly purge all failed', ['error' => $response->get_error_message()]);
+            Logger::error('Fastly purge all failed', null, ['error' => $response->get_error_message()]);
             return false;
         }
 
@@ -71,7 +71,7 @@ class FastlyProvider implements EdgeCacheProvider
             ]);
 
             if (is_wp_error($response)) {
-                Logger::error('Fastly purge URL failed', [
+                Logger::error('Fastly purge URL failed', null, [
                     'url' => $url,
                     'error' => $response->get_error_message(),
                 ]);
@@ -109,7 +109,7 @@ class FastlyProvider implements EdgeCacheProvider
             ]);
 
             if (is_wp_error($response)) {
-                Logger::error('Fastly purge tag failed', [
+                Logger::error('Fastly purge tag failed', null, [
                     'tag' => $tag,
                     'error' => $response->get_error_message(),
                 ]);

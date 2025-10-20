@@ -82,7 +82,7 @@ class ObjectCacheManager
         // Validate backend availability before enabling
         if ($new['enabled']) {
             if (!$this->isBackendAvailable($new)) {
-                Logger::error('Cannot enable object cache: no backend available', [
+                Logger::error('Cannot enable object cache: no backend available', null, [
                     'driver' => $new['driver']
                 ]);
                 // Don't enable if backend is not available
@@ -156,9 +156,8 @@ class ObjectCacheManager
                 return $this->connectMemcached($settings);
             }
         } catch (\Exception $e) {
-            Logger::error('Object cache connection failed', [
+            Logger::error('Object cache connection failed', $e, [
                 'driver' => $driver,
-                'error' => $e->getMessage(),
             ]);
             return false;
         }
@@ -217,7 +216,7 @@ class ObjectCacheManager
 
             return true;
         } catch (\Exception $e) {
-            Logger::error('Redis connection failed', ['error' => $e->getMessage()]);
+            Logger::error('Redis connection failed', $e);
             return false;
         }
     }
@@ -260,7 +259,7 @@ class ObjectCacheManager
 
             return true;
         } catch (\Exception $e) {
-            Logger::error('Memcached connection failed', ['error' => $e->getMessage()]);
+            Logger::error('Memcached connection failed', $e);
             return false;
         }
     }
@@ -284,7 +283,7 @@ class ObjectCacheManager
     {
         // Check WP_CONTENT_DIR is writable
         if (!is_writable(WP_CONTENT_DIR)) {
-            Logger::error('Cannot install object-cache.php: WP_CONTENT_DIR is not writable', [
+            Logger::error('Cannot install object-cache.php: WP_CONTENT_DIR is not writable', null, [
                 'path' => WP_CONTENT_DIR
             ]);
             return false;
@@ -296,7 +295,7 @@ class ObjectCacheManager
         $templatesDir = FP_PERF_SUITE_DIR . '/templates';
         if (!is_dir($templatesDir)) {
             if (!mkdir($templatesDir, 0755, true)) {
-                Logger::error('Failed to create templates directory', [
+                Logger::error('Failed to create templates directory', null, [
                     'path' => $templatesDir
                 ]);
             }
@@ -311,7 +310,7 @@ class ObjectCacheManager
 
         // Verify template file was created successfully
         if (!file_exists($templatePath) || !is_readable($templatePath)) {
-            Logger::error('Object cache template file not found or not readable', [
+            Logger::error('Object cache template file not found or not readable', null, [
                 'path' => $templatePath
             ]);
             return false;
@@ -319,7 +318,7 @@ class ObjectCacheManager
 
         // Copy drop-in file
         if (!copy($templatePath, $dropInPath)) {
-            Logger::error('Failed to install object-cache.php drop-in', [
+            Logger::error('Failed to install object-cache.php drop-in', null, [
                 'from' => $templatePath,
                 'to' => $dropInPath
             ]);
@@ -469,7 +468,7 @@ PHP;
                 return $this->connection->flush();
             }
         } catch (\Exception $e) {
-            Logger::error('Failed to flush object cache', ['error' => $e->getMessage()]);
+            Logger::error('Failed to flush object cache', $e);
         }
 
         return false;
@@ -509,7 +508,7 @@ PHP;
                 }
             }
         } catch (\Exception $e) {
-            Logger::error('Failed to get cache stats', ['error' => $e->getMessage()]);
+            Logger::error('Failed to get cache stats', $e);
         }
 
         return $stats;

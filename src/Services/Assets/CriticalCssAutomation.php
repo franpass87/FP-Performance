@@ -141,7 +141,7 @@ class CriticalCssAutomation
                 return $this->extractViaCriticalCssCom($url, $settings);
             }
         } catch (\Exception $e) {
-            Logger::error('Critical CSS extraction failed', [
+            Logger::error('Critical CSS extraction failed', $e, [
                 'url' => $url,
                 'method' => $method,
                 'error' => $e->getMessage(),
@@ -167,7 +167,7 @@ class CriticalCssAutomation
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('Failed to fetch page', ['url' => $url, 'error' => $response->get_error_message()]);
+            Logger::error('Failed to fetch page', null, ['url' => $url, 'error' => $response->get_error_message()]);
             return null;
         }
 
@@ -302,7 +302,7 @@ class CriticalCssAutomation
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('CriticalCSS.com API error', ['error' => $response->get_error_message()]);
+            Logger::error('CriticalCSS.com API error', null, ['error' => $response->get_error_message()]);
             return null;
         }
 

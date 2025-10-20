@@ -161,9 +161,8 @@ class EdgeCacheManager
             Logger::info('Edge cache provider initialized', ['provider' => $provider]);
             return true;
         } catch (\Exception $e) {
-            Logger::error('Failed to initialize edge cache provider', [
+            Logger::error('Failed to initialize edge cache provider', $e, [
                 'provider' => $provider,
-                'error' => $e->getMessage(),
             ]);
             return false;
         }

@@ -51,7 +51,7 @@ class Media extends AbstractPage
         $converter = $this->container->get(WebPConverter::class);
         $message = '';
         $bulkResult = null;
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_media_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_media_nonce']), 'fp-ps-media')) {
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_media_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_media_nonce']), 'fp_ps_media')) {
             if (isset($_POST['save_webp'])) {
                 $converter->update([
                     'enabled' => !empty($_POST['webp_enabled']),
@@ -83,7 +83,7 @@ class Media extends AbstractPage
         <section class="fp-ps-card">
             <h2><?php esc_html_e('WebP Conversion', 'fp-performance-suite'); ?></h2>
             <form method="post">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="save_webp" value="1" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -269,7 +269,7 @@ class Media extends AbstractPage
             
             <!-- Bulk Conversion Form -->
             <form method="post" class="fp-ps-bulk-convert-form">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="bulk_convert" value="1" />
                 
                 <div class="fp-ps-bulk-convert-controls">

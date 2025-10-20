@@ -42,7 +42,7 @@ class CloudflareProvider implements EdgeCacheProvider
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('Cloudflare purge all failed', ['error' => $response->get_error_message()]);
+            Logger::error('Cloudflare purge all failed', null, ['error' => $response->get_error_message()]);
             return false;
         }
 
@@ -52,7 +52,7 @@ class CloudflareProvider implements EdgeCacheProvider
         if ($success) {
             Logger::info('Cloudflare cache purged completely');
         } else {
-            Logger::error('Cloudflare purge failed', ['errors' => $data['errors'] ?? []]);
+            Logger::error('Cloudflare purge failed', null, ['errors' => $data['errors'] ?? []]);
         }
 
         return $success;
@@ -81,7 +81,7 @@ class CloudflareProvider implements EdgeCacheProvider
             ]);
 
             if (is_wp_error($response)) {
-                Logger::error('Cloudflare purge URLs failed', ['error' => $response->get_error_message()]);
+                Logger::error('Cloudflare purge URLs failed', null, ['error' => $response->get_error_message()]);
                 $allSuccess = false;
                 continue;
             }
@@ -89,7 +89,7 @@ class CloudflareProvider implements EdgeCacheProvider
             $data = json_decode(wp_remote_retrieve_body($response), true);
             
             if (empty($data['success'])) {
-                Logger::error('Cloudflare purge URLs failed', ['errors' => $data['errors'] ?? []]);
+                Logger::error('Cloudflare purge URLs failed', null, ['errors' => $data['errors'] ?? []]);
                 $allSuccess = false;
             }
         }
@@ -124,7 +124,7 @@ class CloudflareProvider implements EdgeCacheProvider
             ]);
 
             if (is_wp_error($response)) {
-                Logger::error('Cloudflare purge tags failed', ['error' => $response->get_error_message()]);
+                Logger::error('Cloudflare purge tags failed', null, ['error' => $response->get_error_message()]);
                 $allSuccess = false;
                 continue;
             }
@@ -132,7 +132,7 @@ class CloudflareProvider implements EdgeCacheProvider
             $data = json_decode(wp_remote_retrieve_body($response), true);
             
             if (empty($data['success'])) {
-                Logger::error('Cloudflare purge tags failed', ['errors' => $data['errors'] ?? []]);
+                Logger::error('Cloudflare purge tags failed', null, ['errors' => $data['errors'] ?? []]);
                 $allSuccess = false;
             }
         }
@@ -264,7 +264,7 @@ class CloudflareProvider implements EdgeCacheProvider
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('Cloudflare dev mode toggle failed', ['error' => $response->get_error_message()]);
+            Logger::error('Cloudflare dev mode toggle failed', null, ['error' => $response->get_error_message()]);
             return false;
         }
 

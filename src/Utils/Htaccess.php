@@ -228,7 +228,7 @@ class Htaccess
         
         try {
             if (!$this->fs->exists($backupPath)) {
-                Logger::error('.htaccess backup not found', ['path' => $backupPath]);
+                Logger::error('.htaccess backup not found', null, ['path' => $backupPath]);
                 return false;
             }
 

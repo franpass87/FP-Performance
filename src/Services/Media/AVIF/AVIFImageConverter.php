@@ -217,9 +217,8 @@ class AVIFImageConverter
                 return $this->convertWithImagick($source, $destination, $avifQuality, $settings);
             }
         } catch (\Exception $e) {
-            Logger::error('AVIF conversion failed', [
+            Logger::error('AVIF conversion failed', $e, [
                 'source' => basename($source),
-                'error' => $e->getMessage(),
             ]);
         }
 

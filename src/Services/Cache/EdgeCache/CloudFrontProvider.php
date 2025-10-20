@@ -93,7 +93,7 @@ class CloudFrontProvider implements EdgeCacheProvider
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('CloudFront invalidation failed', ['error' => $response->get_error_message()]);
+            Logger::error('CloudFront invalidation failed', null, ['error' => $response->get_error_message()]);
             return false;
         }
 
@@ -104,7 +104,7 @@ class CloudFrontProvider implements EdgeCacheProvider
             return true;
         }
 
-        Logger::error('CloudFront invalidation failed', [
+        Logger::error('CloudFront invalidation failed', null, [
             'code' => $code,
             'response' => wp_remote_retrieve_body($response),
         ]);

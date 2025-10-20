@@ -258,7 +258,7 @@ class Routes
         $result = $manager->apply($id);
         
         if (isset($result['error'])) {
-            Logger::error('Preset apply failed', ['preset_id' => $id, 'error' => $result['error']]);
+            Logger::error('Preset apply failed', null, ['preset_id' => $id, 'error' => $result['error']]);
             return new WP_Error('fp_ps_preset', esc_html($result['error']), ['status' => 400]);
         }
         

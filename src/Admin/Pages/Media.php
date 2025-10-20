@@ -58,7 +58,7 @@ class Media extends AbstractPage
         $message = '';
         $bulkResult = null;
         
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_media_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_media_nonce']), 'fp-ps-media')) {
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_media_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_media_nonce']), 'fp_ps_media')) {
             // Determina quale form è stato inviato
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
@@ -128,7 +128,7 @@ class Media extends AbstractPage
         <section class="fp-ps-card">
             <h2><?php esc_html_e('WebP Conversion', 'fp-performance-suite'); ?></h2>
             <form method="post">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="form_type" value="webp" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -342,7 +342,7 @@ class Media extends AbstractPage
             
             <!-- Bulk Conversion Form -->
             <form id="fp-ps-webp-bulk-form" method="post" class="fp-ps-bulk-convert-form">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="bulk_convert" value="1" />
                 
                 <div class="fp-ps-bulk-convert-controls">
@@ -447,7 +447,7 @@ class Media extends AbstractPage
                 <?php endif; ?>
             </p>
             <form method="post">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="form_type" value="avif" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -561,7 +561,7 @@ class Media extends AbstractPage
             <h2><?php esc_html_e('Lazy Loading', 'fp-performance-suite'); ?></h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Carica immagini e iframe solo quando sono visibili nel viewport dell\'utente', 'fp-performance-suite'); ?></p>
             <form method="post">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="form_type" value="lazy_load" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -621,7 +621,7 @@ class Media extends AbstractPage
             <h2><?php esc_html_e('Ottimizzazione Immagini', 'fp-performance-suite'); ?></h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Previene Cumulative Layout Shift (CLS) aggiungendo dimensioni esplicite alle immagini', 'fp-performance-suite'); ?></p>
             <form method="post">
-                <?php wp_nonce_field('fp-ps-media', 'fp_ps_media_nonce'); ?>
+                <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="form_type" value="image_optimizer" />
                 <label class="fp-ps-toggle">
                     <span class="info">

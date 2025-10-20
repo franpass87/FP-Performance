@@ -130,7 +130,7 @@ class InstallationRecovery
         }
 
         if (!empty($missingFiles)) {
-            Logger::error('Missing critical files', ['files' => $missingFiles]);
+            Logger::error('Missing critical files', null, ['files' => $missingFiles]);
             return false;
         }
 

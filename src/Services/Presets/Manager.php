@@ -88,7 +88,7 @@ class Manager
             $customPresets = get_option('fp_ps_custom_presets', []);
             
             if (!isset($customPresets[$customKey])) {
-                Logger::error('Custom preset not found', ['preset_id' => $id, 'custom_key' => $customKey]);
+                Logger::error('Custom preset not found', null, ['preset_id' => $id, 'custom_key' => $customKey]);
                 return ['error' => __('Custom preset not found', 'fp-performance-suite')];
             }
             
@@ -98,7 +98,7 @@ class Manager
             // Standard preset
             $preset = $this->presets()[$id] ?? null;
             if (!$preset) {
-                Logger::error('Preset not found', ['preset_id' => $id]);
+                Logger::error('Preset not found', null, ['preset_id' => $id]);
                 return ['error' => __('Preset not found', 'fp-performance-suite')];
             }
         }
@@ -120,7 +120,7 @@ class Manager
                 ];
                 Logger::debug('Current settings retrieved successfully');
             } catch (\Throwable $e) {
-                Logger::error('Failed to retrieve current settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                Logger::error('Failed to retrieve current settings', $e);
                 throw new \RuntimeException('Failed to retrieve current settings: ' . $e->getMessage(), 0, $e);
             }
             
@@ -130,7 +130,7 @@ class Manager
                 $this->pageCache->update($config['page_cache'] ?? []);
                 Logger::debug('Page cache settings applied');
             } catch (\Throwable $e) {
-                Logger::error('Failed to update page cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                Logger::error('Failed to update page cache', $e);
                 throw new \RuntimeException('Failed to update page cache: ' . $e->getMessage(), 0, $e);
             }
             
@@ -140,7 +140,7 @@ class Manager
                     $this->headers->update(array_merge($this->headers->settings(), ['enabled' => !empty($config['browser_cache']['enabled'])]));
                     Logger::debug('Browser cache settings applied');
                 } catch (\Throwable $e) {
-                    Logger::error('Failed to update browser cache', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    Logger::error('Failed to update browser cache', $e);
                     throw new \RuntimeException('Failed to update browser cache: ' . $e->getMessage(), 0, $e);
                 }
             }
@@ -155,7 +155,7 @@ class Manager
                 $this->optimizer->update($assetSettings);
                 Logger::debug('Asset settings applied');
             } catch (\Throwable $e) {
-                Logger::error('Failed to update asset settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                Logger::error('Failed to update asset settings', $e);
                 throw new \RuntimeException('Failed to update asset settings: ' . $e->getMessage(), 0, $e);
             }
             
@@ -165,7 +165,7 @@ class Manager
                     $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
                     Logger::debug('WebP settings applied');
                 } catch (\Throwable $e) {
-                    Logger::error('Failed to update WebP settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    Logger::error('Failed to update WebP settings', $e);
                     throw new \RuntimeException('Failed to update WebP settings: ' . $e->getMessage(), 0, $e);
                 }
             }
@@ -176,7 +176,7 @@ class Manager
                     $this->cleaner->update(array_merge($this->cleaner->settings(), $config['db']));
                     Logger::debug('Database settings applied');
                 } catch (\Throwable $e) {
-                    Logger::error('Failed to update database settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    Logger::error('Failed to update database settings', $e);
                     throw new \RuntimeException('Failed to update database settings: ' . $e->getMessage(), 0, $e);
                 }
             }
@@ -187,7 +187,7 @@ class Manager
                     $this->lazyLoad->update(array_merge($this->lazyLoad->settings(), $config['lazy_load']));
                     Logger::debug('Lazy load settings applied');
                 } catch (\Throwable $e) {
-                    Logger::error('Failed to update lazy load settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                    Logger::error('Failed to update lazy load settings', $e);
                     throw new \RuntimeException('Failed to update lazy load settings: ' . $e->getMessage(), 0, $e);
                 }
             }
@@ -201,14 +201,14 @@ class Manager
                 ]);
                 Logger::debug('Preset metadata saved');
             } catch (\Throwable $e) {
-                Logger::error('Failed to save preset metadata', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                Logger::error('Failed to save preset metadata', $e);
                 throw new \RuntimeException('Failed to save preset metadata: ' . $e->getMessage(), 0, $e);
             }
             
             Logger::info('Preset applied successfully', ['preset_id' => $id]);
             return ['success' => true];
         } catch (\Throwable $e) {
-            Logger::error('Failed to apply preset', ['preset_id' => $id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Logger::error('Failed to apply preset', $e, ['preset_id' => $id]);
             return ['error' => sprintf(__('Failed to apply preset: %s', 'fp-performance-suite'), $e->getMessage())];
         }
     }

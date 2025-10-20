@@ -26,11 +26,13 @@ class Logger
     /**
      * Log an error message
      */
-    public static function error(string $message, ?\Throwable $e = null): void
+    public static function error(string $message, ?\Throwable $e = null, array $context = []): void
     {
-        $context = '';
+        $contextStr = '';
+        
+        // Handle exception context
         if ($e) {
-            $context = sprintf(
+            $contextStr = sprintf(
                 ' [%s:%d] %s',
                 basename($e->getFile()),
                 $e->getLine(),
@@ -38,14 +40,19 @@ class Logger
             );
 
             if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-                $context .= "\nStack trace:\n" . $e->getTraceAsString();
+                $contextStr .= "\nStack trace:\n" . $e->getTraceAsString();
             }
         }
+        
+        // Handle additional context array
+        if (!empty($context)) {
+            $contextStr .= ' ' . wp_json_encode($context);
+        }
 
-        self::write(self::ERROR, $message . $context);
+        self::write(self::ERROR, $message . $contextStr);
 
         // Hook per monitoraggio esterno
-        do_action('fp_ps_log_error', $message, $e);
+        do_action('fp_ps_log_error', $message, $e, $context);
     }
 
     /**
@@ -127,3 +134,4 @@ class Logger
         update_option(self::OPTION_LOG_LEVEL, $level);
     }
 }
+

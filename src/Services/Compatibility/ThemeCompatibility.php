@@ -114,9 +114,7 @@ class ThemeCompatibility
             try {
                 $this->applyServiceConfig($service, $recommendation);
             } catch (\Exception $e) {
-                Logger::error('Failed to apply compatibility for ' . $service, [
-                    'error' => $e->getMessage(),
-                ]);
+                Logger::error('Failed to apply compatibility for ' . $service, $e);
             }
         }
         

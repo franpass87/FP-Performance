@@ -63,7 +63,7 @@ class ThirdPartyScriptDetector
         ]);
 
         if (is_wp_error($response)) {
-            Logger::error('Failed to scan homepage for scripts', [
+            Logger::error('Failed to scan homepage for scripts', null, [
                 'error' => $response->get_error_message(),
             ]);
             return ['detected' => [], 'new' => [], 'managed' => []];

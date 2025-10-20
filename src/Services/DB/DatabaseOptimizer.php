@@ -1115,7 +1115,7 @@ class DatabaseOptimizer
             ];
             
         } catch (\Exception $e) {
-            Logger::error('Backup failed', ['table' => $tableName, 'error' => $e->getMessage()]);
+            Logger::error('Backup failed', $e, ['table' => $tableName]);
             return [
                 'success' => false,
                 'message' => 'Errore durante il backup: ' . $e->getMessage(),
