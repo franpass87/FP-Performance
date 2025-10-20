@@ -466,7 +466,7 @@ class Security extends AbstractPage
                     <?php 
                     echo sprintf(
                         __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
-                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-tools')) . '">' . __('Tools', 'fp-performance-suite') . '</a>'
+                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-diagnostics')) . '">' . __('Diagnostica', 'fp-performance-suite') . '</a>'
                     );
                     ?>
                 </p>

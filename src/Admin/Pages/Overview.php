@@ -565,8 +565,8 @@ class Overview extends AbstractPage
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>">
                     <?php esc_html_e('Converti in WebP', 'fp-performance-suite'); ?>
                 </a>
-                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-tools')); ?>">
-                    <?php esc_html_e('Esegui Test', 'fp-performance-suite'); ?>
+                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-diagnostics')); ?>">
+                    <?php esc_html_e('Esegui Diagnostica', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>">
                     <?php esc_html_e('Visualizza Registro', 'fp-performance-suite'); ?>

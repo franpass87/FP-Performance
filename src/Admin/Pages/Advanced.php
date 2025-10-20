@@ -4,11 +4,6 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
-use FP\PerfSuite\Services\CDN\CdnManager;
-use FP\PerfSuite\Services\Compression\CompressionManager;
-use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
-use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
-use FP\PerfSuite\Services\Reports\ScheduledReports;
 use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
 use FP\PerfSuite\Services\Assets\PredictivePrefetching;
 
@@ -35,7 +30,7 @@ class Advanced extends AbstractPage
 
     public function title(): string
     {
-        return __('Advanced Features', 'fp-performance-suite');
+        return __('Funzionalità Avanzate', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -86,6 +81,13 @@ class Advanced extends AbstractPage
             <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
         <?php endif; ?>
         
+        <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
+            <p style="margin: 0;">
+                <strong>🔬 <?php esc_html_e('Funzionalità Avanzate', 'fp-performance-suite'); ?></strong><br>
+                <?php esc_html_e('Queste sono funzionalità avanzate e sperimentali per utenti esperti. Configura Critical CSS, PWA e Predictive Prefetching per portare le performance al livello successivo.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
             <input type="hidden" name="action" value="fp_ps_save_advanced">
@@ -93,41 +95,20 @@ class Advanced extends AbstractPage
             <!-- Critical CSS Section -->
             <?php echo $this->renderCriticalCssSection(); ?>
             
-            <!-- Compression Section -->
-            <?php echo $this->renderCompressionSection(); ?>
-            
-            <!-- CDN Section -->
-            <?php echo $this->renderCdnSection(); ?>
-            
-            <!-- Performance Monitoring Section -->
-            <?php echo $this->renderMonitoringSection(); ?>
-            
-            <!-- Core Web Vitals Monitor Section -->
-            <?php echo $this->renderCoreWebVitalsSection(); ?>
-            
-            <!-- Scheduled Reports Section -->
-            <?php echo $this->renderReportsSection(); ?>
-            
             <!-- PWA / Service Worker Section -->
             <?php echo $this->renderPWASection(); ?>
             
             <!-- Predictive Prefetching Section -->
             <?php echo $this->renderPrefetchingSection(); ?>
             
-            <!-- Performance Budget Section -->
-            <?php echo $this->renderPerformanceBudgetSection(); ?>
-            
-            <!-- Webhook Integration Section -->
-            <?php echo $this->renderWebhookSection(); ?>
-            
             <!-- Save Button -->
             <div class="fp-ps-card">
                 <div class="fp-ps-actions">
                     <button type="submit" class="button button-primary button-large">
-                        💾 <?php esc_html_e('Salva Tutte le Impostazioni Avanzate', 'fp-performance-suite'); ?>
+                        💾 <?php esc_html_e('Salva Impostazioni Avanzate', 'fp-performance-suite'); ?>
                     </button>
                     <p class="description" style="margin-top: 10px;">
-                        <?php esc_html_e('Salva tutte le modifiche apportate nelle sezioni sopra (Critical CSS, Compressione, CDN, Monitoring, ecc.)', 'fp-performance-suite'); ?>
+                        <?php esc_html_e('Salva tutte le modifiche apportate a Critical CSS, PWA e Prefetching.', 'fp-performance-suite'); ?>
                     </p>
                 </div>
             </div>
@@ -1412,32 +1393,11 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             // Save Critical CSS
             $this->saveCriticalCss();
             
-            // Save Compression settings
-            $this->saveCompressionSettings();
-            
-            // Save CDN settings
-            $this->saveCdnSettings();
-            
-            // Save Monitoring settings
-            $this->saveMonitoringSettings();
-            
-            // Save Core Web Vitals settings
-            $this->saveCoreWebVitalsSettings();
-            
-            // Save Reports settings
-            $this->saveReportsSettings();
-            
             // Save PWA / Service Worker settings
             $this->savePwaSettings();
             
             // Save Predictive Prefetching settings
             $this->savePrefetchingSettings();
-            
-            // Save Performance Budget settings
-            $this->savePerformanceBudgetSettings();
-            
-            // Save Webhook Integration settings
-            $this->saveWebhookSettings();
 
             // Redirect con successo
             $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));

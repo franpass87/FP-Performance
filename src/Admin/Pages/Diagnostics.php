@@ -18,6 +18,12 @@ use FP\PerfSuite\Utils\Fs;
 
 class Diagnostics extends AbstractPage
 {
+    /**
+     * Array per memorizzare i notice da mostrare all'utente
+     * @var array
+     */
+    private array $notices = [];
+
     public function slug(): string
     {
         return 'fp-performance-diagnostics';
@@ -303,8 +309,63 @@ class Diagnostics extends AbstractPage
         }
     }
 
+    /**
+     * Aggiunge un notice da mostrare all'utente
+     * 
+     * @param string $type Tipo di notice: 'success', 'error', 'warning', 'info'
+     * @param string $message Messaggio da mostrare
+     * @return void
+     */
+    private function addNotice(string $type, string $message): void
+    {
+        $this->notices[] = [
+            'type' => $type,
+            'message' => $message
+        ];
+    }
+
+    /**
+     * Renderizza tutti i notice accumulati
+     * 
+     * @return void
+     */
+    private function renderNotices(): void
+    {
+        if (empty($this->notices)) {
+            return;
+        }
+
+        foreach ($this->notices as $notice) {
+            $type = $notice['type'];
+            $message = $notice['message'];
+            
+            // Mappa i tipi di notice alle classi CSS di WordPress
+            $cssClass = 'notice';
+            switch ($type) {
+                case 'success':
+                    $cssClass .= ' notice-success';
+                    break;
+                case 'error':
+                    $cssClass .= ' notice-error';
+                    break;
+                case 'warning':
+                    $cssClass .= ' notice-warning';
+                    break;
+                case 'info':
+                default:
+                    $cssClass .= ' notice-info';
+                    break;
+            }
+            
+            echo '<div class="' . esc_attr($cssClass) . '"><p>' . wp_kses_post($message) . '</p></div>';
+        }
+    }
+
     public function render(): void
     {
+        // Gestisce le azioni POST prima di renderizzare la pagina
+        $this->handleActions();
+        
         $diagnostics = get_option('fp_ps_last_diagnostics');
         $activationError = get_option('fp_perfsuite_activation_error');
         ?>
