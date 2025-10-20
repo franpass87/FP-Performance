@@ -424,15 +424,15 @@ class Database extends AbstractPage
             
             <div class="fp-ps-grid three" style="margin: 20px 0;">
                 <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['score']); ?>%</div>
+                    <div class="stat-value" style="font-size: 36px; line-height: 1; color: white;"><?php echo esc_html($healthScore['score']); ?>%</div>
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Punteggio', 'fp-performance-suite'); ?></div>
                 </div>
                 <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['grade']); ?></div>
+                    <div class="stat-value" style="font-size: 32px; line-height: 1; color: white;"><?php echo esc_html($healthScore['grade']); ?></div>
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Voto', 'fp-performance-suite'); ?></div>
                 </div>
                 <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 24px; color: white;"><?php echo esc_html(ucfirst($healthScore['status'])); ?></div>
+                    <div class="stat-value" style="font-size: 18px; line-height: 1; color: white;"><?php echo esc_html(ucfirst($healthScore['status'])); ?></div>
                     <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Stato', 'fp-performance-suite'); ?></div>
                 </div>
             </div>
