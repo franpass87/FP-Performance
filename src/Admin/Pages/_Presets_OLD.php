@@ -47,7 +47,7 @@ class Presets extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Presets', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Preset', 'fp-performance-suite')],
         ];
     }
 

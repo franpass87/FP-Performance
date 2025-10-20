@@ -49,7 +49,7 @@ class Settings extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Configuration', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Configurazione', 'fp-performance-suite')],
         ];
     }
 

@@ -53,8 +53,8 @@ class Advanced extends AbstractPage
         return [
             'title' => $this->title(),
             'breadcrumbs' => [
-                __('FP Performance', 'fp-performance-suite'),
-                __('Advanced', 'fp-performance-suite'),
+                __('Configurazione', 'fp-performance-suite'),
+                __('Opzioni Avanzate', 'fp-performance-suite'),
             ],
         ];
     }

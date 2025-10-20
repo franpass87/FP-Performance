@@ -68,7 +68,7 @@ class Overview extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Overview', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Panoramica', 'fp-performance-suite')],
         ];
     }
 
@@ -145,18 +145,18 @@ class Overview extends AbstractPage
         <section class="fp-ps-grid three">
             <!-- Technical SEO Score -->
             <div class="fp-ps-card">
-                <h2><?php esc_html_e('Technical SEO Score', 'fp-performance-suite'); ?></h2>
+                <h2><?php esc_html_e('Punteggio Ottimizzazione', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0;">
                     <?php echo esc_html((string) $score['total']); ?><span style="font-size: 24px;">/100</span>
                 </div>
                 <p class="description">
-                    <?php esc_html_e('Configuration optimization score', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Livello di ottimizzazione della configurazione', 'fp-performance-suite'); ?>
                 </p>
             </div>
 
             <!-- Health Score -->
             <div class="fp-ps-card" style="background: <?php echo $analysis['score'] >= 70 ? '#d1fae5' : ($analysis['score'] >= 50 ? '#fef3c7' : '#fee2e2'); ?>;">
-                <h2><?php esc_html_e('Health Score', 'fp-performance-suite'); ?></h2>
+                <h2><?php esc_html_e('Stato di Salute', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0; color: <?php echo $analysis['score'] >= 70 ? '#059669' : ($analysis['score'] >= 50 ? '#d97706' : '#dc2626'); ?>;">
                     <?php echo esc_html($analysis['score']); ?><span style="font-size: 24px;">/100</span>
                 </div>
@@ -192,35 +192,35 @@ class Overview extends AbstractPage
         <!-- Metriche di Performance in Tempo Reale -->
         <section class="fp-ps-grid three">
             <div class="fp-ps-card">
-                <h3>⚡ <?php esc_html_e('Avg Load Time (7d)', 'fp-performance-suite'); ?></h3>
+                <h3>⚡ <?php esc_html_e('Tempo di Caricamento Medio (7g)', 'fp-performance-suite'); ?></h3>
                 <div class="fp-ps-score" style="font-size: 36px;">
                     <?php echo number_format($stats7days['avg_load_time'] * 1000, 0); ?><span style="font-size: 18px;">ms</span>
                 </div>
                 <p class="description">
                     <?php printf(
-                        esc_html__('Based on %s samples', 'fp-performance-suite'),
+                        esc_html__('Basato su %s campioni', 'fp-performance-suite'),
                         number_format($stats7days['samples'])
                     ); ?>
                 </p>
             </div>
             
             <div class="fp-ps-card">
-                <h3>🗄️ <?php esc_html_e('Avg DB Queries (7d)', 'fp-performance-suite'); ?></h3>
+                <h3>🗄️ <?php esc_html_e('Query Database Medie (7g)', 'fp-performance-suite'); ?></h3>
                 <div class="fp-ps-score" style="font-size: 36px;">
                     <?php echo number_format($stats7days['avg_queries'], 1); ?>
                 </div>
                 <p class="description">
-                    <?php esc_html_e('Database queries per page', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Query al database per pagina', 'fp-performance-suite'); ?>
                 </p>
             </div>
             
             <div class="fp-ps-card">
-                <h3>💾 <?php esc_html_e('Avg Memory (7d)', 'fp-performance-suite'); ?></h3>
+                <h3>💾 <?php esc_html_e('Memoria Media (7g)', 'fp-performance-suite'); ?></h3>
                 <div class="fp-ps-score" style="font-size: 36px;">
                     <?php echo number_format($stats7days['avg_memory'], 1); ?><span style="font-size: 18px;">MB</span>
                 </div>
                 <p class="description">
-                    <?php esc_html_e('Peak memory usage', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Utilizzo massimo della memoria', 'fp-performance-suite'); ?>
                 </p>
             </div>
         </section>
@@ -228,7 +228,7 @@ class Overview extends AbstractPage
         <!-- Score Breakdown e Ottimizzazioni Attive -->
         <section class="fp-ps-grid two">
             <div class="fp-ps-card">
-                <h2><?php esc_html_e('Score Breakdown', 'fp-performance-suite'); ?></h2>
+                <h2><?php esc_html_e('Dettaglio Punteggio', 'fp-performance-suite'); ?></h2>
                 <div style="margin-bottom: 15px;">
                     <?php foreach ($score['breakdown_detailed'] as $label => $details) : 
                         $statusIcon = $details['status'] === 'complete' ? '✅' : ($details['status'] === 'partial' ? '⚠️' : '❌');
@@ -270,12 +270,12 @@ class Overview extends AbstractPage
                     <?php endforeach; ?>
                 </div>
                 <p id="fp-ps-score-desc" class="description">
-                    <?php esc_html_e('Higher score indicates better technical readiness for shared hosting.', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Punteggio più alto indica miglior preparazione tecnica per hosting condiviso.', 'fp-performance-suite'); ?>
                 </p>
             </div>
 
             <div class="fp-ps-card">
-                <h2><?php esc_html_e('Active Optimizations', 'fp-performance-suite'); ?></h2>
+                <h2><?php esc_html_e('Ottimizzazioni Attive', 'fp-performance-suite'); ?></h2>
                 <ul>
                     <?php foreach ($scorer->activeOptimizations() as $opt) : ?>
                         <li>✓ <?php echo esc_html($opt); ?></li>
@@ -283,10 +283,10 @@ class Overview extends AbstractPage
                 </ul>
                 <div class="fp-ps-actions" style="margin-top: 20px;">
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-cache')); ?>">
-                        <?php esc_html_e('Configure Cache', 'fp-performance-suite'); ?>
+                        <?php esc_html_e('Configura Cache', 'fp-performance-suite'); ?>
                     </a>
                     <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-assets')); ?>">
-                        <?php esc_html_e('Configure Assets', 'fp-performance-suite'); ?>
+                        <?php esc_html_e('Configura Risorse', 'fp-performance-suite'); ?>
                     </a>
                 </div>
             </div>
@@ -449,19 +449,19 @@ class Overview extends AbstractPage
 
         <!-- Performance History Dashboard -->
         <section class="fp-ps-card" style="margin-top: 30px;">
-            <h2>📊 <?php esc_html_e('Performance History', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Track performance metrics over time to identify trends and regressions.', 'fp-performance-suite'); ?></p>
+            <h2>📊 <?php esc_html_e('Storico Performance', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Traccia le metriche di performance nel tempo per identificare tendenze e regressioni.', 'fp-performance-suite'); ?></p>
             
             <?php if (!empty($history)) : ?>
             <!-- Time Period Selector -->
             <div style="margin: 20px 0;">
                 <label for="history-period" style="font-weight: 600; margin-right: 10px;">
-                    <?php esc_html_e('Period:', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Periodo:', 'fp-performance-suite'); ?>
                 </label>
                 <select id="history-period" style="padding: 5px 10px;">
-                    <option value="7"><?php esc_html_e('Last 7 days', 'fp-performance-suite'); ?></option>
-                    <option value="30" selected><?php esc_html_e('Last 30 days', 'fp-performance-suite'); ?></option>
-                    <option value="90"><?php esc_html_e('Last 90 days', 'fp-performance-suite'); ?></option>
+                    <option value="7"><?php esc_html_e('Ultimi 7 giorni', 'fp-performance-suite'); ?></option>
+                    <option value="30" selected><?php esc_html_e('Ultimi 30 giorni', 'fp-performance-suite'); ?></option>
+                    <option value="90"><?php esc_html_e('Ultimi 90 giorni', 'fp-performance-suite'); ?></option>
                 </select>
             </div>
             
@@ -469,12 +469,12 @@ class Overview extends AbstractPage
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 30px;">
                 <!-- Load Time Trend -->
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
-                    <h3 style="margin-top: 0; font-size: 16px;">⚡ <?php esc_html_e('Load Time Trend', 'fp-performance-suite'); ?></h3>
+                    <h3 style="margin-top: 0; font-size: 16px;">⚡ <?php esc_html_e('Andamento Tempo di Caricamento', 'fp-performance-suite'); ?></h3>
                     <div class="fp-ps-chart" style="height: 200px; position: relative;">
                         <?php echo $this->renderMiniChart($history, 'load_time', '#3b82f6'); ?>
                     </div>
                     <div style="margin-top: 10px; font-size: 13px; color: #666;">
-                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <strong><?php esc_html_e('Attuale:', 'fp-performance-suite'); ?></strong>
                         <?php echo number_format(end($history)['load_time'] * 1000, 0); ?>ms
                         <?php 
                         $trend = $this->calculateTrend($history, 'load_time');
@@ -489,12 +489,12 @@ class Overview extends AbstractPage
                 
                 <!-- Database Queries Trend -->
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
-                    <h3 style="margin-top: 0; font-size: 16px;">🗄️ <?php esc_html_e('Database Queries Trend', 'fp-performance-suite'); ?></h3>
+                    <h3 style="margin-top: 0; font-size: 16px;">🗄️ <?php esc_html_e('Andamento Query Database', 'fp-performance-suite'); ?></h3>
                     <div class="fp-ps-chart" style="height: 200px; position: relative;">
                         <?php echo $this->renderMiniChart($history, 'db_queries', '#8b5cf6'); ?>
                     </div>
                     <div style="margin-top: 10px; font-size: 13px; color: #666;">
-                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <strong><?php esc_html_e('Attuale:', 'fp-performance-suite'); ?></strong>
                         <?php echo number_format(end($history)['db_queries'], 1); ?>
                         <?php 
                         $trend = $this->calculateTrend($history, 'db_queries');
@@ -509,12 +509,12 @@ class Overview extends AbstractPage
                 
                 <!-- Memory Usage Trend -->
                 <div style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
-                    <h3 style="margin-top: 0; font-size: 16px;">💾 <?php esc_html_e('Memory Usage Trend', 'fp-performance-suite'); ?></h3>
+                    <h3 style="margin-top: 0; font-size: 16px;">💾 <?php esc_html_e('Andamento Utilizzo Memoria', 'fp-performance-suite'); ?></h3>
                     <div class="fp-ps-chart" style="height: 200px; position: relative;">
                         <?php echo $this->renderMiniChart($history, 'memory', '#ec4899'); ?>
                     </div>
                     <div style="margin-top: 10px; font-size: 13px; color: #666;">
-                        <strong><?php esc_html_e('Current:', 'fp-performance-suite'); ?></strong>
+                        <strong><?php esc_html_e('Attuale:', 'fp-performance-suite'); ?></strong>
                         <?php echo number_format(end($history)['memory'] / 1024 / 1024, 1); ?>MB
                         <?php 
                         $trend = $this->calculateTrend($history, 'memory');
@@ -545,34 +545,34 @@ class Overview extends AbstractPage
             </div>
             <?php else : ?>
             <div style="padding: 40px; text-align: center; color: #666;">
-                <p style="font-size: 16px; margin-bottom: 10px;">📊 <?php esc_html_e('No historical data available yet', 'fp-performance-suite'); ?></p>
-                <p style="font-size: 14px;"><?php esc_html_e('Performance data will be collected automatically. Check back in 24 hours.', 'fp-performance-suite'); ?></p>
+                <p style="font-size: 16px; margin-bottom: 10px;">📊 <?php esc_html_e('Nessun dato storico disponibile', 'fp-performance-suite'); ?></p>
+                <p style="font-size: 14px;"><?php esc_html_e('I dati di performance verranno raccolti automaticamente. Controlla nuovamente tra 24 ore.', 'fp-performance-suite'); ?></p>
             </div>
             <?php endif; ?>
         </section>
         
         <!-- Quick Actions -->
         <section class="fp-ps-card">
-            <h2>⚙️ <?php esc_html_e('Quick Actions', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Run safe optimizations and diagnostics.', 'fp-performance-suite'); ?></p>
+            <h2>⚡ <?php esc_html_e('Azioni Rapide', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Esegui ottimizzazioni sicure e diagnostiche.', 'fp-performance-suite'); ?></p>
             <div class="fp-ps-actions">
                 <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-cache')); ?>">
-                    <?php esc_html_e('Configure Cache', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Configura Cache', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-database')); ?>">
-                    <?php esc_html_e('Database Cleanup', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Pulizia Database', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>">
-                    <?php esc_html_e('Bulk WebP Convert', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Converti in WebP', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-tools')); ?>">
-                    <?php esc_html_e('Run Tests', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Esegui Test', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>">
-                    <?php esc_html_e('View Logs', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Visualizza Registro', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url($exportUrl); ?>">
-                    <?php esc_html_e('Export CSV Summary', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Esporta Report CSV', 'fp-performance-suite'); ?>
                 </a>
             </div>
         </section>
@@ -650,7 +650,7 @@ class Overview extends AbstractPage
     public function exportCsv(): void
     {
         if (!current_user_can($this->capability())) {
-            wp_die(esc_html__('You do not have permission to export this report.', 'fp-performance-suite'));
+            wp_die(esc_html__('Non hai i permessi per esportare questo report.', 'fp-performance-suite'));
         }
 
         check_admin_referer('fp-ps-export');
@@ -672,34 +672,34 @@ class Overview extends AbstractPage
         $output = fopen('php://output', 'w');
         
         // Technical Score
-        fputcsv($output, [__('Technical SEO Score', 'fp-performance-suite'), $score['total']]);
-        fputcsv($output, [__('Health Score', 'fp-performance-suite'), $analysis['score']]);
+        fputcsv($output, [__('Punteggio Ottimizzazione', 'fp-performance-suite'), $score['total']]);
+        fputcsv($output, [__('Stato di Salute', 'fp-performance-suite'), $analysis['score']]);
         fputcsv($output, []);
         
         // Performance Metrics
-        fputcsv($output, [__('Performance Metrics (7 days)', 'fp-performance-suite')]);
-        fputcsv($output, [__('Avg Load Time (ms)', 'fp-performance-suite'), number_format($stats7days['avg_load_time'] * 1000, 0)]);
-        fputcsv($output, [__('Avg DB Queries', 'fp-performance-suite'), number_format($stats7days['avg_queries'], 1)]);
-        fputcsv($output, [__('Avg Memory (MB)', 'fp-performance-suite'), number_format($stats7days['avg_memory'], 1)]);
-        fputcsv($output, [__('Samples', 'fp-performance-suite'), $stats7days['samples']]);
+        fputcsv($output, [__('Metriche Performance (7 giorni)', 'fp-performance-suite')]);
+        fputcsv($output, [__('Tempo Medio Caricamento (ms)', 'fp-performance-suite'), number_format($stats7days['avg_load_time'] * 1000, 0)]);
+        fputcsv($output, [__('Query DB Medie', 'fp-performance-suite'), number_format($stats7days['avg_queries'], 1)]);
+        fputcsv($output, [__('Memoria Media (MB)', 'fp-performance-suite'), number_format($stats7days['avg_memory'], 1)]);
+        fputcsv($output, [__('Campioni', 'fp-performance-suite'), $stats7days['samples']]);
         fputcsv($output, []);
         
         // Score Breakdown
-        fputcsv($output, [__('Score Breakdown', 'fp-performance-suite')]);
-        fputcsv($output, [__('Category', 'fp-performance-suite'), __('Current', 'fp-performance-suite'), __('Max', 'fp-performance-suite'), __('Status', 'fp-performance-suite'), __('Suggestion', 'fp-performance-suite')]);
+        fputcsv($output, [__('Dettaglio Punteggio', 'fp-performance-suite')]);
+        fputcsv($output, [__('Categoria', 'fp-performance-suite'), __('Attuale', 'fp-performance-suite'), __('Massimo', 'fp-performance-suite'), __('Stato', 'fp-performance-suite'), __('Suggerimento', 'fp-performance-suite')]);
         foreach ($score['breakdown_detailed'] as $label => $details) {
             fputcsv($output, [
                 $label,
                 $details['current'],
                 $details['max'],
                 $details['status'],
-                $details['suggestion'] ?? __('Optimized', 'fp-performance-suite')
+                $details['suggestion'] ?? __('Ottimizzato', 'fp-performance-suite')
             ]);
         }
         fputcsv($output, []);
 
         // Active Optimizations
-        fputcsv($output, [__('Active Optimizations', 'fp-performance-suite')]);
+        fputcsv($output, [__('Ottimizzazioni Attive', 'fp-performance-suite')]);
         foreach ($active as $item) {
             fputcsv($output, [$item]);
         }
@@ -707,7 +707,7 @@ class Overview extends AbstractPage
         
         // Issues
         if (!empty($analysis['critical'])) {
-            fputcsv($output, [__('Critical Issues', 'fp-performance-suite')]);
+            fputcsv($output, [__('Problemi Critici', 'fp-performance-suite')]);
             foreach ($analysis['critical'] as $issue) {
                 fputcsv($output, [$issue['issue'], $issue['impact']]);
             }
@@ -715,7 +715,7 @@ class Overview extends AbstractPage
         }
         
         if (!empty($analysis['warnings'])) {
-            fputcsv($output, [__('Warnings', 'fp-performance-suite')]);
+            fputcsv($output, [__('Avvisi', 'fp-performance-suite')]);
             foreach ($analysis['warnings'] as $issue) {
                 fputcsv($output, [$issue['issue'], $issue['impact']]);
             }
@@ -821,13 +821,13 @@ class Overview extends AbstractPage
         $loadTimeTrend = $this->calculateTrend($history, 'load_time');
         if ($loadTimeTrend < -10) {
             $insights[] = [
-                'title' => __('Load Time Improvement', 'fp-performance-suite'),
-                'text' => sprintf(__('Load time improved by %d%% in the last 30 days', 'fp-performance-suite'), abs($loadTimeTrend)),
+                'title' => __('Miglioramento Tempo di Caricamento', 'fp-performance-suite'),
+                'text' => sprintf(__('Il tempo di caricamento è migliorato del %d%% negli ultimi 30 giorni', 'fp-performance-suite'), abs($loadTimeTrend)),
             ];
         } elseif ($loadTimeTrend > 10) {
             $insights[] = [
-                'title' => __('Load Time Degradation', 'fp-performance-suite'),
-                'text' => sprintf(__('Load time increased by %d%% - consider optimization', 'fp-performance-suite'), $loadTimeTrend),
+                'title' => __('Peggioramento Tempo di Caricamento', 'fp-performance-suite'),
+                'text' => sprintf(__('Il tempo di caricamento è aumentato del %d%% - considera un\'ottimizzazione', 'fp-performance-suite'), $loadTimeTrend),
             ];
         }
         
@@ -835,8 +835,8 @@ class Overview extends AbstractPage
         $dbTrend = $this->calculateTrend($history, 'db_queries');
         if ($dbTrend > 20) {
             $insights[] = [
-                'title' => __('Database Queries Increase', 'fp-performance-suite'),
-                'text' => sprintf(__('DB queries increased by %d%% - check for inefficient plugins', 'fp-performance-suite'), $dbTrend),
+                'title' => __('Aumento Query Database', 'fp-performance-suite'),
+                'text' => sprintf(__('Le query DB sono aumentate del %d%% - verifica plugin inefficienti', 'fp-performance-suite'), $dbTrend),
             ];
         }
         
@@ -844,8 +844,8 @@ class Overview extends AbstractPage
         $memoryTrend = $this->calculateTrend($history, 'memory');
         if ($memoryTrend > 15) {
             $insights[] = [
-                'title' => __('Memory Usage Growth', 'fp-performance-suite'),
-                'text' => sprintf(__('Memory usage increased by %d%% - may need PHP memory limit increase', 'fp-performance-suite'), $memoryTrend),
+                'title' => __('Crescita Utilizzo Memoria', 'fp-performance-suite'),
+                'text' => sprintf(__('L\'utilizzo memoria è aumentato del %d%% - potrebbe servire aumentare il limite PHP', 'fp-performance-suite'), $memoryTrend),
             ];
         }
         
@@ -857,13 +857,13 @@ class Overview extends AbstractPage
         
         if ($cv < 20) {
             $insights[] = [
-                'title' => __('Stable Performance', 'fp-performance-suite'),
-                'text' => __('Performance is consistent with low variance - excellent stability', 'fp-performance-suite'),
+                'title' => __('Performance Stabile', 'fp-performance-suite'),
+                'text' => __('Le performance sono consistenti con bassa varianza - eccellente stabilità', 'fp-performance-suite'),
             ];
         } elseif ($cv > 50) {
             $insights[] = [
-                'title' => __('Unstable Performance', 'fp-performance-suite'),
-                'text' => __('High variance detected - investigate caching or server resources', 'fp-performance-suite'),
+                'title' => __('Performance Instabile', 'fp-performance-suite'),
+                'text' => __('Rilevata alta varianza - investiga cache o risorse server', 'fp-performance-suite'),
             ];
         }
         

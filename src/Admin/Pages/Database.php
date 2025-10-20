@@ -35,7 +35,7 @@ class Database extends AbstractPage
 
     public function title(): string
     {
-        return __('Database Optimization', 'fp-performance-suite');
+        return __('Ottimizzazione Database', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -52,7 +52,7 @@ class Database extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Database', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Database', 'fp-performance-suite')],
         ];
     }
 
@@ -86,17 +86,17 @@ class Database extends AbstractPage
                     'schedule' => sanitize_text_field($_POST['schedule'] ?? 'manual'),
                     'batch' => (int) ($_POST['batch'] ?? 200),
                 ]);
-                $message = __('Database settings updated.', 'fp-performance-suite');
+                $message = __('Impostazioni database aggiornate.', 'fp-performance-suite');
             }
             if (isset($_POST['run_cleanup'])) {
                 $scope = array_map('sanitize_text_field', (array) ($_POST['cleanup_scope'] ?? []));
                 $dry = !empty($_POST['dry_run']);
                 $results = $cleaner->cleanup($scope, $dry, (int) ($_POST['batch'] ?? 200));
-                $message = $dry ? __('Dry run completed.', 'fp-performance-suite') : __('Cleanup completed.', 'fp-performance-suite');
+                $message = $dry ? __('Simulazione completata.', 'fp-performance-suite') : __('Pulizia completata.', 'fp-performance-suite');
             }
             if (isset($_POST['enable_query_monitor']) && $queryMonitor) {
                 $queryMonitor->updateSettings(['enabled' => !empty($_POST['query_monitor_enabled'])]);
-                $message = __('Query Monitor settings updated.', 'fp-performance-suite');
+                $message = __('Impostazioni monitoraggio query aggiornate.', 'fp-performance-suite');
             }
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();

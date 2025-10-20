@@ -41,7 +41,7 @@ class Logs extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Monitoring', 'fp-performance-suite'), __('Logs', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Monitoraggio', 'fp-performance-suite'), __('Registro Attività', 'fp-performance-suite')],
         ];
     }
 

@@ -18,6 +18,12 @@ class Headers
     private const OPTION = 'fp_ps_browser_cache';
     private Htaccess $htaccess;
     private Env $env;
+    
+    /**
+     * Cache in memoria per evitare query DB ripetute
+     * @var array|null
+     */
+    private ?array $cachedSettings = null;
 
     public function __construct(Htaccess $htaccess, Env $env)
     {
@@ -91,6 +97,11 @@ class Headers
      */
     public function settings(): array
     {
+        // Cache in memoria - evita query DB ripetute (ottimizzazione performance)
+        if ($this->cachedSettings !== null) {
+            return $this->cachedSettings;
+        }
+        
         $defaults = [
             'enabled' => false,
             'cache_control' => 'public, max-age=31536000',
@@ -127,7 +138,7 @@ class Headers
 
         $htaccess = $this->normalizeHtaccess($options['htaccess'] ?? $defaults['htaccess']);
 
-        return [
+        $this->cachedSettings = [
             'enabled' => !empty($options['enabled']),
             'headers' => [
                 'Cache-Control' => $cacheControl,
@@ -136,6 +147,8 @@ class Headers
             'expires_ttl' => $ttl,
             'htaccess' => $htaccess,
         ];
+        
+        return $this->cachedSettings;
     }
 
     public function update(array $settings): void
@@ -155,6 +168,9 @@ class Headers
         ];
 
         update_option(self::OPTION, $new);
+        
+        // Invalida cache in memoria dopo l'aggiornamento
+        $this->cachedSettings = null;
 
         if (!$new['enabled']) {
             $this->htaccess->removeSection('FP-Performance-Suite');

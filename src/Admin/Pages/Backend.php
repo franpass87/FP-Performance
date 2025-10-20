@@ -40,7 +40,7 @@ class Backend extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Backend', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Backend', 'fp-performance-suite')],
         ];
     }
 

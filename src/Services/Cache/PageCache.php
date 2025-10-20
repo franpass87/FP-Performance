@@ -35,6 +35,12 @@ class PageCache implements CacheInterface
     private Env $env;
     private bool $started = false;
     private int $bufferLevel = 0;
+    
+    /**
+     * Cache in memoria per evitare query DB ripetute
+     * @var array|null
+     */
+    private ?array $cachedSettings = null;
 
     public function __construct(Fs $fs, Env $env)
     {
@@ -67,6 +73,11 @@ class PageCache implements CacheInterface
      */
     public function settings(): array
     {
+        // Cache in memoria - evita query DB ripetute (ottimizzazione performance)
+        if ($this->cachedSettings !== null) {
+            return $this->cachedSettings;
+        }
+        
         $defaults = [
             'enabled' => false,
             'ttl' => self::DEFAULT_TTL,
@@ -85,7 +96,7 @@ class PageCache implements CacheInterface
 
         $normalizedTtl = $ttl > 0 ? $ttl : 0;
 
-        return [
+        $this->cachedSettings = [
             'enabled' => $enabled,
             'ttl' => $normalizedTtl,
             'exclude_urls' => $options['exclude_urls'] ?? '',
@@ -94,6 +105,8 @@ class PageCache implements CacheInterface
             'warming_urls' => $options['warming_urls'] ?? '',
             'warming_schedule' => $options['warming_schedule'] ?? 'hourly',
         ];
+        
+        return $this->cachedSettings;
     }
 
     public function update(array $settings): void
@@ -137,6 +150,9 @@ class PageCache implements CacheInterface
                 ? $settings['warming_schedule'] 
                 : $current['warming_schedule'],
         ]);
+        
+        // Invalida cache in memoria dopo l'aggiornamento
+        $this->cachedSettings = null;
     }
 
     public function cacheDir(): string

@@ -48,7 +48,7 @@ class Security extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Security', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Sicurezza', 'fp-performance-suite')],
         ];
     }
 

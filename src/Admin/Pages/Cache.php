@@ -9,6 +9,7 @@ use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
+use FP\PerfSuite\Utils\FormValidator;
 
 use function __;
 use function checked;
@@ -47,7 +48,7 @@ class Cache extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Cache', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Cache', 'fp-performance-suite')],
         ];
     }
 
@@ -67,33 +68,46 @@ class Cache extends AbstractPage
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_cache_nonce']), 'fp-ps-cache')) {
             if (isset($_POST['fp_ps_page_cache'])) {
-                $enabledRequested = !empty($_POST['page_cache_enabled']);
-                $ttlRequested = (int) ($_POST['page_cache_ttl'] ?? 3600);
-                
-                // Parse exclusions
-                $excludeUrls = !empty($_POST['cache_exclude_urls']) ? wp_unslash($_POST['cache_exclude_urls']) : '';
-                $excludeQueryStrings = !empty($_POST['cache_exclude_query_strings']) ? wp_unslash($_POST['cache_exclude_query_strings']) : '';
-                
-                // Cache warming settings
-                $enableWarming = !empty($_POST['cache_warming_enabled']);
-                $warmingUrls = !empty($_POST['cache_warming_urls']) ? wp_unslash($_POST['cache_warming_urls']) : '';
-                $warmingSchedule = sanitize_text_field($_POST['cache_warming_schedule'] ?? 'hourly');
-                
-                $pageCache->update([
-                    'enabled' => $enabledRequested,
-                    'ttl' => $ttlRequested,
-                    'exclude_urls' => $excludeUrls,
-                    'exclude_query_strings' => $excludeQueryStrings,
-                    'warming_enabled' => $enableWarming,
-                    'warming_urls' => $warmingUrls,
-                    'warming_schedule' => $warmingSchedule,
+                // Validazione con FormValidator
+                $validator = FormValidator::validate($_POST, [
+                    'page_cache_ttl' => ['required', 'numeric', 'min' => 60, 'max' => 86400],
+                    'cache_warming_schedule' => ['in' => ['hourly', 'twicedaily', 'daily', 'weekly']],
+                ], [
+                    'page_cache_ttl' => __('Durata Cache', 'fp-performance-suite'),
+                    'cache_warming_schedule' => __('Pianificazione Warming', 'fp-performance-suite'),
                 ]);
-                $message = __('Page cache settings saved.', 'fp-performance-suite');
-                $currentSettings = $pageCache->settings();
-                if ($enabledRequested && !$currentSettings['enabled']) {
-                    $message .= ' ' . __('Caching was disabled because the cache lifetime must be greater than zero.', 'fp-performance-suite');
-                } elseif ($enabledRequested && $ttlRequested > 0 && $ttlRequested !== $currentSettings['ttl']) {
-                    $message .= ' ' . __('Cache lifetime adjusted to the minimum of 60 seconds.', 'fp-performance-suite');
+                
+                if ($validator->fails()) {
+                    $message = $validator->firstError();
+                } else {
+                    $enabledRequested = !empty($_POST['page_cache_enabled']);
+                    $ttlRequested = (int) ($_POST['page_cache_ttl'] ?? 3600);
+                    
+                    // Parse exclusions
+                    $excludeUrls = !empty($_POST['cache_exclude_urls']) ? wp_unslash($_POST['cache_exclude_urls']) : '';
+                    $excludeQueryStrings = !empty($_POST['cache_exclude_query_strings']) ? wp_unslash($_POST['cache_exclude_query_strings']) : '';
+                    
+                    // Cache warming settings
+                    $enableWarming = !empty($_POST['cache_warming_enabled']);
+                    $warmingUrls = !empty($_POST['cache_warming_urls']) ? wp_unslash($_POST['cache_warming_urls']) : '';
+                    $warmingSchedule = sanitize_text_field($_POST['cache_warming_schedule'] ?? 'hourly');
+                    
+                    $pageCache->update([
+                        'enabled' => $enabledRequested,
+                        'ttl' => $ttlRequested,
+                        'exclude_urls' => $excludeUrls,
+                        'exclude_query_strings' => $excludeQueryStrings,
+                        'warming_enabled' => $enableWarming,
+                        'warming_urls' => $warmingUrls,
+                        'warming_schedule' => $warmingSchedule,
+                    ]);
+                    $message = __('Impostazioni cache pagina salvate.', 'fp-performance-suite');
+                    $currentSettings = $pageCache->settings();
+                    if ($enabledRequested && !$currentSettings['enabled']) {
+                        $message .= ' ' . __('La cache è stata disabilitata perché la durata deve essere maggiore di zero.', 'fp-performance-suite');
+                    } elseif ($enabledRequested && $ttlRequested > 0 && $ttlRequested !== $currentSettings['ttl']) {
+                        $message .= ' ' . __('Durata cache regolata al minimo di 60 secondi.', 'fp-performance-suite');
+                    }
                 }
             }
             if (isset($_POST['fp_ps_browser_cache'])) {
@@ -381,10 +395,20 @@ class Cache extends AbstractPage
                 <input type="hidden" name="fp_ps_page_cache" value="1" />
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Enable page cache', 'fp-performance-suite'); ?></strong>
-                        <span class="description"><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></span>
+                        <strong id="page-cache-label"><?php esc_html_e('Enable page cache', 'fp-performance-suite'); ?></strong>
+                        <span class="description" id="page-cache-description"><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="page_cache_enabled" value="1" <?php checked($pageSettings['enabled']); ?> data-risk="amber" />
+                    <input 
+                        type="checkbox" 
+                        name="page_cache_enabled" 
+                        value="1" 
+                        <?php checked($pageSettings['enabled']); ?> 
+                        data-risk="amber"
+                        role="switch"
+                        aria-labelledby="page-cache-label"
+                        aria-describedby="page-cache-description"
+                        aria-checked="<?php echo $pageSettings['enabled'] ? 'true' : 'false'; ?>"
+                    />
                 </label>
                 <p>
                     <label for="page_cache_ttl"><?php esc_html_e('Cache lifetime (seconds)', 'fp-performance-suite'); ?></label>
@@ -406,9 +430,19 @@ class Cache extends AbstractPage
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Enable automatic cache warming', 'fp-performance-suite'); ?></strong>
+                        <strong id="cache-warming-label"><?php esc_html_e('Enable automatic cache warming', 'fp-performance-suite'); ?></strong>
+                        <span class="description" id="cache-warming-description"><?php esc_html_e('Pre-genera automaticamente la cache per le pagine importanti.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="cache_warming_enabled" value="1" <?php checked($pageSettings['warming_enabled'] ?? false); ?> />
+                    <input 
+                        type="checkbox" 
+                        name="cache_warming_enabled" 
+                        value="1" 
+                        <?php checked($pageSettings['warming_enabled'] ?? false); ?>
+                        role="switch"
+                        aria-labelledby="cache-warming-label"
+                        aria-describedby="cache-warming-description"
+                        aria-checked="<?php echo ($pageSettings['warming_enabled'] ?? false) ? 'true' : 'false'; ?>"
+                    />
                 </label>
                 
                 <p>
@@ -441,10 +475,20 @@ class Cache extends AbstractPage
                 <input type="hidden" name="fp_ps_browser_cache" value="1" />
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Enable headers', 'fp-performance-suite'); ?></strong>
-                        <span class="description"><?php esc_html_e('Adds Cache-Control/Expires headers for static files.', 'fp-performance-suite'); ?></span>
+                        <strong id="browser-cache-label"><?php esc_html_e('Enable headers', 'fp-performance-suite'); ?></strong>
+                        <span class="description" id="browser-cache-description"><?php esc_html_e('Adds Cache-Control/Expires headers for static files.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="browser_cache_enabled" value="1" <?php checked($headerSettings['enabled']); ?> data-risk="green" />
+                    <input 
+                        type="checkbox" 
+                        name="browser_cache_enabled" 
+                        value="1" 
+                        <?php checked($headerSettings['enabled']); ?> 
+                        data-risk="green"
+                        role="switch"
+                        aria-labelledby="browser-cache-label"
+                        aria-describedby="browser-cache-description"
+                        aria-checked="<?php echo $headerSettings['enabled'] ? 'true' : 'false'; ?>"
+                    />
                 </label>
                 <p>
                     <label for="cache_control"><?php esc_html_e('Cache-Control', 'fp-performance-suite'); ?></label>
@@ -497,7 +541,7 @@ class Cache extends AbstractPage
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Abilita Object Cache', 'fp-performance-suite'); ?></strong>
+                        <strong id="object-cache-label"><?php esc_html_e('Abilita Object Cache', 'fp-performance-suite'); ?></strong>
                         <span class="fp-ps-risk-indicator green">
                             <div class="fp-ps-risk-tooltip green">
                                 <div class="fp-ps-risk-tooltip-title">
@@ -506,7 +550,7 @@ class Cache extends AbstractPage
                                 </div>
                                 <div class="fp-ps-risk-tooltip-section">
                                     <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Memorizza gli oggetti WordPress in Redis o Memcached invece del database, riducendo le query del 60-80%.', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text" id="object-cache-description"><?php esc_html_e('Memorizza gli oggetti WordPress in Redis o Memcached invece del database, riducendo le query del 60-80%.', 'fp-performance-suite'); ?></div>
                                 </div>
                                 <div class="fp-ps-risk-tooltip-section">
                                     <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
@@ -519,7 +563,16 @@ class Cache extends AbstractPage
                             </div>
                         </span>
                     </span>
-                    <input type="checkbox" name="object_cache_enabled" value="1" <?php checked($objectCacheSettings['enabled']); ?> />
+                    <input 
+                        type="checkbox" 
+                        name="object_cache_enabled" 
+                        value="1" 
+                        <?php checked($objectCacheSettings['enabled']); ?>
+                        role="switch"
+                        aria-labelledby="object-cache-label"
+                        aria-describedby="object-cache-description"
+                        aria-checked="<?php echo $objectCacheSettings['enabled'] ? 'true' : 'false'; ?>"
+                    />
                 </label>
                 
                 <p>

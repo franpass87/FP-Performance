@@ -37,7 +37,7 @@ class Assets extends AbstractPage
 
     public function title(): string
     {
-        return __('Assets Optimization', 'fp-performance-suite');
+        return __('Ottimizzazione Risorse', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -54,7 +54,7 @@ class Assets extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Assets', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Risorse', 'fp-performance-suite')],
         ];
     }
 
@@ -115,38 +115,38 @@ class Assets extends AbstractPage
             
             switch ($msgType) {
                 case 'scripts_detected':
-                    $message = __('Critical scripts detected! Review suggestions below.', 'fp-performance-suite');
+                    $message = __('Script critici rilevati! Controlla i suggerimenti qui sotto.', 'fp-performance-suite');
                     break;
                 case 'css_detected':
-                    $message = __('CSS files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                    $message = __('File CSS da escludere rilevati! Controlla i suggerimenti qui sotto.', 'fp-performance-suite');
                     break;
                 case 'js_detected':
-                    $message = __('JavaScript files to exclude detected! Review suggestions below.', 'fp-performance-suite');
+                    $message = __('File JavaScript da escludere rilevati! Controlla i suggerimenti qui sotto.', 'fp-performance-suite');
                     break;
                 case 'assets_detected':
-                    $message = __('Critical assets detected! Review suggestions below.', 'fp-performance-suite');
+                    $message = __('Risorse critiche rilevate! Controlla i suggerimenti qui sotto.', 'fp-performance-suite');
                     break;
                 case 'scripts_applied':
                     $message = sprintf(
-                        __('Successfully applied %d critical scripts to exclusion list!', 'fp-performance-suite'),
+                        __('Applicati con successo %d script critici alla lista di esclusione!', 'fp-performance-suite'),
                         $count
                     );
                     break;
                 case 'css_applied':
                     $message = sprintf(
-                        __('Successfully applied %d CSS files to exclusion list!', 'fp-performance-suite'),
+                        __('Applicati con successo %d file CSS alla lista di esclusione!', 'fp-performance-suite'),
                         $count
                     );
                     break;
                 case 'js_applied':
                     $message = sprintf(
-                        __('Successfully applied %d JavaScript files to exclusion list!', 'fp-performance-suite'),
+                        __('Applicati con successo %d file JavaScript alla lista di esclusione!', 'fp-performance-suite'),
                         $count
                     );
                     break;
                 case 'assets_applied':
                     $message = sprintf(
-                        __('Successfully applied %d critical assets to preload list!', 'fp-performance-suite'),
+                        __('Applicate con successo %d risorse critiche alla lista di preload!', 'fp-performance-suite'),
                         $count
                     );
                     break;

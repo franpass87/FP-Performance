@@ -62,7 +62,7 @@ class Tools extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Tools', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Strumenti', 'fp-performance-suite')],
         ];
     }
 

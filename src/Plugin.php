@@ -70,7 +70,7 @@ class Plugin
         do_action('fp_perfsuite_container_ready', $container);
 
         $container->get(Menu::class)->boot();
-        $container->get(AdminAssets::class)->boot();
+        $container->get(\FP\PerfSuite\Admin\Assets::class)->boot();
         $container->get(AdminBar::class)->boot();
         $container->get(Routes::class)->boot();
 
@@ -278,6 +278,9 @@ class Plugin
             $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
         ));
         
+        // AI Analyzer for Auto-Configuration
+        $container->set(\FP\PerfSuite\Services\AI\Analyzer::class, static fn() => new \FP\PerfSuite\Services\AI\Analyzer());
+        
         // Service Worker / PWA
         $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
         
@@ -383,7 +386,7 @@ class Plugin
             );
         });
 
-        $container->set(AdminAssets::class, static fn() => new AdminAssets());
+        $container->set(\FP\PerfSuite\Admin\Assets::class, static fn() => new \FP\PerfSuite\Admin\Assets());
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
         $container->set(AdminBar::class, static fn(ServiceContainer $c) => new AdminBar($c));
         $container->set(Routes::class, static fn(ServiceContainer $c) => new Routes($c));

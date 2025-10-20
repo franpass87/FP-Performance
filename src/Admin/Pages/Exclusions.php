@@ -42,7 +42,7 @@ class Exclusions extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Intelligence', 'fp-performance-suite'), __('Esclusioni', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Intelligenza AI', 'fp-performance-suite'), __('Esclusioni', 'fp-performance-suite')],
         ];
     }
 

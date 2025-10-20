@@ -46,6 +46,12 @@ class Optimizer
     private ResourceHintsManager $resourceHints;
     private CssCombiner $cssCombiner;
     private JsCombiner $jsCombiner;
+    
+    /**
+     * Cache in memoria per evitare query DB ripetute
+     * @var array|null
+     */
+    private ?array $cachedSettings = null;
 
     public function __construct(
         Semaphore $semaphore,

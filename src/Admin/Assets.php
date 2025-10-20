@@ -38,6 +38,23 @@ class Assets
             true
         );
 
+        // Enqueue AI Config JavaScript on the AI Config page
+        if ($hook === 'fp-performance_page_fp-performance-suite-ai-config') {
+            wp_enqueue_script(
+                'fp-performance-suite-ai-config',
+                plugins_url('assets/js/ai-config.js', FP_PERF_SUITE_FILE),
+                ['jquery'],
+                FP_PERF_SUITE_VERSION,
+                true
+            );
+            
+            wp_localize_script('fp-performance-suite-ai-config', 'fpPsAdmin', [
+                'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'overviewUrl' => admin_url('admin.php?page=fp-performance-suite'),
+            ]);
+        }
+
         // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
