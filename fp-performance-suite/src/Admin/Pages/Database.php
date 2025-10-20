@@ -59,11 +59,23 @@ class Database extends AbstractPage
     protected function content(): string
     {
         $cleaner = $this->container->get(Cleaner::class);
-        $queryMonitor = $this->container->get(DatabaseQueryMonitor::class);
-        $optimizer = $this->container->get(DatabaseOptimizer::class);
+        
+        // Servizi avanzati - verifica disponibilità (v1.4.0)
+        $queryMonitor = $this->container->has(DatabaseQueryMonitor::class) 
+            ? $this->container->get(DatabaseQueryMonitor::class) 
+            : null;
+        $optimizer = $this->container->has(DatabaseOptimizer::class) 
+            ? $this->container->get(DatabaseOptimizer::class) 
+            : null;
         $objectCache = $this->container->get(ObjectCacheManager::class);
-        $pluginOptimizer = new PluginSpecificOptimizer();
-        $reportService = new DatabaseReportService();
+        
+        // Crea istanze dirette se le classi esistono
+        $pluginOptimizer = class_exists('FP\\PerfSuite\\Services\\DB\\PluginSpecificOptimizer') 
+            ? new PluginSpecificOptimizer() 
+            : null;
+        $reportService = class_exists('FP\\PerfSuite\\Services\\DB\\DatabaseReportService') 
+            ? new DatabaseReportService() 
+            : null;
         
         $message = '';
         $results = [];
@@ -82,11 +94,11 @@ class Database extends AbstractPage
                 $results = $cleaner->cleanup($scope, $dry, (int) ($_POST['batch'] ?? 200));
                 $message = $dry ? __('Dry run completed.', 'fp-performance-suite') : __('Cleanup completed.', 'fp-performance-suite');
             }
-            if (isset($_POST['enable_query_monitor'])) {
+            if (isset($_POST['enable_query_monitor']) && $queryMonitor) {
                 $queryMonitor->updateSettings(['enabled' => !empty($_POST['query_monitor_enabled'])]);
                 $message = __('Query Monitor settings updated.', 'fp-performance-suite');
             }
-            if (isset($_POST['optimize_all_tables'])) {
+            if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
                 $message = sprintf(__('Ottimizzate %d tabelle.', 'fp-performance-suite'), count($results['optimized'] ?? []));
             }
@@ -98,38 +110,38 @@ class Database extends AbstractPage
                 $result = $objectCache->uninstall();
                 $message = $result['message'];
             }
-            // Nuove azioni
-            if (isset($_POST['convert_to_innodb'])) {
+            // Nuove azioni - verifica disponibilità servizi
+            if (isset($_POST['convert_to_innodb']) && $optimizer) {
                 $table = sanitize_text_field($_POST['table_name'] ?? '');
                 $result = $optimizer->convertToInnoDB($table);
                 $message = $result['message'];
             }
-            if (isset($_POST['convert_charset'])) {
+            if (isset($_POST['convert_charset']) && $optimizer) {
                 $table = sanitize_text_field($_POST['table_name'] ?? '');
                 $result = $optimizer->convertCharset($table);
                 $message = $result['message'];
             }
-            if (isset($_POST['disable_autoload'])) {
+            if (isset($_POST['disable_autoload']) && $optimizer) {
                 $option = sanitize_text_field($_POST['option_name'] ?? '');
                 $result = $optimizer->disableAutoload($option);
                 $message = $result['message'];
             }
-            if (isset($_POST['cleanup_woocommerce'])) {
+            if (isset($_POST['cleanup_woocommerce']) && $pluginOptimizer) {
                 $tasks = array_map('sanitize_text_field', (array) ($_POST['wc_tasks'] ?? []));
                 $results = $pluginOptimizer->cleanupWooCommerce($tasks);
                 $message = __('WooCommerce cleanup completato.', 'fp-performance-suite');
             }
-            if (isset($_POST['cleanup_elementor'])) {
+            if (isset($_POST['cleanup_elementor']) && $pluginOptimizer) {
                 $tasks = array_map('sanitize_text_field', (array) ($_POST['elementor_tasks'] ?? []));
                 $results = $pluginOptimizer->cleanupElementor($tasks);
                 $message = __('Elementor cleanup completato.', 'fp-performance-suite');
             }
-            if (isset($_POST['create_snapshot'])) {
+            if (isset($_POST['create_snapshot']) && $reportService) {
                 $label = sanitize_text_field($_POST['snapshot_label'] ?? '');
                 $reportService->createSnapshot($label);
                 $message = __('Snapshot creato con successo.', 'fp-performance-suite');
             }
-            if (isset($_POST['export_report'])) {
+            if (isset($_POST['export_report']) && $reportService) {
                 $format = sanitize_text_field($_POST['report_format'] ?? 'json');
                 $this->downloadReport($reportService, $format);
                 return ''; // Download triggered
@@ -153,25 +165,47 @@ class Database extends AbstractPage
             'optimize_tables' => __('Optimize tables', 'fp-performance-suite'),
         ];
         // Ottieni dati per le sezioni
-        $queryAnalysis = $queryMonitor->getLastAnalysis();
-        $dbAnalysis = $optimizer->analyze();
+        $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
+        $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
         $cacheInfo = $objectCache->getBackendInfo();
         $cacheStats = $objectCache->getStatistics();
         
-        // Nuovi dati avanzati
-        $fragmentation = $optimizer->analyzeFragmentation();
-        $missingIndexes = $optimizer->analyzeMissingIndexes();
-        $storageEngines = $optimizer->analyzeStorageEngines();
-        $charset = $optimizer->analyzeCharset();
-        $autoloadDetailed = $optimizer->analyzeAutoloadDetailed();
-        $pluginOpportunities = $pluginOptimizer->analyzeInstalledPlugins();
-        $healthScore = $reportService->getHealthScore();
-        $trends = $reportService->analyzeTrends();
+        // Nuovi dati avanzati - solo se i servizi sono disponibili
+        $fragmentation = $optimizer ? $optimizer->analyzeFragmentation() : ['fragmented_tables' => [], 'total_wasted_mb' => 0];
+        $missingIndexes = $optimizer ? $optimizer->analyzeMissingIndexes() : ['suggestions' => [], 'total_suggestions' => 0, 'high_priority' => 0];
+        $storageEngines = $optimizer ? $optimizer->analyzeStorageEngines() : ['myisam_tables' => []];
+        $charset = $optimizer ? $optimizer->analyzeCharset() : ['outdated_tables' => []];
+        $autoloadDetailed = $optimizer ? $optimizer->analyzeAutoloadDetailed() : ['large_options' => [], 'total_size_mb' => 0];
+        $pluginOpportunities = $pluginOptimizer ? $pluginOptimizer->analyzeInstalledPlugins() : ['opportunities' => []];
+        $healthScore = $reportService ? $reportService->getHealthScore() : ['score' => 0, 'grade' => 'N/A', 'status' => 'unknown', 'issues' => [], 'recommendations' => []];
+        $trends = $reportService ? $reportService->analyzeTrends() : ['status' => 'insufficient_data'];
         
         ob_start();
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
+        <?php endif; ?>
+        
+        <?php if (!$optimizer || !$reportService || !$pluginOptimizer) : ?>
+            <div class="notice notice-warning">
+                <h3><?php esc_html_e('⚠️ Funzionalità Avanzate Non Disponibili', 'fp-performance-suite'); ?></h3>
+                <p><?php esc_html_e('Alcune funzionalità avanzate di ottimizzazione database non sono disponibili. Per abilitarle, carica questi file sul server:', 'fp-performance-suite'); ?></p>
+                <ul style="list-style-type: disc; margin-left: 20px;">
+                    <?php if (!$optimizer) : ?>
+                        <li><code>src/Services/DB/DatabaseOptimizer.php</code></li>
+                    <?php endif; ?>
+                    <?php if (!$reportService) : ?>
+                        <li><code>src/Services/DB/DatabaseReportService.php</code></li>
+                    <?php endif; ?>
+                    <?php if (!$pluginOptimizer) : ?>
+                        <li><code>src/Services/DB/PluginSpecificOptimizer.php</code></li>
+                    <?php endif; ?>
+                    <?php if (!$queryMonitor) : ?>
+                        <li><code>src/Services/DB/DatabaseQueryMonitor.php</code></li>
+                    <?php endif; ?>
+                </ul>
+                <p><?php esc_html_e('Dopo aver caricato i file, riattiva il plugin per vedere le nuove funzionalità.', 'fp-performance-suite'); ?></p>
+            </div>
         <?php endif; ?>
         
         <!-- Query Monitor Section -->
