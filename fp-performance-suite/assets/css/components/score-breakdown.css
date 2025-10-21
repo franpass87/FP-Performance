@@ -1,0 +1,114 @@
+/**
+ * Score Breakdown Component
+ * Visualizzazione dettagliata del breakdown dello score
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-score-breakdown-item {
+    margin-bottom: var(--fp-spacing-md);
+    padding: var(--fp-spacing-md);
+    background: var(--fp-card);
+    border-left: 4px solid var(--fp-gray-300);
+    border-radius: var(--fp-radius-md);
+}
+
+.fp-ps-score-breakdown-item.complete {
+    border-left-color: var(--fp-success-border);
+}
+
+.fp-ps-score-breakdown-item.partial {
+    border-left-color: var(--fp-warning-border);
+}
+
+.fp-ps-score-breakdown-item.incomplete {
+    border-left-color: var(--fp-danger-border);
+}
+
+.fp-ps-score-breakdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--fp-spacing-sm);
+}
+
+.fp-ps-score-breakdown-label {
+    display: flex;
+    align-items: center;
+    gap: var(--fp-spacing-xs);
+}
+
+.fp-ps-score-breakdown-label span {
+    font-size: var(--fp-font-size-lg);
+    line-height: 1;
+}
+
+.fp-ps-score-breakdown-value {
+    font-size: var(--fp-font-size-md);
+    font-weight: 600;
+}
+
+.fp-ps-score-breakdown-value.fp-ps-status-complete {
+    color: var(--fp-success);
+}
+
+.fp-ps-score-breakdown-value.fp-ps-status-partial {
+    color: var(--fp-warning);
+}
+
+.fp-ps-score-breakdown-value.fp-ps-status-incomplete {
+    color: var(--fp-danger);
+}
+
+/* Suggestion Box */
+.fp-ps-suggestion-box {
+    margin-top: var(--fp-spacing-sm);
+    padding: var(--fp-spacing-sm);
+    background: var(--fp-info-light);
+    border-radius: var(--fp-radius-sm);
+}
+
+.fp-ps-suggestion-box p {
+    margin: 0;
+    font-size: var(--fp-font-size-sm);
+}
+
+.fp-ps-suggestion-box strong {
+    color: var(--fp-info);
+}
+
+/* Optimized Box */
+.fp-ps-optimized-box {
+    margin-top: var(--fp-spacing-sm);
+    padding: var(--fp-spacing-sm);
+    background: var(--fp-success-light);
+    border-radius: var(--fp-radius-sm);
+}
+
+.fp-ps-optimized-box p {
+    margin: 0;
+    font-size: var(--fp-font-size-sm);
+    color: var(--fp-success-dark);
+}
+
+/* Health Score Card Background */
+.fp-ps-card.health-excellent {
+    background: var(--fp-success-light);
+}
+
+.fp-ps-card.health-good {
+    background: var(--fp-warning-light);
+}
+
+.fp-ps-card.health-poor {
+    background: var(--fp-danger-light);
+}
+
+/* Preset Label */
+.fp-ps-preset-label {
+    font-size: var(--fp-font-size-xl);
+    font-weight: 700;
+    margin: var(--fp-spacing-xl) 0;
+    text-align: center;
+}
+

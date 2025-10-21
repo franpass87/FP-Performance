@@ -18,9 +18,8 @@ use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
-use FP\PerfSuite\Admin\Pages\ScheduledReports;
 use FP\PerfSuite\Admin\Pages\Security;
-use FP\PerfSuite\Admin\Pages\Tools;
+use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
 
@@ -326,7 +325,7 @@ class Menu
         // 🔧 CONFIGURATION
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('— ⚙️ Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Configuration', 'fp-performance-suite'), __('— 🔧 Configuration', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-tools', [$pages['tools'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('— 🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
     }
 
     /**
@@ -402,7 +401,7 @@ class Menu
             'presets' => new Presets($this->container),
             'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
-            'tools' => new Tools($this->container),
+            'settings' => new Settings($this->container),
             'security' => new Security($this->container),
             'exclusions' => new Exclusions($this->container),
             'advanced' => new Advanced($this->container),

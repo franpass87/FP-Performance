@@ -149,15 +149,15 @@ class Security extends AbstractPage
 
         <!-- Tab Description -->
         <?php if ($current_tab === 'security') : ?>
-            <div class="fp-ps-tab-description" style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                <p style="margin: 0; color: #991b1b;">
+            <div class="fp-ps-tab-description danger">
+                <p>
                     <strong>🛡️ Security & Protection:</strong> 
                     <?php esc_html_e('Headers di sicurezza, protezione file sensibili, blocco XML-RPC e anti-hotlink per proteggere il tuo sito da attacchi.', 'fp-performance-suite'); ?>
                 </p>
             </div>
         <?php elseif ($current_tab === 'performance') : ?>
-            <div class="fp-ps-tab-description" style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                <p style="margin: 0; color: #065f46;">
+            <div class="fp-ps-tab-description success">
+                <p>
                     <strong>⚡ .htaccess Performance:</strong> 
                     <?php esc_html_e('Redirect canonici, regole cache ottimizzate, compressione Brotli e CORS headers per massimizzare le performance via .htaccess.', 'fp-performance-suite'); ?>
                 </p>
@@ -520,7 +520,7 @@ class Security extends AbstractPage
                     <?php 
                     echo sprintf(
                         __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
-                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-tools')) . '">' . __('Configuration', 'fp-performance-suite') . '</a>'
+                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=importexport')) . '">' . __('Settings', 'fp-performance-suite') . '</a>'
                     );
                     ?>
                 </p>

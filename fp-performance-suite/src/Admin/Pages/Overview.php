@@ -98,8 +98,8 @@ class Overview extends AbstractPage
             <!-- Technical SEO Score -->
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Technical SEO Score', 'fp-performance-suite'); ?></h2>
-                <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0;">
-                    <?php echo esc_html((string) $score['total']); ?><span style="font-size: 24px;">/100</span>
+                <div class="fp-ps-score fp-ps-my-lg">
+                    <?php echo esc_html((string) $score['total']); ?><span class="fp-ps-text-lg">/100</span>
                 </div>
                 <p class="description">
                     <?php esc_html_e('Configuration optimization score', 'fp-performance-suite'); ?>
@@ -107,12 +107,16 @@ class Overview extends AbstractPage
             </div>
 
             <!-- Health Score -->
-            <div class="fp-ps-card" style="background: <?php echo $analysis['score'] >= 70 ? '#d1fae5' : ($analysis['score'] >= 50 ? '#fef3c7' : '#fee2e2'); ?>;">
+            <?php 
+            $healthClass = $analysis['score'] >= 70 ? 'health-excellent' : ($analysis['score'] >= 50 ? 'health-good' : 'health-poor');
+            $scoreClass = $analysis['score'] >= 70 ? 'success' : ($analysis['score'] >= 50 ? 'warning' : 'danger');
+            ?>
+            <div class="fp-ps-card <?php echo esc_attr($healthClass); ?>">
                 <h2><?php esc_html_e('Health Score', 'fp-performance-suite'); ?></h2>
-                <div class="fp-ps-score" style="font-size: 48px; margin: 20px 0; color: <?php echo $analysis['score'] >= 70 ? '#059669' : ($analysis['score'] >= 50 ? '#d97706' : '#dc2626'); ?>;">
-                    <?php echo esc_html($analysis['score']); ?><span style="font-size: 24px;">/100</span>
+                <div class="fp-ps-score <?php echo esc_attr($scoreClass); ?> fp-ps-my-lg">
+                    <?php echo esc_html($analysis['score']); ?><span class="fp-ps-text-lg">/100</span>
                 </div>
-                <p class="description" style="color: #4b5563;">
+                <p class="description fp-ps-text-muted">
                     <?php 
                     if ($analysis['score'] >= 90) {
                         esc_html_e('Salute Eccellente', 'fp-performance-suite');
@@ -130,10 +134,10 @@ class Overview extends AbstractPage
             <!-- Preset Attivo -->
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Preset Attivo', 'fp-performance-suite'); ?></h2>
-                <div style="font-size: 24px; font-weight: bold; margin: 30px 0; text-align: center;">
+                <div class="fp-ps-preset-label">
                     <?php echo esc_html($activeLabel); ?>
                 </div>
-                <div class="fp-ps-actions" style="text-align: center;">
+                <div class="fp-ps-actions fp-ps-text-center">
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-presets')); ?>">
                         <?php esc_html_e('Cambia Preset', 'fp-performance-suite'); ?>
                     </a>
@@ -143,12 +147,12 @@ class Overview extends AbstractPage
 
         <!-- Metriche di Performance in Tempo Reale -->
         <section class="fp-ps-grid three">
-            <div class="fp-ps-card">
-                <h3>⚡ <?php esc_html_e('Avg Load Time (7d)', 'fp-performance-suite'); ?></h3>
-                <div class="fp-ps-score" style="font-size: 36px;">
-                    <?php echo number_format($stats7days['avg_load_time'] * 1000, 0); ?><span style="font-size: 18px;">ms</span>
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
+                    <?php echo number_format($stats7days['avg_load_time'] * 1000, 0); ?><span class="fp-ps-text-md">ms</span>
                 </div>
-                <p class="description">
+                <div class="stat-label">⚡ <?php esc_html_e('Avg Load Time (7d)', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
                     <?php printf(
                         esc_html__('Based on %s samples', 'fp-performance-suite'),
                         number_format($stats7days['samples'])
@@ -156,22 +160,22 @@ class Overview extends AbstractPage
                 </p>
             </div>
             
-            <div class="fp-ps-card">
-                <h3>🗄️ <?php esc_html_e('Avg DB Queries (7d)', 'fp-performance-suite'); ?></h3>
-                <div class="fp-ps-score" style="font-size: 36px;">
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
                     <?php echo number_format($stats7days['avg_queries'], 1); ?>
                 </div>
-                <p class="description">
+                <div class="stat-label">🗄️ <?php esc_html_e('Avg DB Queries (7d)', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
                     <?php esc_html_e('Database queries per page', 'fp-performance-suite'); ?>
                 </p>
             </div>
             
-            <div class="fp-ps-card">
-                <h3>💾 <?php esc_html_e('Avg Memory (7d)', 'fp-performance-suite'); ?></h3>
-                <div class="fp-ps-score" style="font-size: 36px;">
-                    <?php echo number_format($stats7days['avg_memory'], 1); ?><span style="font-size: 18px;">MB</span>
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
+                    <?php echo number_format($stats7days['avg_memory'], 1); ?><span class="fp-ps-text-md">MB</span>
                 </div>
-                <p class="description">
+                <div class="stat-label">💾 <?php esc_html_e('Avg Memory (7d)', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
                     <?php esc_html_e('Peak memory usage', 'fp-performance-suite'); ?>
                 </p>
             </div>
@@ -181,15 +185,15 @@ class Overview extends AbstractPage
         <section class="fp-ps-grid two">
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Score Breakdown', 'fp-performance-suite'); ?></h2>
-                <div style="margin-bottom: 15px;">
+                <div class="fp-ps-mb-md">
                     <?php foreach ($score['breakdown_detailed'] as $label => $details) : 
                         $statusIcon = $details['status'] === 'complete' ? '✅' : ($details['status'] === 'partial' ? '⚠️' : '❌');
-                        $statusColor = $details['status'] === 'complete' ? '#10b981' : ($details['status'] === 'partial' ? '#f59e0b' : '#ef4444');
+                        $statusClass = $details['status'] === 'complete' ? 'complete' : ($details['status'] === 'partial' ? 'partial' : 'incomplete');
                     ?>
-                        <div class="fp-ps-score-breakdown-item" style="border-left: 4px solid <?php echo esc_attr($statusColor); ?>;">
+                        <div class="fp-ps-score-breakdown-item <?php echo esc_attr($statusClass); ?>">
                             <div class="fp-ps-score-breakdown-header">
                                 <div class="fp-ps-score-breakdown-label">
-                                    <span style="font-size: 18px;"><?php echo $statusIcon; ?></span>
+                                    <span><?php echo $statusIcon; ?></span>
                                     <strong><?php echo esc_html($label); ?></strong>
                                 </div>
                                 <span class="fp-ps-score-breakdown-value fp-ps-status-<?php echo esc_attr($details['status']); ?>">
@@ -206,7 +210,7 @@ class Overview extends AbstractPage
                             <?php if ($details['suggestion']) : ?>
                                 <div class="fp-ps-suggestion-box">
                                     <p>
-                                        <strong style="color: #3b82f6;">💡 <?php esc_html_e('Come migliorare:', 'fp-performance-suite'); ?></strong>
+                                        <strong>💡 <?php esc_html_e('Come migliorare:', 'fp-performance-suite'); ?></strong>
                                         <?php echo esc_html($details['suggestion']); ?>
                                     </p>
                                 </div>
@@ -233,7 +237,7 @@ class Overview extends AbstractPage
                         <li>✓ <?php echo esc_html($opt); ?></li>
                     <?php endforeach; ?>
                 </ul>
-                <div class="fp-ps-actions" style="margin-top: 20px;">
+                <div class="fp-ps-actions fp-ps-mt-lg">
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-cache')); ?>">
                         <?php esc_html_e('Configure Cache', 'fp-performance-suite'); ?>
                     </a>
@@ -248,15 +252,18 @@ class Overview extends AbstractPage
         <section class="fp-ps-card">
             <h2>🔍 <?php esc_html_e('Analisi Problemi e Raccomandazioni', 'fp-performance-suite'); ?></h2>
             
-            <div style="margin-bottom: 20px; padding: 15px; background: <?php echo $analysis['score'] >= 70 ? '#d1fae5' : ($analysis['score'] >= 50 ? '#fef3c7' : '#fee2e2'); ?>; border-radius: 6px;">
-                <p style="margin: 0; color: #4b5563; font-size: 15px;"><?php echo esc_html($analysis['summary']); ?></p>
+            <?php 
+            $summaryClass = $analysis['score'] >= 70 ? 'excellent' : ($analysis['score'] >= 50 ? 'good' : 'poor');
+            ?>
+            <div class="fp-ps-analysis-summary <?php echo esc_attr($summaryClass); ?>">
+                <p><?php echo esc_html($analysis['summary']); ?></p>
             </div>
 
             <!-- Critical Issues -->
             <?php if (!empty($analysis['critical'])) : ?>
-            <div style="margin-bottom: 25px;">
-                <h3 style="color: #dc2626; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <span style="font-size: 24px;">🚨</span>
+            <div class="fp-ps-mb-lg">
+                <h3 class="fp-ps-issue-section-header critical">
+                    <span>🚨</span>
                     <?php printf(esc_html__('Problemi Critici (%d)', 'fp-performance-suite'), count($analysis['critical'])); ?>
                 </h3>
                 <?php 
@@ -265,25 +272,22 @@ class Overview extends AbstractPage
                 });
                 foreach (array_slice($analysis['critical'], 0, 3) as $issue) : 
                 ?>
-                <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin-bottom: 12px; border-radius: 4px;">
-                    <h4 style="margin: 0 0 8px 0; color: #991b1b; font-size: 15px;">
-                        <?php echo esc_html($issue['issue']); ?>
-                    </h4>
-                    <p style="margin: 0 0 10px 0; color: #7f1d1d; font-size: 14px;">
+                <div class="fp-ps-issue-box critical">
+                    <h4><?php echo esc_html($issue['issue']); ?></h4>
+                    <p>
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
-                        <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
+                    <div class="fp-ps-issue-solution">
+                        <strong>💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
-                    </p>
+                    </div>
                     <?php if (!empty($issue['action_id'])) : ?>
-                    <div style="text-align: right;">
+                    <div class="fp-ps-issue-actions">
                         <button 
                             type="button" 
                             class="button button-primary fp-ps-apply-recommendation" 
-                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
-                            style="font-size: 13px;">
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>">
                             ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
                         </button>
                     </div>
@@ -295,9 +299,9 @@ class Overview extends AbstractPage
 
             <!-- Warnings -->
             <?php if (!empty($analysis['warnings'])) : ?>
-            <div style="margin-bottom: 25px;">
-                <h3 style="color: #d97706; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <span style="font-size: 24px;">⚠️</span>
+            <div class="fp-ps-mb-lg">
+                <h3 class="fp-ps-issue-section-header warning">
+                    <span>⚠️</span>
                     <?php printf(esc_html__('Avvisi (%d)', 'fp-performance-suite'), count($analysis['warnings'])); ?>
                 </h3>
                 <?php 
@@ -306,25 +310,22 @@ class Overview extends AbstractPage
                 });
                 foreach (array_slice($analysis['warnings'], 0, 3) as $issue) : 
                 ?>
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 12px; border-radius: 4px;">
-                    <h4 style="margin: 0 0 8px 0; color: #92400e; font-size: 15px;">
-                        <?php echo esc_html($issue['issue']); ?>
-                    </h4>
-                    <p style="margin: 0 0 10px 0; color: #78350f; font-size: 14px;">
+                <div class="fp-ps-issue-box warning">
+                    <h4><?php echo esc_html($issue['issue']); ?></h4>
+                    <p>
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
-                        <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
+                    <div class="fp-ps-issue-solution">
+                        <strong>💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
-                    </p>
+                    </div>
                     <?php if (!empty($issue['action_id'])) : ?>
-                    <div style="text-align: right;">
+                    <div class="fp-ps-issue-actions">
                         <button 
                             type="button" 
                             class="button button-primary fp-ps-apply-recommendation" 
-                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
-                            style="font-size: 13px;">
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>">
                             ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
                         </button>
                     </div>
@@ -336,9 +337,9 @@ class Overview extends AbstractPage
 
             <!-- Recommendations -->
             <?php if (!empty($analysis['recommendations'])) : ?>
-            <div style="margin-bottom: 25px;">
-                <h3 style="color: #2563eb; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <span style="font-size: 24px;">💡</span>
+            <div class="fp-ps-mb-lg">
+                <h3 class="fp-ps-issue-section-header info">
+                    <span>💡</span>
                     <?php printf(esc_html__('Raccomandazioni (%d)', 'fp-performance-suite'), count($analysis['recommendations'])); ?>
                 </h3>
                 <?php 
@@ -347,25 +348,22 @@ class Overview extends AbstractPage
                 });
                 foreach (array_slice($analysis['recommendations'], 0, 3) as $issue) : 
                 ?>
-                <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 12px; border-radius: 4px;">
-                    <h4 style="margin: 0 0 8px 0; color: #1e40af; font-size: 15px;">
-                        <?php echo esc_html($issue['issue']); ?>
-                    </h4>
-                    <p style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 14px;">
+                <div class="fp-ps-issue-box recommendation">
+                    <h4><?php echo esc_html($issue['issue']); ?></h4>
+                    <p>
                         <strong><?php esc_html_e('Impatto:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['impact']); ?>
                     </p>
-                    <p style="margin: 0 0 10px 0; padding: 10px; background: white; border-radius: 4px; color: #374151; font-size: 14px;">
-                        <strong style="color: #059669;">💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
+                    <div class="fp-ps-issue-solution">
+                        <strong>💡 <?php esc_html_e('Soluzione:', 'fp-performance-suite'); ?></strong> 
                         <?php echo esc_html($issue['solution']); ?>
-                    </p>
+                    </div>
                     <?php if (!empty($issue['action_id'])) : ?>
-                    <div style="text-align: right;">
+                    <div class="fp-ps-issue-actions">
                         <button 
                             type="button" 
                             class="button button-primary fp-ps-apply-recommendation" 
-                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>"
-                            style="font-size: 13px;">
+                            data-action-id="<?php echo esc_attr($issue['action_id']); ?>">
                             ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
                         </button>
                     </div>
@@ -376,11 +374,13 @@ class Overview extends AbstractPage
             <?php endif; ?>
 
             <?php if (empty($analysis['critical']) && empty($analysis['warnings']) && empty($analysis['recommendations'])) : ?>
-            <div style="padding: 20px; text-align: center; color: #059669; background: #d1fae5; border-radius: 6px;">
-                <span style="font-size: 48px;">✅</span>
-                <p style="margin: 10px 0 0 0; font-size: 16px; font-weight: 500;">
-                    <?php esc_html_e('Nessun problema rilevato! Il tuo sito è ottimizzato correttamente.', 'fp-performance-suite'); ?>
-                </p>
+            <div class="fp-ps-notice success fp-ps-text-center">
+                <div class="fp-ps-notice-content">
+                    <div class="fp-ps-score" style="font-size: var(--fp-font-size-xxl);">✅</div>
+                    <p class="fp-ps-font-medium">
+                        <?php esc_html_e('Nessun problema rilevato! Il tuo sito è ottimizzato correttamente.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
             </div>
             <?php endif; ?>
 
@@ -413,7 +413,7 @@ class Overview extends AbstractPage
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>">
                     <?php esc_html_e('Bulk WebP Convert', 'fp-performance-suite'); ?>
                 </a>
-                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-tools')); ?>">
+                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=diagnostics')); ?>">
                     <?php esc_html_e('Run Tests', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>">

@@ -27,9 +27,14 @@
 @import url('components/actions.css');
 @import url('components/stats.css');
 @import url('components/bulk-convert.css');
+@import url('components/notice.css');
+@import url('components/tabs.css');
+@import url('components/score-breakdown.css');
+@import url('components/issue-box.css');
 
 /* Utilities */
 @import url('utilities/score.css');
+@import url('utilities/helpers.css');
 
 /* Themes & Accessibility */
 @import url('themes/dark-mode.css');

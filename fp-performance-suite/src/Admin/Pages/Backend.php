@@ -173,6 +173,22 @@ class Backend extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Rimuovi logo WordPress', 'fp-performance-suite'); ?></strong>
+                            <span class="fp-ps-risk-indicator green">
+                                <div class="fp-ps-risk-tooltip green">
+                                    <div class="fp-ps-risk-tooltip-title">
+                                        <span class="icon">✓</span>
+                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                    </div>
+                                    <div class="fp-ps-risk-tooltip-section">
+                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove il menu dropdown del logo WordPress dalla barra amministrativa.', 'fp-performance-suite'); ?></div>
+                                    </div>
+                                    <div class="fp-ps-risk-tooltip-section">
+                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Interfaccia più pulita. Impatto minimo: ~5KB HTML risparmiati.', 'fp-performance-suite'); ?></div>
+                                    </div>
+                                </div>
+                            </span>
                             <small><?php esc_html_e('Rimuove il menu del logo WordPress dalla barra admin', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" name="disable_wp_logo" value="1" <?php checked($adminBarSettings['disable_wordpress_logo'] ?? false); ?> data-risk="green" />

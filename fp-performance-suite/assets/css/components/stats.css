@@ -9,42 +9,43 @@
 
 /* Stat Box */
 .fp-ps-stat-box {
-    padding: 20px;
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
+    padding: var(--fp-spacing-lg);
+    background: var(--fp-card);
+    border: 1px solid var(--fp-gray-200);
+    border-radius: var(--fp-radius-lg);
     text-align: center;
-    transition: all 0.3s ease;
+    transition: all var(--fp-transition-base);
 }
 
 .fp-ps-stat-box:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--fp-shadow-md);
     transform: translateY(-2px);
 }
 
 .fp-ps-stat-box .stat-value {
-    font-size: 32px;
+    font-size: var(--fp-font-size-xl);
     font-weight: 700;
-    color: #2271b1;
+    color: var(--fp-accent);
     line-height: 1.2;
-    margin-bottom: 8px;
+    margin-bottom: var(--fp-spacing-xs);
 }
 
 .fp-ps-stat-box .stat-value.warning {
-    color: #f0b429;
+    color: var(--fp-warning);
 }
 
-.fp-ps-stat-box .stat-value.error {
-    color: #d63638;
+.fp-ps-stat-box .stat-value.error,
+.fp-ps-stat-box .stat-value.danger {
+    color: var(--fp-danger);
 }
 
 .fp-ps-stat-box .stat-value.success {
-    color: #46b450;
+    color: var(--fp-success);
 }
 
 .fp-ps-stat-box .stat-label {
-    font-size: 13px;
-    color: #646970;
+    font-size: var(--fp-font-size-base);
+    color: var(--fp-gray-500);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 500;
@@ -58,30 +59,31 @@
 
 /* Recommendation boxes */
 .fp-ps-recommendation {
-    padding: 15px;
-    margin: 10px 0;
+    padding: var(--fp-spacing-md);
+    margin: var(--fp-spacing-sm) 0;
     border-left: 4px solid;
-    border-radius: 4px;
+    border-radius: var(--fp-radius-md);
 }
 
-.fp-ps-recommendation.critical {
-    background: #fef7f7;
-    border-color: #d63638;
+.fp-ps-recommendation.critical,
+.fp-ps-recommendation.danger {
+    background: var(--fp-danger-light);
+    border-color: var(--fp-danger-border);
 }
 
 .fp-ps-recommendation.warning {
-    background: #fff8e5;
-    border-color: #f0b429;
+    background: var(--fp-warning-light);
+    border-color: var(--fp-warning-border);
 }
 
 .fp-ps-recommendation.info {
-    background: #f0f6fc;
-    border-color: #2271b1;
+    background: var(--fp-info-light);
+    border-color: var(--fp-info-border);
 }
 
 .fp-ps-recommendation.success {
-    background: #f0f9f1;
-    border-color: #46b450;
+    background: var(--fp-success-light);
+    border-color: var(--fp-success-border);
 }
 
 .fp-ps-recommendation h4 {

@@ -211,6 +211,51 @@ class Database extends AbstractPage
         ob_start();
         ?>
         
+        <!-- Pannello Introduttivo -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                💾 Ottimizzazione Database
+            </h2>
+            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
+                <?php esc_html_e('Il database è il cuore del tuo WordPress. Queste operazioni lo mantengono veloce, leggero e ottimizzato.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div class="fp-ps-grid three" style="gap: 20px;">
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🧹</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Pulizia', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Rimuove dati obsoleti come revisioni, bozze automatiche, spam e transient scaduti', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Ottimizzazione', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Riorganizza tabelle, converte a InnoDB, aggiunge indici e recupera spazio sprecato', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Monitoraggio', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Analizza query lente, identifica problemi e fornisce raccomandazioni proattive', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Sicurezza -->
+        <div class="notice notice-info inline" style="margin-bottom: 25px; border-left-color: #10b981;">
+            <p style="margin: 0.5em 0;">
+                <strong>🛡️ <?php esc_html_e('Sicurezza Garantita:', 'fp-performance-suite'); ?></strong> 
+                <?php esc_html_e('Viene creato automaticamente un backup completo prima di ogni operazione critica.', 'fp-performance-suite'); ?>
+                <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-logs'); ?>" style="text-decoration: none;">
+                    <?php esc_html_e('Visualizza log operazioni →', 'fp-performance-suite'); ?>
+                </a>
+            </p>
+        </div>
+        
         <!-- Navigazione Tabs -->
         <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
             <a href="?page=fp-performance-suite-database&tab=operations" 
@@ -229,22 +274,22 @@ class Database extends AbstractPage
 
         <!-- Tab Description -->
         <?php if ($current_tab === 'operations') : ?>
-            <div class="fp-ps-tab-description" style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                <p style="margin: 0; color: #065f46;">
+            <div class="fp-ps-tab-description success">
+                <p>
                     <strong>🔧 Operations:</strong> 
                     <?php esc_html_e('Esegui pulizia database, configura scheduler automatico e monitora le query per identificare colli di bottiglia.', 'fp-performance-suite'); ?>
                 </p>
             </div>
         <?php elseif ($current_tab === 'analysis') : ?>
-            <div class="fp-ps-tab-description" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                <p style="margin: 0; color: #1e40af;">
+            <div class="fp-ps-tab-description info">
+                <p>
                     <strong>📊 Analysis:</strong> 
                     <?php esc_html_e('Analisi approfondita del database: Health Score, frammentazione, indici mancanti, storage engines e object caching.', 'fp-performance-suite'); ?>
                 </p>
             </div>
         <?php elseif ($current_tab === 'reports') : ?>
-            <div class="fp-ps-tab-description" style="background: #fae8ff; border-left: 4px solid #a855f7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-                <p style="margin: 0; color: #6b21a8;">
+            <div class="fp-ps-tab-description info">
+                <p>
                     <strong>📈 Reports & Plugins:</strong> 
                     <?php esc_html_e('Report e trend di crescita database, pulizie specifiche per WooCommerce, Elementor e altri plugin.', 'fp-performance-suite'); ?>
                 </p>
@@ -282,7 +327,10 @@ class Database extends AbstractPage
         
         <!-- Query Monitor Section -->
         <section class="fp-ps-card">
-            <h2><?php esc_html_e('Database Query Monitor', 'fp-performance-suite'); ?></h2>
+            <h2>
+                <?php esc_html_e('Database Query Monitor', 'fp-performance-suite'); ?>
+                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 8px; font-size: 18px;" title="<?php esc_attr_e('Query Monitor: strumento che registra tutte le query SQL eseguite dal sito per identificare query lente o duplicate che rallentano il caricamento.', 'fp-performance-suite'); ?>">ℹ️</span>
+            </h2>
             <p class="description"><?php esc_html_e('Monitora le query database in tempo reale e identifica colli di bottiglia.', 'fp-performance-suite'); ?></p>
             
             <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
@@ -350,7 +398,10 @@ class Database extends AbstractPage
         
         <!-- Object Cache Section -->
         <section class="fp-ps-card">
-            <h2><?php esc_html_e('Object Caching', 'fp-performance-suite'); ?></h2>
+            <h2>
+                <?php esc_html_e('Object Caching', 'fp-performance-suite'); ?>
+                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 8px; font-size: 18px;" title="<?php esc_attr_e('Object Cache: sistema che memorizza in RAM (Redis/Memcached) i risultati delle query database per evitare di rieseguirle. Riduce il carico DB del 50-80%.', 'fp-performance-suite'); ?>">ℹ️</span>
+            </h2>
             <p class="description"><?php esc_html_e('L\'object caching riduce drasticamente il numero di query database memorizzando i risultati in memoria.', 'fp-performance-suite'); ?></p>
             
             <?php if ($cacheInfo['available']) : ?>
@@ -431,7 +482,10 @@ class Database extends AbstractPage
                     <?php if ($dbAnalysis['table_analysis']['total_overhead_mb'] > 0) : ?>
                         <div class="fp-ps-stat-box" style="margin-top: 10px;">
                             <div class="stat-value warning"><?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_overhead_mb'], 2)); ?> MB</div>
-                            <div class="stat-label"><?php esc_html_e('Overhead Recuperabile', 'fp-performance-suite'); ?></div>
+                            <div class="stat-label">
+                                <?php esc_html_e('Overhead Recuperabile', 'fp-performance-suite'); ?>
+                                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px; font-size: 14px;" title="<?php esc_attr_e('Overhead = spazio sprecato nel database che può essere recuperato ottimizzando le tabelle. Overhead >100MB indica necessità di ottimizzazione.', 'fp-performance-suite'); ?>">ℹ️</span>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -823,9 +877,20 @@ class Database extends AbstractPage
                     </select>
                 </p>
                 <p>
-                    <label for="batch"><?php esc_html_e('Batch size', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="batch" id="batch" value="<?php echo esc_attr((string) $settings['batch']); ?>" min="50" max="500" />
+                    <label for="batch">
+                        <?php esc_html_e('Batch size', 'fp-performance-suite'); ?>
+                        <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px;" title="<?php esc_attr_e('Numero di elementi processati per volta durante la pulizia. Valori più bassi = meno carico ma operazioni più lente. Valori più alti = più veloce ma maggior uso memoria.', 'fp-performance-suite'); ?>">ℹ️</span>
+                    </label>
+                    <input type="number" name="batch" id="batch" value="<?php echo esc_attr((string) $settings['batch']); ?>" min="50" max="500" placeholder="200" class="regular-text" />
                 </p>
+                <div class="fp-ps-input-help" style="margin-top: 8px; margin-bottom: 15px;">
+                    <p style="background: #dbeafe; border-left: 3px solid #3b82f6; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                        💡 <strong><?php esc_html_e('Consigliato: 200 elementi', 'fp-performance-suite'); ?></strong>
+                        <br><small style="color: #64748b;">
+                            <?php esc_html_e('Hosting Condiviso: 100-200 | VPS: 200-300 | Dedicato: 300-500', 'fp-performance-suite'); ?>
+                        </small>
+                    </p>
+                </div>
                 <p>
                     <button type="submit" class="button button-secondary"><?php esc_html_e('Save Scheduler', 'fp-performance-suite'); ?></button>
                 </p>

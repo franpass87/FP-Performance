@@ -456,6 +456,86 @@ class Assets extends AbstractPage
         ob_start();
         ?>
         
+        <!-- Glossario Termini Tecnici -->
+        <details class="fp-ps-glossary-section" style="background: #f1f5f9; border-radius: 8px; padding: 20px; margin-bottom: 25px; cursor: pointer;">
+            <summary style="font-weight: 600; color: #1e293b; font-size: 16px; user-select: none;">
+                📚 <?php esc_html_e('Glossario Termini Tecnici', 'fp-performance-suite'); ?>
+                <small style="color: #64748b; font-weight: normal; margin-left: 10px;"><?php esc_html_e('(clicca per espandere)', 'fp-performance-suite'); ?></small>
+            </summary>
+            
+            <dl style="margin: 15px 0 0 0;">
+                <!-- Termine 1 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Render Blocking
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Risorse (CSS/JS) che bloccano la visualizzazione della pagina. Il browser deve scaricarle completamente prima di mostrare contenuti all\'utente. Ridurle migliora FCP e LCP.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 2 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Critical CSS
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('CSS minimo necessario per il rendering della parte visibile della pagina (above the fold). Viene inserito inline nell\'HTML per velocizzare il primo rendering.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 3 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #8b5cf6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Defer JavaScript
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Posticipa l\'esecuzione di JavaScript fino a dopo il caricamento completo della pagina. Migliora il rendering iniziale ma può causare incompatibilità con script che si aspettano esecuzione immediata.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 4 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Minify
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Rimozione di spazi, commenti e caratteri non necessari da CSS/JS per ridurre dimensioni file. Risparmio tipico: 20-40%.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 5 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Combine Files
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Unisce più file CSS/JS in un unico file per ridurre richieste HTTP. Attenzione: con HTTP/2 può essere controproducente. Rischio alto di conflitti.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 6 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #06b6d4; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Preload
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Indica al browser di scaricare risorse critiche in anticipo. Utile per font, CSS critici e immagini LCP. Non abusarne: max 3-5 risorse.', 'fp-performance-suite'); ?>
+                </dd>
+                
+                <!-- Termine 7 -->
+                <dt style="font-weight: 600; color: #475569; margin-top: 12px;">
+                    <span style="background: #ec4899; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px;">TERM</span>
+                    Server Push (HTTP/2)
+                </dt>
+                <dd style="margin: 8px 0 0 70px; color: #64748b; line-height: 1.6;">
+                    <?php esc_html_e('Funzionalità HTTP/2 che permette al server di inviare risorse al browser prima che vengano richieste, riducendo latenza. Richiede server HTTP/2 compatibile.', 'fp-performance-suite'); ?>
+                </dd>
+            </dl>
+            
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #cbd5e1;">
+                <small style="color: #64748b;">
+                    💡 <strong><?php esc_html_e('Suggerimento:', 'fp-performance-suite'); ?></strong> 
+                    <?php esc_html_e('Passa il mouse sugli indicatori di rischio (🟢🟠🔴) per dettagli su benefici e rischi di ogni ottimizzazione.', 'fp-performance-suite'); ?>
+                </small>
+            </div>
+        </details>
+        
         <!-- Navigazione Tabs -->
         <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
             <a href="?page=fp-performance-suite-assets&tab=delivery" 
