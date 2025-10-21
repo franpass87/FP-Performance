@@ -441,16 +441,74 @@ class Assets extends AbstractPage
         $thirdPartyStatus = $thirdPartyScripts->status();
         $http2Settings = $http2Push->settings();
         $smartDeliverySettings = $smartDelivery->settings();
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'delivery';
+        $valid_tabs = ['delivery', 'fonts', 'thirdparty'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'delivery';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+
         ob_start();
         ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-assets&tab=delivery" 
+               class="nav-tab <?php echo $current_tab === 'delivery' ? 'nav-tab-active' : ''; ?>">
+                📦 <?php esc_html_e('Delivery & Core', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-assets&tab=fonts" 
+               class="nav-tab <?php echo $current_tab === 'fonts' ? 'nav-tab-active' : ''; ?>">
+                🔤 <?php esc_html_e('Fonts', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-assets&tab=thirdparty" 
+               class="nav-tab <?php echo $current_tab === 'thirdparty' ? 'nav-tab-active' : ''; ?>">
+                🔌 <?php esc_html_e('Advanced & Third-Party', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'delivery') : ?>
+            <div class="fp-ps-tab-description" style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #0c4a6e;">
+                    <strong>📦 Delivery & Core:</strong> 
+                    <?php esc_html_e('Configura come vengono caricati JS e CSS, abilita HTTP/2 Server Push e Smart Asset Delivery per massimizzare le performance.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'fonts') : ?>
+            <div class="fp-ps-tab-description" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #78350f;">
+                    <strong>🔤 Fonts:</strong> 
+                    <?php esc_html_e('Ottimizza il caricamento dei web fonts per migliorare FCP (First Contentful Paint) e ridurre CLS (Cumulative Layout Shift).', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'thirdparty') : ?>
+            <div class="fp-ps-tab-description" style="background: #e0e7ff; border-left: 4px solid #6366f1; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #3730a3;">
+                    <strong>🔌 Advanced & Third-Party:</strong> 
+                    <?php esc_html_e('Gestisci script esterni (Google Analytics, Tag Manager, Facebook Pixel), HTTP/2 Server Push e Smart Asset Delivery con auto-detection intelligente.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
+
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- TAB: Delivery & Core -->
+        <div class="fp-ps-tab-content" data-tab="delivery" style="display: <?php echo $current_tab === 'delivery' ? 'block' : 'none'; ?>;">
+        
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Delivery', 'fp-performance-suite'); ?></h2>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="delivery" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Minify HTML output', 'fp-performance-suite'); ?></strong>
@@ -1049,12 +1107,17 @@ class Assets extends AbstractPage
             </form>
         </section>
         
-        <section class="fp-ps-card" style="margin-top: 20px;">
+        <!-- Close TAB: Delivery & Core, Open TAB: Fonts -->
+        </div>
+        <div class="fp-ps-tab-content" data-tab="fonts" style="display: <?php echo $current_tab === 'fonts' ? 'block' : 'none'; ?>;">
+        
+        <section class="fp-ps-card">
             <h2><?php esc_html_e('Font Optimization', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Ottimizza il caricamento dei font per migliorare FCP e CLS', 'fp-performance-suite'); ?></p>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="pagespeed" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita ottimizzazione font', 'fp-performance-suite'); ?></strong>
@@ -1117,7 +1180,11 @@ class Assets extends AbstractPage
             </form>
         </section>
         
-        <section class="fp-ps-card" style="margin-top: 20px;">
+        <!-- Close TAB: Fonts, Open TAB: Third-Party -->
+        </div>
+        <div class="fp-ps-tab-content" data-tab="thirdparty" style="display: <?php echo $current_tab === 'thirdparty' ? 'block' : 'none'; ?>;">
+        
+        <section class="fp-ps-card">
             <h2>
                 🔌 <?php esc_html_e('Third-Party Script Manager', 'fp-performance-suite'); ?> 
                 <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span>
@@ -1137,9 +1204,10 @@ class Assets extends AbstractPage
                 </div>
             <?php endif; ?>
             
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="third_party" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -1751,9 +1819,10 @@ class Assets extends AbstractPage
                 <?php echo $hints->renderInlineHint('http2_push'); ?>
             </h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Push automatico di risorse critiche via HTTP/2 Server Push per eliminare round-trip e accelerare il rendering.', 'fp-performance-suite'); ?></p>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="http2_push" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita HTTP/2 Server Push', 'fp-performance-suite'); ?></strong>
@@ -1844,9 +1913,10 @@ class Assets extends AbstractPage
                 <?php echo $hints->renderInlineHint('smart_delivery'); ?>
             </h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Adatta automaticamente la qualità e il tipo di assets in base alla connessione dell\'utente (2G, 3G, 4G, Save-Data).', 'fp-performance-suite'); ?></p>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="smart_delivery" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita Smart Delivery', 'fp-performance-suite'); ?></strong>
@@ -1929,6 +1999,9 @@ class Assets extends AbstractPage
                 </p>
             </form>
         </section>
+        
+        <!-- Close TAB: Advanced & Third-Party -->
+        </div>
         
         <?php echo ThemeHints::renderTooltipScript(); ?>
         <?php

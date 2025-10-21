@@ -72,8 +72,82 @@ class Advanced extends AbstractPage
                 : __('An error occurred while saving settings.', 'fp-performance-suite');
         }
 
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'critical';
+        $valid_tabs = ['critical', 'compression', 'cdn', 'monitoring', 'reports'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'critical';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+
         ob_start();
         ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-advanced&tab=critical" 
+               class="nav-tab <?php echo $current_tab === 'critical' ? 'nav-tab-active' : ''; ?>">
+                🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-advanced&tab=compression" 
+               class="nav-tab <?php echo $current_tab === 'compression' ? 'nav-tab-active' : ''; ?>">
+                📦 <?php esc_html_e('Compression', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-advanced&tab=cdn" 
+               class="nav-tab <?php echo $current_tab === 'cdn' ? 'nav-tab-active' : ''; ?>">
+                🌐 <?php esc_html_e('CDN', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-advanced&tab=monitoring" 
+               class="nav-tab <?php echo $current_tab === 'monitoring' ? 'nav-tab-active' : ''; ?>">
+                📊 <?php esc_html_e('Monitoring', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-advanced&tab=reports" 
+               class="nav-tab <?php echo $current_tab === 'reports' ? 'nav-tab-active' : ''; ?>">
+                📈 <?php esc_html_e('Reports', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'critical') : ?>
+            <div class="fp-ps-tab-description" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #92400e;">
+                    <strong>🎨 Critical CSS:</strong> 
+                    <?php esc_html_e('Ottimizza il rendering above-the-fold con CSS critico inline per eliminare il render blocking.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'compression') : ?>
+            <div class="fp-ps-tab-description" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #1e40af;">
+                    <strong>📦 Compression:</strong> 
+                    <?php esc_html_e('Configura compressione Brotli e Gzip per ridurre drasticamente le dimensioni dei file trasferiti.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'cdn') : ?>
+            <div class="fp-ps-tab-description" style="background: #e0e7ff; border-left: 4px solid #6366f1; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #3730a3;">
+                    <strong>🌐 CDN:</strong> 
+                    <?php esc_html_e('Configura Content Delivery Network per servire asset da server più vicini agli utenti.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'monitoring') : ?>
+            <div class="fp-ps-tab-description" style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #166534;">
+                    <strong>📊 Monitoring:</strong> 
+                    <?php esc_html_e('Monitora performance in tempo reale e ricevi alert automatici per problemi di performance.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'reports') : ?>
+            <div class="fp-ps-tab-description" style="background: #fdf2f8; border-left: 4px solid #ec4899; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #be185d;">
+                    <strong>📈 Reports:</strong> 
+                    <?php esc_html_e('Configura report automatici via email con analisi dettagliate delle performance del sito.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
         
         <?php if ($success_message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($success_message); ?></p></div>
@@ -86,21 +160,32 @@ class Advanced extends AbstractPage
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
             <input type="hidden" name="action" value="fp_ps_save_advanced">
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
             
-            <!-- Critical CSS Section -->
+            <!-- TAB: Critical CSS -->
+            <div class="fp-ps-tab-content" data-tab="critical" style="display: <?php echo $current_tab === 'critical' ? 'block' : 'none'; ?>;">
             <?php echo $this->renderCriticalCssSection(); ?>
+            </div>
             
-            <!-- Compression Section -->
+            <!-- TAB: Compression -->
+            <div class="fp-ps-tab-content" data-tab="compression" style="display: <?php echo $current_tab === 'compression' ? 'block' : 'none'; ?>;">
             <?php echo $this->renderCompressionSection(); ?>
+            </div>
             
-            <!-- CDN Section -->
+            <!-- TAB: CDN -->
+            <div class="fp-ps-tab-content" data-tab="cdn" style="display: <?php echo $current_tab === 'cdn' ? 'block' : 'none'; ?>;">
             <?php echo $this->renderCdnSection(); ?>
+            </div>
             
-            <!-- Performance Monitoring Section -->
+            <!-- TAB: Monitoring -->
+            <div class="fp-ps-tab-content" data-tab="monitoring" style="display: <?php echo $current_tab === 'monitoring' ? 'block' : 'none'; ?>;">
             <?php echo $this->renderMonitoringSection(); ?>
+            </div>
             
-            <!-- Scheduled Reports Section -->
+            <!-- TAB: Reports -->
+            <div class="fp-ps-tab-content" data-tab="reports" style="display: <?php echo $current_tab === 'reports' ? 'block' : 'none'; ?>;">
             <?php echo $this->renderReportsSection(); ?>
+            </div>
             
             <!-- Save Button -->
             <div class="fp-ps-card">

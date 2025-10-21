@@ -45,7 +45,7 @@ class Tools extends AbstractPage
 
     public function title(): string
     {
-        return __('Tools & Export', 'fp-performance-suite');
+        return __('Configuration', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -76,6 +76,18 @@ class Tools extends AbstractPage
         $message = '';
         $importStatus = '';
         $headerDefaults = $headers->settings();
+        
+        // Handle Settings form submission
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_settings_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_settings_nonce']), 'fp-ps-settings')) {
+            $pluginOptions = get_option('fp_ps_settings', []);
+            $pluginOptions['allowed_role'] = sanitize_text_field($_POST['allowed_role'] ?? 'administrator');
+            $pluginOptions['safety_mode'] = !empty($_POST['safety_mode']);
+            update_option('fp_ps_settings', $pluginOptions);
+            update_option('fp_ps_critical_css', wp_unslash($_POST['critical_css'] ?? ''));
+            $message = __('Settings saved.', 'fp-performance-suite');
+        }
+        
+        // Handle Tools form submission
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_tools_nonce'])) {
             $nonce = wp_unslash($_POST['fp_ps_tools_nonce']);
             if (!is_string($nonce) || !wp_verify_nonce($nonce, 'fp-ps-tools')) {
@@ -171,12 +183,64 @@ class Tools extends AbstractPage
             __('Browser cache headers', 'fp-performance-suite') => $headers->status()['enabled'] ? __('Pass', 'fp-performance-suite') : __('Missing', 'fp-performance-suite'),
             __('WebP coverage', 'fp-performance-suite') => sprintf('%0.2f%%', $webp->status()['coverage']),
         ];
+        
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'importexport';
+        $valid_tabs = ['importexport', 'settings'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'importexport';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+        
+        // Load Settings data
+        $pluginOptions = get_option('fp_ps_settings', [
+            'allowed_role' => 'administrator',
+            'safety_mode' => true,
+        ]);
+        $criticalCss = get_option('fp_ps_critical_css', '');
 
         ob_start();
         ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-tools&tab=importexport" 
+               class="nav-tab <?php echo $current_tab === 'importexport' ? 'nav-tab-active' : ''; ?>">
+                📥 <?php esc_html_e('Import/Export', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-tools&tab=settings" 
+               class="nav-tab <?php echo $current_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
+                ⚙️ <?php esc_html_e('Plugin Settings', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'importexport') : ?>
+            <div class="fp-ps-tab-description" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #1e40af;">
+                    <strong>📥 Import/Export:</strong> 
+                    <?php esc_html_e('Esporta tutte le configurazioni del plugin in formato JSON per backup o migrazione su altri siti.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'settings') : ?>
+            <div class="fp-ps-tab-description" style="background: #f3e8ff; border-left: 4px solid #a855f7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #6b21a8;">
+                    <strong>⚙️ Plugin Settings:</strong> 
+                    <?php esc_html_e('Configura accesso al plugin, modalità sicurezza e impostazioni globali del sistema.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
+        
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- TAB: Import/Export -->
+        <div class="fp-ps-tab-content" data-tab="importexport" style="display: <?php echo $current_tab === 'importexport' ? 'block' : 'none'; ?>;">
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Export Settings', 'fp-performance-suite'); ?></h2>
             <textarea class="large-text code" rows="8" readonly><?php echo esc_textarea(wp_json_encode($export, JSON_PRETTY_PRINT)); ?></textarea>
@@ -200,6 +264,56 @@ class Tools extends AbstractPage
                 <?php endforeach; ?>
             </ul>
         </section>
+        
+        <!-- Close TAB: Import/Export, Open TAB: Settings -->
+        </div>
+        <div class="fp-ps-tab-content" data-tab="settings" style="display: <?php echo $current_tab === 'settings' ? 'block' : 'none'; ?>;">
+        
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Access Control', 'fp-performance-suite'); ?></h2>
+            <form method="post" action="?page=fp-performance-suite-tools&tab=<?php echo esc_attr($current_tab); ?>">
+                <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
+                <p>
+                    <label for="allowed_role"><?php esc_html_e('Minimum role to manage plugin', 'fp-performance-suite'); ?></label>
+                    <select name="allowed_role" id="allowed_role">
+                        <option value="administrator" <?php selected($pluginOptions['allowed_role'], 'administrator'); ?>><?php esc_html_e('Administrator', 'fp-performance-suite'); ?></option>
+                        <option value="editor" <?php selected($pluginOptions['allowed_role'], 'editor'); ?>><?php esc_html_e('Editor', 'fp-performance-suite'); ?></option>
+                    </select>
+                </p>
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Safety mode', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Previene operazioni potenzialmente pericolose e aggiunge ulteriori controlli di sicurezza.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Mantieni sempre attivo per maggiore sicurezza, non ha impatti negativi sulle performance.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
+                    <input type="checkbox" name="safety_mode" value="1" <?php checked($pluginOptions['safety_mode']); ?> />
+                </label>
+                <p>
+                    <label for="critical_css"><?php esc_html_e('Critical CSS placeholder', 'fp-performance-suite'); ?></label>
+                    <textarea name="critical_css" id="critical_css" rows="6" class="large-text code" placeholder="<?php esc_attr_e('Paste above-the-fold CSS or snippet reference.', 'fp-performance-suite'); ?>"><?php echo esc_textarea($criticalCss); ?></textarea>
+                </p>
+                <p><button type="submit" class="button button-primary"><?php esc_html_e('Save Settings', 'fp-performance-suite'); ?></button></p>
+            </form>
+        </section>
+        
+        <!-- Close TAB: Settings -->
+        </div>
+        
         <?php
         return (string) ob_get_clean();
     }

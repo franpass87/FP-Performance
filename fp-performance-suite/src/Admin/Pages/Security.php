@@ -120,8 +120,49 @@ class Security extends AbstractPage
             $message = __('Security settings saved successfully!', 'fp-performance-suite');
         }
         
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'security';
+        $valid_tabs = ['security', 'performance'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'security';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+
         ob_start();
         ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-security&tab=security" 
+               class="nav-tab <?php echo $current_tab === 'security' ? 'nav-tab-active' : ''; ?>">
+                🛡️ <?php esc_html_e('Security & Protection', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-security&tab=performance" 
+               class="nav-tab <?php echo $current_tab === 'performance' ? 'nav-tab-active' : ''; ?>">
+                ⚡ <?php esc_html_e('.htaccess Performance', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'security') : ?>
+            <div class="fp-ps-tab-description" style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #991b1b;">
+                    <strong>🛡️ Security & Protection:</strong> 
+                    <?php esc_html_e('Headers di sicurezza, protezione file sensibili, blocco XML-RPC e anti-hotlink per proteggere il tuo sito da attacchi.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'performance') : ?>
+            <div class="fp-ps-tab-description" style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #065f46;">
+                    <strong>⚡ .htaccess Performance:</strong> 
+                    <?php esc_html_e('Redirect canonici, regole cache ottimizzate, compressione Brotli e CORS headers per massimizzare le performance via .htaccess.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
@@ -144,8 +185,9 @@ class Security extends AbstractPage
         </div>
         <?php endif; ?>
         
-        <form method="post">
+        <form method="post" action="?page=fp-performance-suite-security&tab=<?php echo esc_attr($current_tab); ?>">
             <?php wp_nonce_field('fp-ps-security', 'fp_ps_security_nonce'); ?>
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
             
             <!-- Master Switch -->
             <section class="fp-ps-card">
@@ -169,6 +211,9 @@ class Security extends AbstractPage
                     <input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> />
                 </label>
             </section>
+            
+            <!-- TAB: .htaccess Performance -->
+            <div class="fp-ps-tab-content" data-tab="performance" style="display: <?php echo $current_tab === 'performance' ? 'block' : 'none'; ?>;">
             
             <!-- 1. Redirect Canonico -->
             <section class="fp-ps-card">
@@ -212,79 +257,7 @@ class Security extends AbstractPage
                 </div>
             </section>
             
-            <!-- 2. Security Headers -->
-            <section class="fp-ps-card">
-                <h2>🛡️ <?php esc_html_e('Security Headers', 'fp-performance-suite'); ?></h2>
-                <p class="description"><?php esc_html_e('Migliora il punteggio di sicurezza e proteggi da attacchi comuni (XSS, clickjacking, MIME sniffing).', 'fp-performance-suite'); ?></p>
-                
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Abilita Security Headers', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="security_headers_enabled" value="1" <?php checked($settings['security_headers']['enabled']); ?> />
-                </label>
-                
-                <div style="margin-left: 20px; margin-top: 15px;">
-                    <!-- HSTS -->
-                    <h3><?php esc_html_e('HSTS (HTTP Strict Transport Security)', 'fp-performance-suite'); ?></h3>
-                    <p>
-                        <label>
-                            <input type="checkbox" name="hsts" value="1" <?php checked($settings['security_headers']['hsts']); ?> />
-                            <?php esc_html_e('Abilita HSTS', 'fp-performance-suite'); ?>
-                        </label>
-                    </p>
-                    <p>
-                        <label for="hsts_max_age"><?php esc_html_e('Max Age (secondi)', 'fp-performance-suite'); ?></label><br>
-                        <input type="number" name="hsts_max_age" id="hsts_max_age" value="<?php echo esc_attr($settings['security_headers']['hsts_max_age']); ?>" min="0" class="small-text">
-                        <span class="description"><?php esc_html_e('(default: 31536000 = 1 anno)', 'fp-performance-suite'); ?></span>
-                    </p>
-                    <p>
-                        <label>
-                            <input type="checkbox" name="hsts_subdomains" value="1" <?php checked($settings['security_headers']['hsts_subdomains']); ?> />
-                            <?php esc_html_e('Includi sottodomini', 'fp-performance-suite'); ?>
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <input type="checkbox" name="hsts_preload" value="1" <?php checked($settings['security_headers']['hsts_preload']); ?> />
-                            <?php esc_html_e('Preload', 'fp-performance-suite'); ?>
-                        </label>
-                        <span class="description" style="display: block; margin-left: 24px; color: #d63638;"><?php esc_html_e('⚠️ Attiva solo se tutti i sottodomini supportano HTTPS!', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <hr style="margin: 20px 0;">
-                    
-                    <!-- Altri Header -->
-                    <p>
-                        <label>
-                            <input type="checkbox" name="x_content_type_options" value="1" <?php checked($settings['security_headers']['x_content_type_options']); ?> />
-                            <?php esc_html_e('X-Content-Type-Options: nosniff', 'fp-performance-suite'); ?>
-                        </label>
-                        <span class="description" style="display: block; margin-left: 24px;"><?php esc_html_e('Previene MIME type sniffing', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p>
-                        <label for="x_frame_options"><?php esc_html_e('X-Frame-Options', 'fp-performance-suite'); ?></label><br>
-                        <select name="x_frame_options" id="x_frame_options">
-                            <option value="SAMEORIGIN" <?php selected($settings['security_headers']['x_frame_options'], 'SAMEORIGIN'); ?>>SAMEORIGIN</option>
-                            <option value="DENY" <?php selected($settings['security_headers']['x_frame_options'], 'DENY'); ?>>DENY</option>
-                        </select>
-                        <span class="description"><?php esc_html_e('Protegge da clickjacking', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p>
-                        <label for="referrer_policy"><?php esc_html_e('Referrer-Policy', 'fp-performance-suite'); ?></label><br>
-                        <input type="text" name="referrer_policy" id="referrer_policy" value="<?php echo esc_attr($settings['security_headers']['referrer_policy']); ?>" class="regular-text">
-                        <span class="description"><?php esc_html_e('(default: strict-origin-when-cross-origin)', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p>
-                        <label for="permissions_policy"><?php esc_html_e('Permissions-Policy', 'fp-performance-suite'); ?></label><br>
-                        <input type="text" name="permissions_policy" id="permissions_policy" value="<?php echo esc_attr($settings['security_headers']['permissions_policy']); ?>" class="large-text">
-                        <span class="description"><?php esc_html_e('(default: camera=(), microphone=(), geolocation=())', 'fp-performance-suite'); ?></span>
-                    </p>
-                </div>
-            </section>
+            <!-- 2. Security Headers (SPOSTATO NEL TAB SECURITY) -->
             
             <!-- 3. Cache Rules -->
             <section class="fp-ps-card">
@@ -387,6 +360,84 @@ class Security extends AbstractPage
                 </div>
             </section>
             
+            <!-- Close TAB: Performance, Open TAB: Security -->
+            </div>
+            <div class="fp-ps-tab-content" data-tab="security" style="display: <?php echo $current_tab === 'security' ? 'block' : 'none'; ?>;">
+            
+            <!-- 2. Security Headers -->
+            <section class="fp-ps-card">
+                <h2>🛡️ <?php esc_html_e('Security Headers', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Migliora il punteggio di sicurezza e proteggi da attacchi comuni (XSS, clickjacking, MIME sniffing).', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Security Headers', 'fp-performance-suite'); ?></strong>
+                    </span>
+                    <input type="checkbox" name="security_headers_enabled" value="1" <?php checked($settings['security_headers']['enabled']); ?> />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <!-- HSTS -->
+                    <h3><?php esc_html_e('HSTS (HTTP Strict Transport Security)', 'fp-performance-suite'); ?></h3>
+                    <p>
+                        <label>
+                            <input type="checkbox" name="hsts" value="1" <?php checked($settings['security_headers']['hsts']); ?> />
+                            <?php esc_html_e('Abilita HSTS', 'fp-performance-suite'); ?>
+                        </label>
+                    </p>
+                    <p style="margin-left: 24px;">
+                        <label for="hsts_max_age"><?php esc_html_e('Max Age (secondi)', 'fp-performance-suite'); ?></label><br>
+                        <input type="number" name="hsts_max_age" id="hsts_max_age" value="<?php echo esc_attr($settings['security_headers']['hsts_max_age']); ?>" min="0" class="small-text">
+                        <span class="description"><?php esc_html_e('(default: 31536000 = 1 anno)', 'fp-performance-suite'); ?></span>
+                    </p>
+                    <p style="margin-left: 24px;">
+                        <label>
+                            <input type="checkbox" name="hsts_subdomains" value="1" <?php checked($settings['security_headers']['hsts_subdomains']); ?> />
+                            <?php esc_html_e('Include sottodomini', 'fp-performance-suite'); ?>
+                        </label>
+                    </p>
+                    <p style="margin-left: 24px;">
+                        <label>
+                            <input type="checkbox" name="hsts_preload" value="1" <?php checked($settings['security_headers']['hsts_preload']); ?> />
+                            <?php esc_html_e('Preload', 'fp-performance-suite'); ?>
+                        </label>
+                    </p>
+                    
+                    <!-- X-Content-Type-Options -->
+                    <p>
+                        <label>
+                            <input type="checkbox" name="x_content_type_options" value="1" <?php checked($settings['security_headers']['x_content_type_options']); ?> />
+                            <?php esc_html_e('X-Content-Type-Options: nosniff', 'fp-performance-suite'); ?>
+                        </label>
+                        <span class="description" style="display: block; margin-left: 24px;"><?php esc_html_e('Previene MIME-type sniffing', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <!-- X-Frame-Options -->
+                    <p>
+                        <label for="x_frame_options"><?php esc_html_e('X-Frame-Options', 'fp-performance-suite'); ?></label><br>
+                        <select name="x_frame_options" id="x_frame_options">
+                            <option value="DENY" <?php selected($settings['security_headers']['x_frame_options'], 'DENY'); ?>>DENY</option>
+                            <option value="SAMEORIGIN" <?php selected($settings['security_headers']['x_frame_options'], 'SAMEORIGIN'); ?>>SAMEORIGIN</option>
+                        </select>
+                        <span class="description"><?php esc_html_e('Previene clickjacking', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <!-- Referrer-Policy -->
+                    <p>
+                        <label for="referrer_policy"><?php esc_html_e('Referrer-Policy', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="referrer_policy" id="referrer_policy" value="<?php echo esc_attr($settings['security_headers']['referrer_policy']); ?>" class="regular-text">
+                        <span class="description"><?php esc_html_e('(default: strict-origin-when-cross-origin)', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <!-- Permissions-Policy -->
+                    <p>
+                        <label for="permissions_policy"><?php esc_html_e('Permissions-Policy', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="permissions_policy" id="permissions_policy" value="<?php echo esc_attr($settings['security_headers']['permissions_policy']); ?>" class="large-text">
+                        <span class="description"><?php esc_html_e('(default: camera=(), microphone=(), geolocation=())', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+            </section>
+            
             <!-- 6. Protezione File -->
             <section class="fp-ps-card">
                 <h2>🔒 <?php esc_html_e('Protezione File Sensibili', 'fp-performance-suite'); ?></h2>
@@ -458,6 +509,9 @@ class Security extends AbstractPage
                 </div>
             </section>
             
+            <!-- Close TAB: Security -->
+            </div>
+            
             <div class="fp-ps-card">
                 <p>
                     <button type="submit" class="button button-primary button-large"><?php esc_html_e('Salva Tutte le Impostazioni', 'fp-performance-suite'); ?></button>
@@ -466,7 +520,7 @@ class Security extends AbstractPage
                     <?php 
                     echo sprintf(
                         __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
-                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-tools')) . '">' . __('Tools', 'fp-performance-suite') . '</a>'
+                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-tools')) . '">' . __('Configuration', 'fp-performance-suite') . '</a>'
                     );
                     ?>
                 </p>

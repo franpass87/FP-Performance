@@ -196,11 +196,67 @@ class Database extends AbstractPage
         $healthScore = $reportService ? $reportService->getHealthScore() : ['score' => 0, 'grade' => 'N/A', 'status' => 'unknown', 'issues' => [], 'recommendations' => []];
         $trends = $reportService ? $reportService->analyzeTrends() : ['status' => 'insufficient_data'];
         
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'operations';
+        $valid_tabs = ['operations', 'analysis', 'reports'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'operations';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+
         ob_start();
         ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-database&tab=operations" 
+               class="nav-tab <?php echo $current_tab === 'operations' ? 'nav-tab-active' : ''; ?>">
+                🔧 <?php esc_html_e('Operations & Cleanup', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-database&tab=analysis" 
+               class="nav-tab <?php echo $current_tab === 'analysis' ? 'nav-tab-active' : ''; ?>">
+                📊 <?php esc_html_e('Advanced Analysis', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-database&tab=reports" 
+               class="nav-tab <?php echo $current_tab === 'reports' ? 'nav-tab-active' : ''; ?>">
+                📈 <?php esc_html_e('Reports & Plugins', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'operations') : ?>
+            <div class="fp-ps-tab-description" style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #065f46;">
+                    <strong>🔧 Operations:</strong> 
+                    <?php esc_html_e('Esegui pulizia database, configura scheduler automatico e monitora le query per identificare colli di bottiglia.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'analysis') : ?>
+            <div class="fp-ps-tab-description" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #1e40af;">
+                    <strong>📊 Analysis:</strong> 
+                    <?php esc_html_e('Analisi approfondita del database: Health Score, frammentazione, indici mancanti, storage engines e object caching.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'reports') : ?>
+            <div class="fp-ps-tab-description" style="background: #fae8ff; border-left: 4px solid #a855f7; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                <p style="margin: 0; color: #6b21a8;">
+                    <strong>📈 Reports & Plugins:</strong> 
+                    <?php esc_html_e('Report e trend di crescita database, pulizie specifiche per WooCommerce, Elementor e altri plugin.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
+
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- TAB: Operations & Cleanup -->
+        <div class="fp-ps-tab-content" data-tab="operations" style="display: <?php echo $current_tab === 'operations' ? 'block' : 'none'; ?>;">
         
         <?php if (!$optimizer || !$reportService || !$pluginOptimizer) : ?>
             <div class="notice notice-warning">
@@ -229,9 +285,10 @@ class Database extends AbstractPage
             <h2><?php esc_html_e('Database Query Monitor', 'fp-performance-suite'); ?></h2>
             <p class="description"><?php esc_html_e('Monitora le query database in tempo reale e identifica colli di bottiglia.', 'fp-performance-suite'); ?></p>
             
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
                 <input type="hidden" name="enable_query_monitor" value="1" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 
                 <?php $querySettings = $queryMonitor->getSettings(); ?>
                 <label class="fp-ps-toggle">
@@ -355,6 +412,10 @@ class Database extends AbstractPage
                 </div>
             <?php endif; ?>
         </section>
+        
+        <!-- Close TAB: Operations, Open TAB: Analysis -->
+        </div>
+        <div class="fp-ps-tab-content" data-tab="analysis" style="display: <?php echo $current_tab === 'analysis' ? 'block' : 'none'; ?>;">
         
         <!-- Database Optimizer Section -->
         <section class="fp-ps-card">
@@ -628,6 +689,10 @@ class Database extends AbstractPage
             <?php endif; ?>
         </section>
         
+        <!-- Close TAB: Analysis, Open TAB: Reports -->
+        </div>
+        <div class="fp-ps-tab-content" data-tab="reports" style="display: <?php echo $current_tab === 'reports' ? 'block' : 'none'; ?>;">
+        
         <!-- Plugin-Specific Cleanup -->
         <?php if (!empty($pluginOpportunities['opportunities'])) : ?>
         <section class="fp-ps-card">
@@ -745,9 +810,10 @@ class Database extends AbstractPage
         <?php endif; ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Scheduler', 'fp-performance-suite'); ?></h2>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
                 <input type="hidden" name="save_db_settings" value="1" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <p>
                     <label for="schedule"><?php esc_html_e('Cleanup schedule', 'fp-performance-suite'); ?></label>
                     <select name="schedule" id="schedule">
@@ -783,9 +849,10 @@ class Database extends AbstractPage
         </section>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Cleanup Tools', 'fp-performance-suite'); ?></h2>
-            <form method="post">
+            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
                 <input type="hidden" name="run_cleanup" value="1" />
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <p><?php esc_html_e('Select components to clean. Red actions require PROCEDI confirmation.', 'fp-performance-suite'); ?></p>
                 <div class="fp-ps-grid two">
                     <?php foreach ($tasks as $key => $label) : ?>
@@ -849,6 +916,10 @@ class Database extends AbstractPage
                 </table>
             <?php endif; ?>
         </section>
+        
+        <!-- Close TAB: Reports -->
+        </div>
+        
         <?php
         return (string) ob_get_clean();
     }
