@@ -25,22 +25,25 @@ New-Item -ItemType Directory -Path $targetDir | Out-Null
 
 Write-Host "Copiando file del plugin...`n" -ForegroundColor Green
 
+# Copia dall'unica sorgente: fp-performance-suite/
+$sourceDir = "fp-performance-suite"
+
 # Copia directory
-Copy-Item -Path "src" -Destination "$targetDir\src" -Recurse -Force
+Copy-Item -Path "$sourceDir\src" -Destination "$targetDir\src" -Recurse -Force
 Write-Host "✅ src/" -ForegroundColor Green
 
-Copy-Item -Path "assets" -Destination "$targetDir\assets" -Recurse -Force
+Copy-Item -Path "$sourceDir\assets" -Destination "$targetDir\assets" -Recurse -Force
 Write-Host "✅ assets/" -ForegroundColor Green
 
-Copy-Item -Path "languages" -Destination "$targetDir\languages" -Recurse -Force
+Copy-Item -Path "$sourceDir\languages" -Destination "$targetDir\languages" -Recurse -Force
 Write-Host "✅ languages/" -ForegroundColor Green
 
-Copy-Item -Path "views" -Destination "$targetDir\views" -Recurse -Force
+Copy-Item -Path "$sourceDir\views" -Destination "$targetDir\views" -Recurse -Force
 Write-Host "✅ views/" -ForegroundColor Green
 
 # Copia file singoli
-Copy-Item -Path "fp-performance-suite.php" -Destination "$targetDir\" -Force
-Copy-Item -Path "uninstall.php" -Destination "$targetDir\" -Force
+Copy-Item -Path "$sourceDir\fp-performance-suite.php" -Destination "$targetDir\" -Force
+Copy-Item -Path "$sourceDir\uninstall.php" -Destination "$targetDir\" -Force
 Copy-Item -Path "LICENSE" -Destination "$targetDir\" -Force
 Copy-Item -Path "readme.txt" -Destination "$targetDir\" -Force
 Copy-Item -Path "README.md" -Destination "$targetDir\" -Force
@@ -73,7 +76,7 @@ foreach ($file in $dbFiles) {
 Write-Host ""
 
 if (-not $allPresent) {
-    Write-Host "⚠️  File mancanti! Verifica che esistano in src/Services/DB/" -ForegroundColor Red
+    Write-Host "⚠️  File mancanti! Verifica che esistano in fp-performance-suite/src/Services/DB/" -ForegroundColor Red
     exit 1
 }
 

@@ -1,0 +1,37 @@
+/**
+ * FP Performance Suite - Admin Styles (Modular)
+ * 
+ * This is the main entry point for all admin CSS.
+ * Styles are organized into modular components for better maintainability.
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ * @link https://francescopasseri.com
+ */
+
+/* Base */
+@import url('base/variables.css');
+
+/* Layout */
+@import url('layout/wrap.css');
+@import url('layout/header.css');
+@import url('layout/grid.css');
+@import url('layout/card.css');
+
+/* Components */
+@import url('components/badge.css');
+@import url('components/toggle.css');
+@import url('components/tooltip.css');
+@import url('components/table.css');
+@import url('components/log-viewer.css');
+@import url('components/actions.css');
+@import url('components/bulk-convert.css');
+
+/* Utilities */
+@import url('utilities/score.css');
+
+/* Themes & Accessibility */
+@import url('themes/dark-mode.css');
+@import url('themes/high-contrast.css');
+@import url('themes/reduced-motion.css');
+@import url('themes/print.css');
