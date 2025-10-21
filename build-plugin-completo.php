@@ -1,15 +1,15 @@
 <?php
 /**
- * Build Plugin Completo v1.4.0
+ * Build Plugin Completo v1.5.0 - Piano B
  * 
  * Crea lo ZIP del plugin completo con tutte le funzionalità integrate
- * incluse le nuove ottimizzazioni database avanzate
+ * incluse le ottimizzazioni del Piano B (menu riorganizzato, 15 tabs, Backend page)
  */
 
-echo "=== Build FP Performance Suite v1.4.0 ===\n\n";
+echo "=== Build FP Performance Suite v1.5.0 - Piano B ===\n\n";
 
 $pluginSlug = 'fp-performance-suite';
-$version = '1.4.0';
+$version = '1.5.0';
 $zipFile = "{$pluginSlug}.zip";
 $buildDir = 'build-temp';
 
@@ -152,17 +152,14 @@ echo "  • Installazione manuale\n";
 echo "  • Distribuzione GitHub\n";
 echo "  • Deployment su server di produzione\n\n";
 
-echo "🚀 Nuove funzionalità v1.4.0:\n";
-echo "  ✅ Database Health Score (0-100%)\n";
-echo "  ✅ Analisi frammentazione avanzata\n";
-echo "  ✅ Rilevamento indici mancanti\n";
-echo "  ✅ Conversione MyISAM → InnoDB\n";
-echo "  ✅ Ottimizzazione charset (utf8mb4)\n";
-echo "  ✅ Analisi autoload dettagliata\n";
-echo "  ✅ Plugin-specific cleanup (WooCommerce, Elementor, Yoast)\n";
-echo "  ✅ Report & Trend con export JSON/CSV\n";
-echo "  ✅ 5 nuovi comandi WP-CLI\n";
-echo "  ✅ Interfaccia admin rinnovata\n\n";
+echo "🚀 Nuove funzionalità v1.5.0 - Piano B:\n";
+echo "  ✅ Menu gerarchico riorganizzato (13 pagine)\n";
+echo "  ✅ 15 tabs per navigazione intuitiva\n";
+echo "  ✅ Nuova pagina Backend Optimization\n";
+echo "  ✅ Settings integrato in Configuration\n";
+echo "  ✅ UX completamente rinnovata\n";
+echo "  ✅ PHP 8.1+ deprecations corretti\n";
+echo "  ✅ Backward compatibility garantita\n\n";
 
 echo "Fatto! 🎊\n";
 

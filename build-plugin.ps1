@@ -1,6 +1,6 @@
-# Build FP Performance Suite v1.4.0 - PowerShell Script
+# Build FP Performance Suite v1.5.0 - Piano B - PowerShell Script
 
-Write-Host "=== Build FP Performance Suite v1.4.0 ===" -ForegroundColor Cyan
+Write-Host "=== Build FP Performance Suite v1.5.0 - Piano B ===" -ForegroundColor Cyan
 Write-Host ""
 
 $pluginSlug = "fp-performance-suite"
@@ -93,17 +93,18 @@ Write-Host "`n🎉 Build Completato!" -ForegroundColor Green
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host "📦 File ZIP: $zipFile" -ForegroundColor White
 Write-Host "📊 Dimensione: $zipSizeMB MB" -ForegroundColor White
-Write-Host "🏷️  Versione: 1.4.0" -ForegroundColor White
+Write-Host "🏷️  Versione: 1.5.0 - Piano B Complete" -ForegroundColor White
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`n" -ForegroundColor Cyan
 
 Write-Host "✅ Plugin pronto per l'installazione!" -ForegroundColor Green
-Write-Host "`n🚀 Nuove funzionalità v1.4.0:" -ForegroundColor Yellow
-Write-Host "  ✅ Database Health Score (0-100%)"
-Write-Host "  ✅ Analisi frammentazione avanzata"
-Write-Host "  ✅ Plugin-specific cleanup (WooCommerce, Elementor, Yoast)"
-Write-Host "  ✅ Report & Trend con export JSON/CSV"
-Write-Host "  ✅ 5 nuovi comandi WP-CLI"
-Write-Host "  ✅ Interfaccia admin completamente rinnovata"
+Write-Host "`n🚀 Nuove funzionalità v1.5.0 - Piano B:" -ForegroundColor Yellow
+Write-Host "  ✅ Menu gerarchico riorganizzato (13 pagine)"
+Write-Host "  ✅ 15 tabs per navigazione intuitiva"
+Write-Host "  ✅ Nuova pagina Backend Optimization"
+Write-Host "  ✅ Settings integrato in Configuration"
+Write-Host "  ✅ UX completamente rinnovata"
+Write-Host "  ✅ PHP 8.1+ deprecations corretti"
+Write-Host "  ✅ Backward compatibility garantita"
 Write-Host ""
 Write-Host "Installa ora il plugin sul tuo sito!" -ForegroundColor Green
 Write-Host "Fatto! 🎊`n" -ForegroundColor Cyan
