@@ -28,6 +28,7 @@ use FP\PerfSuite\Services\Assets\BatchDOMUpdater;
 use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
 use FP\PerfSuite\Services\Assets\CodeSplittingManager;
 use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
+use FP\PerfSuite\Services\Assets\CriticalPathOptimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
