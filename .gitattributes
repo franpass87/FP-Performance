@@ -3,7 +3,8 @@
 
 # Directory di build e sviluppo
 /build export-ignore
-/fp-performance-suite export-ignore
+# RIMOSSO: /fp-performance-suite export-ignore
+# La directory fp-performance-suite/ e' ESSENZIALE per il plugin!
 
 # File di configurazione e sviluppo
 /.gitattributes export-ignore
