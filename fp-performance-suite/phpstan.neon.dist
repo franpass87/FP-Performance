@@ -1,8 +1,0 @@
-includes:
-    - vendor/szepeviktor/phpstan-wordpress/extension.neon
-
-parameters:
-    level: 6
-    paths:
-        - src
-    tmpDir: build/phpstan
