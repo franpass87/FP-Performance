@@ -343,7 +343,7 @@ class CriticalCssAutomation
     /**
      * Ottiene Critical CSS per un post
      */
-    public function getCriticalCss(int $postId = null): ?string
+    public function getCriticalCss(?int $postId = null): ?string
     {
         if ($postId) {
             $css = get_post_meta($postId, '_fp_critical_css', true);
@@ -358,7 +358,7 @@ class CriticalCssAutomation
     /**
      * Imposta Critical CSS manualmente
      */
-    public function setCriticalCss(string $css, int $postId = null): bool
+    public function setCriticalCss(string $css, ?int $postId = null): bool
     {
         if ($postId) {
             update_post_meta($postId, '_fp_critical_css', $css);
@@ -372,7 +372,7 @@ class CriticalCssAutomation
     /**
      * Pulisce Critical CSS
      */
-    public function clearCriticalCss(int $postId = null): bool
+    public function clearCriticalCss(?int $postId = null): bool
     {
         if ($postId) {
             delete_post_meta($postId, '_fp_critical_css');

@@ -37,17 +37,11 @@ function fp_perf_suite_is_db_available(): bool {
         return false;
     }
     
-    // Per mysqli
-    if (is_object($wpdb->dbh) && get_class($wpdb->dbh) === 'mysqli') {
-        if (!$wpdb->dbh instanceof \mysqli) {
-            return false;
-        }
-        // Verifica che la connessione sia ancora viva
-        try {
-            return @$wpdb->dbh->ping();
-        } catch (\Throwable $e) {
-            return false;
-        }
+    // Per mysqli - Verifica connessione
+    if (is_object($wpdb->dbh) && $wpdb->dbh instanceof \mysqli) {
+        // ping() è deprecated in PHP 8.4, verifica semplicemente che l'oggetto esista
+        // Se dbh è un oggetto mysqli valido, la connessione è disponibile
+        return true;
     }
     
     // Fallback: tenta una query semplice
