@@ -1,6 +1,5 @@
 /vendor/
 /build/*.zip
-fp-performance-suite/build/fp-performance-suite/
-fp-performance-suite/build/*.zip
-fp-performance-suite/vendor/
-fp-performance-suite/.phpunit.result.cache
+
+# Ignora directory fp-performance-suite locale (usata per build)
+/fp-performance-suite/

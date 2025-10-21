@@ -217,7 +217,7 @@ class Cleaner
     /**
      * @param wpdb $wpdb
      */
-    private function cleanupPosts($wpdb, string $where, bool $dryRun, int $batch): array
+    private function cleanupPosts(\wpdb $wpdb, string $where, bool $dryRun, int $batch): array
     {
         // SICUREZZA: Whitelist di condizioni WHERE permesse
         $allowedConditions = [
@@ -259,7 +259,7 @@ class Cleaner
     /**
      * @param wpdb $wpdb
      */
-    private function cleanupComments($wpdb, array $statuses, bool $dryRun, int $batch): array
+    private function cleanupComments(\wpdb $wpdb, array $statuses, bool $dryRun, int $batch): array
     {
         $table = $wpdb->comments;
         $placeholders = implode(',', array_fill(0, count($statuses), '%s'));
@@ -278,7 +278,7 @@ class Cleaner
     /**
      * @param wpdb $wpdb
      */
-    private function cleanupTransients($wpdb, bool $dryRun, int $batch): array
+    private function cleanupTransients(\wpdb $wpdb, bool $dryRun, int $batch): array
     {
         $time = time();
         $sql = $wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d LIMIT %d", '_transient_timeout_%', $time, $batch);
@@ -319,7 +319,7 @@ class Cleaner
     /**
      * @param wpdb $wpdb
      */
-    private function cleanupMeta($wpdb, string $metaTable, string $parentTable, string $foreignKey, string $parentKey, bool $dryRun, int $batch): array
+    private function cleanupMeta(\wpdb $wpdb, string $metaTable, string $parentTable, string $foreignKey, string $parentKey, bool $dryRun, int $batch): array
     {
         $sql = $wpdb->prepare("SELECT m.meta_id FROM {$metaTable} m LEFT JOIN {$parentTable} p ON m.{$foreignKey} = p.{$parentKey} WHERE p.{$parentKey} IS NULL LIMIT %d", $batch);
         $ids = $wpdb->get_col($sql);
@@ -334,7 +334,7 @@ class Cleaner
     /**
      * @param wpdb $wpdb
      */
-    private function optimizeTables($wpdb, bool $dryRun): array
+    private function optimizeTables(\wpdb $wpdb, bool $dryRun): array
     {
         $tables = array_filter(
             (array) $wpdb->get_col('SHOW TABLES'),

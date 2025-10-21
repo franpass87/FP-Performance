@@ -414,83 +414,71 @@ class Plugin
 
     public static function onActivate(): void
     {
+        // VERSIONE ULTRA-SEMPLIFICATA per debug
+        // Registra ogni passo per capire dove si blocca
+        
         try {
-            // Controlli preliminari di sistema
-            self::performSystemChecks();
-
-            // Determina la versione del plugin
-            $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '';
-
-            if (!is_string($version) || '' === $version) {
-                if (!defined('FP_PERF_SUITE_FILE')) {
-                    define('FP_PERF_SUITE_FILE', dirname(__DIR__) . '/fp-performance-suite.php');
-                }
-                $data = get_file_data(FP_PERF_SUITE_FILE, ['Version' => 'Version']);
-                $version = is_array($data) && !empty($data['Version']) ? (string) $data['Version'] : '1.0.0';
-            }
-
-            // Salva la versione nelle opzioni
+            // Step 1: Salva versione (minimo indispensabile)
+            error_log('[FP-PerfSuite] ACTIVATION STEP 1: Starting activation');
+            
+            $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '1.5.0';
             update_option('fp_perfsuite_version', $version, false);
-
-            // Inizializza lo scheduler del database cleaner solo se le classi sono disponibili
-            if (class_exists('FP\PerfSuite\Services\DB\Cleaner') && 
-                class_exists('FP\PerfSuite\Utils\Env') && 
-                class_exists('FP\PerfSuite\Utils\RateLimiter')) {
-                
-                $cleaner = new Cleaner(new Env(), new RateLimiter());
-                $cleaner->primeSchedules();
-                $cleaner->maybeSchedule(true);
-            }
-
-            // Verifica e crea le directory necessarie
-            self::ensureRequiredDirectories();
-
-            // Pulisci eventuali errori precedenti
+            
+            error_log('[FP-PerfSuite] ACTIVATION STEP 2: Version saved - ' . $version);
+            
+            // Step 2: Pulisci errori precedenti
             delete_option('fp_perfsuite_activation_error');
-
-            // Log sicuro dell'attivazione
-            if (class_exists('FP\PerfSuite\Utils\Logger')) {
-                Logger::info('Plugin activated', ['version' => $version]);
+            
+            error_log('[FP-PerfSuite] ACTIVATION STEP 3: Previous errors cleared');
+            
+            // Step 3: Crea directory necessarie (se possibile)
+            try {
+                self::ensureRequiredDirectories();
+                error_log('[FP-PerfSuite] ACTIVATION STEP 4: Directories created');
+            } catch (\Throwable $dirError) {
+                error_log('[FP-PerfSuite] ACTIVATION WARNING: Directory creation failed - ' . $dirError->getMessage());
+                // Non bloccare l'attivazione per questo
             }
-
-            // Trigger action hook se le funzioni WordPress sono disponibili
+            
+            // Step 4: Trigger action hook
             if (function_exists('do_action')) {
                 do_action('fp_ps_plugin_activated', $version);
+                error_log('[FP-PerfSuite] ACTIVATION STEP 5: Action hook triggered');
             }
+            
+            error_log('[FP-PerfSuite] ACTIVATION COMPLETED SUCCESSFULLY');
 
         } catch (\Throwable $e) {
-            // Gestione sicura degli errori per prevenire white screen
-            $errorDetails = self::formatActivationError($e);
+            // Log dettagliato dell'errore
+            error_log(sprintf(
+                '[FP-PerfSuite] ACTIVATION FATAL ERROR: %s in %s:%d',
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
+            error_log('[FP-PerfSuite] Stack trace: ' . $e->getTraceAsString());
             
-            if (function_exists('error_log')) {
-                error_log(sprintf(
-                    '[FP Performance Suite] ERRORE CRITICO durante l\'attivazione: %s in %s:%d',
-                    $e->getMessage(),
-                    $e->getFile(),
-                    $e->getLine()
-                ));
-            }
-
-            // Tenta il recupero automatico
-            if (class_exists('FP\PerfSuite\Utils\InstallationRecovery')) {
-                $recovered = InstallationRecovery::attemptRecovery($errorDetails);
-                if ($recovered) {
-                    $errorDetails['recovery_attempted'] = true;
-                    $errorDetails['recovery_successful'] = true;
-                    Logger::info('Automatic recovery successful');
-                } else {
-                    $errorDetails['recovery_attempted'] = true;
-                    $errorDetails['recovery_successful'] = false;
-                }
-            }
-
-            // Salva l'errore nelle opzioni per il debug
-            if (function_exists('update_option')) {
+            // Salva l'errore per mostrarlo nell'admin
+            try {
+                $errorDetails = [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'time' => time(),
+                    'type' => 'activation_error',
+                    'solution' => 'Controlla i log PHP per dettagli. Errore: ' . $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'php_version' => PHP_VERSION,
+                    'wp_version' => function_exists('get_bloginfo') ? get_bloginfo('version') : 'unknown',
+                ];
+                
                 update_option('fp_perfsuite_activation_error', $errorDetails, false);
+            } catch (\Throwable $saveError) {
+                error_log('[FP-PerfSuite] Could not save activation error: ' . $saveError->getMessage());
             }
-
-            // Non rilanciare l'eccezione per evitare white screen
-            // Il plugin si attiverà comunque ma senza la configurazione iniziale dello scheduler
+            
+            // NON rilanciare - permetti l'attivazione comunque
+            // L'utente vedrà l'errore nell'admin panel
         }
     }
 
@@ -504,9 +492,9 @@ class Plugin
         $errors = [];
 
         // Verifica versione PHP minima
-        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
             $errors[] = sprintf(
-                'PHP 8.0.0 o superiore è richiesto. Versione corrente: %s',
+                'PHP 7.4.0 o superiore è richiesto. Versione corrente: %s',
                 PHP_VERSION
             );
         }
@@ -521,7 +509,7 @@ class Plugin
 
         // Verifica permessi di scrittura
         $uploadDir = wp_upload_dir();
-        if (!empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
+        if (is_array($uploadDir) && !empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
             $errors[] = sprintf(
                 'Directory uploads non scrivibile: %s. Verifica i permessi.',
                 $uploadDir['basedir']
@@ -554,11 +542,12 @@ class Plugin
     private static function ensureRequiredDirectories(): void
     {
         $uploadDir = wp_upload_dir();
-        $baseDir = $uploadDir['basedir'];
         
-        if (empty($baseDir)) {
+        if (!is_array($uploadDir) || empty($uploadDir['basedir'])) {
             return;
         }
+        
+        $baseDir = $uploadDir['basedir'];
 
         $requiredDirs = [
             $baseDir . '/fp-performance-suite',

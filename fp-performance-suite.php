@@ -96,56 +96,23 @@ defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
 // Activation/Deactivation hooks con caricamento lazy
 register_activation_hook(__FILE__, static function () {
-    // Log di debug per trovare dove fallisce
-    error_log('[FP-PerfSuite] HOOK START: Activation hook triggered');
-    error_log('[FP-PerfSuite] __FILE__: ' . __FILE__);
-    error_log('[FP-PerfSuite] __DIR__: ' . __DIR__);
-    
     // Carica la classe solo quando necessario
     if (!class_exists('FP\\PerfSuite\\Plugin')) {
         $pluginFile = __DIR__ . '/src/Plugin.php';
-        
-        error_log('[FP-PerfSuite] HOOK CHECK: Plugin.php path: ' . $pluginFile);
-        error_log('[FP-PerfSuite] HOOK CHECK: File exists: ' . (file_exists($pluginFile) ? 'YES' : 'NO'));
-        
         if (!file_exists($pluginFile)) {
-            error_log('[FP-PerfSuite] HOOK ERROR: Plugin.php not found!');
             wp_die('Errore critico: File Plugin.php non trovato in ' . esc_html($pluginFile));
         }
-        
-        error_log('[FP-PerfSuite] HOOK LOAD: Loading Plugin.php...');
-        
-        try {
-            require_once $pluginFile;
-            error_log('[FP-PerfSuite] HOOK LOAD: Plugin.php loaded successfully');
-        } catch (\Throwable $loadError) {
-            error_log('[FP-PerfSuite] HOOK ERROR: Failed to load Plugin.php - ' . $loadError->getMessage());
-            error_log('[FP-PerfSuite] Stack trace: ' . $loadError->getTraceAsString());
-            wp_die(sprintf(
-                '<h1>Errore Caricamento Plugin</h1><p>%s</p><p>File: %s:%d</p>',
-                esc_html($loadError->getMessage()),
-                esc_html($loadError->getFile()),
-                $loadError->getLine()
-            ));
-        }
-    } else {
-        error_log('[FP-PerfSuite] HOOK: Plugin class already loaded');
+        require_once $pluginFile;
     }
-    
-    error_log('[FP-PerfSuite] HOOK: Calling onActivate()...');
     
     try {
         FP\PerfSuite\Plugin::onActivate();
-        error_log('[FP-PerfSuite] HOOK: onActivate() completed');
     } catch (\Throwable $e) {
-        error_log('[FP-PerfSuite] HOOK ERROR: onActivate() failed - ' . $e->getMessage());
-        error_log('[FP-PerfSuite] Stack trace: ' . $e->getTraceAsString());
         wp_die(sprintf(
-            '<h1>Errore di Attivazione Plugin</h1><p><strong>Messaggio:</strong> %s</p><p><strong>File:</strong> %s:%d</p><pre>%s</pre>',
+            '<h1>Errore di Attivazione Plugin</h1><p><strong>Messaggio:</strong> %s</p><p><strong>File:</strong> %s:%d</p>',
             esc_html($e->getMessage()),
             esc_html($e->getFile()),
-            $e->getLine(),
-            esc_html($e->getTraceAsString())
+            $e->getLine()
         ));
     }
 });
