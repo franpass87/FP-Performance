@@ -351,7 +351,7 @@ class Menu
      */
     public function handleJavaScriptOptimizationSave(): void
     {
-        $jsOptimizationPage = new JavaScriptOptimization();
+        $jsOptimizationPage = new JavaScriptOptimization($this->container);
         $jsOptimizationPage->handleSave();
     }
 
@@ -365,7 +365,7 @@ class Menu
             'ai_config' => new AIConfig($this->container),
             'cache' => new Cache($this->container),
             'assets' => new Assets($this->container),
-            'js_optimization' => new JavaScriptOptimization(),
+            'js_optimization' => new JavaScriptOptimization($this->container),
             'critical_path' => new CriticalPathOptimization($this->container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)),
             'media' => new Media($this->container),
             'responsive_images' => new ResponsiveImages($this->container),

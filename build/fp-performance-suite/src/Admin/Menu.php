@@ -333,7 +333,7 @@ class Menu
      */
     public function handleJavaScriptOptimizationSave(): void
     {
-        $jsOptimizationPage = new JavaScriptOptimization();
+        $jsOptimizationPage = new JavaScriptOptimization($this->container);
         $jsOptimizationPage->handleSave();
     }
 
