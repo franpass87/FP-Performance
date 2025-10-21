@@ -1,0 +1,351 @@
+/**
+ * Status Indicator Component Styles
+ * 
+ * Sistema unificato di indicatori di stato a semaforo
+ * utilizzato in tutte le pagine admin del plugin.
+ * 
+ * Stati: success, warning, error, info, inactive
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ */
+
+/* ============================================
+   Inline Status Indicators
+   ============================================ */
+
+.fp-ps-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* Dot style */
+.fp-ps-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.fp-ps-status-label {
+    margin-left: 4px;
+}
+
+/* ============================================
+   Status Badge
+   ============================================ */
+
+.fp-ps-status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.fp-ps-status-badge.fp-ps-status-success {
+    background: #10b981;
+    color: white;
+}
+
+.fp-ps-status-badge.fp-ps-status-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.fp-ps-status-badge.fp-ps-status-error {
+    background: #ef4444;
+    color: white;
+}
+
+.fp-ps-status-badge.fp-ps-status-info {
+    background: #3b82f6;
+    color: white;
+}
+
+.fp-ps-status-badge.fp-ps-status-inactive {
+    background: #6b7280;
+    color: white;
+}
+
+/* ============================================
+   Status Card
+   ============================================ */
+
+.fp-ps-status-card {
+    padding: 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.fp-ps-status-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fp-ps-status-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.fp-ps-status-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.fp-ps-status-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.fp-ps-status-card-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 8px 0;
+}
+
+.fp-ps-status-card-description {
+    color: #4b5563;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+/* Card variants */
+.fp-ps-status-card.fp-ps-status-success {
+    background: #d1fae5;
+    border-left: 4px solid #10b981;
+}
+
+.fp-ps-status-card.fp-ps-status-warning {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+}
+
+.fp-ps-status-card.fp-ps-status-error {
+    background: #fee2e2;
+    border-left: 4px solid #ef4444;
+}
+
+.fp-ps-status-card.fp-ps-status-info {
+    background: #dbeafe;
+    border-left: 4px solid #3b82f6;
+}
+
+.fp-ps-status-card.fp-ps-status-inactive {
+    background: #f3f4f6;
+    border-left: 4px solid #9ca3af;
+}
+
+/* ============================================
+   Progress Bar
+   ============================================ */
+
+.fp-ps-progress-wrapper {
+    margin: 12px 0;
+}
+
+.fp-ps-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.fp-ps-progress-percentage {
+    font-weight: 600;
+}
+
+.fp-ps-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fp-ps-progress-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+    border-radius: 4px;
+}
+
+.fp-ps-progress-fill.fp-ps-status-success {
+    background: #10b981;
+}
+
+.fp-ps-progress-fill.fp-ps-status-warning {
+    background: #f59e0b;
+}
+
+.fp-ps-progress-fill.fp-ps-status-error {
+    background: #ef4444;
+}
+
+.fp-ps-progress-fill.fp-ps-status-info {
+    background: #3b82f6;
+}
+
+.fp-ps-progress-fill.fp-ps-status-inactive {
+    background: #6b7280;
+}
+
+/* ============================================
+   Status List
+   ============================================ */
+
+.fp-ps-status-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fp-ps-status-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fp-ps-status-list-item:last-child {
+    border-bottom: none;
+}
+
+.fp-ps-status-list-label {
+    font-weight: 500;
+    color: #111827;
+}
+
+.fp-ps-status-list-description {
+    color: #6b7280;
+    font-size: 13px;
+    margin-left: auto;
+}
+
+/* ============================================
+   Comparison Indicator
+   ============================================ */
+
+.fp-ps-comparison-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+/* ============================================
+   Status Overview Grid
+   ============================================ */
+
+.fp-ps-status-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+/* ============================================
+   Status Table
+   ============================================ */
+
+.fp-ps-status-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.fp-ps-status-table th,
+.fp-ps-status-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fp-ps-status-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+}
+
+.fp-ps-status-table tr:hover {
+    background: #f9fafb;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 768px) {
+    .fp-ps-status-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .fp-ps-status-card-value {
+        font-size: 24px;
+    }
+    
+    .fp-ps-status-list-item {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .fp-ps-status-list-description {
+        margin-left: 0;
+    }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+
+.fp-ps-status-indicator:focus,
+.fp-ps-status-badge:focus,
+.fp-ps-status-card:focus-within {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .fp-ps-status-card {
+        border: 2px solid currentColor;
+    }
+    
+    .fp-ps-progress-bar {
+        border: 1px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .fp-ps-status-card,
+    .fp-ps-progress-fill {
+        transition: none;
+    }
+}
+
+/* Dark mode support (se necessario in futuro) */
+@media (prefers-color-scheme: dark) {
+    .fp-ps-status-card-description,
+    .fp-ps-status-list-label {
+        color: #d1d5db;
+    }
+    
+    .fp-ps-status-list-description {
+        color: #9ca3af;
+    }
+}
+
