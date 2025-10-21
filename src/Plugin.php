@@ -414,71 +414,35 @@ class Plugin
 
     public static function onActivate(): void
     {
-        // VERSIONE ULTRA-SEMPLIFICATA per debug
-        // Registra ogni passo per capire dove si blocca
-        
+        // Attivazione minimale - solo operazioni essenziali
         try {
-            // Step 1: Salva versione (minimo indispensabile)
-            error_log('[FP-PerfSuite] ACTIVATION STEP 1: Starting activation');
-            
+            // Salva versione
             $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : '1.5.0';
             update_option('fp_perfsuite_version', $version, false);
             
-            error_log('[FP-PerfSuite] ACTIVATION STEP 2: Version saved - ' . $version);
-            
-            // Step 2: Pulisci errori precedenti
+            // Pulisci errori precedenti
             delete_option('fp_perfsuite_activation_error');
             
-            error_log('[FP-PerfSuite] ACTIVATION STEP 3: Previous errors cleared');
-            
-            // Step 3: Crea directory necessarie (se possibile)
+            // Crea directory (non bloccare se fallisce)
             try {
                 self::ensureRequiredDirectories();
-                error_log('[FP-PerfSuite] ACTIVATION STEP 4: Directories created');
-            } catch (\Throwable $dirError) {
-                error_log('[FP-PerfSuite] ACTIVATION WARNING: Directory creation failed - ' . $dirError->getMessage());
-                // Non bloccare l'attivazione per questo
+            } catch (\Throwable $e) {
+                // Ignora errori directory
             }
             
-            // Step 4: Trigger action hook
-            if (function_exists('do_action')) {
-                do_action('fp_ps_plugin_activated', $version);
-                error_log('[FP-PerfSuite] ACTIVATION STEP 5: Action hook triggered');
-            }
-            
-            error_log('[FP-PerfSuite] ACTIVATION COMPLETED SUCCESSFULLY');
+            // Trigger hook
+            do_action('fp_ps_plugin_activated', $version);
 
         } catch (\Throwable $e) {
-            // Log dettagliato dell'errore
-            error_log(sprintf(
-                '[FP-PerfSuite] ACTIVATION FATAL ERROR: %s in %s:%d',
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine()
-            ));
-            error_log('[FP-PerfSuite] Stack trace: ' . $e->getTraceAsString());
+            // Salva errore silenziosamente
+            update_option('fp_perfsuite_activation_error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'time' => time(),
+            ], false);
             
-            // Salva l'errore per mostrarlo nell'admin
-            try {
-                $errorDetails = [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'time' => time(),
-                    'type' => 'activation_error',
-                    'solution' => 'Controlla i log PHP per dettagli. Errore: ' . $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                    'php_version' => PHP_VERSION,
-                    'wp_version' => function_exists('get_bloginfo') ? get_bloginfo('version') : 'unknown',
-                ];
-                
-                update_option('fp_perfsuite_activation_error', $errorDetails, false);
-            } catch (\Throwable $saveError) {
-                error_log('[FP-PerfSuite] Could not save activation error: ' . $saveError->getMessage());
-            }
-            
-            // NON rilanciare - permetti l'attivazione comunque
-            // L'utente vedrà l'errore nell'admin panel
+            // NON bloccare l'attivazione
         }
     }
 
