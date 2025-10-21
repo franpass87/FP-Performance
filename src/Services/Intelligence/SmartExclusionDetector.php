@@ -731,6 +731,7 @@ class SmartExclusionDetector
         $results = [
             'applied' => 0,
             'skipped' => 0,
+            'already_exists' => 0,
             'exclusions' => [],
         ];
 
@@ -741,15 +742,23 @@ class SmartExclusionDetector
                 // Applica solo se confidence >= 0.8
                 if ($item['confidence'] >= 0.8) {
                     if (!$dryRun) {
-                        $this->addExclusion($item['url'], [
+                        $added = $this->addExclusion($item['url'], [
                             'type' => 'automatic',
                             'reason' => $item['reason'],
                             'confidence' => $item['confidence'],
                             'plugin' => $item['plugin'] ?? '',
                         ]);
+                        
+                        if ($added) {
+                            $results['applied']++;
+                            $results['exclusions'][] = $item;
+                        } else {
+                            $results['already_exists']++;
+                        }
+                    } else {
+                        $results['applied']++;
+                        $results['exclusions'][] = $item;
                     }
-                    $results['applied']++;
-                    $results['exclusions'][] = $item;
                 } else {
                     $results['skipped']++;
                 }
@@ -761,8 +770,10 @@ class SmartExclusionDetector
 
     /**
      * Aggiungi esclusione con metadata
+     * 
+     * @return bool True se l'esclusione è stata aggiunta, false se era già presente
      */
-    private function addExclusion(string $url, array $metadata = []): void
+    private function addExclusion(string $url, array $metadata = []): bool
     {
         // Salva l'esclusione con metadata separato
         $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
@@ -771,7 +782,7 @@ class SmartExclusionDetector
         foreach ($trackedExclusions as $existingExclusion) {
             if ($existingExclusion['url'] === $url) {
                 // URL già esistente, non aggiungere duplicato
-                return;
+                return false;
             }
         }
         
@@ -800,6 +811,8 @@ class SmartExclusionDetector
             $settings['exclude_urls'] = implode("\n", $exclusionsList);
             update_option('fp_ps_page_cache', $settings);
         }
+        
+        return true;
     }
     
     /**
@@ -849,10 +862,12 @@ class SmartExclusionDetector
     
     /**
      * Aggiungi esclusione manuale
+     * 
+     * @return bool True se l'esclusione è stata aggiunta, false se era già presente
      */
-    public function addManualExclusion(string $url, string $reason = ''): void
+    public function addManualExclusion(string $url, string $reason = ''): bool
     {
-        $this->addExclusion($url, [
+        return $this->addExclusion($url, [
             'type' => 'manual',
             'reason' => $reason ?: __('Manual exclusion', 'fp-performance-suite'),
             'confidence' => 1.0,

@@ -88,18 +88,158 @@ class SmartExclusionDetector
             'auto_detected' => [],
             'plugin_based' => [],
             'user_behavior' => [],
+            'already_protected' => [],
         ];
 
+        // Ottieni pattern già protetti di default nel PageCache
+        $alreadyProtected = $this->getBuiltInProtections();
+
         // 1. Rileva URL sensibili standard
-        $exclusions['auto_detected'] = $this->detectStandardSensitiveUrls();
+        $autoDetected = $this->detectStandardSensitiveUrls();
+        $exclusions['auto_detected'] = $this->filterOutProtected($autoDetected, $alreadyProtected);
 
         // 2. Rileva basandosi sui plugin attivi
-        $exclusions['plugin_based'] = $this->detectPluginBasedUrls();
+        $pluginBased = $this->detectPluginBasedUrls();
+        $exclusions['plugin_based'] = $this->filterOutProtected($pluginBased, $alreadyProtected);
 
         // 3. Rileva da comportamento utente (errori, slow pages)
         $exclusions['user_behavior'] = $this->detectFromBehavior();
 
+        // 4. Mostra cosa è già protetto (informativo)
+        $exclusions['already_protected'] = $alreadyProtected;
+
         return $exclusions;
+    }
+
+    /**
+     * Ottieni tutte le protezioni built-in nel PageCache
+     * 
+     * @return array Lista di pattern già protetti di default
+     */
+    private function getBuiltInProtections(): array
+    {
+        return [
+            // WordPress Core - già protetti nel PageCache
+            'core' => [
+                '/xmlrpc.php',
+                '/wp-cron.php',
+                '/wp-login.php',
+                '/wp-signup.php',
+                '/wp-trackback.php',
+                '/wp-comments-post.php',
+                '/wp-sitemap',
+                'sitemap.xml',
+                'sitemap_index.xml',
+                '/feed/',
+                '/rss/',
+                '/atom/',
+                'robots.txt',
+                '/wp-json/',
+                '/wp-admin/',
+            ],
+
+            // WooCommerce - già protetto
+            'woocommerce' => [
+                '/cart',
+                '/checkout',
+                '/my-account',
+                '/add-to-cart',
+                '/remove-from-cart',
+                '/wc-ajax',
+                '/wc-api',
+            ],
+
+            // Easy Digital Downloads - già protetto
+            'edd' => [
+                '/edd-ajax',
+                '/edd-api',
+                '/purchase',
+                '/downloads',
+            ],
+
+            // MemberPress - già protetto
+            'memberpress' => [
+                '/membership',
+                '/register',
+                '/mepr',
+            ],
+
+            // LearnDash - già protetto
+            'learndash' => [
+                '/courses/',
+                '/lessons/',
+                '/topic/',
+                '/quiz/',
+            ],
+
+            // bbPress - già protetto
+            'bbpress' => [
+                '/forums/',
+                '/forum/',
+                '/topic/',
+                '/reply/',
+            ],
+
+            // BuddyPress - già protetto
+            'buddypress' => [
+                '/members/',
+                '/groups/',
+                '/activity/',
+                '/profile/',
+            ],
+
+            // Conditional tags già protetti
+            'conditional_tags' => [
+                'is_cart()',
+                'is_checkout()',
+                'is_account_page()',
+                'is_preview()',
+                'is_customize_preview()',
+                'is_feed()',
+                'is_search()',
+                'is_404()',
+            ],
+        ];
+    }
+
+    /**
+     * Filtra gli URL che sono già protetti di default
+     * 
+     * @param array $detected URL rilevati
+     * @param array $protected URL già protetti
+     * @return array URL filtrati (solo quelli non ancora protetti)
+     */
+    private function filterOutProtected(array $detected, array $protected): array
+    {
+        $filtered = [];
+        $allProtectedPatterns = [];
+
+        // Appiattisci l'array delle protezioni
+        foreach ($protected as $category => $patterns) {
+            if ($category !== 'conditional_tags') {
+                $allProtectedPatterns = array_merge($allProtectedPatterns, $patterns);
+            }
+        }
+
+        foreach ($detected as $item) {
+            $url = $item['url'] ?? $item['pattern'] ?? '';
+            $isProtected = false;
+
+            // Controlla se questo URL è già coperto dalle protezioni built-in
+            foreach ($allProtectedPatterns as $protectedPattern) {
+                if (strpos($url, $protectedPattern) !== false || strpos($protectedPattern, $url) !== false) {
+                    $isProtected = true;
+                    break;
+                }
+            }
+
+            // Aggiungi solo se NON è già protetto
+            if (!$isProtected) {
+                $filtered[] = $item;
+            }
+        }
+
+        return $filtered;
     }
 
     /**
@@ -591,6 +731,7 @@ class SmartExclusionDetector
         $results = [
             'applied' => 0,
             'skipped' => 0,
+            'already_exists' => 0,
             'exclusions' => [],
         ];
 
@@ -601,15 +742,23 @@ class SmartExclusionDetector
                 // Applica solo se confidence >= 0.8
                 if ($item['confidence'] >= 0.8) {
                     if (!$dryRun) {
-                        $this->addExclusion($item['url'], [
+                        $added = $this->addExclusion($item['url'], [
                             'type' => 'automatic',
                             'reason' => $item['reason'],
                             'confidence' => $item['confidence'],
                             'plugin' => $item['plugin'] ?? '',
                         ]);
+                        
+                        if ($added) {
+                            $results['applied']++;
+                            $results['exclusions'][] = $item;
+                        } else {
+                            $results['already_exists']++;
+                        }
+                    } else {
+                        $results['applied']++;
+                        $results['exclusions'][] = $item;
                     }
-                    $results['applied']++;
-                    $results['exclusions'][] = $item;
                 } else {
                     $results['skipped']++;
                 }
@@ -621,11 +770,21 @@ class SmartExclusionDetector
 
     /**
      * Aggiungi esclusione con metadata
+     * 
+     * @return bool True se l'esclusione è stata aggiunta, false se era già presente
      */
-    private function addExclusion(string $url, array $metadata = []): void
+    private function addExclusion(string $url, array $metadata = []): bool
     {
         // Salva l'esclusione con metadata separato
         $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        
+        // CONTROLLO DUPLICATI: Verifica se l'URL esiste già
+        foreach ($trackedExclusions as $existingExclusion) {
+            if ($existingExclusion['url'] === $url) {
+                // URL già esistente, non aggiungere duplicato
+                return false;
+            }
+        }
         
         $exclusionId = md5($url . time());
         
@@ -652,6 +811,8 @@ class SmartExclusionDetector
             $settings['exclude_urls'] = implode("\n", $exclusionsList);
             update_option('fp_ps_page_cache', $settings);
         }
+        
+        return true;
     }
     
     /**
@@ -701,13 +862,90 @@ class SmartExclusionDetector
     
     /**
      * Aggiungi esclusione manuale
+     * 
+     * @return bool True se l'esclusione è stata aggiunta, false se era già presente
      */
-    public function addManualExclusion(string $url, string $reason = ''): void
+    public function addManualExclusion(string $url, string $reason = ''): bool
     {
-        $this->addExclusion($url, [
+        return $this->addExclusion($url, [
             'type' => 'manual',
             'reason' => $reason ?: __('Manual exclusion', 'fp-performance-suite'),
             'confidence' => 1.0,
         ]);
+    }
+    
+    /**
+     * Rimuovi esclusioni duplicate dal database
+     * 
+     * @return array Statistiche sulla rimozione
+     */
+    public function removeDuplicateExclusions(): array
+    {
+        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        
+        $stats = [
+            'total_before' => count($trackedExclusions),
+            'duplicates_removed' => 0,
+            'total_after' => 0,
+            'duplicate_urls' => [],
+        ];
+        
+        // Raggruppa per URL
+        $urlGroups = [];
+        foreach ($trackedExclusions as $id => $exclusion) {
+            $url = $exclusion['url'];
+            if (!isset($urlGroups[$url])) {
+                $urlGroups[$url] = [];
+            }
+            $urlGroups[$url][$id] = $exclusion;
+        }
+        
+        // Mantieni solo la più recente per ogni URL
+        $cleanedExclusions = [];
+        foreach ($urlGroups as $url => $group) {
+            if (count($group) > 1) {
+                // Duplicato trovato
+                $stats['duplicates_removed'] += count($group) - 1;
+                $stats['duplicate_urls'][] = $url;
+                
+                // Mantieni solo quella con applied_at più recente
+                uasort($group, function($a, $b) {
+                    return $b['applied_at'] - $a['applied_at'];
+                });
+                
+                // Prendi solo la prima (più recente)
+                $cleanedExclusions[array_key_first($group)] = reset($group);
+            } else {
+                // Non duplicato, mantieni
+                $cleanedExclusions[array_key_first($group)] = reset($group);
+            }
+        }
+        
+        $stats['total_after'] = count($cleanedExclusions);
+        
+        // Salva le esclusioni ripulite
+        update_option('fp_ps_tracked_exclusions', $cleanedExclusions);
+        
+        // Ripulisci anche la cache page
+        $this->cleanupCachePageExclusions();
+        
+        return $stats;
+    }
+    
+    /**
+     * Ripulisci duplicati nella configurazione cache page
+     */
+    private function cleanupCachePageExclusions(): void
+    {
+        $settings = get_option('fp_ps_page_cache', []);
+        $currentExclusions = $settings['exclude_urls'] ?? '';
+        
+        $exclusionsList = array_filter(explode("\n", $currentExclusions));
+        
+        // Rimuovi duplicati mantenendo l'ordine
+        $exclusionsList = array_unique($exclusionsList);
+        
+        $settings['exclude_urls'] = implode("\n", $exclusionsList);
+        update_option('fp_ps_page_cache', $settings);
     }
 }
