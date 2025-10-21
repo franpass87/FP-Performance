@@ -7,12 +7,16 @@ use FP\PerfSuite\Admin\Pages\AIConfig;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Backend;
 use FP\PerfSuite\Admin\Pages\Cache;
+use FP\PerfSuite\Admin\Pages\CriticalPathOptimization;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
 use FP\PerfSuite\Admin\Pages\InfrastructureCdn;
+use FP\PerfSuite\Admin\Pages\JavaScriptOptimization;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\ResponsiveImages;
+use FP\PerfSuite\Admin\Pages\UnusedCSS;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Security;
@@ -54,6 +58,7 @@ class Menu
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
         add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
+        add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJavaScriptOptimizationSave']);
     }
 
     /**
@@ -282,7 +287,10 @@ class Menu
         // === OTTIMIZZAZIONE ===
         add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
         add_submenu_page('fp-performance-suite', __('Risorse', 'fp-performance-suite'), __('📦 Risorse', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
+        add_submenu_page('fp-performance-suite', __('JavaScript Optimization', 'fp-performance-suite'), __('⚡ JavaScript Optimization', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Critical Path', 'fp-performance-suite'), __('⚡ Critical Path', 'fp-performance-suite'), $capability, 'fp-performance-suite-critical-path', [$pages['critical_path'], 'render']);
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Responsive Images', 'fp-performance-suite'), __('📐 Responsive Images', 'fp-performance-suite'), $capability, 'fp-performance-suite-responsive-images', [$pages['responsive_images'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Infrastruttura & CDN', 'fp-performance-suite'), __('🌐 Infrastruttura & CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-infrastructure', [$pages['infrastructure'], 'render']);
@@ -329,6 +337,15 @@ class Menu
     }
 
     /**
+     * Handler per il salvataggio delle impostazioni JavaScript Optimization
+     */
+    public function handleJavaScriptOptimizationSave(): void
+    {
+        $jsOptimizationPage = new JavaScriptOptimization();
+        $jsOptimizationPage->handleSave();
+    }
+
+    /**
      * @return array<string, object>
      */
     private function pages(): array
@@ -338,7 +355,11 @@ class Menu
             'ai_config' => new AIConfig($this->container),
             'cache' => new Cache($this->container),
             'assets' => new Assets($this->container),
+            'js_optimization' => new JavaScriptOptimization(),
+            'critical_path' => new CriticalPathOptimization($this->container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)),
             'media' => new Media($this->container),
+            'responsive_images' => new ResponsiveImages($this->container),
+            'unused_css' => new UnusedCSS(),
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
             'infrastructure' => new InfrastructureCdn($this->container),

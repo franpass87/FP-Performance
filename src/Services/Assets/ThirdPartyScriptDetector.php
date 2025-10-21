@@ -368,14 +368,51 @@ class ThirdPartyScriptDetector
         $custom = $this->getCustomScripts();
         
         // Generate unique key
-        $key = sanitize_key($script['name'] ?? '');
-        if (empty($key)) {
+        $baseKey = sanitize_key($script['name'] ?? '');
+        if (empty($baseKey)) {
             return false;
         }
 
         // Ensure patterns is array
         if (isset($script['patterns']) && !is_array($script['patterns'])) {
             $script['patterns'] = [$script['patterns']];
+        }
+
+        // Check if script with same name already exists
+        $key = $baseKey;
+        $counter = 1;
+        while (isset($custom[$key])) {
+            // If it's the same script (same patterns), merge patterns instead of creating duplicate
+            $existingPatterns = $custom[$key]['patterns'] ?? [];
+            $newPatterns = $script['patterns'] ?? [];
+            
+            // Check if any pattern already exists
+            $hasCommonPattern = false;
+            foreach ($newPatterns as $newPattern) {
+                if (in_array($newPattern, $existingPatterns)) {
+                    $hasCommonPattern = true;
+                    break;
+                }
+            }
+            
+            if ($hasCommonPattern) {
+                // Merge patterns and update existing script
+                $mergedPatterns = array_unique(array_merge($existingPatterns, $newPatterns));
+                $custom[$key]['patterns'] = $mergedPatterns;
+                
+                update_option(self::OPTION_CUSTOM, $custom);
+                
+                Logger::info('Custom script patterns merged', [
+                    'name' => $custom[$key]['name'],
+                    'patterns' => $custom[$key]['patterns'],
+                ]);
+                
+                return true;
+            }
+            
+            // Generate unique key with counter
+            $key = $baseKey . '_' . $counter;
+            $counter++;
         }
 
         $custom[$key] = wp_parse_args($script, [
@@ -392,6 +429,7 @@ class ThirdPartyScriptDetector
         Logger::info('Custom script added', [
             'name' => $custom[$key]['name'],
             'patterns' => $custom[$key]['patterns'],
+            'key' => $key,
         ]);
 
         return true;

@@ -1661,16 +1661,37 @@ class Assets extends AbstractPage
             <div style="display: grid; gap: 10px; margin-top: 15px;">
                 <?php foreach ($customScripts as $key => $script): ?>
                 <div style="background: #faf5ff; border: 1px solid #e9d5ff; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
+                    <div style="flex: 1;">
                         <strong><?php echo esc_html($script['name']); ?></strong>
                         <?php if (!empty($script['enabled'])): ?>
                         <span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">ATTIVO</span>
                         <?php else: ?>
                         <span style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">DISATTIVO</span>
                         <?php endif; ?>
-                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
-                            <?php echo esc_html(implode(', ', $script['patterns'])); ?>
-                        </p>
+                        <?php if (count($script['patterns']) > 1): ?>
+                        <span style="background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 8px;">
+                            <?php printf(esc_html__('%d pattern', 'fp-performance-suite'), count($script['patterns'])); ?>
+                        </span>
+                        <?php endif; ?>
+                        <div style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
+                            <?php if (count($script['patterns']) > 1): ?>
+                                <details style="margin-top: 4px;">
+                                    <summary style="cursor: pointer; font-weight: 600; color: #8b5cf6;">
+                                        <?php esc_html_e('Mostra tutti i pattern', 'fp-performance-suite'); ?>
+                                    </summary>
+                                    <div style="margin-top: 8px; padding: 8px; background: #f3f4f6; border-radius: 4px;">
+                                        <?php foreach ($script['patterns'] as $index => $pattern): ?>
+                                        <div style="margin: 4px 0; padding: 4px 8px; background: white; border-radius: 3px; border-left: 3px solid #8b5cf6;">
+                                            <strong><?php printf(esc_html__('Pattern %d:', 'fp-performance-suite'), $index + 1); ?></strong>
+                                            <code style="display: block; margin-top: 2px; font-size: 11px; color: #374151;"><?php echo esc_html($pattern); ?></code>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </details>
+                            <?php else: ?>
+                                <code style="display: block; margin-top: 2px; font-size: 11px; color: #374151; background: #f3f4f6; padding: 4px 8px; border-radius: 3px;"><?php echo esc_html($script['patterns'][0]); ?></code>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <form method="post" style="margin: 0;">
                         <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>

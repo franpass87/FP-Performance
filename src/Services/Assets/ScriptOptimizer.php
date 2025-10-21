@@ -80,6 +80,19 @@ class ScriptOptimizer
             return $tag;
         }
 
+        // Enhanced script optimization for forced reflow prevention
+        if ($this->shouldOptimizeForReflow($handle, $src)) {
+            // Add optimization attributes
+            if (strpos($tag, 'data-fp-optimized') === false) {
+                $tag = str_replace('<script ', '<script data-fp-optimized="true" ', $tag);
+            }
+            
+            // Add defer to prevent blocking
+            if ($defer && strpos($tag, ' defer') === false && strpos($tag, ' async') === false) {
+                $tag = str_replace('<script ', '<script defer ', $tag);
+            }
+        }
+
         if ($defer && strpos($tag, ' defer') === false) {
             $tag = str_replace('<script ', '<script defer ', $tag);
         }
@@ -89,6 +102,41 @@ class ScriptOptimizer
         }
 
         return $tag;
+    }
+
+    /**
+     * Check if script should be optimized for reflow prevention
+     *
+     * @param string $handle Script handle
+     * @param string $src Script source
+     * @return bool True if should optimize
+     */
+    private function shouldOptimizeForReflow(string $handle, string $src): bool
+    {
+        // Scripts that commonly cause forced reflows
+        $reflowCausingPatterns = [
+            'jquery',
+            'sbi-scripts', // Instagram feed
+            'build/init', // Theme scripts
+            'analytics',
+            'gtag',
+            'gtm',
+            'facebook',
+            'twitter',
+            'instagram',
+            'youtube',
+            'vimeo',
+            'maps',
+            'recaptcha',
+        ];
+
+        foreach ($reflowCausingPatterns as $pattern) {
+            if (strpos($handle, $pattern) !== false || strpos($src, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

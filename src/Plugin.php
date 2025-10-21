@@ -17,6 +17,17 @@ use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
 use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
+use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer;
+use FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler;
+use FP\PerfSuite\Services\Assets\RenderBlockingOptimizer;
+use FP\PerfSuite\Services\Assets\CSSOptimizer;
+use FP\PerfSuite\Services\Assets\UnusedCSSOptimizer;
+use FP\PerfSuite\Services\Assets\DOMReflowOptimizer;
+use FP\PerfSuite\Services\Assets\jQueryOptimizer;
+use FP\PerfSuite\Services\Assets\BatchDOMUpdater;
+use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
+use FP\PerfSuite\Services\Assets\CodeSplittingManager;
+use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
@@ -105,6 +116,12 @@ class Plugin
             $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+            $container->get(CriticalPathOptimizer::class)->register();
+            $container->get(ResponsiveImageOptimizer::class)->register();
+            $container->get(ResponsiveImageAjaxHandler::class)->register();
+            $container->get(RenderBlockingOptimizer::class)->register();
+            $container->get(CSSOptimizer::class)->register();
+            $container->get(UnusedCSSOptimizer::class)->register();
             $container->get(ThemeAssetConfiguration::class)->register();
             $container->get(CompressionManager::class)->register();
             
@@ -121,6 +138,16 @@ class Plugin
             $container->get(QueryCacheManager::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
             $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+            
+            // DOM Reflow Optimization Services (v1.4.1)
+            $container->get(DOMReflowOptimizer::class)->register();
+            $container->get(jQueryOptimizer::class)->register();
+            $container->get(BatchDOMUpdater::class)->register();
+            
+            // JavaScript Optimization Services (v1.4.2)
+            $container->get(UnusedJavaScriptOptimizer::class)->register();
+            $container->get(CodeSplittingManager::class)->register();
+            $container->get(JavaScriptTreeShaker::class)->register();
             
             // Theme Compatibility (v1.3.0)
             $container->get(ThemeCompatibility::class)->register();
@@ -207,6 +234,9 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
         $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
+        $container->set(RenderBlockingOptimizer::class, static fn() => new RenderBlockingOptimizer());
+        $container->set(CSSOptimizer::class, static fn() => new CSSOptimizer());
+        $container->set(UnusedCSSOptimizer::class, static fn() => new UnusedCSSOptimizer());
         
         // Compression service
         $container->set(CompressionManager::class, static fn(ServiceContainer $c) => new CompressionManager($c->get(Htaccess::class)));
@@ -273,6 +303,11 @@ class Plugin
         // Third-Party Script Manager
         $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptManager());
         
+        // JavaScript Optimization Services
+        $container->set(UnusedJavaScriptOptimizer::class, static fn() => new UnusedJavaScriptOptimizer());
+        $container->set(CodeSplittingManager::class, static fn() => new CodeSplittingManager());
+        $container->set(JavaScriptTreeShaker::class, static fn() => new JavaScriptTreeShaker());
+        
         // Third-Party Script Detector (AI Auto-detect)
         $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector(
             $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
@@ -313,6 +348,11 @@ class Plugin
         // Backend Optimizer
         $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
         
+        // DOM Reflow Optimization Services (v1.4.1)
+        $container->set(DOMReflowOptimizer::class, static fn() => new DOMReflowOptimizer());
+        $container->set(jQueryOptimizer::class, static fn() => new jQueryOptimizer());
+        $container->set(BatchDOMUpdater::class, static fn() => new BatchDOMUpdater());
+        
         // Security Services
         $container->set(HtaccessSecurity::class, static fn(ServiceContainer $c) => new HtaccessSecurity($c->get(Htaccess::class), $c->get(Env::class)));
 
@@ -328,6 +368,7 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)
             );
         });
+        $container->set(CriticalPathOptimizer::class, static fn() => new CriticalPathOptimizer());
         $container->set(WebPConverter::class, static function (ServiceContainer $c) {
             return new WebPConverter(
                 $c->get(Fs::class),

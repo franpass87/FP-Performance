@@ -316,6 +316,21 @@ class ThirdPartyScriptManager
                     'patterns' => ['embed.typeform.com', 'typeform.com/embed'],
                     'delay' => true,
                 ],
+                'google_tag_manager' => [
+                    'enabled' => false,
+                    'patterns' => ['googletagmanager.com/gtm.js', 'googletagmanager.com/ns.html'],
+                    'delay' => true,
+                ],
+                'wonderpush' => [
+                    'enabled' => false,
+                    'patterns' => ['cdn.wonderpush.com', 'wonderpush.com/sdk'],
+                    'delay' => true,
+                ],
+                'brevo' => [
+                    'enabled' => false,
+                    'patterns' => ['sibautomation.com', 'sendinblue.com/track', 'brevo.com/track'],
+                    'delay' => true,
+                ],
             ],
         ];
 
