@@ -10,8 +10,12 @@ use FP\PerfSuite\Admin\Pages\Compression;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
+use FP\PerfSuite\Admin\Pages\InfrastructureCdn;
+use FP\PerfSuite\Admin\Pages\JavaScriptOptimization;
+use FP\PerfSuite\Admin\Pages\LighthouseFontOptimization;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\ScheduledReports;
@@ -53,6 +57,9 @@ class Menu
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
         add_action('admin_post_fp_ps_save_compression', [$this, 'handleCompressionSave']);
+        add_action('admin_post_fp_ps_save_infrastructure', [$this, 'handleInfrastructureSave']);
+        add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
+        add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJsOptimizationSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
 
@@ -290,6 +297,13 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('— 💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('— ⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('— 🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
+        add_submenu_page('fp-performance-suite', __('JavaScript', 'fp-performance-suite'), __('— ⚡ JavaScript', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Lighthouse Fonts', 'fp-performance-suite'), __('— 🎯 Lighthouse Fonts', 'fp-performance-suite'), $capability, 'fp-performance-suite-lighthouse-fonts', [$pages['lighthouse_fonts'], 'render']);
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🌐 INFRASTRUCTURE & CDN
+        // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Infrastructure', 'fp-performance-suite'), __('🌐 Infrastructure & CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-infrastructure', [$pages['infrastructure'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🛡️ SECURITY & INFRASTRUCTURE
@@ -304,6 +318,7 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         // 📊 MONITORING & DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('— 📊 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
         add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('— 📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
         add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('— 🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
         
@@ -342,6 +357,33 @@ class Menu
     }
 
     /**
+     * Handler per il salvataggio delle impostazioni Infrastructure
+     */
+    public function handleInfrastructureSave(): void
+    {
+        $infrastructurePage = new InfrastructureCdn($this->container);
+        $infrastructurePage->handleSave();
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni Monitoring
+     */
+    public function handleMonitoringSave(): void
+    {
+        $monitoringPage = new MonitoringReports($this->container);
+        $monitoringPage->handleSave();
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni JavaScript Optimization
+     */
+    public function handleJsOptimizationSave(): void
+    {
+        $jsOptimizationPage = new JavaScriptOptimization($this->container);
+        $jsOptimizationPage->handleSave();
+    }
+
+    /**
      * @return array<string, object>
      */
     private function pages(): array
@@ -354,7 +396,11 @@ class Menu
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
+            'js_optimization' => new JavaScriptOptimization($this->container),
+            'lighthouse_fonts' => new LighthouseFontOptimization($this->container),
+            'infrastructure' => new InfrastructureCdn($this->container),
             'presets' => new Presets($this->container),
+            'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),
             'security' => new Security($this->container),

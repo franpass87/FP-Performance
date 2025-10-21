@@ -109,6 +109,14 @@ class Plugin
             $container->get(ThemeAssetConfiguration::class)->register();
             $container->get(CompressionManager::class)->register();
             
+            // Auto Font Optimization Services (v1.5.0) - Sistema di auto-rilevamento
+            if ($container->has(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)) {
+                $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
+            }
+            if ($container->has(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)) {
+                $container->get(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)->register();
+            }
+            
             // Advanced Performance Services (v1.3.0)
             $container->get(ObjectCacheManager::class)->register();
             $container->get(EdgeCacheManager::class)->register();
@@ -206,6 +214,10 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
         $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
+        
+        // Auto Font Optimization Services (v1.5.0) - Sistema di auto-rilevamento
+        $container->set(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\AutoFontOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\LighthouseFontOptimizer());
         
         // Compression service
         $container->set(CompressionManager::class, static fn(ServiceContainer $c) => new CompressionManager($c->get(Htaccess::class)));

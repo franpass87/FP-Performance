@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Admin\BackendOptimizer;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function checked;
@@ -122,31 +123,45 @@ class Backend extends AbstractPage
                 <?php esc_html_e('Migliora le performance dell\'area amministrativa riducendo script non necessari, controllando il Heartbeat API e ottimizzando varie funzionalità di WordPress.', 'fp-performance-suite'); ?>
             </p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px;">
-                    <strong><?php esc_html_e('Stato Heartbeat:', 'fp-performance-suite'); ?></strong><br>
-                    <span style="font-size: 20px; color: <?php echo $stats['heartbeat_status'] === 'active' ? '#00a32a' : '#999'; ?>;">
-                        <?php echo esc_html(ucfirst($stats['heartbeat_status'])); ?>
-                    </span>
-                </div>
-                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px;">
-                    <strong><?php esc_html_e('Revisioni Post:', 'fp-performance-suite'); ?></strong><br>
-                    <span style="font-size: 20px; color: #2271b1;">
-                        <?php echo esc_html($stats['post_revisions_limit']); ?>
-                    </span>
-                </div>
-                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px;">
-                    <strong><?php esc_html_e('Intervallo Autosave:', 'fp-performance-suite'); ?></strong><br>
-                    <span style="font-size: 20px; color: #2271b1;">
-                        <?php echo esc_html($stats['autosave_interval']); ?>
-                    </span>
-                </div>
-                <div style="background: #f0f6fc; padding: 15px; border-radius: 4px;">
-                    <strong><?php esc_html_e('Ottimizzazioni Attive:', 'fp-performance-suite'); ?></strong><br>
-                    <span style="font-size: 20px; color: #00a32a;">
-                        <?php echo esc_html($stats['optimizations_active']); ?>/7
-                    </span>
-                </div>
+            <div class="fp-ps-status-overview">
+                <?php
+                // Determina lo stato Heartbeat
+                $heartbeatStatus = $stats['heartbeat_status'] === 'active' ? 'success' : 'inactive';
+                echo StatusIndicator::renderCard(
+                    $heartbeatStatus,
+                    __('Heartbeat API', 'fp-performance-suite'),
+                    __('Controllo richieste AJAX periodiche', 'fp-performance-suite'),
+                    ucfirst($stats['heartbeat_status'])
+                );
+                
+                // Limiti revisioni
+                $revisionsStatus = $stats['post_revisions_limit'] <= 5 ? 'success' : ($stats['post_revisions_limit'] <= 10 ? 'warning' : 'error');
+                echo StatusIndicator::renderCard(
+                    $revisionsStatus,
+                    __('Revisioni Post', 'fp-performance-suite'),
+                    __('Limite revisioni memorizzate', 'fp-performance-suite'),
+                    $stats['post_revisions_limit']
+                );
+                
+                // Intervallo autosave
+                $autosaveStatus = $stats['autosave_interval'] >= 120 ? 'success' : 'warning';
+                echo StatusIndicator::renderCard(
+                    $autosaveStatus,
+                    __('Intervallo Autosave', 'fp-performance-suite'),
+                    __('Frequenza salvataggio automatico', 'fp-performance-suite'),
+                    $stats['autosave_interval']
+                );
+                
+                // Ottimizzazioni attive
+                $optimizationsPercentage = ($stats['optimizations_active'] / 7) * 100;
+                $optimizationsStatus = StatusIndicator::autoStatus($optimizationsPercentage, 70, 40);
+                echo StatusIndicator::renderCard(
+                    $optimizationsStatus,
+                    __('Ottimizzazioni Attive', 'fp-performance-suite'),
+                    __('Funzionalità abilitate', 'fp-performance-suite'),
+                    $stats['optimizations_active'] . '/7'
+                );
+                ?>
             </div>
         </div>
 

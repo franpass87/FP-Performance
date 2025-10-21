@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function esc_attr;

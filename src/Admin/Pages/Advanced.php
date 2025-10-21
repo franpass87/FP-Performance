@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\CriticalCss;
 use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
 use FP\PerfSuite\Services\Assets\PredictivePrefetching;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 /**
  * Advanced Features Admin Page
@@ -168,29 +169,23 @@ class Advanced extends AbstractPage
             <p><?php esc_html_e('Il Critical CSS viene inserito inline nell\'head della pagina per ottimizzare il rendering above-the-fold e migliorare il First Contentful Paint (FCP).', 'fp-performance-suite'); ?></p>
             
             <!-- Status Overview -->
-            <div style="background: <?php echo $status['enabled'] ? '#e7f5e9' : '#fff8e5'; ?>; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid <?php echo $status['enabled'] ? '#00a32a' : '#dba617'; ?>;">
-                <h4 style="margin-top: 0;">
-                    <?php if ($status['enabled']): ?>
-                        <span style="color: #00a32a;">✓</span> <?php esc_html_e('Critical CSS Attivo', 'fp-performance-suite'); ?>
-                    <?php else: ?>
-                        <span style="color: #dba617;">⚠</span> <?php esc_html_e('Critical CSS Non Configurato', 'fp-performance-suite'); ?>
-                    <?php endif; ?>
-                </h4>
-                <?php if ($status['enabled']): ?>
-                    <p style="margin: 5px 0 0 0;">
-                        <?php printf(
-                            esc_html__('Dimensione corrente: %s KB / %s KB max (%s%% utilizzato)', 'fp-performance-suite'),
-                            '<strong>' . number_format($status['size_kb'], 2) . '</strong>',
-                            number_format($status['max_size_kb'], 0),
-                            '<strong>' . $status['usage_percent'] . '</strong>'
-                        ); ?>
-                    </p>
-                <?php else: ?>
-                    <p style="margin: 5px 0 0 0;">
-                        <?php esc_html_e('Configura il CSS critico per migliorare drasticamente il First Contentful Paint e eliminare il FOUC (Flash of Unstyled Content).', 'fp-performance-suite'); ?>
-                    </p>
-                <?php endif; ?>
-            </div>
+            <?php
+            $criticalCssStatus = $status['enabled'] ? 'success' : 'warning';
+            $criticalCssTitle = $status['enabled'] 
+                ? __('Critical CSS Attivo', 'fp-performance-suite')
+                : __('Critical CSS Non Configurato', 'fp-performance-suite');
+            
+            $criticalCssDesc = $status['enabled']
+                ? sprintf(
+                    __('Dimensione: %s KB / %s KB max (%s%% utilizzato)', 'fp-performance-suite'),
+                    number_format($status['size_kb'], 2),
+                    number_format($status['max_size_kb'], 0),
+                    $status['usage_percent']
+                  )
+                : __('Configura il CSS critico per migliorare drasticamente il First Contentful Paint e eliminare il FOUC', 'fp-performance-suite');
+            
+            echo StatusIndicator::renderCard($criticalCssStatus, $criticalCssTitle, $criticalCssDesc);
+            ?>
 
             <!-- Quick Actions -->
             <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
@@ -428,35 +423,31 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             <!-- Status Overview -->
             <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
                 <h4 style="margin-top: 0;"><?php esc_html_e('Stato Attuale', 'fp-performance-suite'); ?></h4>
-                <ul style="margin: 0;">
-                    <li>
-                        <?php if ($status['active']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Compressione attiva', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Compressione non attiva', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['brotli_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Brotli supportato', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('Brotli non disponibile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['gzip_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Gzip supportato', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Gzip non disponibile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['htaccess_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('.htaccess modificabile', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('.htaccess non modificabile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
+                <ul class="fp-ps-status-list">
+                    <?php
+                    echo StatusIndicator::renderListItem(
+                        $status['active'] ? 'success' : 'error',
+                        __('Compressione attiva', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['brotli_supported'] ? 'success' : 'warning',
+                        __('Brotli supportato', 'fp-performance-suite'),
+                        $status['brotli_supported'] ? '' : __('Richiede mod_brotli', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['gzip_supported'] ? 'success' : 'error',
+                        __('Gzip supportato', 'fp-performance-suite'),
+                        $status['gzip_supported'] ? '' : __('Richiede mod_deflate', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['htaccess_supported'] ? 'success' : 'warning',
+                        __('. htaccess modificabile', 'fp-performance-suite'),
+                        $status['htaccess_supported'] ? '' : __('Permessi insufficienti', 'fp-performance-suite')
+                    );
+                    ?>
                 </ul>
             </div>
 

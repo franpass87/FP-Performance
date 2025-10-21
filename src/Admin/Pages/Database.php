@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function array_map;

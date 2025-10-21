@@ -19,6 +19,7 @@
 @import url('layout/card.css');
 
 /* Components */
+@import url('components/status-indicator.css');
 @import url('components/badge.css');
 @import url('components/toggle.css');
 @import url('components/tooltip.css');
