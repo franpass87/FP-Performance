@@ -66,77 +66,44 @@ class Plugin
         self::register($container);
         self::$container = $container;
 
-        Logger::debug('Plugin initialized', ['version' => FP_PERF_SUITE_VERSION]);
-        do_action('fp_perfsuite_container_ready', $container);
-
-        $container->get(Menu::class)->boot();
-        $container->get(AdminAssets::class)->boot();
-        $container->get(AdminBar::class)->boot();
-        AdminBar::registerActions();
+        // Solo admin e routes - NIENTE altro durante init
+        // I servizi verranno caricati lazy quando servono
+        if (is_admin()) {
+            $container->get(Menu::class)->boot();
+            $container->get(AdminAssets::class)->boot();
+            $container->get(AdminBar::class)->boot();
+            AdminBar::registerActions();
+        }
+        
         $container->get(Routes::class)->boot();
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
 
-            // Core services
+            // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
+            // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
+            
+            // Core services (sempre attivi)
             $container->get(PageCache::class)->register();
             $container->get(Headers::class)->register();
-            $container->get(Optimizer::class)->register();
-            $container->get(WebPConverter::class)->register();
-            $container->get(Cleaner::class)->register();
             
-            // Database Optimization Services (v1.4.0) - Carica solo se disponibili
-            if ($container->has(DatabaseOptimizer::class)) {
-                $container->get(DatabaseOptimizer::class)->register();
+            // Optimizer e WebP solo se abilitati nelle opzioni
+            if (get_option('fp_ps_asset_optimization_enabled', false)) {
+                $container->get(Optimizer::class)->register();
             }
-            if ($container->has(DatabaseQueryMonitor::class)) {
-                $container->get(DatabaseQueryMonitor::class)->register();
+            if (get_option('fp_ps_webp_enabled', false)) {
+                $container->get(WebPConverter::class)->register();
             }
             
-            // Security services
-            $container->get(HtaccessSecurity::class)->register();
-
-            // Cache services (v1.1.0)
-            $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
-            $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
-            $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
-            $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
-            
-            // PageSpeed optimization services (v1.2.0)
-            $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
-            $container->get(ThemeAssetConfiguration::class)->register();
-            $container->get(CompressionManager::class)->register();
-            
-            // Auto Font Optimization Services (v1.5.0) - Sistema di auto-rilevamento
-            if ($container->has(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)) {
-                $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
-            }
-            if ($container->has(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)) {
-                $container->get(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)->register();
+            // Database cleaner solo se schedulato
+            $dbSettings = get_option('fp_ps_db', []);
+            if (isset($dbSettings['schedule']) && $dbSettings['schedule'] !== 'manual') {
+                $container->get(Cleaner::class)->register();
             }
             
-            // Advanced Performance Services (v1.3.0)
-            $container->get(ObjectCacheManager::class)->register();
-            $container->get(EdgeCacheManager::class)->register();
-            $container->get(AVIFConverter::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
-            $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
-            $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
-            $container->get(QueryCacheManager::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
-            
-            // Theme Compatibility (v1.3.0)
+            // Theme Compatibility (essenziale per funzionamento)
             $container->get(ThemeCompatibility::class)->register();
             $container->get(CompatibilityFilters::class)->register();
-            
-            // Backend Optimizer
-            $container->get(BackendOptimizer::class)->init();
         });
 
         // Register WP-CLI commands
