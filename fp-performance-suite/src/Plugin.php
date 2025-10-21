@@ -15,7 +15,6 @@ use FP\PerfSuite\Admin\Menu;
 use FP\PerfSuite\Admin\AdminBar;
 use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
-use FP\PerfSuite\Monitoring\QueryMonitor;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -73,6 +72,7 @@ class Plugin
         $container->get(Menu::class)->boot();
         $container->get(AdminAssets::class)->boot();
         $container->get(AdminBar::class)->boot();
+        AdminBar::registerActions();
         $container->get(Routes::class)->boot();
 
         add_action('init', static function () use ($container) {
@@ -139,8 +139,6 @@ class Plugin
         // Register Site Health checks
         HealthCheck::register();
 
-        // Register Query Monitor integration if available
-        QueryMonitor::register();
     }
 
     /**
