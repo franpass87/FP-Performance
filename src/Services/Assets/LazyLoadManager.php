@@ -247,9 +247,9 @@ class LazyLoadManager
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'images' => true,
-            'iframes' => true,
+            'enabled' => false,
+            'images' => false,
+            'iframes' => false,
             'skip_first' => 1, // Skip first image (usually hero)
             'min_size' => 100, // Min dimension in pixels
             'exclude_classes' => [], // CSS classes to exclude

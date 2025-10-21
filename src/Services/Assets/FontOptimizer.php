@@ -740,15 +740,15 @@ class FontOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'optimize_google_fonts' => true,
-            'add_font_display' => true,
-            'inject_font_display' => true,
-            'preload_fonts' => true,
-            'preconnect_providers' => true,
-            'use_google_fonts' => true,
+            'enabled' => false,
+            'optimize_google_fonts' => false,
+            'add_font_display' => false,
+            'inject_font_display' => false,
+            'preload_fonts' => false,
+            'preconnect_providers' => false,
+            'use_google_fonts' => false,
             'auto_detect_fonts' => false,
-            'optimize_render_delay' => true,
+            'optimize_render_delay' => false,
             'critical_fonts' => [],
             'custom_providers' => [],
             'font_handles' => [],

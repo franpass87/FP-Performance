@@ -67,43 +67,43 @@ class HtaccessSecurity
             'enabled' => false,
             'canonical_redirect' => [
                 'enabled' => false,
-                'force_https' => true,
-                'force_www' => true,
+                'force_https' => false,
+                'force_www' => false,
                 'domain' => $this->getDomain(),
             ],
             'security_headers' => [
-                'enabled' => true,
-                'hsts' => true,
+                'enabled' => false,
+                'hsts' => false,
                 'hsts_max_age' => 31536000,
-                'hsts_subdomains' => true,
-                'hsts_preload' => false, // Disabilitato di default per sicurezza
-                'x_content_type_options' => true,
+                'hsts_subdomains' => false,
+                'hsts_preload' => false,
+                'x_content_type_options' => false,
                 'x_frame_options' => 'SAMEORIGIN',
                 'referrer_policy' => 'strict-origin-when-cross-origin',
                 'permissions_policy' => 'camera=(), microphone=(), geolocation=()',
             ],
             'cache_rules' => [
-                'enabled' => true,
-                'html_cache' => false, // HTML no-cache per sicurezza
-                'fonts_cache' => true,
+                'enabled' => false,
+                'html_cache' => false,
+                'fonts_cache' => false,
                 'fonts_max_age' => 31536000, // 1 anno
                 'images_max_age' => 31536000, // 1 anno
                 'css_js_max_age' => 2592000, // 1 mese
             ],
             'compression' => [
-                'deflate_enabled' => true,
-                'brotli_enabled' => true,
+                'deflate_enabled' => false,
+                'brotli_enabled' => false,
                 'brotli_quality' => 5,
             ],
             'cors' => [
-                'enabled' => true,
+                'enabled' => false,
                 'fonts_origin' => '*',
                 'svg_origin' => '*',
             ],
             'file_protection' => [
-                'enabled' => true,
-                'protect_hidden_files' => true,
-                'protect_wp_config' => true,
+                'enabled' => false,
+                'protect_hidden_files' => false,
+                'protect_wp_config' => false,
             ],
             'xmlrpc_disabled' => false,
             'hotlink_protection' => [

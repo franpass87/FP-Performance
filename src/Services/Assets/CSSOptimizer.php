@@ -309,10 +309,10 @@ class CSSOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'defer_non_critical' => true,
-            'inline_critical' => true,
-            'optimize_loading_order' => true,
+            'enabled' => false,
+            'defer_non_critical' => false,
+            'inline_critical' => false,
+            'optimize_loading_order' => false,
             'critical_css' => '',
         ];
 

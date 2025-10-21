@@ -212,9 +212,9 @@ class ImageOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'force_dimensions' => true,
-            'add_aspect_ratio' => true,
+            'enabled' => false,
+            'force_dimensions' => false,
+            'add_aspect_ratio' => false,
         ];
 
         $settings = get_option(self::OPTION, []);

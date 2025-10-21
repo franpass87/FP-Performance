@@ -89,6 +89,25 @@ class Plugin
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
 
+            // Inizializza lo scheduler se necessario (primo caricamento dopo attivazione)
+            if (get_option('fp_perfsuite_needs_scheduler_init') === '1') {
+                if (class_exists('FP\PerfSuite\Services\DB\Cleaner')) {
+                    try {
+                        $cleanerInstance = $container->get(Cleaner::class);
+                        $cleanerInstance->primeSchedules();
+                        $cleanerInstance->maybeSchedule(true);
+                        delete_option('fp_perfsuite_needs_scheduler_init');
+                        error_log('[FP Performance Suite] Scheduler initialized successfully');
+                        
+                        // Ora è sicuro triggerare l'action hook (siamo dentro 'init')
+                        $version = get_option('fp_perfsuite_version', FP_PERF_SUITE_VERSION);
+                        do_action('fp_ps_plugin_activated', $version);
+                    } catch (\Throwable $e) {
+                        error_log('[FP Performance Suite] Failed to initialize scheduler: ' . $e->getMessage());
+                    }
+                }
+            }
+
             // Core services
             $container->get(PageCache::class)->register();
             $container->get(Headers::class)->register();
@@ -465,15 +484,11 @@ class Plugin
             // Salva la versione nelle opzioni
             update_option('fp_perfsuite_version', $version, false);
 
-            // Inizializza lo scheduler del database cleaner solo se le classi sono disponibili
-            if (class_exists('FP\PerfSuite\Services\DB\Cleaner') && 
-                class_exists('FP\PerfSuite\Utils\Env') && 
-                class_exists('FP\PerfSuite\Utils\RateLimiter')) {
-                
-                $cleaner = new Cleaner(new Env(), new RateLimiter());
-                $cleaner->primeSchedules();
-                $cleaner->maybeSchedule(true);
-            }
+            // NON inizializziamo lo scheduler durante l'attivazione per evitare caricamento textdomain
+            // Cleaner::primeSchedules() registra filtri con __() che caricano textdomain troppo presto
+            // Lo scheduler verrà inizializzato automaticamente al primo caricamento del plugin
+            // Salviamo solo un flag per indicare che è la prima attivazione
+            update_option('fp_perfsuite_needs_scheduler_init', '1', false);
 
             // Verifica e crea le directory necessarie
             self::ensureRequiredDirectories();
@@ -481,15 +496,15 @@ class Plugin
             // Pulisci eventuali errori precedenti
             delete_option('fp_perfsuite_activation_error');
 
-            // Log sicuro dell'attivazione
-            if (class_exists('FP\PerfSuite\Utils\Logger')) {
-                Logger::info('Plugin activated', ['version' => $version]);
-            }
+            // Salva log attivazione in option invece che error_log per evitare conflitti
+            update_option('fp_perfsuite_activation_log', [
+                'version' => $version,
+                'timestamp' => time(),
+                'status' => 'success'
+            ], false);
 
-            // Trigger action hook se le funzioni WordPress sono disponibili
-            if (function_exists('do_action')) {
-                do_action('fp_ps_plugin_activated', $version);
-            }
+            // NON usare do_action durante l'attivazione per evitare conflitti con altri plugin
+            // L'action hook verrà triggerato al primo caricamento del plugin
 
         } catch (\Throwable $e) {
             // Gestione sicura degli errori per prevenire white screen
@@ -504,18 +519,11 @@ class Plugin
                 ));
             }
 
-            // Tenta il recupero automatico
-            if (class_exists('FP\PerfSuite\Utils\InstallationRecovery')) {
-                $recovered = InstallationRecovery::attemptRecovery($errorDetails);
-                if ($recovered) {
-                    $errorDetails['recovery_attempted'] = true;
-                    $errorDetails['recovery_successful'] = true;
-                    Logger::info('Automatic recovery successful');
-                } else {
-                    $errorDetails['recovery_attempted'] = true;
-                    $errorDetails['recovery_successful'] = false;
-                }
-            }
+            // NON tentiamo il recupero automatico durante l'attivazione per evitare conflitti
+            // InstallationRecovery usa Logger che chiama do_action(), causando problemi con altri plugin
+            // Il recupero avverrà automaticamente al primo caricamento del plugin se necessario
+            $errorDetails['recovery_attempted'] = false;
+            $errorDetails['recovery_successful'] = false;
 
             // Salva l'errore nelle opzioni per il debug
             if (function_exists('update_option')) {
@@ -552,13 +560,14 @@ class Plugin
             }
         }
 
-        // Verifica permessi di scrittura
-        $uploadDir = wp_upload_dir();
-        if (!empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
-            $errors[] = sprintf(
-                'Directory uploads non scrivibile: %s. Verifica i permessi.',
-                $uploadDir['basedir']
-            );
+        // Verifica permessi di scrittura (solo se la funzione è disponibile)
+        // wp_upload_dir() può triggerare hook che causano problemi durante l'attivazione
+        if (function_exists('wp_upload_dir')) {
+            $uploadDir = @wp_upload_dir(null, false); // false = non creare directory
+            if (is_array($uploadDir) && !empty($uploadDir['basedir']) && file_exists($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
+                // Solo warning, non blocchiamo l'attivazione per i permessi
+                error_log('[FP Performance Suite] WARNING: Directory uploads non scrivibile: ' . $uploadDir['basedir']);
+            }
         }
 
         // Verifica disponibilità funzioni WordPress critiche
@@ -586,12 +595,17 @@ class Plugin
      */
     private static function ensureRequiredDirectories(): void
     {
-        $uploadDir = wp_upload_dir();
-        $baseDir = $uploadDir['basedir'];
-        
-        if (empty($baseDir)) {
+        // Usa @ per sopprimere warning e false per non triggerare hook di creazione
+        if (!function_exists('wp_upload_dir')) {
             return;
         }
+        
+        $uploadDir = @wp_upload_dir(null, false);
+        if (!is_array($uploadDir) || empty($uploadDir['basedir'])) {
+            return;
+        }
+        
+        $baseDir = $uploadDir['basedir'];
 
         $requiredDirs = [
             $baseDir . '/fp-performance-suite',
@@ -601,12 +615,13 @@ class Plugin
 
         foreach ($requiredDirs as $dir) {
             if (!file_exists($dir)) {
-                wp_mkdir_p($dir);
+                // Usa @ per sopprimere eventuali warning
+                @wp_mkdir_p($dir);
                 
                 // Crea file .htaccess per proteggere le directory
                 $htaccessFile = $dir . '/.htaccess';
                 if (!file_exists($htaccessFile)) {
-                    file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\n");
+                    @file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\n");
                 }
             }
         }

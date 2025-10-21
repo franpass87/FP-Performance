@@ -1491,11 +1491,11 @@ class UnusedCSSOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'remove_unused_css' => true,
-            'defer_non_critical' => true,
-            'inline_critical' => true,
-            'enable_css_purging' => true,
+            'enabled' => false,
+            'remove_unused_css' => false,
+            'defer_non_critical' => false,
+            'inline_critical' => false,
+            'enable_css_purging' => false,
             'critical_css' => '',
         ];
 

@@ -434,12 +434,12 @@ class CriticalPathOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'preload_critical_fonts' => true,
-            'preconnect_providers' => true,
-            'optimize_google_fonts' => true,
-            'inject_font_display' => true,
-            'add_resource_hints' => true,
+            'enabled' => false,
+            'preload_critical_fonts' => false,
+            'preconnect_providers' => false,
+            'optimize_google_fonts' => false,
+            'inject_font_display' => false,
+            'add_resource_hints' => false,
             'critical_fonts' => [],
         ];
 

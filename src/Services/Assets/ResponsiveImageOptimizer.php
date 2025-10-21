@@ -574,9 +574,9 @@ class ResponsiveImageOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'generate_sizes' => true,
-            'js_detection' => true,
+            'enabled' => false,
+            'generate_sizes' => false,
+            'js_detection' => false,
             'min_width' => 300,
             'min_height' => 300,
             'quality' => 85,

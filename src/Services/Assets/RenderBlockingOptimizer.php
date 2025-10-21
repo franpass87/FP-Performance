@@ -414,9 +414,9 @@ class RenderBlockingOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'optimize_fonts' => true,
-            'defer_css' => true,
+            'enabled' => false,
+            'optimize_fonts' => false,
+            'defer_css' => false,
             'critical_css' => '',
             'critical_resources' => [],
             'critical_fonts' => [],
