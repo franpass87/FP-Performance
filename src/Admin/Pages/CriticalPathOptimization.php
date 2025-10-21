@@ -78,8 +78,6 @@ class CriticalPathOptimization
                 </div>
             </section>
 
-            <div class="fp-performance-dashboard">
-                <div class="fp-performance-grid">
                     <!-- Critical Path Analysis -->
                     <section class="fp-ps-card">
                         <h2>🔍 <?php esc_html_e('Analisi Critical Path', 'fp-performance-suite'); ?></h2>
@@ -231,115 +229,29 @@ class CriticalPathOptimization
                     </div>
 
                     <!-- Performance Impact -->
-                    <div class="fp-performance-card">
-                        <h2><?php esc_html_e('Impatto Performance', 'fp-performance-suite'); ?></h2>
-                        <div class="performance-impact">
-                            <div class="impact-item">
-                                <h3><?php esc_html_e('Riduzione Critical Path:', 'fp-performance-suite'); ?></h3>
-                                <p><strong><?php esc_html_e('Da 6,414ms a ~2,000ms', 'fp-performance-suite'); ?></strong></p>
-                                <p><?php esc_html_e('Riduzione del 68% del critical path latency.', 'fp-performance-suite'); ?></p>
+                    <section class="fp-ps-card">
+                        <h2>📈 <?php esc_html_e('Impatto Performance', 'fp-performance-suite'); ?></h2>
+                        <p class="description"><?php esc_html_e('Miglioramenti significativi delle metriche Core Web Vitals grazie all\'ottimizzazione del critical path.', 'fp-performance-suite'); ?></p>
+                        
+                        <div class="fp-ps-grid two" style="margin: 20px 0;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                                <h3 style="margin: 0 0 10px 0; font-size: 18px;"><?php esc_html_e('Riduzione Critical Path', 'fp-performance-suite'); ?></h3>
+                                <p style="margin: 0; font-size: 24px; font-weight: bold;"><?php esc_html_e('Da 6,414ms a ~2,000ms', 'fp-performance-suite'); ?></p>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;"><?php esc_html_e('Riduzione del 68%', 'fp-performance-suite'); ?></p>
                             </div>
                             
-                            <div class="impact-item">
-                                <h3><?php esc_html_e('Miglioramenti PageSpeed:', 'fp-performance-suite'); ?></h3>
-                                <ul>
-                                    <li><?php esc_html_e('LCP (Largest Contentful Paint): -2-4s', 'fp-performance-suite'); ?></li>
-                                    <li><?php esc_html_e('CLS (Cumulative Layout Shift): Migliorato', 'fp-performance-suite'); ?></li>
-                                    <li><?php esc_html_e('FCP (First Contentful Paint): -1-2s', 'fp-performance-suite'); ?></li>
+                            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                                <h3 style="margin: 0 0 10px 0; font-size: 18px;"><?php esc_html_e('Miglioramenti PageSpeed', 'fp-performance-suite'); ?></h3>
+                                <ul style="margin: 0; padding: 0; list-style: none; text-align: left;">
+                                    <li style="margin: 5px 0;">✅ <?php esc_html_e('LCP: -2-4s', 'fp-performance-suite'); ?></li>
+                                    <li style="margin: 5px 0;">✅ <?php esc_html_e('CLS: Migliorato', 'fp-performance-suite'); ?></li>
+                                    <li style="margin: 5px 0;">✅ <?php esc_html_e('FCP: -1-2s', 'fp-performance-suite'); ?></li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
+                    </section>
         </div>
 
-        <style>
-        .fp-performance-dashboard {
-            margin-top: 20px;
-        }
-        
-        .fp-performance-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-        }
-        
-        .fp-performance-card {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            padding: 20px;
-            box-shadow: 0 1px 1px rgba(0,0,0,.04);
-        }
-        
-        .fp-performance-card h2 {
-            margin-top: 0;
-            color: #23282d;
-        }
-        
-        .fp-performance-status .status-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f1;
-        }
-        
-        .fp-performance-status .status-item:last-child {
-            border-bottom: none;
-        }
-        
-        .status-item .value.enabled {
-            color: #00a32a;
-            font-weight: bold;
-        }
-        
-        .status-item .value.disabled {
-            color: #d63638;
-            font-weight: bold;
-        }
-        
-        .critical-path-analysis .problem-identified,
-        .critical-path-analysis .solution-implemented {
-            margin-bottom: 20px;
-        }
-        
-        .critical-path-analysis h3 {
-            color: #d63638;
-            margin-bottom: 10px;
-        }
-        
-        .solution-implemented h3 {
-            color: #00a32a;
-        }
-        
-        .critical-fonts-list ul {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .critical-fonts-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f1;
-        }
-        
-        .font-type {
-            background: #f0f0f1;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            margin-left: 10px;
-        }
-        
-        .performance-impact .impact-item {
-            margin-bottom: 20px;
-        }
-        
-        .performance-impact h3 {
-            color: #0073aa;
-            margin-bottom: 10px;
-        }
-        </style>
         <?php
     }
 

@@ -57,6 +57,7 @@ class Menu
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
         add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
+        add_action('admin_post_fp_ps_save_infrastructure', [$this, 'handleInfrastructureSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
         add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJavaScriptOptimizationSave']);
     }
@@ -325,6 +326,15 @@ class Menu
     {
         $monitoringPage = new MonitoringReports($this->container);
         $monitoringPage->handleSave();
+    }
+
+    /**
+     * Handle Infrastructure & CDN settings save
+     */
+    public function handleInfrastructureSave(): void
+    {
+        $infrastructurePage = new InfrastructureCdn($this->container);
+        $infrastructurePage->handleSave();
     }
 
     /**

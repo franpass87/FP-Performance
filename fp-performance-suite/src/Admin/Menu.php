@@ -6,6 +6,7 @@ use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Backend;
 use FP\PerfSuite\Admin\Pages\Cache;
+use FP\PerfSuite\Admin\Pages\Compression;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
@@ -13,6 +14,7 @@ use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Presets;
+use FP\PerfSuite\Admin\Pages\ScheduledReports;
 use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Tools;
 use FP\PerfSuite\ServiceContainer;
@@ -50,6 +52,7 @@ class Menu
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
+        add_action('admin_post_fp_ps_save_compression', [$this, 'handleCompressionSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
 
@@ -286,6 +289,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('— 🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('— 💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('— ⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('— 🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🛡️ SECURITY & INFRASTRUCTURE
@@ -320,6 +324,15 @@ class Menu
     }
 
     /**
+     * Handler per il salvataggio delle impostazioni di compressione
+     */
+    public function handleCompressionSave(): void
+    {
+        $compressionPage = new Compression($this->container);
+        $compressionPage->handleSave();
+    }
+
+    /**
      * Handler per l'esportazione CSV dalla pagina Overview
      */
     public function handleOverviewExportCsv(): void
@@ -340,6 +353,7 @@ class Menu
             'media' => new Media($this->container),
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
+            'compression' => new Compression($this->container),
             'presets' => new Presets($this->container),
             'logs' => new Logs($this->container),
             'tools' => new Tools($this->container),

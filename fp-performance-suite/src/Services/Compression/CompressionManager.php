@@ -50,6 +50,14 @@ class CompressionManager
     }
 
     /**
+     * Verifica se Brotli è abilitato
+     */
+    public function isBrotliEnabled(): bool
+    {
+        return (bool) get_option('fp_ps_compression_brotli_enabled', false);
+    }
+
+    /**
      * Verifica se Brotli è supportato dal server
      */
     public function isBrotliSupported(): bool
@@ -254,6 +262,7 @@ class CompressionManager
             'enabled' => $this->isEnabled(),
             'active' => $this->isActive(),
             'brotli_supported' => $this->isBrotliSupported(),
+            'brotli_enabled' => $this->isBrotliEnabled(),
             'gzip_supported' => $this->isGzipSupported(),
             'htaccess_supported' => $this->htaccess->isSupported(),
             'has_rules' => $this->htaccess->hasSection(self::SECTION_NAME),

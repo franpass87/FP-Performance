@@ -50,7 +50,10 @@ class Menu
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
+        add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
+        add_action('admin_post_fp_ps_save_infrastructure', [$this, 'handleInfrastructureSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
+        add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJavaScriptOptimizationSave']);
     }
 
     /**
@@ -305,6 +308,33 @@ class Menu
     {
         $advancedPage = new Advanced($this->container);
         $advancedPage->handleSave();
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni di monitoring
+     */
+    public function handleMonitoringSave(): void
+    {
+        $monitoringPage = new MonitoringReports($this->container);
+        $monitoringPage->handleSave();
+    }
+
+    /**
+     * Handle Infrastructure & CDN settings save
+     */
+    public function handleInfrastructureSave(): void
+    {
+        $infrastructurePage = new InfrastructureCdn($this->container);
+        $infrastructurePage->handleSave();
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni di JavaScript Optimization
+     */
+    public function handleJavaScriptOptimizationSave(): void
+    {
+        $jsOptimizationPage = new JavaScriptOptimization();
+        $jsOptimizationPage->handleSave();
     }
 
     /**

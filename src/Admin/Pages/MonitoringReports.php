@@ -43,6 +43,11 @@ use function array_map;
  */
 class MonitoringReports extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-monitoring';

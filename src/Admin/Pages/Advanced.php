@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
+use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
 use FP\PerfSuite\Services\Assets\PredictivePrefetching;
 
@@ -89,8 +90,8 @@ class Advanced extends AbstractPage
         </div>
         
         <?php
-        // Tab system
-        $validTabs = ['critical-css', 'compression', 'cdn', 'monitoring', 'reports'];
+        // Tab system - Solo funzionalità veramente avanzate
+        $validTabs = ['critical-css', 'pwa', 'prefetching'];
         $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
             ? sanitize_key($_GET['tab']) 
             : 'critical-css';
@@ -102,21 +103,13 @@ class Advanced extends AbstractPage
                class="nav-tab <?php echo $currentTab === 'critical-css' ? 'nav-tab-active' : ''; ?>">
                 🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?>
             </a>
-            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=compression" 
-               class="nav-tab <?php echo $currentTab === 'compression' ? 'nav-tab-active' : ''; ?>">
-                🗜️ <?php esc_html_e('Compression', 'fp-performance-suite'); ?>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=pwa" 
+               class="nav-tab <?php echo $currentTab === 'pwa' ? 'nav-tab-active' : ''; ?>">
+                📱 <?php esc_html_e('PWA', 'fp-performance-suite'); ?>
             </a>
-            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=cdn" 
-               class="nav-tab <?php echo $currentTab === 'cdn' ? 'nav-tab-active' : ''; ?>">
-                🌐 <?php esc_html_e('CDN', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=monitoring" 
-               class="nav-tab <?php echo $currentTab === 'monitoring' ? 'nav-tab-active' : ''; ?>">
-                📊 <?php esc_html_e('Monitoring', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=reports" 
-               class="nav-tab <?php echo $currentTab === 'reports' ? 'nav-tab-active' : ''; ?>">
-                📈 <?php esc_html_e('Reports', 'fp-performance-suite'); ?>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=prefetching" 
+               class="nav-tab <?php echo $currentTab === 'prefetching' ? 'nav-tab-active' : ''; ?>">
+                🚀 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?>
             </a>
         </nav>
         
@@ -130,29 +123,14 @@ class Advanced extends AbstractPage
                 <?php echo $this->renderCriticalCssSection(); ?>
             </div>
             
-            <!-- Tab: Compression -->
-            <div class="tab-content" style="<?php echo $currentTab !== 'compression' ? 'display:none;' : ''; ?>">
-                <?php echo $this->renderCompressionSection(); ?>
-            </div>
-            
-            <!-- Tab: CDN -->
-            <div class="tab-content" style="<?php echo $currentTab !== 'cdn' ? 'display:none;' : ''; ?>">
-                <?php echo $this->renderCdnSection(); ?>
-            </div>
-            
-            <!-- Tab: Monitoring -->
-            <div class="tab-content" style="<?php echo $currentTab !== 'monitoring' ? 'display:none;' : ''; ?>">
-                <?php echo $this->renderMonitoringSection(); ?>
-                <?php echo $this->renderCoreWebVitalsSection(); ?>
-                <?php echo $this->renderPrefetchingSection(); ?>
-                <?php echo $this->renderPerformanceBudgetSection(); ?>
-            </div>
-            
-            <!-- Tab: Reports -->
-            <div class="tab-content" style="<?php echo $currentTab !== 'reports' ? 'display:none;' : ''; ?>">
-                <?php echo $this->renderReportsSection(); ?>
+            <!-- Tab: PWA -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'pwa' ? 'display:none;' : ''; ?>">
                 <?php echo $this->renderPWASection(); ?>
-                <?php echo $this->renderWebhookSection(); ?>
+            </div>
+            
+            <!-- Tab: Predictive Prefetching -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'prefetching' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderPrefetchingSection(); ?>
             </div>
             
             <!-- Save Button -->

@@ -122,9 +122,14 @@ class Security extends AbstractPage
         
         // Tab system
         $validTabs = ['security', 'performance'];
-        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
-            ? sanitize_key($_GET['tab']) 
-            : 'performance';
+        $currentTab = 'performance';
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab']) && in_array($_POST['current_tab'], $validTabs, true)) {
+            $currentTab = sanitize_key($_POST['current_tab']);
+        } elseif (isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true)) {
+            $currentTab = sanitize_key($_GET['tab']);
+        }
         
         ob_start();
         ?>
@@ -145,8 +150,9 @@ class Security extends AbstractPage
             </a>
         </nav>
         
-        <!-- Tab: .htaccess Performance -->
-        <div class="tab-content" style="<?php echo $currentTab !== 'performance' ? 'display:none;' : ''; ?>">
+        <form method="post">
+            <?php wp_nonce_field('fp-ps-security', 'fp_ps_security_nonce'); ?>
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
         
         <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
             <p style="margin: 0;">
@@ -165,8 +171,8 @@ class Security extends AbstractPage
         </div>
         <?php endif; ?>
         
-        <form method="post">
-            <?php wp_nonce_field('fp-ps-security', 'fp_ps_security_nonce'); ?>
+        <!-- Tab: .htaccess Performance -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'performance' ? 'display:none;' : ''; ?>">
             
             <!-- Master Switch -->
             <section class="fp-ps-card">
@@ -484,22 +490,24 @@ class Security extends AbstractPage
                 </div>
             </section>
             
-            <div class="fp-ps-card">
-                <p>
-                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Salva Tutte le Impostazioni', 'fp-performance-suite'); ?></button>
-                </p>
-                <p class="description">
-                    <?php 
-                    echo sprintf(
-                        __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
-                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-diagnostics')) . '">' . __('Diagnostica', 'fp-performance-suite') . '</a>'
-                    );
-                    ?>
-                </p>
-            </div>
-        </form>
-        
         </div><!-- End Tab: Security & Protection -->
+        
+        <!-- Pulsante Salva (visibile sempre) -->
+        <div class="fp-ps-card" style="margin-top: 20px;">
+            <p>
+                <button type="submit" class="button button-primary button-large"><?php esc_html_e('Salva Tutte le Impostazioni', 'fp-performance-suite'); ?></button>
+            </p>
+            <p class="description">
+                <?php 
+                echo sprintf(
+                    __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
+                    '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-diagnostics')) . '">' . __('Diagnostica', 'fp-performance-suite') . '</a>'
+                );
+                ?>
+            </p>
+        </div>
+        
+        </form>
         
         <?php
         return (string) ob_get_clean();
