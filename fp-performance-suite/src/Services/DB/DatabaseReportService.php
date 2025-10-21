@@ -241,7 +241,7 @@ class DatabaseReportService
     /**
      * Export report in JSON
      */
-    public function exportJSON(array $report = null): string
+    public function exportJSON(?array $report = null): string
     {
         if ($report === null) {
             $report = $this->generateCompleteReport();
@@ -253,7 +253,7 @@ class DatabaseReportService
     /**
      * Export report in CSV (tabelle principali)
      */
-    public function exportCSV(array $report = null): string
+    public function exportCSV(?array $report = null): string
     {
         if ($report === null) {
             $report = $this->generateCompleteReport();
