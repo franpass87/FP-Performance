@@ -17,11 +17,14 @@ export function initRiskyToggles() {
                 return;
             }
             
-            const confirmation = window.prompt(
-                fpPerfSuite.confirmLabel || 'Type PROCEDI to continue'
-            );
+            // QUALITY BUG #30: Internazionalizzazione + case-insensitive
+            const confirmWord = fpPerfSuite.confirmWord || 'PROCEDI';
+            const promptLabel = fpPerfSuite.confirmLabel || `Type ${confirmWord} to continue`;
             
-            if (confirmation !== 'PROCEDI') {
+            const confirmation = window.prompt(promptLabel);
+            
+            // Case-insensitive comparison per UX migliore
+            if (!confirmation || confirmation.trim().toUpperCase() !== confirmWord.toUpperCase()) {
                 event.target.checked = false;
                 alert(fpPerfSuite.cancelledLabel || 'Action cancelled');
             }

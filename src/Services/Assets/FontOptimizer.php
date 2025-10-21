@@ -330,8 +330,9 @@ class FontOptimizer
         foreach ($fontDirs as $dir) {
             $path = $themeDir . $dir;
             if (is_dir($path)) {
+                // MINOR BUG #32: Error handling per glob()
                 $files = glob($path . '*.{woff2,woff}', GLOB_BRACE);
-                if (!empty($files)) {
+                if ($files !== false && !empty($files)) {
                     foreach (array_slice($files, 0, 2) as $file) {
                         $basename = basename($file);
                         $fonts[] = [
@@ -341,6 +342,9 @@ class FontOptimizer
                         ];
                     }
                     break;
+                } elseif ($files === false) {
+                    Logger::warning('glob() failed for font directory', ['path' => $path]);
+                }
                 }
             }
         }
@@ -668,8 +672,9 @@ class FontOptimizer
         foreach ($fontDirs as $dir) {
             $path = $themeDir . $dir;
             if (is_dir($path)) {
+                // MINOR BUG #32: Error handling per glob()
                 $files = glob($path . '*.{woff2,woff}', GLOB_BRACE);
-                if (!empty($files)) {
+                if ($files !== false && !empty($files)) {
                     foreach (array_slice($files, 0, 3) as $file) { // Max 3 fonts
                         $basename = basename($file);
                         $detected[] = [
@@ -679,6 +684,9 @@ class FontOptimizer
                         ];
                     }
                     break; // Only process first directory found
+                } elseif ($files === false) {
+                    Logger::warning('glob() failed for font directory', ['path' => $path]);
+                }
                 }
             }
         }
@@ -761,8 +769,10 @@ class FontOptimizer
 
     /**
      * Get specific setting
+     * 
+     * QUALITY BUG #35: Aggiunto return type hint
      */
-    private function getSetting(string $key, $default = null)
+    private function getSetting(string $key, mixed $default = null): mixed
     {
         $settings = $this->getSettings();
         return $settings[$key] ?? $default;

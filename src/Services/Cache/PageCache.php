@@ -168,6 +168,11 @@ class PageCache implements CacheInterface
     {
         try {
             $this->fs->delete($this->cacheDir());
+            
+            // PERFORMANCE BUG #28: Invalida cache conteggio
+            $this->cachedFileCount = null;
+            $this->cachedFileCountTime = 0;
+            
             Logger::info('Page cache cleared successfully');
             do_action('fp_ps_cache_cleared');
         } catch (\Throwable $e) {
@@ -262,11 +267,12 @@ class PageCache implements CacheInterface
         }
 
         // Category/tag archives
+        // PERFORMANCE BUG #13: Evita N+1 query usando wp_get_object_terms una volta sola
         $taxonomies = get_object_taxonomies($post->post_type);
-        foreach ($taxonomies as $taxonomy) {
-            $terms = get_the_terms($postId, $taxonomy);
-            if (is_array($terms)) {
-                foreach ($terms as $term) {
+        if (!empty($taxonomies)) {
+            $allTerms = wp_get_object_terms($postId, $taxonomies);
+            if (is_array($allTerms) && !is_wp_error($allTerms)) {
+                foreach ($allTerms as $term) {
                     $termLink = get_term_link($term);
                     if (!is_wp_error($termLink)) {
                         $urlsToPurge[] = $termLink;
@@ -626,11 +632,20 @@ class PageCache implements CacheInterface
         }
 
         try {
-            $this->fs->putContents($file, $buffer);
-            $this->fs->putContents($file . '.meta', wp_json_encode([
+            // EDGE CASE BUG #37: Race condition protection
+            // Scrivi .meta PRIMA del file HTML per evitare letture incomplete
+            $metaFile = $file . '.meta';
+            $metaData = wp_json_encode([
                 'ttl' => $settings['ttl'],
                 'time' => time(),
-            ]));
+            ]);
+            
+            $this->fs->putContents($metaFile, $metaData);
+            
+            // Solo dopo che .meta è scritto, scrivi il file HTML
+            // Questo garantisce che se il file HTML esiste, anche .meta esiste
+            $this->fs->putContents($file, $buffer);
+            
             Logger::debug('Page cache file saved', ['file' => basename($file)]);
         } catch (\Throwable $e) {
             Logger::error('Failed to save page cache file', $e);
@@ -956,6 +971,11 @@ class PageCache implements CacheInterface
                         $count++;
                     }
                 }
+                
+                // EDGE CASE BUG #38: Memory leak prevention
+                // Unset iterator per liberare memoria
+                unset($iterator, $fileInfo);
+                
             } catch (\Throwable $e) {
                 Logger::error('Unable to read cache directory', $e);
                 $count = 0;

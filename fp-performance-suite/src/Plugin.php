@@ -504,9 +504,9 @@ class Plugin
         $errors = [];
 
         // Verifica versione PHP minima
-        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
             $errors[] = sprintf(
-                'PHP 7.4.0 o superiore è richiesto. Versione corrente: %s',
+                'PHP 8.0.0 o superiore è richiesto. Versione corrente: %s',
                 PHP_VERSION
             );
         }

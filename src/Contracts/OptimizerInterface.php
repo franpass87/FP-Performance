@@ -3,33 +3,44 @@
 namespace FP\PerfSuite\Contracts;
 
 /**
- * Interface for asset optimization implementations
+ * Optimizer Interface
+ * 
+ * Definisce il contratto per i servizi di ottimizzazione
+ * 
+ * ARCHITECTURE: Interfaccia creata nel Turno 6 per standardizzare
+ * i servizi di ottimizzazione
+ * 
+ * @package FP\PerfSuite\Contracts
+ * @since 1.6.0
  */
 interface OptimizerInterface
 {
     /**
-     * Register optimizer hooks
+     * Registra gli hook WordPress
+     *
+     * @return void
      */
     public function register(): void;
 
     /**
-     * Get optimizer settings
+     * Verifica se il servizio è abilitato
      *
-     * @return array
+     * @return bool True se abilitato
      */
-    public function settings(): array;
+    public function isEnabled(): bool;
 
     /**
-     * Update optimizer settings
+     * Ottiene le impostazioni
      *
-     * @param array $settings
+     * @return array<string,mixed> Impostazioni correnti
      */
-    public function update(array $settings): void;
+    public function getSettings(): array;
 
     /**
-     * Get optimizer status
+     * Aggiorna le impostazioni
      *
-     * @return array
+     * @param array<string,mixed> $settings Nuove impostazioni
+     * @return bool True se aggiornamento riuscito
      */
-    public function status(): array;
+    public function updateSettings(array $settings): bool;
 }

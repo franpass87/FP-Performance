@@ -107,10 +107,20 @@ class PerformanceMonitor
 
         global $wpdb;
 
+        // SICUREZZA BUG #21: Sanitizza REQUEST_URI prima di salvarlo
+        $requestUri = isset($_SERVER['REQUEST_URI']) 
+            ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) 
+            : '/';
+        
+        // Limita lunghezza per evitare bloat del database
+        if (strlen($requestUri) > 255) {
+            $requestUri = substr($requestUri, 0, 255);
+        }
+
         $metrics = [
-            'url' => $_SERVER['REQUEST_URI'] ?? '/',
+            'url' => $requestUri,
             'timestamp' => time(),
-            'load_time' => microtime(true) - $this->pageLoadStart,
+            'load_time' => round(microtime(true) - $this->pageLoadStart, 4),
         ];
 
         if ($settings['track_queries']) {

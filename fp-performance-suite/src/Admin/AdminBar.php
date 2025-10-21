@@ -51,7 +51,7 @@ class AdminBar
         $wp_admin_bar->add_node([
             'id' => 'fp-performance',
             'title' => '<span class="ab-icon dashicons-performance"></span> FP Performance',
-            'href' => admin_url('admin.php?page=fp-performance'),
+            'href' => admin_url('admin.php?page=fp-performance-suite'),
             'meta' => [
                 'class' => 'fp-performance-menu',
             ],
@@ -66,7 +66,7 @@ class AdminBar
             'parent' => 'fp-performance',
             'id' => 'fp-cache',
             'title' => sprintf('%s Cache: %s', $cacheIcon, $cacheStatus['enabled'] ? __('Attiva', 'fp-performance-suite') : __('Disattiva', 'fp-performance-suite')),
-            'href' => admin_url('admin.php?page=fp-performance-cache'),
+            'href' => admin_url('admin.php?page=fp-performance-suite-cache'),
         ]);
 
         // Pulisci cache
@@ -78,16 +78,15 @@ class AdminBar
                 'href' => wp_nonce_url(admin_url('admin-post.php?action=fp_clear_cache'), 'fp_clear_cache'),
             ]);
 
-            // Statistiche cache
-            $stats = $pageCache->getStats();
+            // Statistiche cache - usa status() invece di getStats()
+            $fileCount = $cacheStatus['files'] ?? 0;
+            
             $wp_admin_bar->add_node([
                 'parent' => 'fp-cache',
                 'id' => 'fp-cache-stats',
                 'title' => sprintf(
-                    __('📊 File: %d | Dimensione: %s | Hit Rate: %d%%', 'fp-performance-suite'),
-                    $stats['file_count'],
-                    size_format($stats['total_size']),
-                    $stats['hit_rate']
+                    __('📊 File in cache: %d', 'fp-performance-suite'),
+                    $fileCount
                 ),
                 'meta' => [
                     'class' => 'fp-cache-stats-item',
@@ -108,7 +107,7 @@ class AdminBar
                     $stats['avg_load_time'],
                     $stats['avg_queries']
                 ),
-                'href' => admin_url('admin.php?page=fp-performance-diagnostics'),
+                'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics'),
             ]);
         }
 
@@ -130,7 +129,7 @@ class AdminBar
             'parent' => 'fp-quick-actions',
             'id' => 'fp-test-speed',
             'title' => __('🚀 Test Velocità', 'fp-performance-suite'),
-            'href' => admin_url('admin.php?page=fp-performance-diagnostics&tab=speed-test'),
+            'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics&tab=speed-test'),
         ]);
 
         // Link documentazione
@@ -194,7 +193,7 @@ class AdminBar
         
         $result = $pageCache->clear();
 
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance');
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite');
         $redirect = add_query_arg('fp_cache_cleared', $result ? '1' : '0', $redirect);
         
         wp_safe_redirect($redirect);
@@ -215,10 +214,19 @@ class AdminBar
         $container = \FP\PerfSuite\Plugin::container();
         $cleaner = $container->get(\FP\PerfSuite\Services\DB\Cleaner::class);
         
-        $cleaner->optimizeTables();
+        // FIX BUG #20: optimizeTables() è privato, usa cleanup() pubblico
+        $result = $cleaner->cleanup(['optimize_tables'], false);
+        
+        $tablesOptimized = 0;
+        if (isset($result['optimize_tables']['tables'])) {
+            $tablesOptimized = count($result['optimize_tables']['tables']);
+        }
 
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-database');
-        $redirect = add_query_arg('fp_db_optimized', '1', $redirect);
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite-database');
+        $redirect = add_query_arg([
+            'fp_db_optimized' => '1',
+            'tables_count' => $tablesOptimized,
+        ], $redirect);
         
         wp_safe_redirect($redirect);
         exit;

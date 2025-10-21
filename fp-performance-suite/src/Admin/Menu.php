@@ -78,11 +78,15 @@ class Menu
             return;
         }
 
+        // SICUREZZA: Sanitizza TUTTI i valori prima dell'output
         $errorMessage = esc_html($error['message'] ?? 'Errore sconosciuto');
-        $errorType = $error['type'] ?? 'unknown';
-        $solution = $error['solution'] ?? 'Contatta il supporto.';
-        $phpVersion = $error['php_version'] ?? PHP_VERSION;
-        $wpVersion = $error['wp_version'] ?? get_bloginfo('version');
+        $errorType = sanitize_key($error['type'] ?? 'unknown');
+        $solution = wp_kses_post($error['solution'] ?? 'Contatta il supporto.');
+        $phpVersion = esc_html($error['php_version'] ?? PHP_VERSION);
+        $wpVersion = esc_html($error['wp_version'] ?? get_bloginfo('version'));
+        $file = isset($error['file']) ? esc_html($error['file']) : '';
+        $line = isset($error['line']) ? absint($error['line']) : 0;
+        $time = isset($error['time']) ? absint($error['time']) : time();
 
         // Determina l'icona e il colore in base al tipo di errore
         $noticeClass = 'notice-error';
@@ -121,13 +125,13 @@ class Menu
                     <?php _e('Dettagli tecnici (clicca per espandere)', 'fp-performance-suite'); ?>
                 </summary>
                 <div style="background: #f0f0f1; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 12px;">
-                    <p><strong><?php _e('Versione PHP:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($phpVersion); ?></p>
-                    <p><strong><?php _e('Versione WordPress:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($wpVersion); ?></p>
-                    <?php if (!empty($error['file'])): ?>
-                    <p><strong><?php _e('File:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($error['file']); ?></p>
-                    <p><strong><?php _e('Linea:', 'fp-performance-suite'); ?></strong> <?php echo esc_html($error['line'] ?? 'N/A'); ?></p>
+                    <p><strong><?php _e('Versione PHP:', 'fp-performance-suite'); ?></strong> <?php echo $phpVersion; ?></p>
+                    <p><strong><?php _e('Versione WordPress:', 'fp-performance-suite'); ?></strong> <?php echo $wpVersion; ?></p>
+                    <?php if (!empty($file)): ?>
+                    <p><strong><?php _e('File:', 'fp-performance-suite'); ?></strong> <?php echo $file; ?></p>
+                    <p><strong><?php _e('Linea:', 'fp-performance-suite'); ?></strong> <?php echo $line > 0 ? $line : 'N/A'; ?></p>
                     <?php endif; ?>
-                    <p><strong><?php _e('Data:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(date('Y-m-d H:i:s', $error['time'] ?? time())); ?></p>
+                    <p><strong><?php _e('Data:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(date('Y-m-d H:i:s', $time)); ?></p>
                 </div>
             </details>
 
@@ -185,8 +189,10 @@ class Menu
      */
     public function dismissActivationError(): void
     {
-        // Verifica il nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_ps_dismiss_error')) {
+        // SICUREZZA: Sanitizza il nonce PRIMA di verificarlo
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'fp_ps_dismiss_error')) {
             wp_send_json_error(['message' => 'Nonce non valido']);
             return;
         }
@@ -208,8 +214,10 @@ class Menu
      */
     public function dismissSalientNotice(): void
     {
-        // Verifica il nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_ps_dismiss_salient')) {
+        // SICUREZZA: Sanitizza il nonce PRIMA di verificarlo
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'fp_ps_dismiss_salient')) {
             wp_send_json_error(['message' => 'Nonce non valido']);
             return;
         }
@@ -239,30 +247,30 @@ class Menu
             error_log('[FP Performance Suite] ATTENZIONE: Capability non valida, uso manage_options come fallback');
         }
         
-        // Sistema di auto-riparazione: se l'utente corrente è un admin ma non ha accesso,
-        // ripristina automaticamente le impostazioni predefinite
+        // Se l'utente corrente è un admin ma non ha accesso, mostra un errore
+        // invece di auto-riparare (per evitare privilege escalation)
         if (current_user_can('manage_options') && !current_user_can($capability)) {
-            error_log('[FP Performance Suite] EMERGENZA: Admin bloccato! Ripristino impostazioni predefinite...');
+            error_log('[FP Performance Suite] ATTENZIONE: Configurazione permessi non valida rilevata');
             
-            // Ripristina le impostazioni
-            $current_settings = get_option('fp_ps_settings', []);
-            $current_settings['allowed_role'] = 'administrator';
-            update_option('fp_ps_settings', $current_settings);
-            
-            // Aggiorna la capability
-            $capability = 'manage_options';
-            
-            // Notifica l'admin
+            // Mostra un warning e blocca l'accesso fino alla risoluzione manuale
             add_action('admin_notices', function() {
                 ?>
-                <div class="notice notice-warning is-dismissible">
+                <div class="notice notice-error">
                     <p>
-                        <strong><?php esc_html_e('FP Performance Suite - Auto-riparazione eseguita', 'fp-performance-suite'); ?></strong><br>
-                        <?php esc_html_e('È stato rilevato un problema con i permessi di accesso. Le impostazioni sono state automaticamente ripristinate ai valori predefiniti.', 'fp-performance-suite'); ?>
+                        <strong><?php esc_html_e('FP Performance Suite - Configurazione Non Valida', 'fp-performance-suite'); ?></strong><br>
+                        <?php esc_html_e('Le impostazioni di accesso sono configurate in modo errato. Per risolvere:', 'fp-performance-suite'); ?>
                     </p>
+                    <ol>
+                        <li><?php esc_html_e('Vai a FP Performance > Settings', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Reimposta "Allowed Role" su "Administrator"', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('Salva le impostazioni', 'fp-performance-suite'); ?></li>
+                    </ol>
                 </div>
                 <?php
             });
+            
+            // Non permettere l'accesso fino alla risoluzione manuale
+            $capability = 'do_not_allow';
         }
         
         // Log per debug

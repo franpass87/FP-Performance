@@ -35,6 +35,21 @@ class PageCache implements CacheInterface
     private Env $env;
     private bool $started = false;
     private int $bufferLevel = 0;
+    
+    /**
+     * PERFORMANCE: Cache statica dei pattern di esclusione
+     * Evita di ricreare gli array ad ogni richiesta
+     */
+    private static ?array $excludePatterns = null;
+    
+    /**
+     * PERFORMANCE BUG #28: Cache del conteggio file
+     * Evita di contare migliaia di file ad ogni chiamata
+     */
+    private ?int $cachedFileCount = null;
+    private int $cachedFileCountTime = 0;
+    private const FILE_COUNT_CACHE_TTL = 300; // 5 minuti
+    private const MAX_FILES_TO_COUNT = 10000; // Limite per timeout
 
     public function __construct(Fs $fs, Env $env)
     {
@@ -510,14 +525,28 @@ class PageCache implements CacheInterface
             return;
         }
 
-        $started = ob_start([$this, 'maybeFilterOutput']);
+        // SICUREZZA: Memorizza il livello PRIMA di iniziare il buffer
+        $levelBefore = ob_get_level();
+        
+        $started = @ob_start([$this, 'maybeFilterOutput']);
         if (!$started) {
-            $started = ob_start();
+            $started = @ob_start();
         }
 
-        if ($started) {
+        // SICUREZZA: Verifica che il buffer sia stato effettivamente creato
+        if ($started && ob_get_level() > $levelBefore) {
             $this->started = true;
             $this->bufferLevel = ob_get_level();
+            Logger::debug('Output buffering started for page cache', [
+                'level' => $this->bufferLevel,
+                'previous_level' => $levelBefore,
+            ]);
+        } else {
+            Logger::warning('Failed to start output buffering for page cache', [
+                'started' => $started,
+                'level_before' => $levelBefore,
+                'level_after' => ob_get_level(),
+            ]);
         }
     }
 
@@ -771,23 +800,25 @@ class PageCache implements CacheInterface
                 '/wcfm',
             ];
 
-            // Merge all plugin patterns
-            $excludePluginPages = array_merge(
-                $excludeFiles,
-                $woocommercePages,
-                $eddPages,
-                $memberpressPages,
-                $learnDashPages,
-                $bbPressPages,
-                $buddyPressPages,
-                $otherPages,
-                $securityPages,
-                $webhookPages,
-                $wooAdvanced,
-                $multivendor
-            );
+            // PERFORMANCE: Usa pattern cached invece di ricrearli ogni volta
+            if (self::$excludePatterns === null) {
+                self::$excludePatterns = array_merge(
+                    $excludeFiles,
+                    $woocommercePages,
+                    $eddPages,
+                    $memberpressPages,
+                    $learnDashPages,
+                    $bbPressPages,
+                    $buddyPressPages,
+                    $otherPages,
+                    $securityPages,
+                    $webhookPages,
+                    $wooAdvanced,
+                    $multivendor
+                );
+            }
 
-            foreach ($excludePluginPages as $pattern) {
+            foreach (self::$excludePatterns as $pattern) {
                 if (strpos($requestUri, $pattern) !== false) {
                     return false;
                 }
@@ -904,26 +935,80 @@ class PageCache implements CacheInterface
     {
         $dir = $this->cacheDir();
         $count = 0;
-        if (is_dir($dir)) {
-            try {
-                $iterator = new \RecursiveIteratorIterator(
-                    new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
-                );
-                foreach ($iterator as $fileInfo) {
-                    /** @var \SplFileInfo $fileInfo */
-                    if ($fileInfo->isFile() && strtolower($fileInfo->getExtension()) === 'html') {
-                        $count++;
-                    }
-                }
-            } catch (\Throwable $e) {
-                Logger::error('Unable to read cache directory', $e);
-                $count = 0;
-            }
+        $size = 0;
+        
+        // PERFORMANCE BUG #28: Cache del conteggio per 5 minuti
+        $now = time();
+        if ($this->cachedFileCount !== null && 
+            ($now - $this->cachedFileCountTime) < self::FILE_COUNT_CACHE_TTL) {
+            $count = $this->cachedFileCount;
+            
+            Logger::debug('Cache file count served from cache', [
+                'count' => $count,
+                'cached_at' => date('H:i:s', $this->cachedFileCountTime),
+            ]);
+        } else if (is_dir($dir)) {
+            [$count, $size] = $this->countCacheFiles($dir);
+            $this->cachedFileCount = $count;
+            $this->cachedFileCountTime = $now;
+            
+            Logger::debug('Cache file count refreshed', [
+                'count' => $count,
+                'size_mb' => round($size / 1024 / 1024, 2),
+            ]);
         }
+        
         return [
             'enabled' => $this->isEnabled(),
             'files' => $count,
+            'size_mb' => round($size / 1024 / 1024, 2),
+            'cached_until' => $this->cachedFileCountTime + self::FILE_COUNT_CACHE_TTL,
         ];
+    }
+    
+    /**
+     * Conta i file cache con ottimizzazione
+     * 
+     * @param string $dir Directory cache
+     * @return array [count, total_size]
+     */
+    private function countCacheFiles(string $dir): array
+    {
+        $count = 0;
+        $totalSize = 0;
+        
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+            
+            foreach ($iterator as $fileInfo) {
+                // PERFORMANCE: Limite di sicurezza per evitare timeout
+                if ($count >= self::MAX_FILES_TO_COUNT) {
+                    Logger::warning('Cache file count limit reached', [
+                        'limit' => self::MAX_FILES_TO_COUNT,
+                        'dir' => $dir,
+                    ]);
+                    break;
+                }
+                
+                /** @var \SplFileInfo $fileInfo */
+                if ($fileInfo->isFile()) {
+                    $ext = strtolower($fileInfo->getExtension());
+                    if ($ext === 'html') {
+                        $count++;
+                        $totalSize += $fileInfo->getSize();
+                    }
+                }
+            }
+            
+            return [$count, $totalSize];
+            
+        } catch (\Throwable $e) {
+            Logger::error('Failed to count cache files', $e);
+            return [0, 0];
+        }
     }
 
     private function finishBuffering(): void

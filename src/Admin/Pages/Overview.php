@@ -853,7 +853,8 @@ class Overview extends AbstractPage
         $loadTimes = array_column($history, 'load_time');
         $stdDev = $this->calculateStdDev($loadTimes);
         $avg = array_sum($loadTimes) / count($loadTimes);
-        $cv = ($stdDev / $avg) * 100;
+        // QUALITY BUG #33: Division by zero protection
+        $cv = $avg > 0 ? ($stdDev / $avg) * 100 : 0;
         
         if ($cv < 20) {
             $insights[] = [

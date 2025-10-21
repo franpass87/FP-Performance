@@ -151,19 +151,77 @@ class InstallationRecovery
      */
     private static function recoverMemoryLimit(): bool
     {
-        // Tenta di aumentare limite memoria
-        if (function_exists('ini_set')) {
-            @ini_set('memory_limit', '256M');
+        // Ottieni limite corrente
+        $currentLimit = ini_get('memory_limit');
+        $currentBytes = self::parseMemorySize($currentLimit);
+        $targetBytes = 268435456; // 256MB
+        
+        Logger::info('Attempting memory limit recovery', [
+            'current' => $currentLimit,
+            'current_bytes' => $currentBytes,
+            'target' => '256M',
+        ]);
+        
+        // FIX BUG #23: Tenta di aumentare SOLO se il limite è insufficiente
+        if ($currentBytes > 0 && $currentBytes < $targetBytes) {
+            if (function_exists('ini_set')) {
+                $result = @ini_set('memory_limit', '256M');
+                
+                if ($result !== false) {
+                    $newLimit = ini_get('memory_limit');
+                    Logger::info('Memory limit increased successfully', [
+                        'from' => $currentLimit,
+                        'to' => $newLimit,
+                    ]);
+                } else {
+                    Logger::warning('Failed to increase memory limit via ini_set');
+                }
+            }
         }
 
-        if (!defined('WP_MEMORY_LIMIT')) {
-            define('WP_MEMORY_LIMIT', '256M');
-        }
+        // NOTA: NON usiamo define('WP_MEMORY_LIMIT') perché:
+        // 1. È già caricato da WordPress all'avvio
+        // 2. Definirlo ora non ha alcun effetto
+        // 3. Può generare warning se già definito
 
-        // Disabilita operazioni pesanti
+        // Disabilita operazioni memory-intensive
         update_option('fp_ps_disable_batch_operations', true);
+        update_option('fp_ps_recovery_mode', 'memory_limit');
+        
+        // Suggerisci all'utente di modificare wp-config.php
+        update_option('fp_ps_recovery_suggestion', 
+            __('Aggiungi al wp-config.php: define(\'WP_MEMORY_LIMIT\', \'256M\');', 'fp-performance-suite')
+        );
         
         return true;
+    }
+    
+    /**
+     * Parse memory size string (es. "128M", "1G")
+     */
+    private static function parseMemorySize(string $size): int
+    {
+        $size = trim($size);
+        
+        if ($size === '-1') {
+            return PHP_INT_MAX; // Unlimited
+        }
+        
+        $value = (int) $size;
+        $unit = strtoupper(substr($size, -1));
+        
+        switch ($unit) {
+            case 'G':
+                $value *= 1024;
+                // fall through
+            case 'M':
+                $value *= 1024;
+                // fall through
+            case 'K':
+                $value *= 1024;
+        }
+        
+        return $value;
     }
 
     /**
@@ -248,24 +306,46 @@ class InstallationRecovery
      */
     public static function testConfiguration(): array
     {
+        // FIX BUG #24: Allineato a PHP 8.0+
+        $requiredPhpVersion = '8.0.0';
+        $phpVersionOk = version_compare(PHP_VERSION, $requiredPhpVersion, '>=');
+        
         $results = [
             'php_version' => [
-                'status' => version_compare(PHP_VERSION, '7.4.0', '>='),
-                'message' => PHP_VERSION,
+                'status' => $phpVersionOk,
+                'current' => PHP_VERSION,
+                'required' => $requiredPhpVersion,
+                'message' => $phpVersionOk
+                    ? sprintf(__('✅ PHP %s (Richiesto: %s+)', 'fp-performance-suite'), PHP_VERSION, $requiredPhpVersion)
+                    : sprintf(__('❌ PHP %s - Necessario %s+', 'fp-performance-suite'), PHP_VERSION, $requiredPhpVersion),
             ],
             'extensions' => [],
             'permissions' => [],
         ];
 
-        // Test estensioni
+        // Test estensioni con messaggi dettagliati
         $requiredExtensions = ['json', 'mbstring', 'fileinfo'];
         foreach ($requiredExtensions as $ext) {
-            $results['extensions'][$ext] = extension_loaded($ext);
+            $loaded = extension_loaded($ext);
+            $results['extensions'][$ext] = [
+                'loaded' => $loaded,
+                'message' => $loaded 
+                    ? sprintf(__('✅ %s caricato', 'fp-performance-suite'), $ext)
+                    : sprintf(__('❌ %s mancante', 'fp-performance-suite'), $ext),
+            ];
         }
 
-        // Test permessi
+        // Test permessi con dettagli
         $uploadDir = wp_upload_dir();
-        $results['permissions']['uploads_writable'] = is_writable($uploadDir['basedir']);
+        $uploadsWritable = !empty($uploadDir['basedir']) && is_writable($uploadDir['basedir']);
+        
+        $results['permissions']['uploads'] = [
+            'writable' => $uploadsWritable,
+            'path' => $uploadDir['basedir'] ?? 'N/A',
+            'message' => $uploadsWritable
+                ? __('✅ Directory uploads scrivibile', 'fp-performance-suite')
+                : __('❌ Directory uploads non scrivibile', 'fp-performance-suite'),
+        ];
 
         return $results;
     }

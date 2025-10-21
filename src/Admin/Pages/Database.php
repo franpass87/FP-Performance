@@ -414,7 +414,11 @@ class Database extends AbstractPage
                     <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'])); ?></p>
                     <p><strong><?php esc_html_e('Necessitano ottimizzazione:', 'fp-performance-suite'); ?></strong> 
                         <?php 
-                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization']);
+                        // QUALITY BUG #26: Null pointer protection
+                        $tables = $dbAnalysis['table_analysis']['tables'] ?? [];
+                        $needsOpt = is_array($tables) 
+                            ? array_filter($tables, fn($t) => isset($t['needs_optimization']) && $t['needs_optimization']) 
+                            : [];
                         echo esc_html(number_format_i18n(count($needsOpt))); 
                         ?>
                     </p>

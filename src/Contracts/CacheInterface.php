@@ -3,38 +3,51 @@
 namespace FP\PerfSuite\Contracts;
 
 /**
- * Interface for cache implementations
+ * Cache Interface
+ * 
+ * Definisce il contratto per i servizi di cache
+ * 
+ * ARCHITECTURE: Interfaccia creata nel Turno 6 per migliorare
+ * la dependency injection e il decoupling
+ * 
+ * @package FP\PerfSuite\Contracts
+ * @since 1.6.0
  */
 interface CacheInterface
 {
     /**
-     * Check if cache is enabled
+     * Verifica se il servizio è abilitato
+     *
+     * @return bool True se abilitato
      */
     public function isEnabled(): bool;
 
     /**
-     * Get cache settings
+     * Pulisce la cache
      *
-     * @return array
-     */
-    public function settings(): array;
-
-    /**
-     * Update cache settings
-     *
-     * @param array $settings
-     */
-    public function update(array $settings): void;
-
-    /**
-     * Clear all cache
+     * @return void
      */
     public function clear(): void;
 
     /**
-     * Get cache status
+     * Ottiene lo stato del servizio
      *
-     * @return array
+     * @return array{enabled:bool,...} Stato corrente
      */
     public function status(): array;
+
+    /**
+     * Ottiene le impostazioni
+     *
+     * @return array<string,mixed> Impostazioni correnti
+     */
+    public function getSettings(): array;
+
+    /**
+     * Aggiorna le impostazioni
+     *
+     * @param array<string,mixed> $settings Nuove impostazioni
+     * @return bool True se aggiornamento riuscito
+     */
+    public function updateSettings(array $settings): bool;
 }

@@ -359,12 +359,24 @@ class WebPConverter
      */
     private function shouldDeliverWebP(): bool
     {
-        // Check if client accepts WebP
-        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        // SICUREZZA BUG #22: Sanitizza HTTP_ACCEPT header
+        $accept = isset($_SERVER['HTTP_ACCEPT']) 
+            ? sanitize_text_field(wp_unslash($_SERVER['HTTP_ACCEPT'])) 
+            : '';
+        
+        // Cache del risultato per questa richiesta (evita ricontrollo)
+        static $cachedResult = null;
+        if ($cachedResult !== null) {
+            return $cachedResult;
+        }
+        
         $supportsWebP = strpos($accept, 'image/webp') !== false;
 
         // Allow filtering
-        $supportsWebP = apply_filters('fp_ps_webp_delivery_supported', $supportsWebP);
+        $supportsWebP = (bool) apply_filters('fp_ps_webp_delivery_supported', $supportsWebP);
+        
+        // Cache per questa richiesta
+        $cachedResult = $supportsWebP;
 
         return $supportsWebP;
     }

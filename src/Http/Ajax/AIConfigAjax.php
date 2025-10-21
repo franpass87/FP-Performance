@@ -46,10 +46,16 @@ class AIConfigAjax
             return;
         }
         
-        $interval = isset($_POST['interval']) ? (int) $_POST['interval'] : 60;
+        // EDGE CASE BUG #36: Sanitizzazione con wp_unslash
+        $interval = isset($_POST['interval']) 
+            ? (int) wp_unslash($_POST['interval']) 
+            : 60;
         
+        // Validazione range
         if ($interval < 15) {
             $interval = 15;
+        } elseif ($interval > 3600) { // Max 1 ora
+            $interval = 3600;
         }
         
         Logger::info('AI Config: Updating heartbeat interval', ['interval' => $interval]);
@@ -85,12 +91,29 @@ class AIConfigAjax
             return;
         }
         
-        $exclusionsJson = isset($_POST['exclusions']) ? $_POST['exclusions'] : '[]';
-        $exclusions = json_decode(stripslashes($exclusionsJson), true);
+        // EDGE CASE BUG #36: Sanitizzazione POST data
+        $exclusionsJson = isset($_POST['exclusions']) 
+            ? sanitize_textarea_field(wp_unslash($_POST['exclusions'])) 
+            : '[]';
         
-        if (!is_array($exclusions)) {
-            wp_send_json_error(['message' => __('Formato esclusioni non valido', 'fp-performance-suite')], 400);
+        $exclusions = json_decode($exclusionsJson, true);
+        
+        if (!is_array($exclusions) || json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error([
+                'message' => __('Formato esclusioni non valido', 'fp-performance-suite'),
+                'error' => json_last_error_msg(),
+            ], 400);
             return;
+        }
+        
+        // EDGE CASE BUG #36: Validazione array elements
+        foreach ($exclusions as $exclusion) {
+            if (!is_array($exclusion) || empty($exclusion['selector'])) {
+                wp_send_json_error([
+                    'message' => __('Esclusione non valida: richiesto campo "selector"', 'fp-performance-suite'),
+                ], 400);
+                return;
+            }
         }
         
         Logger::info('AI Config: Updating exclusions', ['count' => count($exclusions)]);

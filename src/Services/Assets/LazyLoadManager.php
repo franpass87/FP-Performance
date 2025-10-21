@@ -218,7 +218,13 @@ class LazyLoadManager
         }
 
         ?>
-        <script>
+        <script<?php
+            // SECURITY BUG #31: CSP nonce per script inline
+            $cspNonce = $this->getCspNonce();
+            if ($cspNonce) {
+                echo ' nonce="' . esc_attr($cspNonce) . '"';
+            }
+        ?>>
         /* FP Performance Suite - Skip first <?php echo $skipCount; ?> image(s) from lazy load */
         (function() {
             if ('loading' in HTMLImageElement.prototype) {
@@ -262,8 +268,10 @@ class LazyLoadManager
 
     /**
      * Get specific setting
+     * 
+     * QUALITY BUG #35: Aggiunto return type hint
      */
-    private function getSetting(string $key, $default = null)
+    private function getSetting(string $key, mixed $default = null): mixed
     {
         $settings = $this->getSettings();
         return $settings[$key] ?? $default;
@@ -301,5 +309,42 @@ class LazyLoadManager
             'skip_first' => $settings['skip_first'],
             'exclusions_count' => count($settings['exclude_classes']),
         ];
+    }
+    
+    /**
+     * SECURITY BUG #31: Get CSP nonce se disponibile
+     * 
+     * Supporta diversi plugin CSP comuni:
+     * - Really Simple SSL (CSP)
+     * - WP Content Security Policy Manager
+     * - Altri che settano global $csp_nonce
+     * 
+     * @return string|null Nonce CSP o null se non disponibile
+     */
+    private function getCspNonce(): ?string
+    {
+        // Check for global nonce set by CSP plugins
+        global $csp_nonce;
+        if (!empty($csp_nonce)) {
+            return $csp_nonce;
+        }
+        
+        // Check for WordPress core nonce (future compatibility)
+        if (function_exists('wp_get_script_nonce')) {
+            return wp_get_script_nonce();
+        }
+        
+        // Check for Really Simple SSL nonce
+        if (defined('RSSSL_CSP_NONCE')) {
+            return RSSSL_CSP_NONCE;
+        }
+        
+        // Allow other plugins to provide nonce via filter
+        $nonce = apply_filters('fp_ps_csp_nonce', null);
+        if (!empty($nonce) && is_string($nonce)) {
+            return $nonce;
+        }
+        
+        return null;
     }
 }

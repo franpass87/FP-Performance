@@ -63,13 +63,14 @@ class Headers
                     return;
                 }
 
+                // SICUREZZA BUG #25: Sanitizza header values per prevenire injection
                 $headers = [
-                    'Cache-Control' => $settings['headers']['Cache-Control'],
+                    'Cache-Control' => $this->sanitizeHeaderValue($settings['headers']['Cache-Control']),
                     'Expires' => $this->formatExpiresHeader($settings['expires_ttl']),
                 ];
 
                 foreach ($headers as $header => $value) {
-                    if (!headers_sent()) {
+                    if (!headers_sent() && !empty($value)) {
                         header($header . ': ' . $value, true);
                     }
                 }
@@ -227,5 +228,25 @@ HTACCESS;
         }
 
         return false;
+    }
+    
+    /**
+     * Sanitizza header value per prevenire header injection
+     * 
+     * @param string $value Header value da sanitizzare
+     * @return string Header value sicuro
+     */
+    private function sanitizeHeaderValue(string $value): string
+    {
+        // SICUREZZA: Rimuovi newline per prevenire header injection
+        $value = str_replace(["\r", "\n", "\0"], '', $value);
+        
+        // Rimuovi caratteri di controllo non ASCII
+        $value = preg_replace('/[^\x20-\x7E]/', '', $value);
+        
+        // Trim spazi
+        $value = trim($value);
+        
+        return $value;
     }
 }

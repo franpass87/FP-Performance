@@ -227,22 +227,57 @@ class Htaccess
         $file = ABSPATH . '.htaccess';
         
         try {
-            if (!$this->fs->exists($backupPath)) {
-                Logger::error('.htaccess backup not found', ['path' => $backupPath]);
+            // SICUREZZA: Validazione del path per prevenire Path Traversal
+            $realBackupPath = realpath($backupPath);
+            
+            if ($realBackupPath === false) {
+                Logger::error('Backup path does not exist', ['path' => $backupPath]);
+                return false;
+            }
+            
+            // SICUREZZA: Il backup DEVE essere nella stessa directory di .htaccess
+            $expectedDir = dirname($file);
+            $realBackupDir = dirname($realBackupPath);
+            $expectedRealDir = realpath($expectedDir);
+            
+            if ($realBackupDir !== $expectedRealDir) {
+                Logger::error('Security: Backup path outside allowed directory', [
+                    'path' => $backupPath,
+                    'real_dir' => $realBackupDir,
+                    'expected_dir' => $expectedRealDir,
+                ]);
+                return false;
+            }
+            
+            // SICUREZZA: Il nome deve matchare il pattern .htaccess.bak-YYYYMMDDHHMMSS
+            $basename = basename($realBackupPath);
+            if (!preg_match('/^\.htaccess\.bak-\d{14}$/', $basename)) {
+                Logger::error('Security: Invalid backup filename format', [
+                    'path' => $backupPath,
+                    'basename' => $basename,
+                ]);
+                return false;
+            }
+            
+            if (!$this->fs->exists($realBackupPath)) {
+                Logger::error('.htaccess backup not found', ['path' => $realBackupPath]);
                 return false;
             }
 
             // Crea un backup del file corrente prima di ripristinare
             if ($this->fs->exists($file)) {
-                $this->backup($file);
+                $currentBackup = $this->backup($file);
+                if ($currentBackup === null) {
+                    Logger::warning('Could not create backup before restore, proceeding anyway');
+                }
             }
 
-            // Ripristina il backup
-            $result = $this->fs->copy($backupPath, $file, true);
+            // Ripristina il backup (usa il path validato)
+            $result = $this->fs->copy($realBackupPath, $file, true);
             
             if ($result) {
-                Logger::info('.htaccess restored from backup', ['backup' => basename($backupPath)]);
-                do_action('fp_ps_htaccess_restored', $backupPath);
+                Logger::info('.htaccess restored from backup', ['backup' => $basename]);
+                do_action('fp_ps_htaccess_restored', $realBackupPath);
             }
 
             return $result;

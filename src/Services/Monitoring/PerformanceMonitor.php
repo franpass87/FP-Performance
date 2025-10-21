@@ -16,6 +16,11 @@ class PerformanceMonitor
 {
     private const OPTION = 'fp_ps_perf_monitor';
     private const MAX_ENTRIES = 1000;
+    
+    // PERFORMANCE BUG #34: Limiti per prevenire unbounded growth
+    private const MAX_DATA_AGE_DAYS = 30; // Mantieni solo ultimi 30 giorni
+    private const CLEANUP_PROBABILITY = 0.01; // 1% chance di cleanup automatico
+    private const MAX_OPTION_SIZE_BYTES = 1048576; // 1MB max
 
     private static ?self $instance = null;
     private array $currentPageMetrics = [];
@@ -148,12 +153,61 @@ class PerformanceMonitor
         // Add new metric
         $stored[] = $metrics;
 
+        // PERFORMANCE BUG #34: Cleanup automatico probabilistico
+        if ((mt_rand() / mt_getrandmax()) < self::CLEANUP_PROBABILITY) {
+            $stored = $this->cleanupOldMetrics($stored);
+        }
+
         // Keep only last MAX_ENTRIES
         if (count($stored) > self::MAX_ENTRIES) {
             $stored = array_slice($stored, -self::MAX_ENTRIES);
+            Logger::debug('Performance metrics trimmed to MAX_ENTRIES', [
+                'max' => self::MAX_ENTRIES,
+            ]);
+        }
+        
+        // PERFORMANCE BUG #34: Verifica dimensione per prevenire option bloat
+        $serialized = maybe_serialize($stored);
+        if (strlen($serialized) > self::MAX_OPTION_SIZE_BYTES) {
+            // Rimuovi metà delle entries più vecchie
+            $stored = array_slice($stored, (int)(count($stored) / 2));
+            Logger::warning('Performance metrics exceeded size limit, halved', [
+                'entries' => count($stored),
+                'size_kb' => round(strlen(maybe_serialize($stored)) / 1024, 2),
+            ]);
         }
 
         update_option(self::OPTION . '_data', $stored, false);
+    }
+    
+    /**
+     * PERFORMANCE BUG #34: Cleanup metriche oltre MAX_DATA_AGE_DAYS
+     * 
+     * @param array $metrics Array di metriche
+     * @return array Metriche pulite
+     */
+    private function cleanupOldMetrics(array $metrics): array
+    {
+        $cutoffTime = time() - (self::MAX_DATA_AGE_DAYS * DAY_IN_SECONDS);
+        $before = count($metrics);
+        
+        $metrics = array_filter($metrics, function($metric) use ($cutoffTime) {
+            return isset($metric['timestamp']) && $metric['timestamp'] >= $cutoffTime;
+        });
+        
+        // Reindex array dopo filter
+        $metrics = array_values($metrics);
+        
+        $removed = $before - count($metrics);
+        if ($removed > 0) {
+            Logger::info('Performance metrics auto-cleanup completed', [
+                'removed' => $removed,
+                'remaining' => count($metrics),
+                'cutoff_days' => self::MAX_DATA_AGE_DAYS,
+            ]);
+        }
+        
+        return $metrics;
     }
 
     /**

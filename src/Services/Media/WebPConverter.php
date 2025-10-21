@@ -166,6 +166,11 @@ class WebPConverter
      */
     public function bulkConvert(int $limit = 20, int $offset = 0): array
     {
+        // EDGE CASE BUG #39: Timeout protection per operazioni batch
+        if (function_exists('set_time_limit') && !ini_get('safe_mode')) {
+            @set_time_limit(300); // 5 minuti per batch
+        }
+        
         return $this->queue->initializeBulkConversion($limit, $offset);
     }
 

@@ -219,15 +219,36 @@ class Cleaner
      */
     private function cleanupPosts($wpdb, string $where, bool $dryRun, int $batch): array
     {
+        // SICUREZZA: Whitelist di condizioni WHERE permesse
+        $allowedConditions = [
+            "post_type = 'revision'",
+            "post_status = 'auto-draft'",
+            "post_status = 'trash'",
+        ];
+
+        if (!in_array($where, $allowedConditions, true)) {
+            Logger::error('Security: Invalid cleanup condition attempted', [
+                'where' => $where,
+                'allowed' => $allowedConditions,
+            ]);
+            return [
+                'found' => 0,
+                'deleted' => 0,
+                'error' => 'Invalid condition',
+            ];
+        }
+
         $table = $wpdb->posts;
         $sql = $wpdb->prepare("SELECT ID FROM {$table} WHERE {$where} LIMIT %d", $batch);
         $ids = $wpdb->get_col($sql);
         $count = count($ids);
+        
         if (!$dryRun && $count > 0) {
             foreach ($ids as $id) {
                 wp_delete_post((int) $id, true);
             }
         }
+        
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
 

@@ -41,20 +41,68 @@ class Fs
 
     public function putContents(string $file, string $contents): bool
     {
+        // EDGE CASE BUG #40: Validazione path
+        if (!$this->isValidPath($file)) {
+            Logger::error('Invalid file path for putContents', ['file' => $file]);
+            return false;
+        }
+        
         $fs = $this->ensure();
         return $fs->put_contents($file, $contents, FS_CHMOD_FILE);
     }
 
     public function getContents(string $file): string
     {
+        // EDGE CASE BUG #40: Validazione path
+        if (!$this->isValidPath($file)) {
+            Logger::error('Invalid file path for getContents', ['file' => $file]);
+            return '';
+        }
+        
         $fs = $this->ensure();
         return (string) $fs->get_contents($file);
     }
 
     public function exists(string $file): bool
     {
+        // EDGE CASE BUG #40: Validazione path
+        if (!$this->isValidPath($file)) {
+            return false;
+        }
+        
         $fs = $this->ensure();
         return $fs->exists($file);
+    }
+    
+    /**
+     * EDGE CASE BUG #40: Valida path file
+     * 
+     * @param string $path Path da validare
+     * @return bool True se valido
+     */
+    private function isValidPath(string $path): bool
+    {
+        // Path vuoto
+        if (empty($path) || trim($path) === '') {
+            return false;
+        }
+        
+        // Path troppo lungo (limite filesystem)
+        if (strlen($path) > 4096) {
+            return false;
+        }
+        
+        // Caratteri null byte (security)
+        if (strpos($path, "\0") !== false) {
+            return false;
+        }
+        
+        // Path solo whitespace
+        if (trim($path) === '') {
+            return false;
+        }
+        
+        return true;
     }
 
     public function mkdir(string $path): bool

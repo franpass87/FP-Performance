@@ -150,6 +150,11 @@ class Cleaner
      */
     public function cleanup(array $scope, bool $dryRun = true, ?int $batch = null): array
     {
+        // EDGE CASE BUG #39: Timeout protection per operazioni batch
+        if (!$dryRun && function_exists('set_time_limit') && !ini_get('safe_mode')) {
+            @set_time_limit(300); // 5 minuti per cleanup
+        }
+        
         // Rate limiting for actual cleanup (not dry run)
         if (!$dryRun && !$this->rateLimiter->isAllowed('db_cleanup', 5, 3600)) {
             Logger::warning('Database cleanup rate limit exceeded');
@@ -220,14 +225,49 @@ class Cleaner
     private function cleanupPosts($wpdb, string $where, bool $dryRun, int $batch): array
     {
         $table = $wpdb->posts;
+        
+        // SECURITY BUG #4: Whitelist per prevenire SQL Injection
+        $allowedConditions = [
+            "post_type = 'revision'",
+            "post_status = 'auto-draft'",
+            "post_status = 'trash'",
+        ];
+        
+        if (!in_array($where, $allowedConditions, true)) {
+            Logger::error('Security: Invalid cleanup condition attempted', [
+                'where' => $where,
+                'allowed' => $allowedConditions,
+            ]);
+            return ['found' => 0, 'deleted' => 0, 'error' => 'Invalid condition'];
+        }
+        
         $sql = $wpdb->prepare("SELECT ID FROM {$table} WHERE {$where} LIMIT %d", $batch);
         $ids = $wpdb->get_col($sql);
         $count = count($ids);
+        
         if (!$dryRun && $count > 0) {
-            foreach ($ids as $id) {
-                wp_delete_post((int) $id, true);
+            // PERFORMANCE BUG #29: Chunking per evitare timeout
+            $chunkSize = 100;
+            $chunks = array_chunk($ids, $chunkSize);
+            
+            foreach ($chunks as $chunk) {
+                foreach ($chunk as $id) {
+                    wp_delete_post((int) $id, true);
+                }
+                
+                // PERFORMANCE: Pausa per evitare sovraccarico
+                if (count($chunks) > 1) {
+                    usleep(10000); // 10ms
+                }
             }
+            
+            Logger::debug('Posts cleanup batch completed', [
+                'total' => $count,
+                'chunks' => count($chunks),
+                'chunk_size' => $chunkSize,
+            ]);
         }
+        
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
 
@@ -246,11 +286,30 @@ class Cleaner
         $query = $wpdb->prepare("SELECT comment_ID FROM {$table} WHERE comment_approved IN ({$placeholders}) LIMIT %d", $params);
         $ids = $wpdb->get_col($query);
         $count = count($ids);
+        
         if (!$dryRun && $count > 0) {
-            foreach ($ids as $id) {
-                wp_delete_comment((int) $id, true);
+            // PERFORMANCE BUG #29: Chunking per evitare timeout
+            $chunkSize = 100;
+            $chunks = array_chunk($ids, $chunkSize);
+            
+            foreach ($chunks as $chunk) {
+                foreach ($chunk as $id) {
+                    wp_delete_comment((int) $id, true);
+                }
+                
+                // PERFORMANCE: Pausa per evitare sovraccarico
+                if (count($chunks) > 1) {
+                    usleep(10000); // 10ms
+                }
             }
+            
+            Logger::debug('Comments cleanup batch completed', [
+                'total' => $count,
+                'chunks' => count($chunks),
+                'chunk_size' => $chunkSize,
+            ]);
         }
+        
         return ['found' => $count, 'deleted' => $dryRun ? 0 : $count];
     }
 
@@ -264,12 +323,29 @@ class Cleaner
         $names = $wpdb->get_col($sql);
         $count = count($names);
         $deleted = 0;
+        
         if (!$dryRun && $count > 0) {
-            foreach ($names as $name) {
-                $key = str_replace('_transient_timeout_', '', $name);
-                delete_transient($key);
-                $deleted++;
+            // PERFORMANCE BUG #29: Chunking per evitare timeout
+            $chunkSize = 200;
+            $chunks = array_chunk($names, $chunkSize);
+            
+            foreach ($chunks as $chunk) {
+                foreach ($chunk as $name) {
+                    $key = str_replace('_transient_timeout_', '', $name);
+                    delete_transient($key);
+                    $deleted++;
+                }
+                
+                // PERFORMANCE: Pausa per evitare sovraccarico
+                if (count($chunks) > 1) {
+                    usleep(5000); // 5ms
+                }
             }
+            
+            Logger::debug('Transients cleanup batch completed', [
+                'total' => $deleted,
+                'chunks' => count($chunks),
+            ]);
         }
 
         $siteCount = 0;
@@ -278,12 +354,28 @@ class Cleaner
             $siteSql = $wpdb->prepare("SELECT meta_key FROM {$wpdb->sitemeta} WHERE meta_key LIKE %s AND meta_value < %d LIMIT %d", '_site_transient_timeout_%', $time, $batch);
             $siteNames = $wpdb->get_col($siteSql);
             $siteCount = count($siteNames);
+            
             if (!$dryRun && $siteCount > 0) {
-                foreach ($siteNames as $metaKey) {
-                    $key = str_replace('_site_transient_timeout_', '', $metaKey);
-                    delete_site_transient($key);
-                    $siteDeleted++;
+                // PERFORMANCE BUG #29: Chunking per site transients
+                $chunkSize = 200;
+                $chunks = array_chunk($siteNames, $chunkSize);
+                
+                foreach ($chunks as $chunk) {
+                    foreach ($chunk as $metaKey) {
+                        $key = str_replace('_site_transient_timeout_', '', $metaKey);
+                        delete_site_transient($key);
+                        $siteDeleted++;
+                    }
+                    
+                    if (count($chunks) > 1) {
+                        usleep(5000); // 5ms
+                    }
                 }
+                
+                Logger::debug('Site transients cleanup batch completed', [
+                    'total' => $siteDeleted,
+                    'chunks' => count($chunks),
+                ]);
             }
         }
 

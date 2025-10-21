@@ -59,12 +59,17 @@ class Assets
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
             'ajaxUrl' => admin_url('admin-ajax.php'),
+            // QUALITY BUG #30: Internazionalizzazione completa
+            'confirmWord' => __('PROCEDI', 'fp-performance-suite'),
             'confirmLabel' => __('Type PROCEDI to confirm high-risk actions', 'fp-performance-suite'),
             'cancelledLabel' => __('Action cancelled', 'fp-performance-suite'),
             'messages' => [
                 'logsError' => __('Unable to load log data.', 'fp-performance-suite'),
                 'presetError' => __('Unable to apply preset.', 'fp-performance-suite'),
                 'presetSuccess' => __('Preset applied successfully!', 'fp-performance-suite'),
+                // QUALITY BUG #27: Messaggi mancanti per presets.js
+                'loading' => __('Loading...', 'fp-performance-suite'),
+                'reloadConfirm' => __('Preset applied! Reload the page to see changes?', 'fp-performance-suite'),
             ],
         ]);
     }

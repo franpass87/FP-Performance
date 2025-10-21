@@ -391,8 +391,10 @@ class LighthouseFontOptimizer
 
     /**
      * Ottiene un'impostazione specifica
+     * 
+     * QUALITY BUG #35: Aggiunto return type hint
      */
-    private function getSetting(string $key, $default = null)
+    private function getSetting(string $key, mixed $default = null): mixed
     {
         $settings = $this->getSettings();
         return $settings[$key] ?? $default;
