@@ -208,34 +208,86 @@ class Advanced extends AbstractPage
 
         ob_start();
         ?>
-        <div class="fp-ps-card">
+        <section class="fp-ps-card">
             <h2>🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Inline critical CSS for above-the-fold content to improve initial render time.', 'fp-performance-suite'); ?></p>
+            <p class="description"><?php esc_html_e('Inline critical CSS per il contenuto above-the-fold per migliorare il tempo di rendering iniziale e ridurre il render-blocking CSS.', 'fp-performance-suite'); ?></p>
             
-            <table class="form-table">
-                <tr>
-                    <th scope="row">
-                        <label for="critical_css"><?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?></label>
-                    </th>
-                    <td>
-                        <textarea 
-                            name="critical_css" 
-                            id="critical_css" 
-                            rows="10" 
-                            class="large-text code"
-                            placeholder="body { margin: 0; } .header { ... }"
-                        ><?php echo esc_textarea($criticalCss->get()); ?></textarea>
-                        <p class="description">
-                            <?php printf(
-                                esc_html__('Current size: %s KB / %s KB max', 'fp-performance-suite'),
-                                number_format($status['size_kb'], 2),
-                                number_format($status['max_size_kb'], 0)
-                            ); ?>
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </div>
+            <!-- Status Card -->
+            <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <strong style="display: block; margin-bottom: 5px; color: #0c4a6e;"><?php esc_html_e('Dimensione Corrente', 'fp-performance-suite'); ?></strong>
+                        <span style="font-size: 24px; font-weight: 700; color: <?php echo $status['size_kb'] > $status['max_size_kb'] * 0.8 ? '#dc2626' : '#16a34a'; ?>;">
+                            <?php echo number_format($status['size_kb'], 2); ?> KB
+                        </span>
+                        <span style="color: #64748b; margin-left: 5px;">/ <?php echo number_format($status['max_size_kb'], 0); ?> KB max</span>
+                    </div>
+                    <div>
+                        <?php if ($status['size_kb'] <= $status['max_size_kb']) : ?>
+                            <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #dcfce7; color: #166534; border-radius: 6px; font-weight: 600;">
+                                <span style="font-size: 18px;">✓</span>
+                                <?php esc_html_e('Dimensione OK', 'fp-performance-suite'); ?>
+                            </span>
+                        <?php else : ?>
+                            <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fee2e2; color: #991b1b; border-radius: 6px; font-weight: 600;">
+                                <span style="font-size: 18px;">⚠</span>
+                                <?php esc_html_e('Troppo grande!', 'fp-performance-suite'); ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label for="critical_css" style="display: block; margin-bottom: 10px;">
+                    <strong><?php esc_html_e('CSS Critico', 'fp-performance-suite'); ?></strong>
+                </label>
+                <textarea 
+                    name="critical_css" 
+                    id="critical_css" 
+                    rows="15" 
+                    class="large-text code"
+                    style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;"
+                    placeholder="/* Incolla qui il tuo CSS critico above-the-fold */&#10;body { margin: 0; padding: 0; }&#10;.header { display: flex; ... }&#10;.hero { background: ...; }"
+                ><?php echo esc_textarea($criticalCss->get()); ?></textarea>
+                <p class="description" style="margin-top: 10px;">
+                    <?php esc_html_e('Incolla qui il CSS critico necessario per il rendering above-the-fold. Mantienilo sotto i 14KB per prestazioni ottimali.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+            
+            <!-- Info Box -->
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #92400e;">
+                    <span style="font-size: 18px;">💡</span>
+                    <?php esc_html_e('Come generare Critical CSS', 'fp-performance-suite'); ?>
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: #78350f;">
+                    <li><?php esc_html_e('Usa strumenti online come Critical CSS Generator o Chrome DevTools Coverage', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Estrai solo gli stili necessari per il contenuto visibile senza scroll', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Mantieni la dimensione sotto i 14KB per evitare penalizzazioni', 'fp-performance-suite'); ?></li>
+                    <li><?php esc_html_e('Testa accuratamente su diverse risoluzioni e pagine', 'fp-performance-suite'); ?></li>
+                </ul>
+            </div>
+            
+            <!-- Performance Impact -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin-top: 20px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 10px;">⚡</div>
+                <h3 style="color: white; margin: 0 0 10px 0; font-size: 20px;"><?php esc_html_e('Impatto Performance', 'fp-performance-suite'); ?></h3>
+                <p style="margin: 0; opacity: 0.95; font-size: 15px;">
+                    <?php esc_html_e('Il Critical CSS può migliorare il First Contentful Paint (FCP) del 20-30% eliminando il render-blocking CSS.', 'fp-performance-suite'); ?>
+                </p>
+                <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px; flex-wrap: wrap;">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700;">+15-25</div>
+                        <div style="opacity: 0.9; font-size: 14px;"><?php esc_html_e('Punti Lighthouse', 'fp-performance-suite'); ?></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700;">-30%</div>
+                        <div style="opacity: 0.9; font-size: 14px;"><?php esc_html_e('Render Blocking', 'fp-performance-suite'); ?></div>
+                    </div>
+                </div>
+            </div>
+        </section>
         <?php
         return ob_get_clean();
     }
@@ -248,9 +300,9 @@ class Advanced extends AbstractPage
 
         ob_start();
         ?>
-        <div class="fp-ps-card">
+        <section class="fp-ps-card">
             <h2>🗜️ <?php esc_html_e('Compressione Brotli & Gzip', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Abilita la compressione Brotli e Gzip per ridurre le dimensioni dei file trasferiti del 60-80%.', 'fp-performance-suite'); ?></p>
+            <p class="description"><?php esc_html_e('Abilita la compressione Brotli e Gzip per ridurre le dimensioni dei file trasferiti del 60-80%.', 'fp-performance-suite'); ?></p>
             
             <!-- Status Overview -->
             <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
@@ -370,7 +422,7 @@ class Advanced extends AbstractPage
                     <?php endif; ?>
                 </div>
             </details>
-        </div>
+        </section>
         <?php
         return ob_get_clean();
     }
@@ -382,9 +434,9 @@ class Advanced extends AbstractPage
 
         ob_start();
         ?>
-        <div class="fp-ps-card">
+        <section class="fp-ps-card">
             <h2>🌐 <?php esc_html_e('CDN Integration', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Rewrite asset URLs to use a Content Delivery Network.', 'fp-performance-suite'); ?></p>
+            <p class="description"><?php esc_html_e('Rewrite asset URLs to use a Content Delivery Network.', 'fp-performance-suite'); ?></p>
             
             <table class="form-table">
                 <tr>
@@ -421,7 +473,7 @@ class Advanced extends AbstractPage
                     </td>
                 </tr>
             </table>
-        </div>
+        </section>
         <?php
         return ob_get_clean();
     }
@@ -433,9 +485,9 @@ class Advanced extends AbstractPage
 
         ob_start();
         ?>
-        <div class="fp-ps-card">
+        <section class="fp-ps-card">
             <h2>📊 <?php esc_html_e('Performance Monitoring', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Track page load times, database queries, and memory usage over time.', 'fp-performance-suite'); ?></p>
+            <p class="description"><?php esc_html_e('Track page load times, database queries, and memory usage over time.', 'fp-performance-suite'); ?></p>
             
             <table class="form-table">
                 <tr>
@@ -460,7 +512,7 @@ class Advanced extends AbstractPage
                     </td>
                 </tr>
             </table>
-        </div>
+        </section>
         <?php
         return ob_get_clean();
     }
@@ -472,9 +524,9 @@ class Advanced extends AbstractPage
 
         ob_start();
         ?>
-        <div class="fp-ps-card">
+        <section class="fp-ps-card">
             <h2>📧 <?php esc_html_e('Scheduled Reports', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Receive periodic performance reports via email.', 'fp-performance-suite'); ?></p>
+            <p class="description"><?php esc_html_e('Receive periodic performance reports via email.', 'fp-performance-suite'); ?></p>
             
             <table class="form-table">
                 <tr>
@@ -509,7 +561,7 @@ class Advanced extends AbstractPage
                     </td>
                 </tr>
             </table>
-        </div>
+        </section>
         <?php
         return ob_get_clean();
     }

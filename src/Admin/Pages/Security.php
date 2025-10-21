@@ -120,12 +120,33 @@ class Security extends AbstractPage
             $message = __('Security settings saved successfully!', 'fp-performance-suite');
         }
         
+        // Tab system
+        $validTabs = ['security', 'performance'];
+        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
+            ? sanitize_key($_GET['tab']) 
+            : 'performance';
+        
         ob_start();
         ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- Tab Navigation -->
+        <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom: 20px;">
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=performance" 
+               class="nav-tab <?php echo $currentTab === 'performance' ? 'nav-tab-active' : ''; ?>">
+                ⚡ <?php esc_html_e('.htaccess Performance', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=security" 
+               class="nav-tab <?php echo $currentTab === 'security' ? 'nav-tab-active' : ''; ?>">
+                🛡️ <?php esc_html_e('Security & Protection', 'fp-performance-suite'); ?>
+            </a>
+        </nav>
+        
+        <!-- Tab: .htaccess Performance -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'performance' ? 'display:none;' : ''; ?>">
         
         <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
             <p style="margin: 0;">
@@ -387,6 +408,11 @@ class Security extends AbstractPage
                 </div>
             </section>
             
+            </div><!-- End Tab: .htaccess Performance -->
+            
+            <!-- Tab: Security & Protection -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'security' ? 'display:none;' : ''; ?>">
+            
             <!-- 6. Protezione File -->
             <section class="fp-ps-card">
                 <h2>🔒 <?php esc_html_e('Protezione File Sensibili', 'fp-performance-suite'); ?></h2>
@@ -472,6 +498,8 @@ class Security extends AbstractPage
                 </p>
             </div>
         </form>
+        
+        </div><!-- End Tab: Security & Protection -->
         
         <?php
         return (string) ob_get_clean();

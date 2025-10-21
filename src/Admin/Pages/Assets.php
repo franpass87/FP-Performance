@@ -168,7 +168,8 @@ class Assets extends AbstractPage
                     $criticalScripts['dependency_critical'] ?? []
                 ));
                 set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300);
-                wp_safe_redirect(add_query_arg(['msg' => 'scripts_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'scripts_detected', 'count' => $count, 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -181,7 +182,8 @@ class Assets extends AbstractPage
                     $excludeCss['admin_styles'] ?? []
                 ));
                 set_transient('fp_ps_exclude_css_detected', $excludeCss, 300);
-                wp_safe_redirect(add_query_arg(['msg' => 'css_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'css_detected', 'count' => $count, 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -194,7 +196,8 @@ class Assets extends AbstractPage
                     $excludeJs['inline_dependent'] ?? []
                 ));
                 set_transient('fp_ps_exclude_js_detected', $excludeJs, 300);
-                wp_safe_redirect(add_query_arg(['msg' => 'js_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'js_detected', 'count' => $count, 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -203,7 +206,8 @@ class Assets extends AbstractPage
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
                 $count = $criticalAssets['summary']['total_assets'] ?? 0;
                 set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300);
-                wp_safe_redirect(add_query_arg(['msg' => 'assets_detected', 'count' => $count], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_detected', 'count' => $count, 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -234,7 +238,8 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts), 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -261,7 +266,8 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_css' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude), 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -288,14 +294,16 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude), 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
             // Apply critical assets suggestions
             if (isset($_POST['apply_critical_assets_suggestions'])) {
                 $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
-                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
+                $redirectTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'delivery-core';
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied'], 'tab' => $redirectTab], $_SERVER['REQUEST_URI']));
                 exit;
             }
             
@@ -377,6 +385,9 @@ class Assets extends AbstractPage
                         'tiktok_pixel' => ['enabled' => !empty($_POST['third_party_tiktok']), 'delay' => true],
                         'pinterest_tag' => ['enabled' => !empty($_POST['third_party_pinterest']), 'delay' => true],
                         'hubspot' => ['enabled' => !empty($_POST['third_party_hubspot']), 'delay' => true],
+                        'google_tag_manager' => ['enabled' => !empty($_POST['third_party_gtm']), 'delay' => true],
+                        'wonderpush' => ['enabled' => !empty($_POST['third_party_wonderpush']), 'delay' => true],
+                        'brevo' => ['enabled' => !empty($_POST['third_party_brevo']), 'delay' => true],
                         'zendesk' => ['enabled' => !empty($_POST['third_party_zendesk']), 'delay' => true],
                         'drift' => ['enabled' => !empty($_POST['third_party_drift']), 'delay' => true],
                         'crisp' => ['enabled' => !empty($_POST['third_party_crisp']), 'delay' => true],
@@ -471,11 +482,37 @@ class Assets extends AbstractPage
         $thirdPartyStatus = $thirdPartyScripts->status();
         $http2Settings = $http2Push->settings();
         $smartDeliverySettings = $smartDelivery->settings();
+        
+        // Tab system
+        $validTabs = ['delivery-core', 'fonts', 'advanced'];
+        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
+            ? sanitize_key($_GET['tab']) 
+            : 'delivery-core';
+        
         ob_start();
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- Tab Navigation -->
+        <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom: 20px;">
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=delivery-core" 
+               class="nav-tab <?php echo $currentTab === 'delivery-core' ? 'nav-tab-active' : ''; ?>">
+                📦 <?php esc_html_e('Delivery & Core', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=fonts" 
+               class="nav-tab <?php echo $currentTab === 'fonts' ? 'nav-tab-active' : ''; ?>">
+                🔤 <?php esc_html_e('Fonts', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=advanced" 
+               class="nav-tab <?php echo $currentTab === 'advanced' ? 'nav-tab-active' : ''; ?>">
+                🔌 <?php esc_html_e('Advanced & Third-Party', 'fp-performance-suite'); ?>
+            </a>
+        </nav>
+        
+        <!-- Tab: Delivery & Core -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'delivery-core' ? 'display:none;' : ''; ?>">
         
         <!-- Auto-Configuration Section for Assets -->
         <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
@@ -537,6 +574,7 @@ class Assets extends AbstractPage
             
             <form method="post" style="margin-top: 20px;">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <button type="submit" name="auto_detect_scripts" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                         🔍 <?php esc_html_e('Rileva Script Critici', 'fp-performance-suite'); ?>
@@ -769,6 +807,7 @@ class Assets extends AbstractPage
             <h2><?php esc_html_e('Delivery', 'fp-performance-suite'); ?></h2>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="delivery" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -1042,11 +1081,17 @@ class Assets extends AbstractPage
             </form>
         </section>
         
+        </div><!-- End Tab: Delivery & Core -->
+        
+        <!-- Tab: Fonts -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'fonts' ? 'display:none;' : ''; ?>">
+        
         <section class="fp-ps-card" style="margin-top: 20px;">
             <h2><?php esc_html_e('Font Optimization', 'fp-performance-suite'); ?> <span class="fp-ps-badge green" style="font-size: 0.7em;">v1.2.0</span></h2>
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Ottimizza il caricamento dei font per migliorare FCP e CLS', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="pagespeed" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -1110,6 +1155,11 @@ class Assets extends AbstractPage
             </form>
         </section>
         
+        </div><!-- End Tab: Fonts -->
+        
+        <!-- Tab: Advanced & Third-Party -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'advanced' ? 'display:none;' : ''; ?>">
+        
         <section class="fp-ps-card" style="margin-top: 20px;">
             <h2>
                 🔌 <?php esc_html_e('Third-Party Script Manager', 'fp-performance-suite'); ?> 
@@ -1132,6 +1182,7 @@ class Assets extends AbstractPage
             
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="third_party" />
                 
                 <label class="fp-ps-toggle">
@@ -1281,6 +1332,30 @@ class Assets extends AbstractPage
                             <span class="description" style="font-size: 12px;"><?php esc_html_e('Marketing, CRM, Analytics', 'fp-performance-suite'); ?></span>
                         </span>
                         <input type="checkbox" name="third_party_hubspot" value="1" <?php checked($thirdPartySettings['scripts']['hubspot']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🏷️ Google Tag Manager</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('GTM Container, Tag Management', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_gtm" value="1" <?php checked($thirdPartySettings['scripts']['google_tag_manager']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>🔔 Wonderpush</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Push Notifications, Web Push', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_wonderpush" value="1" <?php checked($thirdPartySettings['scripts']['wonderpush']['enabled'] ?? false); ?> />
+                    </label>
+                    
+                    <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                        <span class="info">
+                            <strong>📧 Brevo</strong>
+                            <span class="description" style="font-size: 12px;"><?php esc_html_e('Email Marketing, Automation', 'fp-performance-suite'); ?></span>
+                        </span>
+                        <input type="checkbox" name="third_party_brevo" value="1" <?php checked($thirdPartySettings['scripts']['brevo']['enabled'] ?? false); ?> />
                     </label>
                     
                     <label class="fp-ps-toggle" style="background: #f9f9f9; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
@@ -1564,6 +1639,7 @@ class Assets extends AbstractPage
             <!-- Scan Button -->
             <form method="post" style="margin-bottom: 20px;">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="script_detector" />
                 <button type="submit" name="action_scan" class="button button-secondary">
                     🔍 <?php esc_html_e('Scansiona Homepage Ora', 'fp-performance-suite'); ?>
@@ -1625,6 +1701,7 @@ class Assets extends AbstractPage
                         <div style="display: flex; gap: 8px; margin-left: 15px;">
                             <form method="post" style="margin: 0;">
                                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                                 <input type="hidden" name="form_type" value="script_detector" />
                                 <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
                                 <button type="submit" name="action_auto_add" class="button button-primary button-small">
@@ -1633,6 +1710,7 @@ class Assets extends AbstractPage
                             </form>
                             <form method="post" style="margin: 0;">
                                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                                 <input type="hidden" name="form_type" value="script_detector" />
                                 <input type="hidden" name="script_hash" value="<?php echo esc_attr($suggestion['hash']); ?>" />
                                 <button type="submit" name="action_dismiss" class="button button-link-delete button-small">
@@ -1695,6 +1773,7 @@ class Assets extends AbstractPage
                     </div>
                     <form method="post" style="margin: 0;">
                         <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                        <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                         <input type="hidden" name="form_type" value="script_detector" />
                         <input type="hidden" name="custom_key" value="<?php echo esc_attr($key); ?>" />
                         <button type="submit" name="action_remove_custom" class="button button-link-delete button-small" onclick="return confirm('Rimuovere questo script custom?');">
@@ -1713,6 +1792,7 @@ class Assets extends AbstractPage
             
             <form method="post" style="margin-top: 15px;">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="script_detector" />
                 
                 <table class="form-table">
@@ -1767,6 +1847,7 @@ class Assets extends AbstractPage
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Push automatico di risorse critiche via HTTP/2 Server Push per eliminare round-trip e accelerare il rendering.', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="http2_push" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -1860,6 +1941,7 @@ class Assets extends AbstractPage
             <p style="color: #666; margin-bottom: 20px;"><?php esc_html_e('Adatta automaticamente la qualità e il tipo di assets in base alla connessione dell\'utente (2G, 3G, 4G, Save-Data).', 'fp-performance-suite'); ?></p>
             <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="form_type" value="smart_delivery" />
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -1943,6 +2025,8 @@ class Assets extends AbstractPage
                 </p>
             </form>
         </section>
+        
+        </div><!-- End Tab: Advanced & Third-Party -->
         
         <?php echo ThemeHints::renderTooltipScript(); ?>
         <?php

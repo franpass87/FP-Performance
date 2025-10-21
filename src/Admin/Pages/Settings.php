@@ -131,12 +131,36 @@ class Settings extends AbstractPage
             
             $message = __('Settings saved.', 'fp-performance-suite');
         }
+        
+        // Tab system
+        $validTabs = ['settings', 'import-export'];
+        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
+            ? sanitize_key($_GET['tab']) 
+            : 'settings';
+        
         ob_start();
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <!-- Tab Navigation -->
+        <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom: 20px;">
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=settings" 
+               class="nav-tab <?php echo $currentTab === 'settings' ? 'nav-tab-active' : ''; ?>">
+                ⚙️ <?php esc_html_e('Plugin Settings', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=import-export" 
+               class="nav-tab <?php echo $currentTab === 'import-export' ? 'nav-tab-active' : ''; ?>">
+                📥 <?php esc_html_e('Import/Export', 'fp-performance-suite'); ?>
+            </a>
+        </nav>
+        
         <form method="post">
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
+            
+            <!-- Tab: Plugin Settings -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'settings' ? 'display:none;' : ''; ?>">
             <?php wp_nonce_field('fp-ps-settings', 'fp_ps_settings_nonce'); ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Access Control', 'fp-performance-suite'); ?></h2>
@@ -306,6 +330,11 @@ class Settings extends AbstractPage
             <?php endif; ?>
         </section>
         
+        </div><!-- End Tab: Plugin Settings -->
+        
+        <!-- Tab: Import/Export -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'import-export' ? 'display:none;' : ''; ?>">
+        
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Import / Export Configuration', 'fp-performance-suite'); ?></h2>
             <p><?php esc_html_e('Export your current configuration to a JSON file or import a previously saved configuration. Perfect for migrating settings between sites or creating backups.', 'fp-performance-suite'); ?></p>
@@ -345,6 +374,8 @@ class Settings extends AbstractPage
                 </ul>
             </div>
         </section>
+        
+        </div><!-- End Tab: Import/Export -->
         
         <div class="fp-ps-card">
             <p><button type="submit" class="button button-primary button-large"><?php esc_html_e('Save All Settings', 'fp-performance-suite'); ?></button></p>

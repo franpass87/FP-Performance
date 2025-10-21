@@ -88,18 +88,72 @@ class Advanced extends AbstractPage
             </p>
         </div>
         
+        <?php
+        // Tab system
+        $validTabs = ['critical-css', 'compression', 'cdn', 'monitoring', 'reports'];
+        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
+            ? sanitize_key($_GET['tab']) 
+            : 'critical-css';
+        ?>
+        
+        <!-- Tab Navigation -->
+        <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom: 20px;">
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=critical-css" 
+               class="nav-tab <?php echo $currentTab === 'critical-css' ? 'nav-tab-active' : ''; ?>">
+                🎨 <?php esc_html_e('Critical CSS', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=compression" 
+               class="nav-tab <?php echo $currentTab === 'compression' ? 'nav-tab-active' : ''; ?>">
+                🗜️ <?php esc_html_e('Compression', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=cdn" 
+               class="nav-tab <?php echo $currentTab === 'cdn' ? 'nav-tab-active' : ''; ?>">
+                🌐 <?php esc_html_e('CDN', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=monitoring" 
+               class="nav-tab <?php echo $currentTab === 'monitoring' ? 'nav-tab-active' : ''; ?>">
+                📊 <?php esc_html_e('Monitoring', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=reports" 
+               class="nav-tab <?php echo $currentTab === 'reports' ? 'nav-tab-active' : ''; ?>">
+                📈 <?php esc_html_e('Reports', 'fp-performance-suite'); ?>
+            </a>
+        </nav>
+        
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('fp_ps_advanced', '_wpnonce'); ?>
             <input type="hidden" name="action" value="fp_ps_save_advanced">
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
             
-            <!-- Critical CSS Section -->
-            <?php echo $this->renderCriticalCssSection(); ?>
+            <!-- Tab: Critical CSS -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'critical-css' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderCriticalCssSection(); ?>
+            </div>
             
-            <!-- PWA / Service Worker Section -->
-            <?php echo $this->renderPWASection(); ?>
+            <!-- Tab: Compression -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'compression' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderCompressionSection(); ?>
+            </div>
             
-            <!-- Predictive Prefetching Section -->
-            <?php echo $this->renderPrefetchingSection(); ?>
+            <!-- Tab: CDN -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'cdn' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderCdnSection(); ?>
+            </div>
+            
+            <!-- Tab: Monitoring -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'monitoring' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderMonitoringSection(); ?>
+                <?php echo $this->renderCoreWebVitalsSection(); ?>
+                <?php echo $this->renderPrefetchingSection(); ?>
+                <?php echo $this->renderPerformanceBudgetSection(); ?>
+            </div>
+            
+            <!-- Tab: Reports -->
+            <div class="tab-content" style="<?php echo $currentTab !== 'reports' ? 'display:none;' : ''; ?>">
+                <?php echo $this->renderReportsSection(); ?>
+                <?php echo $this->renderPWASection(); ?>
+                <?php echo $this->renderWebhookSection(); ?>
+            </div>
             
             <!-- Save Button -->
             <div class="fp-ps-card">
@@ -1399,8 +1453,9 @@ body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
             // Save Predictive Prefetching settings
             $this->savePrefetchingSettings();
 
-            // Redirect con successo
-            $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));
+            // Redirect con successo mantenendo il tab
+            $currentTab = !empty($_POST['current_tab']) ? sanitize_key($_POST['current_tab']) : 'critical-css';
+            $redirect_url = add_query_arg(['updated' => '1', 'tab' => $currentTab], admin_url('admin.php?page=' . $this->slug()));
             wp_safe_redirect($redirect_url);
             exit;
 
