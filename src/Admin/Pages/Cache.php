@@ -200,12 +200,38 @@ class Cache extends AbstractPage
 
         ob_start();
         
-        // Ottieni suggerimenti auto-configurazione
+        // Ottieni suggerimenti auto-configurazione (senza eseguire analisi pesante)
         $autoConfigSuggestions = $cacheAutoConfig->getSuggestions();
         $autoConfigStats = $cacheAutoConfig->getStats();
+        $hasAnalysisData = $autoConfigStats['has_suggestions'] && $autoConfigStats['suggestions_age'] < DAY_IN_SECONDS;
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
+        <?php endif; ?>
+        
+        <?php if (!$hasAnalysisData) : ?>
+            <div class="notice notice-warning" style="border-left-color: #f0ad4e;">
+                <p>
+                    <strong>⚠️ <?php esc_html_e('Nessuna analisi disponibile', 'fp-performance-suite'); ?></strong><br>
+                    <?php esc_html_e('I dati mostrati sono valori predefiniti. Premi "Analizza Sito" per ottenere suggerimenti personalizzati basati sulla configurazione del tuo sito.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($autoConfigStats['suggestions_age'] > DAY_IN_SECONDS) : ?>
+            <div class="notice notice-info">
+                <p>
+                    <strong>ℹ️ <?php esc_html_e('Analisi datata', 'fp-performance-suite'); ?></strong><br>
+                    <?php 
+                    $suggestions = get_option('fp_ps_page_cache_suggestions', []);
+                    $generatedAt = !empty($suggestions['generated_at']) ? $suggestions['generated_at'] : 0;
+                    if ($generatedAt > 0) {
+                        printf(
+                            esc_html__('L\'ultima analisi è stata eseguita %s fa. Considera di eseguire una nuova analisi per suggerimenti aggiornati.', 'fp-performance-suite'),
+                            human_time_diff($generatedAt, time())
+                        );
+                    }
+                    ?>
+                </p>
+            </div>
         <?php endif; ?>
         
         <!-- Auto-Configuration Section -->
@@ -257,10 +283,24 @@ class Cache extends AbstractPage
             <form method="post" style="margin-top: 20px;">
                 <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <?php if (!$hasAnalysisData): ?>
+                    <button type="submit" name="fp_ps_auto_config_scan" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 12px 24px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.6); animation: pulse 2s infinite;">
+                        🔍 <?php esc_html_e('Analizza Sito', 'fp-performance-suite'); ?>
+                        <span style="background: #ff4444; color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; margin-left: 5px; vertical-align: super;">INIZIA QUI</span>
+                    </button>
+                    <style>
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.05); }
+                        }
+                    </style>
+                    <?php else: ?>
                     <button type="submit" name="fp_ps_auto_config_scan" value="1" class="button button-secondary" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); color: white; padding: 10px 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                         🔍 <?php esc_html_e('Analizza Sito', 'fp-performance-suite'); ?>
                     </button>
-                    <button type="submit" name="fp_ps_auto_config_apply" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);">
+                    <?php endif; ?>
+                    
+                    <button type="submit" name="fp_ps_auto_config_apply" value="1" class="button button-primary" style="background: #ffd700; border: none; color: #1e3a8a; padding: 10px 20px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,215,0,0.4);" <?php echo !$hasAnalysisData ? 'disabled' : ''; ?>>
                         ✨ <?php esc_html_e('Applica Configurazione Automatica', 'fp-performance-suite'); ?>
                     </button>
                     <button type="button" class="button" onclick="document.getElementById('fp-ps-auto-config-details').style.display = document.getElementById('fp-ps-auto-config-details').style.display === 'none' ? 'block' : 'none';" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">

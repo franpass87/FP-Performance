@@ -601,14 +601,14 @@ class Diagnostics extends AbstractPage
                         <h3>🔧 <?php _e('Strumenti di Diagnostica e Riparazione', 'fp-performance-suite'); ?></h3>
                         <p><?php _e('Usa questi strumenti per verificare e riparare eventuali problemi nel file .htaccess.', 'fp-performance-suite'); ?></p>
                         
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 15px;">
                             <!-- Valida -->
                             <form method="post" style="margin: 0;">
                                 <?php wp_nonce_field('fp_ps_diagnostics', 'fp_ps_nonce'); ?>
                                 <input type="hidden" name="action" value="validate_htaccess">
-                                <button type="submit" class="button button-secondary" style="width: 100%; height: 60px;">
-                                    <span style="font-size: 20px; display: block;">✓</span>
-                                    <?php _e('Valida Sintassi', 'fp-performance-suite'); ?>
+                                <button type="submit" class="button button-secondary" style="width: 100%; min-height: 80px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.3;">
+                                    <span style="font-size: 24px; display: block; margin-bottom: 6px;">✓</span>
+                                    <span style="font-size: 14px; font-weight: 500; white-space: nowrap;"><?php _e('Valida Sintassi', 'fp-performance-suite'); ?></span>
                                 </button>
                             </form>
 
@@ -616,9 +616,9 @@ class Diagnostics extends AbstractPage
                             <form method="post" style="margin: 0;">
                                 <?php wp_nonce_field('fp_ps_diagnostics', 'fp_ps_nonce'); ?>
                                 <input type="hidden" name="action" value="repair_htaccess">
-                                <button type="submit" class="button button-primary" style="width: 100%; height: 60px;">
-                                    <span style="font-size: 20px; display: block;">🔧</span>
-                                    <?php _e('Ripara Automaticamente', 'fp-performance-suite'); ?>
+                                <button type="submit" class="button button-primary" style="width: 100%; min-height: 80px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.3;">
+                                    <span style="font-size: 24px; display: block; margin-bottom: 6px;">🔧</span>
+                                    <span style="font-size: 14px; font-weight: 500; white-space: nowrap;"><?php _e('Ripara Automaticamente', 'fp-performance-suite'); ?></span>
                                 </button>
                             </form>
                         </div>

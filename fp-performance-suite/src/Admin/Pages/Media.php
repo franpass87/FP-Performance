@@ -75,10 +75,61 @@ class Media extends AbstractPage
         }
         $settings = $converter->settings();
         $status = $converter->status();
+        
+        // Controlla se c'è un plugin WebP di terze parti attivo
+        $webpWarning = null;
+        if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
+            $compatManager = new \FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility();
+            $webpWarning = $compatManager->getWarningMessage();
+        }
+        
         ob_start();
         ?>
         <?php if ($message) : ?>
             <div class="notice notice-success"><p><?php echo esc_html($message); ?></p></div>
+        <?php endif; ?>
+        
+        <?php if ($webpWarning) : ?>
+            <div class="notice notice-info fp-ps-webp-plugin-warning" style="position: relative; padding: 12px 16px; border-left: 4px solid #00a0d2; background: #f0f9ff;">
+                <div style="display: flex; align-items: start; gap: 12px;">
+                    <span style="font-size: 24px;">ℹ️</span>
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">
+                            <?php esc_html_e('Plugin WebP Rilevato', 'fp-performance-suite'); ?>
+                        </h3>
+                        <p style="margin: 0 0 8px 0;">
+                            <?php echo wp_kses_post($webpWarning['message']); ?>
+                        </p>
+                        <?php if (!empty($webpWarning['stats']['sources'])) : ?>
+                            <div style="margin: 12px 0; padding: 12px; background: rgba(255,255,255,0.8); border-radius: 6px;">
+                                <strong style="display: block; margin-bottom: 8px;">
+                                    <?php esc_html_e('Riepilogo Conversioni WebP:', 'fp-performance-suite'); ?>
+                                </strong>
+                                <ul style="margin: 0; padding-left: 20px;">
+                                    <?php foreach ($webpWarning['stats']['sources'] as $slug => $source) : ?>
+                                        <li>
+                                            <strong><?php echo esc_html($source['name']); ?>:</strong> 
+                                            <?php echo esc_html(number_format_i18n($source['count'])); ?> 
+                                            <?php esc_html_e('immagini convertite', 'fp-performance-suite'); ?>
+                                            <?php if ($source['active']) : ?>
+                                                <span style="color: #46b450; font-weight: 600;">● Attivo</span>
+                                            <?php else : ?>
+                                                <span style="color: #999;">○ Inattivo</span>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($webpWarning['recommendation'])) : ?>
+                            <p style="margin: 8px 0 0 0; padding: 8px 12px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px;">
+                                <strong>💡 <?php esc_html_e('Raccomandazione:', 'fp-performance-suite'); ?></strong><br>
+                                <?php echo esc_html($webpWarning['recommendation']); ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         <?php endif; ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('WebP Conversion', 'fp-performance-suite'); ?></h2>

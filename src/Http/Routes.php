@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Http;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Http\Ajax\AIConfigAjax;
 use FP\PerfSuite\Http\Ajax\CriticalCssAjax;
 use FP\PerfSuite\Http\Ajax\RecommendationsAjax;
 use FP\PerfSuite\Http\Ajax\WebPAjax;
@@ -39,6 +40,9 @@ class Routes
         add_action('rest_api_init', [$this, 'register']);
         
         // Register AJAX handlers
+        $aiConfigAjax = new AIConfigAjax($this->container);
+        $aiConfigAjax->register();
+        
         $recommendationsAjax = new RecommendationsAjax($this->container);
         $recommendationsAjax->register();
         
@@ -193,6 +197,49 @@ class Routes
         register_rest_route('fp-ps/v1', '/progress', [
             'methods' => 'GET',
             'callback' => [$this, 'progress'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        // AI Config endpoints - Settings per sezioni
+        register_rest_route('fp-ps/v1', '/cache/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateCacheSettings'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/cache/headers', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateCacheHeaders'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/assets/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateAssetsSettings'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/media/webp/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateWebPSettings'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/media/lazy-load/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateLazyLoadSettings'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/database/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateDatabaseSettings'],
+            'permission_callback' => [$this, 'permissionCheck'],
+        ]);
+
+        register_rest_route('fp-ps/v1', '/backend/settings', [
+            'methods' => 'POST',
+            'callback' => [$this, 'updateBackendSettings'],
             'permission_callback' => [$this, 'permissionCheck'],
         ]);
     }
@@ -405,5 +452,170 @@ class Routes
         $scope = array_map('sanitize_key', $scope);
         $scope = array_values(array_unique($scope));
         return array_values(array_intersect($scope, $allowed));
+    }
+
+    /**
+     * AI Config Endpoints - Gestione Settings per sezioni
+     */
+
+    public function updateCacheSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating cache settings', ['settings' => $settings]);
+
+        // Salva le impostazioni page cache
+        $result = update_option('fp_ps_page_cache', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Cache settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateCacheHeaders(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating browser cache headers', ['settings' => $settings]);
+
+        // Salva le impostazioni browser cache
+        $result = update_option('fp_ps_browser_cache', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Browser cache settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateAssetsSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating assets optimizer settings', ['settings' => $settings]);
+
+        // Salva le impostazioni asset optimizer
+        $result = update_option('fp_ps_asset_optimizer', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Assets optimizer settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateWebPSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating WebP settings', ['settings' => $settings]);
+
+        // Salva le impostazioni WebP
+        $result = update_option('fp_ps_webp', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('WebP settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateLazyLoadSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating lazy load settings', ['settings' => $settings]);
+
+        // Salva le impostazioni lazy load
+        $result = update_option('fp_ps_lazy_load', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Lazy load settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateDatabaseSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating database settings', ['settings' => $settings]);
+
+        // Salva le impostazioni database
+        $result = update_option('fp_ps_database', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Database settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
+    }
+
+    public function updateBackendSettings(WP_REST_Request $request): WP_REST_Response
+    {
+        $settings = $request->get_json_params();
+        
+        if (empty($settings)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('No settings provided', 'fp-performance-suite'),
+            ], 400);
+        }
+
+        Logger::info('AI Config: Updating backend optimization settings', ['settings' => $settings]);
+
+        // Salva le impostazioni backend
+        $result = update_option('fp_ps_backend', $settings, true);
+
+        return rest_ensure_response([
+            'success' => $result !== false,
+            'message' => __('Backend settings updated', 'fp-performance-suite'),
+            'data' => $settings,
+        ]);
     }
 }

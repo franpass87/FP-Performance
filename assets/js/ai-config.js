@@ -605,21 +605,44 @@
          * Aggiorna sezione via REST API
          */
         async updateSection(endpoint, settings, nonce) {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-WP-Nonce': nonce,
-                },
-                body: JSON.stringify(settings),
-            });
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': nonce,
+                    },
+                    body: JSON.stringify(settings),
+                });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Errore API');
+                if (!response.ok) {
+                    // Prova a ottenere il messaggio di errore
+                    let errorMessage = `Errore ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        // Se non è JSON, prova a leggere come testo
+                        try {
+                            const errorText = await response.text();
+                            if (errorText.includes('<')) {
+                                // È HTML, probabilmente un errore PHP
+                                errorMessage = `Errore del server per l'endpoint ${endpoint}. Controlla i log PHP.`;
+                            } else {
+                                errorMessage = errorText;
+                            }
+                        } catch (e2) {
+                            // Usa il messaggio di default
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                return response.json();
+            } catch (error) {
+                console.error(`Errore chiamando ${endpoint}:`, error);
+                throw error;
             }
-
-            return response.json();
         },
 
         /**

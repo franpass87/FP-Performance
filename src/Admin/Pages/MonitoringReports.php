@@ -43,14 +43,6 @@ use function array_map;
  */
 class MonitoringReports extends AbstractPage
 {
-    public function __construct(ServiceContainer $container)
-    {
-        parent::__construct($container);
-        
-        // Registra hook per il salvataggio
-        add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleSave']);
-    }
-
     public function slug(): string
     {
         return 'fp-performance-suite-monitoring';

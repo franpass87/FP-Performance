@@ -25,6 +25,7 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
+use FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
@@ -300,6 +301,9 @@ class Plugin
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
+        
+        // WebP Plugin Compatibility
+        $container->set(WebPPluginCompatibility::class, static fn() => new WebPPluginCompatibility());
         
         // Smart Intelligence Services
         $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());

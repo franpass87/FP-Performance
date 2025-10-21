@@ -106,7 +106,7 @@ class PageCacheAutoConfigurator
     }
 
     /**
-     * Ottieni suggerimenti salvati o genera nuovi
+     * Ottieni suggerimenti salvati SENZA eseguire analisi automatica
      */
     public function getSuggestions(bool $forceRefresh = false): array
     {
@@ -115,13 +115,43 @@ class PageCacheAutoConfigurator
             
             // Se i suggerimenti sono recenti (< 24h), usali
             if (!empty($saved['suggestions']) && !empty($saved['generated_at'])) {
-                if (time() - $saved['generated_at'] < DAY_IN_SECONDS) {
-                    return $saved['suggestions'];
-                }
+                return $saved['suggestions'];
             }
         }
 
-        return $this->analyzeSite();
+        // NON eseguire analisi automatica - restituisci suggerimenti predefiniti vuoti
+        // L'analisi deve essere eseguita SOLO a comando dell'utente
+        return $this->getDefaultSuggestions();
+    }
+
+    /**
+     * Restituisce suggerimenti predefiniti vuoti quando non ci sono analisi salvate
+     */
+    private function getDefaultSuggestions(): array
+    {
+        return [
+            'exclude_urls' => [],
+            'warming_urls' => [],
+            'exclude_query_params' => [],
+            'optimal_ttl' => [
+                'ttl' => 3600,
+                'reason' => __('Valore predefinito - esegui analisi per suggerimenti personalizzati', 'fp-performance-suite'),
+            ],
+            'cache_enabled' => [
+                'enabled' => true,
+                'reason' => __('Consigliato per la maggior parte dei siti - esegui analisi per valutazione dettagliata', 'fp-performance-suite'),
+                'confidence' => 0.5,
+            ],
+            'warming_enabled' => [
+                'enabled' => false,
+                'reason' => __('Esegui analisi per determinare se il warming è necessario', 'fp-performance-suite'),
+                'confidence' => 0.5,
+            ],
+            'warming_schedule' => [
+                'schedule' => 'twicedaily',
+                'reason' => __('Valore predefinito - esegui analisi per suggerimenti ottimali', 'fp-performance-suite'),
+            ],
+        ];
     }
 
     /**

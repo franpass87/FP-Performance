@@ -52,6 +52,7 @@ class Menu
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
         add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
+        add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
 
@@ -307,6 +308,15 @@ class Menu
     {
         $advancedPage = new Advanced($this->container);
         $advancedPage->handleSave();
+    }
+
+    /**
+     * Handler per il salvataggio delle impostazioni di monitoring
+     */
+    public function handleMonitoringSave(): void
+    {
+        $monitoringPage = new MonitoringReports($this->container);
+        $monitoringPage->handleSave();
     }
 
     /**

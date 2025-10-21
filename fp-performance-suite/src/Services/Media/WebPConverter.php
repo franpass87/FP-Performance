@@ -43,6 +43,7 @@ class WebPConverter
     private WebPBatchProcessor $batchProcessor;
     private WebPAttachmentProcessor $attachmentProcessor;
     private WebPPathHelper $pathHelper;
+    private $compatibilityManager = null;
 
     public function __construct(
         Fs $fs,
@@ -243,6 +244,25 @@ class WebPConverter
     public function status(): array
     {
         $settings = $this->settings();
+        
+        // Usa le statistiche unificate se disponibile il manager di compatibilità
+        if ($this->hasCompatibilityManager()) {
+            $unifiedStats = $this->getCompatibilityManager()->getUnifiedStats();
+            
+            return [
+                'enabled' => $settings['enabled'],
+                'quality' => $settings['quality'],
+                'coverage' => $unifiedStats['coverage'],
+                'auto_deliver' => $settings['auto_deliver'],
+                'total_images' => $unifiedStats['total_images'],
+                'converted_images' => $unifiedStats['converted_images'],
+                'sources' => $unifiedStats['sources'] ?? [],
+                'has_conflict' => $unifiedStats['has_conflict'] ?? false,
+                'active_third_party' => $unifiedStats['active_third_party'] ?? null,
+            ];
+        }
+        
+        // Fallback al comportamento originale
         $totalImages = $this->countTotalImages();
         $convertedImages = $this->countConvertedImages();
         
@@ -254,6 +274,33 @@ class WebPConverter
             'total_images' => $totalImages,
             'converted_images' => $convertedImages,
         ];
+    }
+
+    /**
+     * Imposta il compatibility manager
+     */
+    public function setCompatibilityManager($manager): void
+    {
+        $this->compatibilityManager = $manager;
+    }
+
+    /**
+     * Ottieni il compatibility manager
+     */
+    private function getCompatibilityManager()
+    {
+        if ($this->compatibilityManager === null && class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
+            $this->compatibilityManager = new \FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility();
+        }
+        return $this->compatibilityManager;
+    }
+
+    /**
+     * Controlla se il compatibility manager è disponibile
+     */
+    private function hasCompatibilityManager(): bool
+    {
+        return $this->getCompatibilityManager() !== null;
     }
 
     // Getters for modular components (useful for testing and extension)
