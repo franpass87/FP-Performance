@@ -235,6 +235,8 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
         $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
+        $container->set(ResponsiveImageOptimizer::class, static fn() => new ResponsiveImageOptimizer());
+        $container->set(ResponsiveImageAjaxHandler::class, static fn() => new ResponsiveImageAjaxHandler());
         $container->set(RenderBlockingOptimizer::class, static fn() => new RenderBlockingOptimizer());
         $container->set(CSSOptimizer::class, static fn() => new CSSOptimizer());
         $container->set(UnusedCSSOptimizer::class, static fn() => new UnusedCSSOptimizer());
