@@ -1,0 +1,834 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: FP Performance Suite 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-30 19:11:16 +0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: make-pot.php\n"
+"X-Domain: fp-performance-suite\n"
+#: src/Admin/Pages/Media.php:131
+msgid "%1$d items processed out of %2$d."
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:134
+msgid ".htaccess rules"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:71
+msgid "Access Control"
+msgstr ""
+
+#: src/Admin/Assets.php:36
+msgid "Action cancelled"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:157
+msgid "Activate browser caching headers for static assets."
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:61
+msgid "Active"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:88 src/Admin/Pages/Dashboard.php:149
+msgid "Active Optimizations"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:241
+msgid "Add critical CSS placeholder for above-the-fold styles."
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:121
+msgid "Adds Cache-Control/Expires headers for static files."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:77
+msgid "Administrator"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:117
+msgid "All"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:96 src/Admin/Pages/Media.php:103 src/Admin/Pages/Assets.php:84 src/Admin/Pages/Assets.php:91 src/Admin/Pages/Assets.php:98 src/Admin/Pages/Logs.php:94
+msgid "Amber"
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:71
+msgid "Apply Preset"
+msgstr ""
+
+#: src/Services/Presets/Manager.php:63
+msgid "Aruba"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:64
+msgid "Asset optimization"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:69
+msgid "Asset settings saved."
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:47 src/Admin/Menu.php:53
+msgid "Assets"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:30
+msgid "Assets Optimization"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:97
+msgid "Async JavaScript"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:80
+msgid "Auto drafts"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:108
+msgid "Batch size"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:114
+msgid "Browser Cache Headers"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:50 src/Admin/Pages/Tools.php:101
+msgid "Browser cache headers"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:126
+msgid "Browser cache headers applied"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:72
+msgid "Browser cache settings saved."
+msgstr ""
+
+#: src/Admin/Pages/Media.php:114
+msgid "Bulk Convert Library"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:107
+msgid "Bulk WebP Convert"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:67
+msgid "Bulk conversion completed."
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:45 src/Admin/Menu.php:52
+msgid "Cache"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:28
+msgid "Cache Optimization"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:103
+msgid "Cache lifetime (seconds)"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:126
+msgid "Cache-Control"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:119
+msgid "Cleanup Tools"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:69
+msgid "Cleanup completed."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:100
+msgid "Cleanup schedule"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:108
+msgid "Clear Cache"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:104
+msgid "Combine CSS files"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:111
+msgid "Combine JS files"
+msgstr ""
+
+#: src/Services/Assets/Optimizer.php:216
+msgid "Combining scripts may break complex setups. Proceed with caution."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:46
+msgid "Configuration"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:96
+msgid "Configure Cache"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:181
+msgid "Consider deferring non-critical JavaScript."
+msgstr ""
+
+#: src/Services/Score/Scorer.php:99
+msgid "Critical CSS"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:89
+msgid "Critical CSS placeholder"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:111
+msgid "Current WebP coverage: %s%%"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:110
+msgid "Current cached files: %d"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:115
+msgid "Current overhead: %s MB"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:65
+msgid "Custom"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:128
+msgid "DNS Prefetch domains (one per line)"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:55 src/Admin/Menu.php:51
+msgid "Dashboard"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:48 src/Admin/Menu.php:55
+msgid "Database"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:106
+msgid "Database Cleanup"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:31
+msgid "Database Optimization"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:78
+msgid "Database health"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:63
+msgid "Database settings updated."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:80
+msgid "Debug Toggles"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:57
+msgid "Debug configuration updated."
+msgstr ""
+
+#: src/Services/Score/Scorer.php:130
+msgid "Defer JS active"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:90
+msgid "Defer JavaScript"
+msgstr ""
+
+#: src/Services/Assets/Optimizer.php:215
+msgid "Defers non-critical JavaScript to speed rendering."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:150
+msgid "Deleted"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:78
+msgid "Delivery"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:126
+msgid "Diagnostics"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:232
+msgid "Disable emojis and embeds to reduce front-end requests."
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:100
+msgid "Disabled"
+msgstr ""
+
+#: src/Services/Assets/Optimizer.php:214
+msgid "Disables emoji scripts to save requests."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:136
+msgid "Dry run"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:69
+msgid "Dry run completed."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:78
+msgid "Editor"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:92
+msgid "Emoji & embeds"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:133
+msgid "Emoji scripts removed"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:148
+msgid "Enable GZIP or Brotli compression via server configuration."
+msgstr ""
+
+#: src/Services/Score/Scorer.php:176
+msgid "Enable HTML/CSS minification to reduce payload."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:86
+msgid "Enable WP_DEBUG"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:196
+msgid "Enable WebP conversion to serve modern formats."
+msgstr ""
+
+#: src/Admin/Pages/Media.php:84
+msgid "Enable WebP on upload"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:93
+msgid "Enable debug.log"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:120
+msgid "Enable headers"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:97
+msgid "Enable page cache"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:165
+msgid "Enable page caching to store HTML output on disk."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:120
+msgid "Error"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:141
+msgid "Execute Cleanup"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:83
+msgid "Expired transients"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:130
+msgid "Expires header"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:109
+msgid "Export CSV Summary"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:111
+msgid "Export Settings"
+msgstr ""
+
+#: src/Admin/Menu.php:43
+msgid "FP Performance"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:38 src/Admin/Menu.php:42
+msgid "FP Performance Suite"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:113
+msgid "Filtered tail of debug.log with live updates every 2 seconds."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:149
+msgid "Found"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:43
+msgid "GZIP/Brotli"
+msgstr ""
+
+#: src/Services/Presets/Manager.php:41
+msgid "Generale"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:84 src/Admin/Pages/Media.php:85 src/Admin/Pages/Assets.php:119
+msgid "Green"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:124
+msgid "Heartbeat interval (seconds)"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:85
+msgid "Heartbeat throttling"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:85
+msgid "Higher score indicates better technical readiness for shared hosting."
+msgstr ""
+
+#: src/Services/Presets/Manager.php:52
+msgid "IONOS"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:122
+msgid "Import JSON"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:115
+msgid "Import Settings"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:219
+msgid "Increase admin heartbeat interval to reduce CPU load."
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:87
+msgid "Invalid JSON payload."
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:113
+msgid "Issues & Suggestions"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:119
+msgid "Items per batch"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:95
+msgid "Keep original files"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:124
+msgid "Keyword"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:116
+msgid "Last automated cleanup: %s"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:115
+msgid "Level"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:259
+msgid "Log file is noisy. Resolve errors and clear debug.log."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:108
+msgid "Log file:"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:43 src/Admin/Menu.php:57
+msgid "Logs"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:106
+msgid "Logs hygiene"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:102
+msgid "Manual"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:44 src/Admin/Menu.php:54
+msgid "Media"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:27
+msgid "Media Optimization"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:142
+msgid "Metric"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:83
+msgid "Minify HTML output"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:75
+msgid "Minimum role to manage plugin"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:101
+msgid "Missing"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:43
+msgid "Monitoring"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:104
+msgid "Monthly"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:76
+msgid "Never"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:68
+msgid "No backup available to revert."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:118
+msgid "Notice"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:123
+msgid "Offset"
+msgstr ""
+
+#: src/Services/DB/Cleaner.php:72
+msgid "Once Monthly (FP Performance Suite)"
+msgstr ""
+
+#: src/Services/DB/Cleaner.php:68
+msgid "Once Weekly (FP Performance Suite)"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:45 src/Admin/Pages/Database.php:48 src/Admin/Pages/Presets.php:43 src/Admin/Pages/Media.php:44 src/Admin/Pages/Assets.php:47
+msgid "Optimization"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:87
+msgid "Optimize tables"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:84
+msgid "Orphan post meta"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:85
+msgid "Orphan term meta"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:86
+msgid "Orphan user meta"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:90
+msgid "Page Cache"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:57
+msgid "Page cache"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:76
+msgid "Page cache cleared."
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:100
+msgid "Page cache enabled"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:61
+msgid "Page cache settings saved."
+msgstr ""
+
+#: src/Services/Score/Scorer.php:122
+msgid "Page caching enabled"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:100 src/Admin/Pages/Tools.php:101
+msgid "Pass"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:121
+msgid "Paste JSON export here"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:90
+msgid "Paste above-the-fold CSS or snippet reference."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:79
+msgid "Post revisions"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:132
+msgid "Preload resources (full URLs)"
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:26
+msgid "Preset Bundles"
+msgstr ""
+
+#: src/Services/Presets/Manager.php:80
+msgid "Preset not found"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:94
+msgid "Preset:"
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:43 src/Admin/Menu.php:56
+msgid "Presets"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:90
+msgid "Quality (0-100)"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:103
+msgid "Quick Actions"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:26
+msgid "Realtime Log Center"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:112
+msgid "Realtime Viewer"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:98
+msgid "Recommended for shared hosting with limited CPU."
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:105 src/Admin/Pages/Assets.php:112 src/Admin/Pages/Logs.php:87
+msgid "Red"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:118
+msgid "Remove emojis script"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:105
+msgid "Revert to Backup"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:257
+msgid "Review debug log for warnings in the last 24 hours."
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:75
+msgid "Rollback"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:127
+msgid "Run Bulk Conversion"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:108
+msgid "Run Tests"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:194
+msgid "Run bulk WebP conversion to improve coverage."
+msgstr ""
+
+#: src/Services/Score/Scorer.php:208
+msgid "Run database optimization to reclaim space."
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:104
+msgid "Run safe optimizations and diagnostics."
+msgstr ""
+
+#: src/Admin/Pages/Presets.php:64
+msgid "Safe defaults crafted for shared hosting providers."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:83
+msgid "Safety mode"
+msgstr ""
+
+#: src/Admin/Pages/Assets.php:136
+msgid "Save Asset Settings"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:99
+msgid "Save Debug Settings"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:138
+msgid "Save Headers"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:108
+msgid "Save Media Settings"
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:107
+msgid "Save Page Cache"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:112
+msgid "Save Scheduler"
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:92
+msgid "Save Settings"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:206
+msgid "Schedule routine database cleanup to reduce overhead."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:95
+msgid "Scheduler"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:74
+msgid "Score is calculated from caching, assets, images, database, and logging health."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:123
+msgid "Search"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:68
+msgid "Security check failed. Please try again."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:123
+msgid "Select components to clean. Red actions require PROCEDI confirmation."
+msgstr ""
+
+#: src/Admin/Pages/Cache.php:91
+msgid "Serve cached HTML for anonymous visitors using filesystem storage."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:29 src/Admin/Menu.php:59
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:85
+msgid "Settings imported successfully."
+msgstr ""
+
+#: src/Admin/Pages/Settings.php:63
+msgid "Settings saved."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:82
+msgid "Spam/trashed comments"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:155
+msgid "Suggestions"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:148
+msgid "Task"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:72
+msgid "Technical SEO Performance Score"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:221
+msgid "Throttle heartbeat on shared hosting to 60 seconds."
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:52 src/Admin/Menu.php:58
+msgid "Tools"
+msgstr ""
+
+#: src/Admin/Pages/Tools.php:35
+msgid "Tools & Export"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:143
+msgid "Total Score"
+msgstr ""
+
+#: src/Admin/Pages/Database.php:81
+msgid "Trashed posts"
+msgstr ""
+
+#: src/Admin/Assets.php:35
+msgid "Type PROCEDI to confirm high-risk actions"
+msgstr ""
+
+#: src/Admin/Assets.php:39
+msgid "Unable to apply preset."
+msgstr ""
+
+#: src/Admin/Assets.php:38
+msgid "Unable to load log data."
+msgstr ""
+
+#: src/Http/Routes.php:106
+msgid "Unable to toggle debug mode."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:60
+msgid "Unable to update wp-config.php. Check file permissions."
+msgstr ""
+
+#: src/Admin/Pages/Media.php:102
+msgid "Use lossy compression"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:142
+msgid "Value"
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:97
+msgid "View Logs"
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:119
+msgid "Warning"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:78
+msgid "WebP Conversion"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:137
+msgid "WebP conversion enabled"
+msgstr ""
+
+#: src/Services/Score/Scorer.php:71 src/Admin/Pages/Tools.php:102
+msgid "WebP coverage"
+msgstr ""
+
+#: src/Admin/Pages/Media.php:61
+msgid "WebP settings saved."
+msgstr ""
+
+#: src/Admin/Pages/Database.php:103
+msgid "Weekly"
+msgstr ""
+
+#: src/Admin/Pages/AbstractPage.php:29
+msgid "You do not have permission to access this page."
+msgstr ""
+
+#: src/Admin/Pages/Dashboard.php:128
+msgid "You do not have permission to export this report."
+msgstr ""
+
+#: src/Admin/Pages/Logs.php:65
+msgid "wp-config.php reverted from backup."
+msgstr ""
+

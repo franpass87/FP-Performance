@@ -1,0 +1,49 @@
+{
+    "name": "fp/performance-suite",
+    "description": "Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools for WordPress.",
+    "homepage": "https://francescopasseri.com",
+    "type": "wordpress-plugin",
+    "authors": [
+        {
+            "name": "Francesco Passeri",
+            "email": "info@francescopasseri.com",
+            "homepage": "https://francescopasseri.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "FP\\PerfSuite\\": "src/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "phpstan/phpstan": "^1.11",
+        "szepeviktor/phpstan-wordpress": "^1.1",
+        "friendsofphp/php-cs-fixer": "^3.58",
+        "squizlabs/php_codesniffer": "^3.10"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "support": {
+        "issues": "https://github.com/franpass87/FP-Performance/issues"
+    },
+    "scripts": {
+        "build": [
+            "rm -rf vendor",
+            "@composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader",
+            "composer dump-autoload -o --classmap-authoritative"
+        ],
+        "sync:author": "APPLY=1 node tools/sync-author-metadata.js",
+        "sync:docs": "APPLY=1 node tools/sync-author-metadata.js --docs",
+        "changelog:from-git": "conventional-changelog -p angular -i CHANGELOG.md -s || true"
+    }
+}
