@@ -120,18 +120,52 @@ class ResponsiveImages extends AbstractPage
     }
 
     /**
-     * Get page title
+     * Get page slug (implementazione metodo astratto)
      */
-    public function getTitle(): string
+    public function slug(): string
+    {
+        return 'fp-performance-suite-responsive-images';
+    }
+
+    /**
+     * Get page title (implementazione metodo astratto)
+     */
+    public function title(): string
     {
         return __('Responsive Images', 'fp-performance-suite');
     }
 
     /**
-     * Get page slug
+     * Get view path (implementazione metodo astratto)
+     */
+    public function view(): string
+    {
+        return FP_PERF_SUITE_DIR . '/views/admin/responsive-images.php';
+    }
+
+    /**
+     * Get page content (implementazione metodo astratto)
+     */
+    protected function content(): string
+    {
+        ob_start();
+        include $this->view();
+        return ob_get_clean();
+    }
+
+    /**
+     * Backward compatibility - alias per slug()
      */
     public function getSlug(): string
     {
-        return 'fp-performance-suite-responsive-images';
+        return $this->slug();
+    }
+
+    /**
+     * Backward compatibility - alias per title()
+     */
+    public function getTitle(): string
+    {
+        return $this->title();
     }
 }
