@@ -381,6 +381,9 @@ class Plugin
 
     public static function onActivate(): void
     {
+        // Aumenta memory limit temporaneamente per l'attivazione
+        @ini_set('memory_limit', '768M');
+        
         // Attivazione minimale - solo operazioni essenziali
         try {
             // Salva versione
