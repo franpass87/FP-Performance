@@ -51,9 +51,9 @@ class InstallationRecovery
         }
 
         if ($recovered) {
-            Logger::info('Installation recovery successful', $errorDetails);
+            Logger::info('Installation recovery successful');
         } else {
-            Logger::error('Installation recovery failed', $errorDetails);
+            Logger::error('Installation recovery failed');
         }
 
         return $recovered;
@@ -98,11 +98,12 @@ class InstallationRecovery
     private static function recoverPermissions(array $errorDetails): bool
     {
         $uploadDir = wp_upload_dir();
-        $baseDir = $uploadDir['basedir'];
-
-        if (empty($baseDir)) {
+        
+        if (!is_array($uploadDir) || empty($uploadDir['basedir'])) {
             return false;
         }
+        
+        $baseDir = $uploadDir['basedir'];
 
         // Tenta di creare directory con permessi corretti
         $dirs = [
@@ -337,11 +338,11 @@ class InstallationRecovery
 
         // Test permessi con dettagli
         $uploadDir = wp_upload_dir();
-        $uploadsWritable = !empty($uploadDir['basedir']) && is_writable($uploadDir['basedir']);
+        $uploadsWritable = is_array($uploadDir) && !empty($uploadDir['basedir']) && is_writable($uploadDir['basedir']);
         
         $results['permissions']['uploads'] = [
             'writable' => $uploadsWritable,
-            'path' => $uploadDir['basedir'] ?? 'N/A',
+            'path' => (is_array($uploadDir) && isset($uploadDir['basedir'])) ? $uploadDir['basedir'] : 'N/A',
             'message' => $uploadsWritable
                 ? __('✅ Directory uploads scrivibile', 'fp-performance-suite')
                 : __('❌ Directory uploads non scrivibile', 'fp-performance-suite'),

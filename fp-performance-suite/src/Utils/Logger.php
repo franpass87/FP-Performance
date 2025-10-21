@@ -25,12 +25,27 @@ class Logger
 
     /**
      * Log an error message
+     * 
+     * @param string $message Il messaggio di errore
+     * @param \Throwable|array|null $secondParam Può essere un'eccezione o un array di contesto
+     * @param array $context Array di contesto aggiuntivo (usato solo se $secondParam è Throwable)
      */
-    public static function error(string $message, ?\Throwable $e = null): void
+    public static function error(string $message, $secondParam = null, array $context = []): void
     {
-        $context = '';
+        $e = null;
+        $actualContext = [];
+        
+        // Gestisci il caso in cui il secondo parametro sia un array invece di Throwable
+        if (is_array($secondParam)) {
+            $actualContext = $secondParam;
+        } elseif ($secondParam instanceof \Throwable) {
+            $e = $secondParam;
+            $actualContext = $context;
+        }
+        
+        $contextStr = '';
         if ($e) {
-            $context = sprintf(
+            $contextStr = sprintf(
                 ' [%s:%d] %s',
                 basename($e->getFile()),
                 $e->getLine(),
@@ -38,33 +53,39 @@ class Logger
             );
 
             if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-                $context .= "\nStack trace:\n" . $e->getTraceAsString();
+                $contextStr .= "\nStack trace:\n" . $e->getTraceAsString();
             }
         }
+        
+        if (!empty($actualContext)) {
+            $contextStr .= ' ' . wp_json_encode($actualContext);
+        }
 
-        self::write(self::ERROR, $message . $context);
+        self::write(self::ERROR, $message . $contextStr);
 
         // Hook per monitoraggio esterno
-        do_action('fp_ps_log_error', $message, $e);
+        do_action('fp_ps_log_error', $message, $e, $actualContext);
     }
 
     /**
      * Log a warning message
      */
-    public static function warning(string $message): void
+    public static function warning(string $message, array $context = []): void
     {
-        self::write(self::WARNING, $message);
-        do_action('fp_ps_log_warning', $message);
+        $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
+        self::write(self::WARNING, $message . $contextStr);
+        do_action('fp_ps_log_warning', $message, $context);
     }
 
     /**
      * Log an informational message
      */
-    public static function info(string $message): void
+    public static function info(string $message, array $context = []): void
     {
         if (self::shouldLog(self::INFO)) {
-            self::write(self::INFO, $message);
-            do_action('fp_ps_log_info', $message);
+            $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
+            self::write(self::INFO, $message . $contextStr);
+            do_action('fp_ps_log_info', $message, $context);
         }
     }
 
@@ -127,3 +148,4 @@ class Logger
         update_option(self::OPTION_LOG_LEVEL, $level);
     }
 }
+

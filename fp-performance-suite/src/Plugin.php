@@ -504,9 +504,9 @@ class Plugin
         $errors = [];
 
         // Verifica versione PHP minima
-        if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
             $errors[] = sprintf(
-                'PHP 8.0.0 o superiore è richiesto. Versione corrente: %s',
+                'PHP 7.4.0 o superiore è richiesto. Versione corrente: %s',
                 PHP_VERSION
             );
         }
@@ -521,7 +521,7 @@ class Plugin
 
         // Verifica permessi di scrittura
         $uploadDir = wp_upload_dir();
-        if (!empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
+        if (is_array($uploadDir) && !empty($uploadDir['basedir']) && !is_writable($uploadDir['basedir'])) {
             $errors[] = sprintf(
                 'Directory uploads non scrivibile: %s. Verifica i permessi.',
                 $uploadDir['basedir']
@@ -554,11 +554,12 @@ class Plugin
     private static function ensureRequiredDirectories(): void
     {
         $uploadDir = wp_upload_dir();
-        $baseDir = $uploadDir['basedir'];
         
-        if (empty($baseDir)) {
+        if (!is_array($uploadDir) || empty($uploadDir['basedir'])) {
             return;
         }
+        
+        $baseDir = $uploadDir['basedir'];
 
         $requiredDirs = [
             $baseDir . '/fp-performance-suite',
