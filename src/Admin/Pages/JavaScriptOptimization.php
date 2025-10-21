@@ -64,44 +64,102 @@ class JavaScriptOptimization
         <div class="wrap">
             <h1><?php esc_html_e('JavaScript Optimization', 'fp-performance-suite'); ?></h1>
             
-            <div class="fp-ps-admin-header">
-                <div class="fp-ps-header-content">
-                    <h2><?php esc_html_e('Advanced JavaScript Optimizations', 'fp-performance-suite'); ?></h2>
-                    <p><?php esc_html_e('Optimize JavaScript loading and reduce unused code to improve page performance.', 'fp-performance-suite'); ?></p>
+            <!-- Header Section -->
+            <section class="fp-ps-card">
+                <h2>⚡ <?php esc_html_e('Advanced JavaScript Optimizations', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Ottimizza il caricamento JavaScript e riduci il codice non utilizzato per migliorare le performance della pagina.', 'fp-performance-suite'); ?></p>
+                
+                <!-- Status Overview -->
+                <div class="fp-ps-grid three" style="margin: 20px 0;">
+                    <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">🔧</span>
+                            <strong><?php esc_html_e('Unused JS:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: <?php echo $unusedStatus['enabled'] ? '#16a34a' : '#dc2626'; ?>;">
+                            <?php echo $unusedStatus['enabled'] ? __('✓ Attivo', 'fp-performance-suite') : __('✗ Disattivo', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">📦</span>
+                            <strong><?php esc_html_e('Code Splitting:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: <?php echo $codeSplittingStatus['enabled'] ? '#16a34a' : '#dc2626'; ?>;">
+                            <?php echo $codeSplittingStatus['enabled'] ? __('✓ Attivo', 'fp-performance-suite') : __('✗ Disattivo', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid #22c55e;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">🌳</span>
+                            <strong><?php esc_html_e('Tree Shaking:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: <?php echo $treeShakingStatus['enabled'] ? '#16a34a' : '#dc2626'; ?>;">
+                            <?php echo $treeShakingStatus['enabled'] ? __('✓ Attivo', 'fp-performance-suite') : __('✗ Disattivo', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <?php wp_nonce_field('fp_ps_js_optimization', 'fp_ps_js_optimization_nonce'); ?>
                 <input type="hidden" name="action" value="fp_ps_save_js_optimization">
 
-                <div class="fp-ps-admin-grid">
-                    <!-- Unused JavaScript Optimization -->
-                    <div class="fp-ps-admin-card">
-                        <div class="fp-ps-card-header">
-                            <h3><?php esc_html_e('Unused JavaScript Reduction', 'fp-performance-suite'); ?></h3>
-                            <div class="fp-ps-status-badge <?php echo $unusedStatus['enabled'] ? 'enabled' : 'disabled'; ?>">
-                                <?php echo $unusedStatus['enabled'] ? __('Enabled', 'fp-performance-suite') : __('Disabled', 'fp-performance-suite'); ?>
-                            </div>
-                        </div>
-                        
-                        <div class="fp-ps-card-content">
-                            <div class="fp-ps-form-group">
-                                <label class="fp-ps-switch">
-                                    <input type="checkbox" name="unused_optimization[enabled]" value="1" <?php checked($unusedSettings['enabled']); ?>>
-                                    <span class="fp-ps-slider"></span>
-                                    <span class="fp-ps-label"><?php esc_html_e('Enable Unused JavaScript Optimization', 'fp-performance-suite'); ?></span>
-                                </label>
-                            </div>
+                <!-- Unused JavaScript Optimization -->
+                <section class="fp-ps-card">
+                    <h2>🔧 <?php esc_html_e('Unused JavaScript Reduction', 'fp-performance-suite'); ?></h2>
+                    <p class="description"><?php esc_html_e('Riduce il JavaScript non utilizzato per migliorare le performance di caricamento.', 'fp-performance-suite'); ?></p>
+                    
+                    <div class="fp-ps-grid two">
+                        <label class="fp-ps-toggle">
+                            <span class="info">
+                                <strong><?php esc_html_e('Abilita Ottimizzazione JavaScript Non Utilizzato', 'fp-performance-suite'); ?></strong>
+                                <span class="fp-ps-risk-indicator green">
+                                    <div class="fp-ps-risk-tooltip green">
+                                        <div class="fp-ps-risk-tooltip-title">
+                                            <span class="icon">✓</span>
+                                            <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                        </div>
+                                        <div class="fp-ps-risk-tooltip-section">
+                                            <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                            <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Identifica e rimuove il JavaScript non utilizzato per ridurre le dimensioni dei file.', 'fp-performance-suite'); ?></div>
+                                        </div>
+                                        <div class="fp-ps-risk-tooltip-section">
+                                            <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                            <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce le dimensioni JS del 20-40%, migliora FCP e audit Lighthouse "Unused JavaScript".', 'fp-performance-suite'); ?></div>
+                                        </div>
+                                    </div>
+                                </span>
+                                <small><?php esc_html_e('Attiva l\'ottimizzazione automatica del JavaScript non utilizzato', 'fp-performance-suite'); ?></small>
+                            </span>
+                            <input type="checkbox" name="unused_optimization[enabled]" value="1" <?php checked($unusedSettings['enabled']); ?> data-risk="green" />
+                        </label>
 
-                            <div class="fp-ps-form-group">
-                                <label class="fp-ps-switch">
-                                    <input type="checkbox" name="unused_optimization[code_splitting]" value="1" <?php checked($unusedSettings['code_splitting']); ?>>
-                                    <span class="fp-ps-slider"></span>
-                                    <span class="fp-ps-label"><?php esc_html_e('Code Splitting', 'fp-performance-suite'); ?></span>
-                                </label>
-                                <p class="fp-ps-description"><?php esc_html_e('Split large JavaScript files into smaller chunks.', 'fp-performance-suite'); ?></p>
-                            </div>
+                        <label class="fp-ps-toggle">
+                            <span class="info">
+                                <strong><?php esc_html_e('Code Splitting', 'fp-performance-suite'); ?></strong>
+                                <span class="fp-ps-risk-indicator amber">
+                                    <div class="fp-ps-risk-tooltip amber">
+                                        <div class="fp-ps-risk-tooltip-title">
+                                            <span class="icon">⚠</span>
+                                            <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                                        </div>
+                                        <div class="fp-ps-risk-tooltip-section">
+                                            <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                            <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Divide i file JavaScript grandi in chunk più piccoli per caricamento più veloce.', 'fp-performance-suite'); ?></div>
+                                        </div>
+                                        <div class="fp-ps-risk-tooltip-section">
+                                            <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Attenzione', 'fp-performance-suite'); ?></div>
+                                            <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Potrebbe causare problemi con script che dipendono l\'uno dall\'altro.', 'fp-performance-suite'); ?></div>
+                                        </div>
+                                    </div>
+                                </span>
+                                <small><?php esc_html_e('Divide i file JavaScript grandi in chunk più piccoli', 'fp-performance-suite'); ?></small>
+                            </span>
+                            <input type="checkbox" name="unused_optimization[code_splitting]" value="1" <?php checked($unusedSettings['code_splitting']); ?> data-risk="amber" />
+                        </label>
 
                             <div class="fp-ps-form-group">
                                 <label class="fp-ps-switch">

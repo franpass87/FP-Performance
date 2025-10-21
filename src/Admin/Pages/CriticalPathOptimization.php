@@ -39,68 +39,90 @@ class CriticalPathOptimization
         <div class="wrap">
             <h1><?php esc_html_e('Critical Path Optimization', 'fp-performance-suite'); ?></h1>
             
-            <div class="notice notice-info">
-                <p>
-                    <strong><?php esc_html_e('Problema Risolto:', 'fp-performance-suite'); ?></strong>
-                    <?php esc_html_e('Questo strumento risolve il problema del Maximum critical path latency di 6,414ms causato dai font di Google Fonts.', 'fp-performance-suite'); ?>
-                </p>
-            </div>
+            <!-- Header Section -->
+            <section class="fp-ps-card">
+                <h2>⚡ <?php esc_html_e('Critical Path Optimization', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Risolve il problema del Maximum critical path latency di 6,414ms causato dai font di Google Fonts.', 'fp-performance-suite'); ?></p>
+                
+                <!-- Status Overview -->
+                <div class="fp-ps-grid three" style="margin: 20px 0;">
+                    <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">⚙️</span>
+                            <strong><?php esc_html_e('Stato:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: <?php echo $status['enabled'] ? '#16a34a' : '#dc2626'; ?>;">
+                            <?php echo $status['enabled'] ? __('✓ Attivo', 'fp-performance-suite') : __('✗ Disattivo', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">🔤</span>
+                            <strong><?php esc_html_e('Font Critici:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: #92400e;">
+                            <?php echo esc_html($status['critical_fonts_count']); ?>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid #22c55e;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                            <span style="font-size: 24px;">📊</span>
+                            <strong><?php esc_html_e('Google Fonts:', 'fp-performance-suite'); ?></strong>
+                        </div>
+                        <div style="font-size: 20px; font-weight: 600; color: <?php echo $status['google_fonts_optimized'] ? '#16a34a' : '#dc2626'; ?>;">
+                            <?php echo $status['google_fonts_optimized'] ? __('✓ Ottimizzati', 'fp-performance-suite') : __('✗ Non ottimizzati', 'fp-performance-suite'); ?>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <div class="fp-performance-dashboard">
                 <div class="fp-performance-grid">
-                    <!-- Status Overview -->
-                    <div class="fp-performance-card">
-                        <h2><?php esc_html_e('Stato Ottimizzazioni', 'fp-performance-suite'); ?></h2>
-                        <div class="fp-performance-status">
-                            <div class="status-item">
-                                <span class="label"><?php esc_html_e('Ottimizzazione Attiva:', 'fp-performance-suite'); ?></span>
-                                <span class="value <?php echo $status['enabled'] ? 'enabled' : 'disabled'; ?>">
-                                    <?php echo $status['enabled'] ? __('Sì', 'fp-performance-suite') : __('No', 'fp-performance-suite'); ?>
-                                </span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label"><?php esc_html_e('Font Critici Precaricati:', 'fp-performance-suite'); ?></span>
-                                <span class="value"><?php echo esc_html($status['critical_fonts_count']); ?></span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label"><?php esc_html_e('Google Fonts Ottimizzati:', 'fp-performance-suite'); ?></span>
-                                <span class="value <?php echo $status['google_fonts_optimized'] ? 'enabled' : 'disabled'; ?>">
-                                    <?php echo $status['google_fonts_optimized'] ? __('Sì', 'fp-performance-suite') : __('No', 'fp-performance-suite'); ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Critical Path Analysis -->
-                    <div class="fp-performance-card">
-                        <h2><?php esc_html_e('Analisi Critical Path', 'fp-performance-suite'); ?></h2>
-                        <div class="critical-path-analysis">
-                            <div class="problem-identified">
-                                <h3><?php esc_html_e('Problema Identificato:', 'fp-performance-suite'); ?></h3>
-                                <p><strong><?php esc_html_e('Maximum critical path latency: 6,414ms', 'fp-performance-suite'); ?></strong></p>
-                                <p><?php esc_html_e('Causato principalmente da font di Google Fonts che bloccano il rendering.', 'fp-performance-suite'); ?></p>
-                            </div>
-                            
-                            <div class="solution-implemented">
-                                <h3><?php esc_html_e('Soluzione Implementata:', 'fp-performance-suite'); ?></h3>
-                                <ul>
-                                    <li><?php esc_html_e('Preload dei font critici per ridurre il critical path', 'fp-performance-suite'); ?></li>
-                                    <li><?php esc_html_e('Ottimizzazione Google Fonts con display=swap', 'fp-performance-suite'); ?></li>
-                                    <li><?php esc_html_e('Preconnect ai provider di font', 'fp-performance-suite'); ?></li>
-                                    <li><?php esc_html_e('Iniezione font-display CSS per evitare FOIT/FOUT', 'fp-performance-suite'); ?></li>
-                                </ul>
-                            </div>
+                    <section class="fp-ps-card">
+                        <h2>🔍 <?php esc_html_e('Analisi Critical Path', 'fp-performance-suite'); ?></h2>
+                        <p class="description"><?php esc_html_e('Identificazione e risoluzione del problema di critical path latency.', 'fp-performance-suite'); ?></p>
+                        
+                        <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                            <h3 style="color: #991b1b; margin: 0 0 10px 0;">
+                                <span style="font-size: 20px;">⚠️</span>
+                                <?php esc_html_e('Problema Identificato:', 'fp-performance-suite'); ?>
+                            </h3>
+                            <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #991b1b;">
+                                <?php esc_html_e('Maximum critical path latency: 6,414ms', 'fp-performance-suite'); ?>
+                            </p>
+                            <p style="margin: 0; color: #7f1d1d;">
+                                <?php esc_html_e('Causato principalmente da font di Google Fonts che bloccano il rendering.', 'fp-performance-suite'); ?>
+                            </p>
                         </div>
-                    </div>
+                        
+                        <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                            <h3 style="color: #166534; margin: 0 0 15px 0;">
+                                <span style="font-size: 20px;">✅</span>
+                                <?php esc_html_e('Soluzione Implementata:', 'fp-performance-suite'); ?>
+                            </h3>
+                            <ul style="margin: 0; padding-left: 20px; color: #15803d;">
+                                <li><?php esc_html_e('Preload dei font critici per ridurre il critical path', 'fp-performance-suite'); ?></li>
+                                <li><?php esc_html_e('Ottimizzazione Google Fonts con display=swap', 'fp-performance-suite'); ?></li>
+                                <li><?php esc_html_e('Preconnect ai provider di font', 'fp-performance-suite'); ?></li>
+                                <li><?php esc_html_e('Iniezione font-display CSS per evitare FOIT/FOUT', 'fp-performance-suite'); ?></li>
+                            </ul>
+                        </div>
+                    </section>
+
 
                     <!-- Configuration Form -->
-                    <div class="fp-performance-card">
-                        <h2><?php esc_html_e('Configurazione Ottimizzazioni', 'fp-performance-suite'); ?></h2>
+                    <section class="fp-ps-card">
+                        <h2>⚙️ <?php esc_html_e('Configurazione Ottimizzazioni', 'fp-performance-suite'); ?></h2>
+                        <p class="description"><?php esc_html_e('Configura le ottimizzazioni del critical path per risolvere il problema di latency.', 'fp-performance-suite'); ?></p>
+                        
                         <form method="post" action="">
                             <?php wp_nonce_field('fp_ps_critical_path_settings', 'fp_ps_critical_path_nonce'); ?>
                             <input type="hidden" name="action" value="update_critical_path_settings">
                             
-                            <table class="form-table">
+                            <div class="fp-ps-grid two">
                                 <tr>
                                     <th scope="row">
                                         <label for="enabled"><?php esc_html_e('Abilita Ottimizzazioni', 'fp-performance-suite'); ?></label>
