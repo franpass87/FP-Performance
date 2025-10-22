@@ -1,6 +1,6 @@
 <?php
 
-namespace FP\PerfSuite\Admin\Pages\Assets;
+namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Admin\Pages\AbstractPage;
 use FP\PerfSuite\Services\Assets\Optimizer;
