@@ -79,6 +79,15 @@ class Plugin
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
+            
+            // Aggiungi cron schedules personalizzati per ML
+            add_filter('cron_schedules', function($schedules) {
+                $schedules['fp_ps_6hourly'] = [
+                    'interval' => 6 * HOUR_IN_SECONDS,
+                    'display' => __('Every 6 Hours (FP Performance ML)', 'fp-performance-suite'),
+                ];
+                return $schedules;
+            });
 
             // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
@@ -121,6 +130,19 @@ class Plugin
             $prefetchSettings = get_option('fp_ps_predictive_prefetch', []);
             if (!empty($prefetchSettings['enabled'])) {
                 $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+            }
+            
+            // Mobile Optimization Services (v1.6.0)
+            $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
+            if (!empty($mobileSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class)->register();
+            }
+            
+            // Machine Learning Services (v1.6.0)
+            $mlSettings = get_option('fp_ps_ml_predictor', []);
+            if (!empty($mlSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
+                $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
             }
         });
         
