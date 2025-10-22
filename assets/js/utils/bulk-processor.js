@@ -61,6 +61,8 @@ export class BulkProcessor {
      * @returns {Promise}
      */
     async start(params = {}) {
+        console.log('FP Performance Suite: BulkProcessor.start called with params:', params);
+        
         if (this.isProcessing) {
             showNotice('Un\'operazione è già in corso', 'warning');
             return;
@@ -88,13 +90,18 @@ export class BulkProcessor {
         });
         
         try {
+            console.log('FP Performance Suite: Making AJAX request to:', window.fpPerfSuite?.ajaxUrl || window.ajaxurl);
+            console.log('FP Performance Suite: Request data:', Object.fromEntries(formData));
+            
             const response = await fetch(window.fpPerfSuite?.ajaxUrl || window.ajaxurl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 body: formData
             });
             
+            console.log('FP Performance Suite: AJAX response status:', response.status);
             const data = await response.json();
+            console.log('FP Performance Suite: AJAX response data:', data);
             
             if (!data.success) {
                 throw new Error(data.data || 'Errore durante l\'avvio dell\'operazione');

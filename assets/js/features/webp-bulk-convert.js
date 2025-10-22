@@ -12,10 +12,27 @@ import { BulkProcessor } from '../utils/bulk-processor.js';
  * Initialize WebP bulk conversion with progress tracking
  */
 export function initWebPBulkConvert() {
+    console.log('FP Performance Suite: initWebPBulkConvert called');
+    
     const form = document.querySelector('#fp-ps-webp-bulk-form');
     const btn = document.querySelector('#fp-ps-webp-bulk-btn');
     
+    console.log('FP Performance Suite: Form found:', !!form);
+    console.log('FP Performance Suite: Button found:', !!btn);
+    
     if (!form || !btn) {
+        console.log('FP Performance Suite: WebP bulk convert elements not found, retrying...');
+        // Retry after a short delay in case elements are loaded later
+        setTimeout(() => {
+            const retryForm = document.querySelector('#fp-ps-webp-bulk-form');
+            const retryBtn = document.querySelector('#fp-ps-webp-bulk-btn');
+            if (retryForm && retryBtn) {
+                console.log('FP Performance Suite: WebP bulk convert elements found on retry');
+                initWebPBulkConvert();
+            } else {
+                console.warn('FP Performance Suite: WebP bulk convert elements still not found after retry');
+            }
+        }, 1000);
         return;
     }
     
@@ -64,6 +81,7 @@ export function initWebPBulkConvert() {
     // Gestione click del bottone
     btn.addEventListener('click', function(event) {
         event.preventDefault();
+        console.log('FP Performance Suite: WebP bulk convert button clicked');
         startConversion();
     });
     
@@ -71,8 +89,11 @@ export function initWebPBulkConvert() {
      * Avvia la conversione con i parametri del form
      */
     function startConversion() {
+        console.log('FP Performance Suite: Starting WebP bulk conversion');
         const limit = parseInt(form.querySelector('[name="bulk_limit"]')?.value || '20');
         const offset = parseInt(form.querySelector('[name="bulk_offset"]')?.value || '0');
+        
+        console.log('FP Performance Suite: Conversion parameters:', { limit, offset });
         
         processor.start({
             limit: limit,
