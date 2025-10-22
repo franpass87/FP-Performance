@@ -35,105 +35,119 @@ class PostHandler
         
         // Gestione errori per prevenire pagine vuote
         try {
+            // Handle success messages from redirects
+            if (isset($_GET['msg'])) {
+                switch ($_GET['msg']) {
+                    case 'js_excluded':
+                        $message = __('JavaScript exclusions applied successfully!', 'fp-performance-suite');
+                        break;
+                    case 'css_excluded':
+                        $message = __('CSS exclusions applied successfully!', 'fp-performance-suite');
+                        break;
+                    case 'assets_applied':
+                        $count = (int) ($_GET['count'] ?? 0);
+                        $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $count);
+                        break;
+                    case 'third_party_saved':
+                        $message = __('Third-Party Script settings saved successfully!', 'fp-performance-suite');
+                        break;
+                    case 'http2_push_saved':
+                        $message = __('HTTP/2 Server Push settings saved successfully!', 'fp-performance-suite');
+                        break;
+                    case 'smart_delivery_saved':
+                        $message = __('Smart Asset Delivery settings saved successfully!', 'fp-performance-suite');
+                        break;
+                    case 'css_saved':
+                        $message = __('CSS settings saved successfully!', 'fp-performance-suite');
+                        break;
+                    case 'javascript_saved':
+                        $message = __('JavaScript settings saved successfully!', 'fp-performance-suite');
+                        break;
+                }
+            }
 
-        // Handle success messages from redirects
-        if (isset($_GET['msg'])) {
-            switch ($_GET['msg']) {
-                case 'js_excluded':
-                    $message = __('JavaScript exclusions applied successfully!', 'fp-performance-suite');
+            // Handle auto-detection actions
+            if (isset($_POST['auto_detect_exclude_js'])) {
+                $optimizer = new Optimizer();
+                $smartDetector = new SmartExclusionDetector();
+                $result = $smartDetector->autoDetectExcludeJs();
+                set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
+                wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+
+            if (isset($_POST['auto_detect_exclude_css'])) {
+                $optimizer = new Optimizer();
+                $smartDetector = new SmartExclusionDetector();
+                $result = $smartDetector->autoDetectExcludeCss();
+                set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
+                wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+
+            if (isset($_POST['apply_js_exclusions'])) {
+                $optimizer = new Optimizer();
+                $smartDetector = new SmartExclusionDetector();
+                $result = $smartDetector->detectExcludeJs();
+                set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
+                wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+
+            if (isset($_POST['apply_css_exclusions'])) {
+                $optimizer = new Optimizer();
+                $smartDetector = new SmartExclusionDetector();
+                $result = $smartDetector->detectExcludeCss();
+                set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
+                wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+
+            if (isset($_POST['auto_detect_critical_assets'])) {
+                $optimizer = new Optimizer();
+                $assetsDetector = new CriticalAssetsDetector();
+                $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
+                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
+                exit;
+            }
+
+            // Handle form submissions
+            $formType = sanitize_text_field($_POST['form_type'] ?? '');
+            
+            switch ($formType) {
+                case 'javascript':
+                    $message = $this->handleJavaScriptForm($settings);
                     break;
-                case 'css_excluded':
-                    $message = __('CSS exclusions applied successfully!', 'fp-performance-suite');
+                case 'css':
+                    $message = $this->handleCssForm($settings);
                     break;
-                case 'assets_applied':
-                    $count = (int) ($_GET['count'] ?? 0);
-                    $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $count);
+                case 'third_party':
+                    $message = $this->handleThirdPartyForm($thirdPartySettings);
+                    break;
+                case 'http2_push':
+                    $message = $this->handleHttp2PushForm();
+                    break;
+                case 'smart_delivery':
+                    $message = $this->handleSmartDeliveryForm();
+                    break;
+                case 'unusedcss':
+                    $message = $this->handleUnusedCssForm();
+                    break;
+                case 'criticalcss':
+                    $message = $this->handleCriticalCssForm();
+                    break;
+                case 'critical_path_fonts':
+                    $message = $this->handleCriticalPathFontsForm($fontSettings);
+                    break;
+                case 'script_detector':
+                    $message = $this->handleScriptDetectorForm();
+                    break;
+                case 'advanced_js_optimization':
+                    $message = $this->handleAdvancedJsOptimizationForm();
                     break;
             }
-        }
 
-        // Handle auto-detection actions
-        if (isset($_POST['auto_detect_exclude_js'])) {
-            $optimizer = new Optimizer();
-            $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->autoDetectExcludeJs();
-            set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-            wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        if (isset($_POST['auto_detect_exclude_css'])) {
-            $optimizer = new Optimizer();
-            $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->autoDetectExcludeCss();
-            set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-            wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        if (isset($_POST['apply_js_exclusions'])) {
-            $optimizer = new Optimizer();
-            $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->detectExcludeJs();
-            set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-            wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        if (isset($_POST['apply_css_exclusions'])) {
-            $optimizer = new Optimizer();
-            $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->detectExcludeCss();
-            set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-            wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        if (isset($_POST['auto_detect_critical_assets'])) {
-            $optimizer = new Optimizer();
-            $assetsDetector = new CriticalAssetsDetector();
-            $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
-            wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
-            exit;
-        }
-
-        // Handle form submissions
-        $formType = sanitize_text_field($_POST['form_type'] ?? '');
-        
-        switch ($formType) {
-            case 'javascript':
-                $message = $this->handleJavaScriptForm($settings);
-                break;
-            case 'css':
-                $message = $this->handleCssForm($settings);
-                break;
-            case 'third_party':
-                $message = $this->handleThirdPartyForm($thirdPartySettings);
-                break;
-            case 'http2_push':
-                $message = $this->handleHttp2PushForm();
-                break;
-            case 'smart_delivery':
-                $message = $this->handleSmartDeliveryForm();
-                break;
-            case 'unusedcss':
-                $message = $this->handleUnusedCssForm();
-                break;
-            case 'criticalcss':
-                $message = $this->handleCriticalCssForm();
-                break;
-            case 'critical_path_fonts':
-                $message = $this->handleCriticalPathFontsForm($fontSettings);
-                break;
-            case 'script_detector':
-                $message = $this->handleScriptDetectorForm();
-                break;
-            case 'advanced_js_optimization':
-                $message = $this->handleAdvancedJsOptimizationForm();
-                break;
-        }
-
-        return $message;
+            return $message;
         
         } catch (\Exception $e) {
             // Log dell'errore per debug
@@ -164,7 +178,17 @@ class PostHandler
         ]);
         
         $settings = $optimizer->settings();
-        return __('JavaScript settings saved.', 'fp-performance-suite');
+        
+        // Redirect per evitare pagina bianca e mostrare messaggio di successo
+        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'javascript');
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'tab' => $current_tab,
+            'msg' => 'javascript_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function handleCssForm(array &$settings): string
@@ -193,11 +217,24 @@ class PostHandler
         // Handle Critical CSS settings
         $criticalCssService = new CriticalCss();
         if (isset($_POST['critical_css'])) {
-            $criticalCssService->update(wp_unslash($_POST['critical_css']));
+            $result = $criticalCssService->update(wp_unslash($_POST['critical_css']));
+            if (!$result['success']) {
+                throw new \Exception($result['error'] ?? 'Errore nel salvataggio del Critical CSS');
+            }
         }
         
         $settings = $optimizer->settings();
-        return __('CSS settings saved.', 'fp-performance-suite');
+        
+        // Redirect per evitare pagina bianca e mostrare messaggio di successo
+        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'css');
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'tab' => $current_tab,
+            'msg' => 'css_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function handleThirdPartyForm(array &$thirdPartySettings): string
@@ -251,8 +288,19 @@ class PostHandler
             ],
         ]);
         
+        // Ricarica le impostazioni dopo il salvataggio
         $thirdPartySettings = $thirdPartyScripts->settings();
-        return __('Third-Party Script settings saved.', 'fp-performance-suite');
+        
+        // Redirect per evitare pagina bianca e mostrare messaggio di successo
+        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'tab' => $current_tab,
+            'msg' => 'third_party_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function handleHttp2PushForm(): string
@@ -265,7 +313,17 @@ class PostHandler
             'push_fonts' => !empty($_POST['http2_push_fonts']),
             'max_push_assets' => (int) ($_POST['http2_max_resources'] ?? 10),
         ]);
-        return __('HTTP/2 Server Push settings saved.', 'fp-performance-suite');
+        
+        // Redirect per evitare pagina bianca e mostrare messaggio di successo
+        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'tab' => $current_tab,
+            'msg' => 'http2_push_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function handleSmartDeliveryForm(): string
@@ -278,7 +336,17 @@ class PostHandler
             'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
             'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
         ]);
-        return __('Smart Asset Delivery settings saved.', 'fp-performance-suite');
+        
+        // Redirect per evitare pagina bianca e mostrare messaggio di successo
+        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'tab' => $current_tab,
+            'msg' => 'smart_delivery_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     private function handleUnusedCssForm(): string

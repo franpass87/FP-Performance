@@ -619,54 +619,54 @@ class Plugin
      */
     private static function ensureDefaultOptionsExist(): void
     {
-        // Mobile Optimization Services (v1.6.0)
+        // Mobile Optimization Services (v1.6.0) - DISATTIVATI di default
         if (!get_option('fp_ps_mobile_optimizer')) {
             update_option('fp_ps_mobile_optimizer', [
-                'enabled' => true,
+                'enabled' => false,
                 'disable_animations' => false,
-                'remove_unnecessary_scripts' => true,
-                'optimize_touch_targets' => true,
-                'enable_responsive_images' => true
+                'remove_unnecessary_scripts' => false,
+                'optimize_touch_targets' => false,
+                'enable_responsive_images' => false
             ], false);
         }
         
-        // Touch Optimizer
+        // Touch Optimizer - DISATTIVATO di default
         if (!get_option('fp_ps_touch_optimizer')) {
             update_option('fp_ps_touch_optimizer', [
-                'enabled' => true,
-                'disable_hover_effects' => true,
-                'improve_touch_targets' => true,
-                'optimize_scroll' => true,
-                'prevent_zoom' => true
+                'enabled' => false,
+                'disable_hover_effects' => false,
+                'improve_touch_targets' => false,
+                'optimize_scroll' => false,
+                'prevent_zoom' => false
             ], false);
         }
         
-        // Responsive Images
+        // Responsive Images - DISATTIVATO di default
         if (!get_option('fp_ps_responsive_images')) {
             update_option('fp_ps_responsive_images', [
-                'enabled' => true,
-                'enable_lazy_loading' => true,
-                'optimize_srcset' => true,
+                'enabled' => false,
+                'enable_lazy_loading' => false,
+                'optimize_srcset' => false,
                 'max_mobile_width' => 768,
                 'max_content_image_width' => '100%'
             ], false);
         }
         
-        // Mobile Cache Manager
+        // Mobile Cache Manager - DISATTIVATO di default
         if (!get_option('fp_ps_mobile_cache')) {
             update_option('fp_ps_mobile_cache', [
-                'enabled' => true,
-                'enable_mobile_cache_headers' => true,
-                'enable_resource_caching' => true,
-                'cache_mobile_css' => true,
-                'cache_mobile_js' => true,
+                'enabled' => false,
+                'enable_mobile_cache_headers' => false,
+                'enable_resource_caching' => false,
+                'cache_mobile_css' => false,
+                'cache_mobile_js' => false,
                 'html_cache_duration' => 300,
                 'css_cache_duration' => 3600,
                 'js_cache_duration' => 3600
             ], false);
         }
         
-        // Machine Learning Services (v1.6.0)
+        // Machine Learning Services (v1.6.0) - DISATTIVATI di default
         if (!get_option('fp_ps_ml_predictor')) {
             update_option('fp_ps_ml_predictor', [
                 'enabled' => false, // Disabilitato di default per sicurezza
@@ -675,6 +675,102 @@ class Plugin
                 'anomaly_threshold' => 0.8,
                 'pattern_confidence_threshold' => 0.8
             ], false);
+        }
+        
+        // Pattern Learner - DISATTIVATO di default
+        if (!get_option('fp_ps_pattern_learner')) {
+            update_option('fp_ps_pattern_learner', [
+                'enabled' => false,
+                'min_data_points' => 10,
+                'confidence_threshold' => 0.7,
+                'learning_rate' => 0.1,
+                'max_patterns' => 100
+            ], false);
+        }
+        
+        // Anomaly Detector - DISATTIVATO di default
+        if (!get_option('fp_ps_anomaly_detector')) {
+            update_option('fp_ps_anomaly_detector', [
+                'enabled' => false,
+                'confidence_threshold' => 0.7,
+                'z_score_threshold' => 2.0,
+                'window_size' => 24,
+                'sensitivity' => 'medium'
+            ], false);
+        }
+        
+        // Auto Tuner - DISATTIVATO di default
+        if (!get_option('fp_ps_auto_tuner')) {
+            update_option('fp_ps_auto_tuner', [
+                'enabled' => false,
+                'tuning_frequency' => '6hourly',
+                'aggressive_mode' => false,
+                'performance_threshold' => 0.8,
+                'auto_rollback' => true
+            ], false);
+        }
+        
+        // Security Services - DISATTIVATI di default
+        if (!get_option('fp_ps_htaccess_security')) {
+            update_option('fp_ps_htaccess_security', [
+                'enabled' => false,
+                'ssl_redirect' => [
+                    'enabled' => false,
+                    'force_https' => false,
+                    'force_www' => false,
+                    'domain' => ''
+                ],
+                'security_headers' => [
+                    'enabled' => false,
+                    'hsts' => false,
+                    'hsts_max_age' => 31536000,
+                    'hsts_subdomains' => false,
+                    'hsts_preload' => false,
+                    'x_content_type_options' => false,
+                    'x_frame_options' => 'SAMEORIGIN',
+                    'referrer_policy' => 'strict-origin-when-cross-origin',
+                    'permissions_policy' => 'camera=(), microphone=(), geolocation=()'
+                ],
+                'cache_rules' => [
+                    'enabled' => false,
+                    'html_cache' => false,
+                    'fonts_cache' => false,
+                    'fonts_max_age' => 31536000,
+                    'images_max_age' => 31536000,
+                    'css_js_max_age' => 2592000
+                ],
+                'cors' => [
+                    'enabled' => false,
+                    'fonts_origin' => '*',
+                    'svg_origin' => '*'
+                ],
+                'file_protection' => [
+                    'enabled' => false,
+                    'protect_hidden_files' => false,
+                    'protect_wp_config' => false,
+                    'protect_htaccess' => false,
+                    'protect_readme' => false
+                ]
+            ], false);
+        }
+        
+        // Media Optimization - DISATTIVATA di default
+        if (!get_option('fp_ps_media_optimizer')) {
+            update_option('fp_ps_media_optimizer', [
+                'enabled' => false,
+                'generate_sizes' => false,
+                'js_detection' => false,
+                'webp_conversion' => false,
+                'avif_conversion' => false,
+                'lazy_loading' => false,
+                'quality' => 75,
+                'lossy' => true
+            ], false);
+        }
+        
+        // Compression - DISATTIVATA di default
+        if (!get_option('fp_ps_compression_deflate_enabled')) {
+            update_option('fp_ps_compression_deflate_enabled', false, false);
         }
     }
 

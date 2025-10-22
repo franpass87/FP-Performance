@@ -288,51 +288,79 @@ class DatabaseOptimizer
     {
         global $wpdb;
         
-        // Verifica che la tabella esista
-        $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
-        if (!in_array($tableName, $tables, true)) {
-            return [
-                'success' => false,
-                'message' => 'Tabella non trovata',
-            ];
-        }
-        
-        // Usa get_results() invece di query() perché OPTIMIZE TABLE restituisce un result set
-        $result = $wpdb->get_results("OPTIMIZE TABLE `{$tableName}`", ARRAY_A);
-        
-        if ($result === false || !empty($wpdb->last_error)) {
-            return [
-                'success' => false,
-                'message' => 'Errore durante l\'ottimizzazione',
-                'error' => $wpdb->last_error,
-            ];
-        }
-        
-        // Verifica il risultato dell'ottimizzazione
-        $success = true;
-        foreach ($result as $row) {
-            if (isset($row['Msg_type']) && $row['Msg_type'] === 'error') {
-                $success = false;
-                break;
+        try {
+            // Verifica che la tabella esista
+            $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
+            if (!in_array($tableName, $tables, true)) {
+                Logger::error('Table not found for optimization', ['table' => $tableName]);
+                return [
+                    'success' => false,
+                    'message' => 'Tabella non trovata',
+                ];
             }
-        }
-        
-        if (!$success) {
+            
+            Logger::info('Starting table optimization', ['table' => $tableName]);
+            
+            // Verifica permessi prima dell'ottimizzazione
+            $canOptimize = $wpdb->get_var("SELECT 1 FROM information_schema.TABLES WHERE table_schema = '" . DB_NAME . "' AND table_name = '{$tableName}' LIMIT 1");
+            if (!$canOptimize) {
+                Logger::error('No permission to optimize table', ['table' => $tableName]);
+                return [
+                    'success' => false,
+                    'message' => 'Nessun permesso per ottimizzare la tabella',
+                ];
+            }
+            
+            // Esegui l'ottimizzazione usando query() invece di get_results()
+            $result = $wpdb->query("OPTIMIZE TABLE `{$tableName}`");
+            
+            // Controlla errori
+            if ($result === false) {
+                $error = $wpdb->last_error;
+                Logger::error('Database optimization failed', [
+                    'table' => $tableName,
+                    'error' => $error,
+                    'last_query' => $wpdb->last_query
+                ]);
+                return [
+                    'success' => false,
+                    'message' => 'Errore durante l\'ottimizzazione: ' . $error,
+                    'error' => $error,
+                ];
+            }
+            
+            // Verifica il risultato dell'ottimizzazione
+            $checkResult = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$tableName}'", ARRAY_A);
+            $tableStatus = $checkResult[0] ?? [];
+            
+            Logger::info('Table optimization completed', [
+                'table' => $tableName,
+                'result' => $result,
+                'status' => $tableStatus
+            ]);
+            
+            return [
+                'success' => true,
+                'message' => 'Tabella ottimizzata con successo',
+                'table' => $tableName,
+                'details' => [
+                    'result' => $result,
+                    'status' => $tableStatus
+                ],
+            ];
+            
+        } catch (\Exception $e) {
+            Logger::error('Exception during table optimization', [
+                'table' => $tableName,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return [
                 'success' => false,
-                'message' => 'Errore durante l\'ottimizzazione della tabella',
-                'error' => isset($row['Msg_text']) ? $row['Msg_text'] : 'Unknown error',
+                'message' => 'Eccezione durante l\'ottimizzazione: ' . $e->getMessage(),
+                'error' => $e->getMessage(),
             ];
         }
-        
-        Logger::info('Table optimized', ['table' => $tableName, 'result' => $result]);
-        
-        return [
-            'success' => true,
-            'message' => 'Tabella ottimizzata con successo',
-            'table' => $tableName,
-            'details' => $result,
-        ];
     }
     
     /**
@@ -342,31 +370,85 @@ class DatabaseOptimizer
     {
         global $wpdb;
         
-        $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
-        $results = [];
-        $errors = [];
-        
-        foreach ($tables as $table) {
-            $result = $this->optimizeTable($table);
+        try {
+            Logger::info('Starting optimization of all tables');
             
-            if ($result['success']) {
-                $results[] = $table;
-            } else {
-                $errors[$table] = $result['message'];
+            $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
+            if (empty($tables)) {
+                Logger::warning('No tables found to optimize');
+                return [
+                    'success' => false,
+                    'message' => 'Nessuna tabella trovata',
+                    'optimized' => [],
+                    'errors' => [],
+                    'total' => 0,
+                ];
             }
+            
+            $results = [];
+            $errors = [];
+            $startTime = microtime(true);
+            
+            Logger::info('Found tables to optimize', ['count' => count($tables)]);
+            
+            foreach ($tables as $table) {
+                Logger::info('Optimizing table', ['table' => $table]);
+                
+                $result = $this->optimizeTable($table);
+                
+                if ($result['success']) {
+                    $results[] = $table;
+                    Logger::info('Table optimized successfully', ['table' => $table]);
+                } else {
+                    $errors[$table] = $result['message'];
+                    Logger::error('Table optimization failed', [
+                        'table' => $table,
+                        'error' => $result['message']
+                    ]);
+                }
+                
+                // Pausa breve per evitare sovraccarico del database
+                usleep(100000); // 0.1 secondi
+            }
+            
+            $endTime = microtime(true);
+            $executionTime = round($endTime - $startTime, 2);
+            
+            Logger::info('All tables optimization completed', [
+                'optimized' => count($results),
+                'errors' => count($errors),
+                'total' => count($tables),
+                'execution_time' => $executionTime
+            ]);
+            
+            return [
+                'success' => empty($errors),
+                'optimized' => $results,
+                'errors' => $errors,
+                'total' => count($tables),
+                'execution_time' => $executionTime,
+                'message' => sprintf(
+                    'Ottimizzate %d tabelle su %d totali. %d errori.',
+                    count($results),
+                    count($tables),
+                    count($errors)
+                ),
+            ];
+            
+        } catch (\Exception $e) {
+            Logger::error('Exception during all tables optimization', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Eccezione durante l\'ottimizzazione: ' . $e->getMessage(),
+                'optimized' => [],
+                'errors' => ['exception' => $e->getMessage()],
+                'total' => 0,
+            ];
         }
-        
-        Logger::info('All tables optimized', [
-            'optimized' => count($results),
-            'errors' => count($errors),
-        ]);
-        
-        return [
-            'success' => empty($errors),
-            'optimized' => $results,
-            'errors' => $errors,
-            'total' => count($tables),
-        ];
     }
     
     /**
@@ -1169,6 +1251,60 @@ class DatabaseOptimizer
             'history' => $this->getHistory(10),
             'timestamp' => time(),
         ];
+    }
+    
+    /**
+     * Debug: Verifica lo stato del database e i permessi
+     */
+    public function debugDatabaseStatus(): array
+    {
+        global $wpdb;
+        
+        $status = [
+            'database_connection' => false,
+            'database_name' => '',
+            'user_permissions' => [],
+            'table_count' => 0,
+            'optimize_permissions' => false,
+            'errors' => [],
+        ];
+        
+        try {
+            // Test connessione database
+            $dbName = $wpdb->get_var("SELECT DATABASE()");
+            $status['database_connection'] = !empty($dbName);
+            $status['database_name'] = $dbName;
+            
+            // Test permessi utente
+            $user = $wpdb->get_var("SELECT USER()");
+            $status['user_permissions']['user'] = $user;
+            
+            // Test permessi OPTIMIZE
+            $canOptimize = $wpdb->get_var("SELECT 1 FROM information_schema.TABLES LIMIT 1");
+            $status['optimize_permissions'] = !empty($canOptimize);
+            
+            // Conta tabelle
+            $tables = $wpdb->get_col("SHOW TABLES FROM `" . DB_NAME . "`");
+            $status['table_count'] = count($tables);
+            
+            // Test ottimizzazione su una tabella di test (se esiste)
+            if (!empty($tables)) {
+                $testTable = $tables[0];
+                $testResult = $wpdb->query("SHOW TABLE STATUS LIKE '{$testTable}'");
+                $status['test_table_status'] = $testResult !== false;
+            }
+            
+            Logger::info('Database status debug completed', $status);
+            
+        } catch (\Exception $e) {
+            $status['errors'][] = $e->getMessage();
+            Logger::error('Database status debug failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+        
+        return $status;
     }
 }
 
