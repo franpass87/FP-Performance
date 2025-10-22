@@ -465,6 +465,37 @@ class Plugin
             );
         });
 
+        // Mobile Optimization Services (v1.6.0)
+        $container->set(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class, static fn() => new \FP\PerfSuite\Services\Mobile\TouchOptimizer());
+        $container->set(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class, static fn() => new \FP\PerfSuite\Services\Mobile\MobileCacheManager());
+        $container->set(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class, static fn() => new \FP\PerfSuite\Services\Mobile\ResponsiveImageManager());
+        $container->set(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\Mobile\MobileOptimizer(
+                $c,
+                $c->get(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class),
+                $c->get(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class),
+                $c->get(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class)
+            );
+        });
+
+        // Machine Learning Services (v1.6.0)
+        $container->set(\FP\PerfSuite\Services\ML\PatternLearner::class, static fn() => new \FP\PerfSuite\Services\ML\PatternLearner());
+        $container->set(\FP\PerfSuite\Services\ML\AnomalyDetector::class, static fn() => new \FP\PerfSuite\Services\ML\AnomalyDetector());
+        $container->set(\FP\PerfSuite\Services\ML\MLPredictor::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\ML\MLPredictor(
+                $c,
+                $c->get(\FP\PerfSuite\Services\ML\PatternLearner::class),
+                $c->get(\FP\PerfSuite\Services\ML\AnomalyDetector::class)
+            );
+        });
+        $container->set(\FP\PerfSuite\Services\ML\AutoTuner::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\ML\AutoTuner(
+                $c,
+                $c->get(\FP\PerfSuite\Services\ML\MLPredictor::class),
+                $c->get(\FP\PerfSuite\Services\ML\PatternLearner::class)
+            );
+        });
+
         $container->set(AdminAssets::class, static fn() => new AdminAssets());
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
         $container->set(AdminBar::class, static fn(ServiceContainer $c) => new AdminBar($c));
