@@ -32,6 +32,9 @@ class PostHandler
         }
 
         $message = '';
+        
+        // Gestione errori per prevenire pagine vuote
+        try {
 
         // Handle success messages from redirects
         if (isset($_GET['msg'])) {
@@ -71,7 +74,8 @@ class PostHandler
         if (isset($_POST['apply_js_exclusions'])) {
             $optimizer = new Optimizer();
             $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->autoApplyExcludeJs($optimizer);
+            $result = $smartDetector->detectExcludeJs();
+            set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
             wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
             exit;
         }
@@ -79,7 +83,8 @@ class PostHandler
         if (isset($_POST['apply_css_exclusions'])) {
             $optimizer = new Optimizer();
             $smartDetector = new SmartExclusionDetector();
-            $result = $smartDetector->autoApplyExcludeCss($optimizer);
+            $result = $smartDetector->detectExcludeCss();
+            set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
             wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
             exit;
         }
@@ -129,6 +134,17 @@ class PostHandler
         }
 
         return $message;
+        
+        } catch (\Exception $e) {
+            // Log dell'errore per debug
+            error_log('FP Performance Suite - PostHandler Error: ' . $e->getMessage());
+            
+            // Ritorna un messaggio di errore user-friendly
+            return sprintf(
+                __('Errore durante il salvataggio: %s. Contatta il supporto se il problema persiste.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 
     private function handleJavaScriptForm(array &$settings): string

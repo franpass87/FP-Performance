@@ -1,0 +1,237 @@
+/**
+ * FP Performance Suite - ML Components
+ * 
+ * Styles for Machine Learning page components
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ * @link https://francescopasseri.com
+ */
+
+/* ML Stats Grid */
+.fp-ps-ml-stats,
+.fp-ps-anomaly-stats,
+.fp-ps-tuning-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.fp-ps-stat-item {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+.fp-ps-stat-label {
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-size: 0.9em;
+}
+
+.fp-ps-stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Status Colors */
+.fp-ps-status-enabled {
+    color: #46b450;
+}
+
+.fp-ps-status-disabled {
+    color: #dc3232;
+}
+
+.fp-ps-critical {
+    color: #dc3232;
+}
+
+.fp-ps-high {
+    color: #ffb900;
+}
+
+/* Predictions, Anomalies, Recommendations */
+.fp-ps-predictions,
+.fp-ps-anomalies-list,
+.fp-ps-recommendations {
+    margin: 1rem 0;
+}
+
+.fp-ps-prediction,
+.fp-ps-anomaly,
+.fp-ps-recommendation {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-left: 4px solid #ddd;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Severity Colors */
+.fp-ps-prediction-high,
+.fp-ps-anomaly-critical,
+.fp-ps-recommendation-high {
+    border-left-color: #dc3232;
+    background: #fef7f7;
+}
+
+.fp-ps-prediction-medium,
+.fp-ps-anomaly-high,
+.fp-ps-recommendation-medium {
+    border-left-color: #ffb900;
+    background: #fffbf0;
+}
+
+.fp-ps-prediction-low,
+.fp-ps-anomaly-medium,
+.fp-ps-recommendation-low {
+    border-left-color: #00a0d2;
+    background: #f0f8ff;
+}
+
+/* Headers */
+.fp-ps-prediction-header,
+.fp-ps-anomaly-header,
+.fp-ps-rec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.fp-ps-confidence,
+.fp-ps-rec-confidence {
+    font-size: 0.9em;
+    color: #666;
+    background: #e0e0e0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Actions */
+.fp-ps-prediction-action,
+.fp-ps-anomaly-action,
+.fp-ps-rec-action {
+    margin: 0.5rem 0;
+    font-style: italic;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Recommendation Meta */
+.fp-ps-rec-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8em;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+.fp-ps-rec-type,
+.fp-ps-rec-priority {
+    background: #f0f0f0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Tuning Changes */
+.fp-ps-tuning-changes {
+    margin: 1rem 0;
+}
+
+.fp-ps-tuning-category {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+.fp-ps-tuning-category h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.fp-ps-tuning-change {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: #fff;
+    border-radius: 3px;
+    border: 1px solid #e0e0e0;
+    font-size: 0.9em;
+}
+
+.fp-ps-tuning-change strong {
+    color: #333;
+}
+
+.fp-ps-tuning-change em {
+    color: #666;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .fp-ps-ml-stats,
+    .fp-ps-anomaly-stats,
+    .fp-ps-tuning-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .fp-ps-prediction-header,
+    .fp-ps-anomaly-header,
+    .fp-ps-rec-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .fp-ps-rec-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .fp-ps-stat-item {
+        background: #2c2c2c;
+        border-color: #444;
+    }
+    
+    .fp-ps-stat-label {
+        color: #ccc;
+    }
+    
+    .fp-ps-stat-value {
+        color: #fff;
+    }
+    
+    .fp-ps-prediction,
+    .fp-ps-anomaly,
+    .fp-ps-recommendation {
+        background: #2c2c2c;
+        border-color: #444;
+    }
+    
+    .fp-ps-tuning-category {
+        background: #2c2c2c;
+        border-color: #444;
+    }
+    
+    .fp-ps-tuning-change {
+        background: #333;
+        border-color: #444;
+    }
+}
