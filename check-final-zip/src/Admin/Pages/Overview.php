@@ -96,9 +96,13 @@ class Overview extends AbstractPage
         <!-- Header con Score e Metriche Principali -->
         <section class="fp-ps-grid three">
             <!-- Technical SEO Score -->
+            <?php 
+            $seoScore = (int) $score['total'];
+            $seoScoreClass = $seoScore >= 90 ? 'score-excellent' : ($seoScore >= 70 ? 'score-good' : ($seoScore >= 50 ? 'score-warning' : 'score-critical'));
+            ?>
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Technical SEO Score', 'fp-performance-suite'); ?></h2>
-                <div class="fp-ps-score fp-ps-my-lg">
+                <div class="fp-ps-score <?php echo esc_attr($seoScoreClass); ?> fp-ps-my-lg">
                     <?php echo esc_html((string) $score['total']); ?><span class="fp-ps-text-lg">/100</span>
                 </div>
                 <p class="description">
@@ -108,12 +112,13 @@ class Overview extends AbstractPage
 
             <!-- Health Score -->
             <?php 
-            $healthClass = $analysis['score'] >= 70 ? 'health-excellent' : ($analysis['score'] >= 50 ? 'health-good' : 'health-poor');
-            $scoreClass = $analysis['score'] >= 70 ? 'success' : ($analysis['score'] >= 50 ? 'warning' : 'danger');
+            $healthScore = (int) $analysis['score'];
+            $healthClass = $healthScore >= 70 ? 'health-excellent' : ($healthScore >= 50 ? 'health-good' : 'health-poor');
+            $healthScoreClass = $healthScore >= 90 ? 'score-excellent' : ($healthScore >= 70 ? 'score-good' : ($healthScore >= 50 ? 'score-warning' : 'score-critical'));
             ?>
             <div class="fp-ps-card <?php echo esc_attr($healthClass); ?>">
                 <h2><?php esc_html_e('Health Score', 'fp-performance-suite'); ?></h2>
-                <div class="fp-ps-score <?php echo esc_attr($scoreClass); ?> fp-ps-my-lg">
+                <div class="fp-ps-score <?php echo esc_attr($healthScoreClass); ?> fp-ps-my-lg">
                     <?php echo esc_html($analysis['score']); ?><span class="fp-ps-text-lg">/100</span>
                 </div>
                 <p class="description fp-ps-text-muted">

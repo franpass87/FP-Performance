@@ -952,10 +952,13 @@ class PageCache implements CacheInterface
             $this->cachedFileCount = $count;
             $this->cachedFileCountTime = $now;
             
-            Logger::debug('Cache file count refreshed', [
-                'count' => $count,
-                'size_mb' => round($size / 1024 / 1024, 2),
-            ]);
+            // Log solo se il conteggio è significativo o se è la prima volta
+            if ($count > 0 || $this->cachedFileCount === null) {
+                Logger::debug('Cache file count refreshed', [
+                    'count' => $count,
+                    'size_mb' => round($size / 1024 / 1024, 2),
+                ]);
+            }
         }
         
         return [

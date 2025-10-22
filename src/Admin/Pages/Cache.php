@@ -389,49 +389,6 @@ class Cache extends AbstractPage
                 <p class="description"><?php printf(esc_html__('Current cached files: %d', 'fp-performance-suite'), (int) $status['files']); ?></p>
             </form>
         </section>
-        <section class="fp-ps-card">
-            <h2><?php esc_html_e('Browser Cache Headers', 'fp-performance-suite'); ?></h2>
-            <form method="post">
-                <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
-                <input type="hidden" name="fp_ps_browser_cache" value="1" />
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Enable headers', 'fp-performance-suite'); ?></strong>
-                        <span class="description"><?php esc_html_e('Adds Cache-Control/Expires headers for static files.', 'fp-performance-suite'); ?></span>
-                    </span>
-                    <input type="checkbox" name="browser_cache_enabled" value="1" <?php checked($headerSettings['enabled']); ?> data-risk="green" />
-                </label>
-                <p>
-                    <label for="cache_control"><?php esc_html_e('Cache-Control', 'fp-performance-suite'); ?></label>
-                    <input type="text" name="cache_control" id="cache_control" value="<?php echo esc_attr($headerSettings['headers']['Cache-Control']); ?>" class="regular-text" />
-                </p>
-                <p>
-                    <label for="expires_ttl"><?php esc_html_e('Expires header TTL (seconds)', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="expires_ttl" id="expires_ttl" value="<?php echo esc_attr((string) $headerSettings['expires_ttl']); ?>" class="regular-text" min="0" step="60" />
-                    <span class="description"><?php printf(esc_html__('Current Expires header will resolve to: %s', 'fp-performance-suite'), esc_html($headerSettings['headers']['Expires'])); ?></span>
-                </p>
-                <p>
-                    <label for="htaccess_rules">
-                        <?php esc_html_e('.htaccess rules', 'fp-performance-suite'); ?>
-                        <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px;" title="<?php esc_attr_e('Regole Apache personalizzate per il caching. Modifica solo se sai cosa stai facendo.', 'fp-performance-suite'); ?>">ℹ️</span>
-                    </label>
-                    <textarea name="htaccess_rules" id="htaccess_rules" rows="6" class="large-text code"><?php echo esc_textarea($headerSettings['htaccess']); ?></textarea>
-                    <span class="description">
-                        <?php esc_html_e('Regole Apache avanzate per il caching.', 'fp-performance-suite'); ?>
-                        <a href="https://httpd.apache.org/docs/current/mod/mod_expires.html" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Documentazione Apache', 'fp-performance-suite'); ?></a>
-                    </span>
-                </p>
-                <div style="background: #fef3c7; border-left: 3px solid #fbbf24; padding: 12px; margin: 10px 0; border-radius: 4px;">
-                    <strong style="color: #92400e;">⚠️ <?php esc_html_e('Attenzione', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 8px 0 0 0; color: #78350f; line-height: 1.5; font-size: 13px;">
-                        <?php esc_html_e('Regole .htaccess errate possono causare errori 500 sul sito. Viene creato un backup automatico prima di ogni modifica.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <p>
-                    <button type="submit" class="button button-primary"><?php esc_html_e('Save Headers', 'fp-performance-suite'); ?></button>
-                </p>
-            </form>
-        </section>
 
         <section class="fp-ps-card">
             <h2>🚀 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?></h2>
@@ -660,7 +617,28 @@ class Cache extends AbstractPage
                             </p>
                         </td>
                     </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <?php esc_html_e('Regole .htaccess', 'fp-performance-suite'); ?>
+                            <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px;" title="<?php esc_attr_e('Regole Apache personalizzate per il caching. Modifica solo se sai cosa stai facendo.', 'fp-performance-suite'); ?>">ℹ️</span>
+                        </th>
+                        <td>
+                            <textarea name="htaccess_rules" rows="6" class="large-text code"><?php echo esc_textarea($headerSettings['htaccess'] ?? ''); ?></textarea>
+                            <p class="description">
+                                <?php esc_html_e('Regole Apache avanzate per il caching.', 'fp-performance-suite'); ?>
+                                <a href="https://httpd.apache.org/docs/current/mod/mod_expires.html" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Documentazione Apache', 'fp-performance-suite'); ?></a>
+                            </p>
+                        </td>
+                    </tr>
                 </table>
+                
+                <div style="background: #fef3c7; border-left: 3px solid #fbbf24; padding: 12px; margin: 10px 0; border-radius: 4px;">
+                    <strong style="color: #92400e;">⚠️ <?php esc_html_e('Attenzione', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 8px 0 0 0; color: #78350f; line-height: 1.5; font-size: 13px;">
+                        <?php esc_html_e('Regole .htaccess errate possono causare errori 500 sul sito. Viene creato un backup automatico prima di ogni modifica.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
                 
                 <?php submit_button(__('Salva Browser Cache', 'fp-performance-suite')); ?>
             </form>

@@ -80,6 +80,9 @@ class Plugin
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
             
+            // Inizializza opzioni di default per utenti esistenti (solo se non esistono)
+            self::ensureDefaultOptionsExist();
+            
             // Aggiungi cron schedules personalizzati per ML
             add_filter('cron_schedules', function($schedules) {
                 $schedules['fp_ps_6hourly'] = [
@@ -139,6 +142,24 @@ class Plugin
             $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
             if (!empty($mobileSettings['enabled'])) {
                 $container->get(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class)->register();
+            }
+            
+            // Touch Optimizer
+            $touchSettings = get_option('fp_ps_touch_optimizer', []);
+            if (!empty($touchSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class)->register();
+            }
+            
+            // Mobile Cache Manager
+            $mobileCacheSettings = get_option('fp_ps_mobile_cache', []);
+            if (!empty($mobileCacheSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class)->register();
+            }
+            
+            // Responsive Image Manager
+            $responsiveSettings = get_option('fp_ps_responsive_images', []);
+            if (!empty($responsiveSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class)->register();
             }
             
             // Machine Learning Services (v1.6.0)
@@ -550,6 +571,9 @@ class Plugin
             // Pulisci errori precedenti
             delete_option('fp_perfsuite_activation_error');
             
+            // Inizializza opzioni di default per i nuovi servizi (v1.6.0)
+            self::initializeDefaultOptions();
+            
             // Crea directory (non bloccare se fallisce)
             try {
                 self::ensureRequiredDirectories();
@@ -570,6 +594,78 @@ class Plugin
             ], false);
             
             // NON bloccare l'attivazione
+        }
+    }
+
+    /**
+     * Inizializza le opzioni di default per i nuovi servizi
+     */
+    private static function initializeDefaultOptions(): void
+    {
+        self::ensureDefaultOptionsExist();
+    }
+
+    /**
+     * Assicura che le opzioni di default esistano (per utenti esistenti e nuovi)
+     */
+    private static function ensureDefaultOptionsExist(): void
+    {
+        // Mobile Optimization Services (v1.6.0)
+        if (!get_option('fp_ps_mobile_optimizer')) {
+            update_option('fp_ps_mobile_optimizer', [
+                'enabled' => true,
+                'disable_animations' => false,
+                'remove_unnecessary_scripts' => true,
+                'optimize_touch_targets' => true,
+                'enable_responsive_images' => true
+            ], false);
+        }
+        
+        // Touch Optimizer
+        if (!get_option('fp_ps_touch_optimizer')) {
+            update_option('fp_ps_touch_optimizer', [
+                'enabled' => true,
+                'disable_hover_effects' => true,
+                'improve_touch_targets' => true,
+                'optimize_scroll' => true,
+                'prevent_zoom' => true
+            ], false);
+        }
+        
+        // Responsive Images
+        if (!get_option('fp_ps_responsive_images')) {
+            update_option('fp_ps_responsive_images', [
+                'enabled' => true,
+                'enable_lazy_loading' => true,
+                'optimize_srcset' => true,
+                'max_mobile_width' => 768,
+                'max_content_image_width' => '100%'
+            ], false);
+        }
+        
+        // Mobile Cache Manager
+        if (!get_option('fp_ps_mobile_cache')) {
+            update_option('fp_ps_mobile_cache', [
+                'enabled' => true,
+                'enable_mobile_cache_headers' => true,
+                'enable_resource_caching' => true,
+                'cache_mobile_css' => true,
+                'cache_mobile_js' => true,
+                'html_cache_duration' => 300,
+                'css_cache_duration' => 3600,
+                'js_cache_duration' => 3600
+            ], false);
+        }
+        
+        // Machine Learning Services (v1.6.0)
+        if (!get_option('fp_ps_ml_predictor')) {
+            update_option('fp_ps_ml_predictor', [
+                'enabled' => false, // Disabilitato di default per sicurezza
+                'data_retention_days' => 30,
+                'prediction_threshold' => 0.7,
+                'anomaly_threshold' => 0.8,
+                'pattern_confidence_threshold' => 0.8
+            ], false);
         }
     }
 

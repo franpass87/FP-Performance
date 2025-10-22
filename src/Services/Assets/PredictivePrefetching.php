@@ -16,12 +16,18 @@ use FP\PerfSuite\Utils\Logger;
 class PredictivePrefetching
 {
     private const OPTION_KEY = 'fp_ps_predictive_prefetch';
+    private static bool $registered = false;
 
     /**
      * Registra il servizio
      */
     public function register(): void
     {
+        // Evita registrazioni multiple
+        if (self::$registered) {
+            return;
+        }
+        
         $settings = $this->getSettings();
 
         if (empty($settings['enabled'])) {
@@ -30,6 +36,8 @@ class PredictivePrefetching
 
         add_action('wp_footer', [$this, 'injectPrefetchScript'], 999);
 
+        self::$registered = true;
+        
         Logger::debug('Predictive Prefetching registered');
     }
 

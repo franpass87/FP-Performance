@@ -18,6 +18,7 @@ class ThemeCompatibility
 {
     private ServiceContainer $container;
     private ThemeDetector $detector;
+    private static bool $registered = false;
 
     public function __construct(ServiceContainer $container, ThemeDetector $detector)
     {
@@ -30,6 +31,11 @@ class ThemeCompatibility
      */
     public function register(): void
     {
+        // Evita registrazioni multiple
+        if (self::$registered) {
+            return;
+        }
+        
         // Applica fix specifici per tema
         add_action('init', [$this, 'applyThemeFixes'], 5);
         
@@ -44,6 +50,8 @@ class ThemeCompatibility
         // Hook per disabilitare ottimizzazioni su editor
         add_filter('fp_ps_should_optimize', [$this, 'shouldOptimize']);
 
+        self::$registered = true;
+        
         Logger::debug('Theme compatibility initialized', [
             'theme' => $this->detector->getThemeName(),
             'builders' => $this->detector->getActivePageBuilders(),

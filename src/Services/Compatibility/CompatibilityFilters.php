@@ -16,6 +16,7 @@ use FP\PerfSuite\Utils\Logger;
 class CompatibilityFilters
 {
     private ThemeDetector $detector;
+    private static bool $registered = false;
 
     public function __construct(ThemeDetector $detector)
     {
@@ -27,6 +28,11 @@ class CompatibilityFilters
      */
     public function register(): void
     {
+        // Evita registrazioni multiple
+        if (self::$registered) {
+            return;
+        }
+        
         // Filtri generali
         add_filter('fp_ps_defer_js_exclusions', [$this, 'addDeferExclusions']);
         add_filter('fp_ps_minify_html_exclusions', [$this, 'addMinifyExclusions']);
@@ -44,6 +50,8 @@ class CompatibilityFilters
             $this->registerWooCommerceFilters();
         }
 
+        self::$registered = true;
+        
         Logger::debug('Compatibility filters registered', [
             'theme' => $this->detector->getCurrentTheme(),
             'builders' => $this->detector->getActivePageBuilders(),

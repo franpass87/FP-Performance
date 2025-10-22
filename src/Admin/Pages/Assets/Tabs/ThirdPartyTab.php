@@ -3,7 +3,6 @@
 namespace FP\PerfSuite\Admin\Pages\Assets\Tabs;
 
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
-use FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 
@@ -25,7 +24,6 @@ class ThirdPartyTab
 
         // Initialize services
         $thirdPartyScripts = new ThirdPartyScriptManager();
-        $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
         $http2Push = new Http2ServerPush();
         $smartDelivery = new SmartAssetDelivery();
 

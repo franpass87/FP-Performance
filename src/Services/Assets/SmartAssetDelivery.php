@@ -29,7 +29,7 @@ class SmartAssetDelivery
         }
 
         // Adatta immagini per connessione
-        if (!empty($settings['adapt_images'])) {
+        if (!empty($settings['adaptive_images'])) {
             add_filter('wp_get_attachment_image_src', [$this, 'adaptImageQuality'], 10, 4);
         }
 
@@ -40,16 +40,27 @@ class SmartAssetDelivery
     }
 
     /**
+     * Ottiene le impostazioni (alias per compatibilità)
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
+    }
+
+    /**
      * Ottiene le impostazioni
      */
     public function getSettings(): array
     {
         $defaults = [
             'enabled' => false,
-            'adapt_images' => true,
-            'adapt_videos' => false,
-            'slow_quality' => 60,
-            'fast_quality' => 85,
+            'detect_connection' => true,
+            'save_data_mode' => true,
+            'adaptive_images' => true,
+            'adaptive_videos' => false,
+            'quality_slow' => 60,
+            'quality_moderate' => 75,
+            'quality_fast' => 85,
         ];
 
         $options = get_option(self::OPTION_KEY, []);
@@ -139,8 +150,8 @@ class SmartAssetDelivery
         $settings = $this->getSettings();
         
         return $this->isSlowConnection() ? 
-            $settings['slow_quality'] : 
-            $settings['fast_quality'];
+            $settings['quality_slow'] : 
+            $settings['quality_fast'];
     }
 
     /**

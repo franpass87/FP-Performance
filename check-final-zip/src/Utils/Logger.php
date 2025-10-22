@@ -14,6 +14,12 @@ class Logger
 {
     private const PREFIX = '[FP-PerfSuite]';
     private const OPTION_LOG_LEVEL = 'fp_ps_log_level';
+    
+    /**
+     * Cache per evitare log ripetitivi
+     */
+    private static array $loggedMessages = [];
+    private static int $lastCleanup = 0;
 
     /**
      * Log levels
@@ -74,6 +80,11 @@ class Logger
     public static function debug(string $message, array $context = []): void
     {
         if (self::shouldLog(self::DEBUG)) {
+            // Evita log ripetitivi per messaggi di inizializzazione
+            if (self::isRepetitiveMessage($message)) {
+                return;
+            }
+            
             $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
             self::write(self::DEBUG, $message . $contextStr);
             do_action('fp_ps_log_debug', $message, $context);
@@ -106,6 +117,11 @@ class Logger
             return true;
         }
 
+        // Controllo per disabilitare completamente i log di debug in produzione
+        if ($level === self::DEBUG && defined('FP_PS_DISABLE_DEBUG_LOGS') && FP_PS_DISABLE_DEBUG_LOGS) {
+            return false;
+        }
+
         if (defined('WP_DEBUG') && WP_DEBUG) {
             return true;
         }
@@ -125,5 +141,45 @@ class Logger
     public static function setLevel(string $level): void
     {
         update_option(self::OPTION_LOG_LEVEL, $level);
+    }
+    
+    /**
+     * Verifica se un messaggio è ripetitivo e dovrebbe essere filtrato
+     */
+    private static function isRepetitiveMessage(string $message): bool
+    {
+        // Pulisci la cache ogni 5 minuti
+        $now = time();
+        if ($now - self::$lastCleanup > 300) {
+            self::$loggedMessages = [];
+            self::$lastCleanup = $now;
+        }
+        
+        // Messaggi di inizializzazione che si ripetono spesso
+        $repetitivePatterns = [
+            'Theme compatibility initialized',
+            'Compatibility filters registered', 
+            'Predictive Prefetching registered',
+            'Cache file count refreshed',
+            'Auto-purge hooks registered',
+            'Output buffering started for page cache',
+        ];
+        
+        foreach ($repetitivePatterns as $pattern) {
+            if (strpos($message, $pattern) !== false) {
+                $key = md5($message);
+                
+                // Se già loggato negli ultimi 5 minuti, salta
+                if (isset(self::$loggedMessages[$key])) {
+                    return true;
+                }
+                
+                // Marca come loggato
+                self::$loggedMessages[$key] = $now;
+                return false;
+            }
+        }
+        
+        return false;
     }
 }

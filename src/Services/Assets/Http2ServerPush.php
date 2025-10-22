@@ -37,16 +37,26 @@ class Http2ServerPush
     }
 
     /**
+     * Ottiene le impostazioni (alias per compatibilità)
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
+    }
+
+    /**
      * Ottiene le impostazioni
      */
     public function getSettings(): array
     {
         $defaults = [
             'enabled' => false,
-            'push_critical_css' => true,
-            'push_critical_js' => true,
+            'push_css' => true,
+            'push_js' => true,
             'push_fonts' => true,
-            'max_push_assets' => 10,
+            'push_images' => false,
+            'max_resources' => 10,
+            'critical_only' => true,
             'custom_assets' => [],
         ];
 
@@ -101,7 +111,7 @@ class Http2ServerPush
         $assets = $this->getAssetsToPush();
 
         // Limita numero asset
-        $assets = array_slice($assets, 0, $settings['max_push_assets']);
+        $assets = array_slice($assets, 0, $settings['max_resources']);
 
         foreach ($assets as $asset) {
             $this->pushAsset($asset);
@@ -119,12 +129,12 @@ class Http2ServerPush
         $assets = [];
 
         // CSS critici
-        if ($settings['push_critical_css']) {
+        if ($settings['push_css']) {
             $assets = array_merge($assets, $this->getCriticalCss());
         }
 
         // JS critici
-        if ($settings['push_critical_js']) {
+        if ($settings['push_js']) {
             $assets = array_merge($assets, $this->getCriticalJs());
         }
 
