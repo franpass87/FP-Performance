@@ -13,6 +13,8 @@ use FP\PerfSuite\Admin\Pages\Exclusions;
 use FP\PerfSuite\Admin\Pages\Cdn;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
+use FP\PerfSuite\Admin\Pages\Mobile;
+use FP\PerfSuite\Admin\Pages\ML;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Security;
@@ -303,6 +305,7 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Mobile', 'fp-performance-suite'), __('📱 Mobile', 'fp-performance-suite'), $capability, 'fp-performance-suite-mobile', [$pages['mobile'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🌐 CDN
@@ -318,6 +321,7 @@ class Menu
         // 🧠 INTELLIGENCE & AUTO-DETECTION
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🧠 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 ML', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 📊 MONITORING & DIAGNOSTICS
@@ -379,11 +383,13 @@ class Menu
             'cache' => new Cache($this->container),
             'assets' => new Assets($this->container),
             'media' => new Media($this->container),
+            'mobile' => new Mobile($this->container),
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
             'cdn' => new Cdn($this->container),
             'ai_config' => new AIConfig($this->container),
+            'ml' => new ML($this->container),
             'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
             'settings' => new Settings($this->container),
