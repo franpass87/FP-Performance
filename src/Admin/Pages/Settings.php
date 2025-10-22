@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -54,6 +55,11 @@ use const FILTER_VALIDATE_INT;
  */
 class Settings extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-settings';

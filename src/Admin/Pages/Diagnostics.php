@@ -11,6 +11,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\InstallationRecovery;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\Htaccess;
@@ -39,6 +40,11 @@ use function size_format;
 class Diagnostics extends AbstractPage
 {
     private array $notices = [];
+
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
 
     public function slug(): string
     {

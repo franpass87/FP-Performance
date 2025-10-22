@@ -14,10 +14,16 @@ use function wp_unslash;
 use function wp_verify_nonce;
 use function date_i18n;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
 class Exclusions extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-exclusions';

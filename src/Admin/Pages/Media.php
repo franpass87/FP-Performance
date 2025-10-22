@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
@@ -25,6 +26,11 @@ use function admin_url;
 class Media extends AbstractPage
 {
     private ?ResponsiveImageOptimizer $responsiveOptimizer = null;
+
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
 
     public function slug(): string
     {

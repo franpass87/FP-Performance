@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
 
 use function __;
@@ -24,6 +25,11 @@ use function admin_url;
 
 class Security extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-security';

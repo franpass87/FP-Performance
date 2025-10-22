@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\AI\Analyzer;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 
@@ -22,6 +23,11 @@ use function update_option;
  */
 class AIConfig extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-ai-config';

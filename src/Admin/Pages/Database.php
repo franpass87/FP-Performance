@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
 use FP\PerfSuite\Services\DB\DatabaseOptimizer;
@@ -28,6 +29,11 @@ use function wp_verify_nonce;
 
 class Database extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-database';

@@ -19,6 +19,11 @@ use function wp_unslash;
 
 class Cache extends AbstractPage
 {
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
     public function slug(): string
     {
         return 'fp-performance-suite-cache';

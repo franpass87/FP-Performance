@@ -18,6 +18,10 @@ use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
 use FP\PerfSuite\Admin\Pages\Assets\Handlers\PostHandler;
+use FP\PerfSuite\Admin\Pages\Assets\Tabs\JavaScriptTab;
+use FP\PerfSuite\Admin\Pages\Assets\Tabs\CssTab;
+use FP\PerfSuite\Admin\Pages\Assets\Tabs\FontsTab;
+use FP\PerfSuite\Admin\Pages\Assets\Tabs\ThirdPartyTab;
 
 use function __;
 use function esc_attr;
@@ -191,10 +195,10 @@ class Assets extends AbstractPage
     private function initializeTabs(): void
     {
         $this->tabs = [
-            'javascript' => new Tabs\JavaScriptTab(),
-            'css' => new Tabs\CssTab(),
-            'fonts' => new Tabs\FontsTab(),
-            'thirdparty' => new Tabs\ThirdPartyTab(),
+            'javascript' => new JavaScriptTab(),
+            'css' => new CssTab(),
+            'fonts' => new FontsTab(),
+            'thirdparty' => new ThirdPartyTab(),
         ];
     }
 }
