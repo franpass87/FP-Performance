@@ -242,6 +242,91 @@ class ThemeDetector
 
         return $this->isAnyTheme($ecommerceThemes);
     }
+    
+    /**
+     * Verifica se il tema è Salient
+     * Aggiunto per compatibilità con ThemeHints (21 Ott 2025)
+     */
+    public function isSalient(): bool
+    {
+        return $this->isTheme('salient');
+    }
+    
+    /**
+     * Ottiene configurazione raccomandata basata sul tema
+     * Aggiunto per compatibilità con ThemeHints (21 Ott 2025)
+     */
+    public function getRecommendedConfig(): array
+    {
+        $theme = $this->getCurrentTheme();
+        $builders = $this->getActivePageBuilders();
+        $builderName = !empty($builders) ? ucfirst($builders[0]) : 'None';
+        
+        return [
+            'theme' => [
+                'name' => $this->getThemeName(),
+                'slug' => $theme,
+            ],
+            'page_builder' => [
+                'name' => $builderName,
+                'slug' => $builders[0] ?? 'none',
+            ],
+            'recommendations' => $this->getThemeRecommendations($theme),
+        ];
+    }
+    
+    /**
+     * Ottiene raccomandazioni specifiche per tema
+     * Aggiunto per supporto ThemeHints (21 Ott 2025)
+     */
+    private function getThemeRecommendations(string $theme): array
+    {
+        $recommendations = [];
+        
+        // Raccomandazioni per Salient
+        if ($theme === 'salient') {
+            $recommendations = [
+                'object_cache' => [
+                    'enabled' => true,
+                    'priority' => 'high',
+                    'reason' => 'Salient beneficia molto della cache oggetti per le animazioni',
+                ],
+                'lazy_load' => [
+                    'enabled' => true,
+                    'priority' => 'high',
+                    'reason' => 'Salient carica molte immagini, lazy load essenziale',
+                ],
+                'third_party_scripts' => [
+                    'enabled' => true,
+                    'priority' => 'medium',
+                    'reason' => 'Salient usa script terze parti per animazioni',
+                ],
+                'critical_css' => [
+                    'enabled' => true,
+                    'priority' => 'high',
+                    'reason' => 'Critical CSS migliora il First Contentful Paint',
+                ],
+            ];
+        }
+        
+        // Raccomandazioni per temi lightweight
+        if (in_array($theme, ['astra', 'generatepress', 'kadence'], true)) {
+            $recommendations = [
+                'object_cache' => [
+                    'enabled' => false,
+                    'priority' => 'low',
+                    'reason' => 'Tema già ottimizzato, object cache potrebbe essere superfluo',
+                ],
+                'lazy_load' => [
+                    'enabled' => true,
+                    'priority' => 'medium',
+                    'reason' => 'Sempre utile per le immagini',
+                ],
+            ];
+        }
+        
+        return $recommendations;
+    }
 
     /**
      * Ottiene scripts critici del tema/builder

@@ -51,6 +51,7 @@ class Menu
         add_action('admin_notices', [$this, 'showActivationErrors']);
         add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
         add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
+        add_action('wp_ajax_fp_ps_apply_recommendation', [$this, 'applyRecommendation']);
         
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
@@ -388,6 +389,120 @@ class Menu
     {
         $jsOptimizationPage = new JavaScriptOptimization($this->container);
         $jsOptimizationPage->handleSave();
+    }
+
+    /**
+     * Handler per l'applicazione delle raccomandazioni via AJAX
+     */
+    public function applyRecommendation(): void
+    {
+        // SICUREZZA: Sanitizza il nonce PRIMA di verificarlo
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'fp_ps_apply_recommendation')) {
+            wp_send_json_error(['message' => __('Nonce non valido', 'fp-performance-suite')]);
+            return;
+        }
+
+        // Verifica i permessi
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Permessi insufficienti', 'fp-performance-suite')]);
+            return;
+        }
+
+        $actionId = isset($_POST['action_id']) ? sanitize_text_field($_POST['action_id']) : '';
+        
+        if (empty($actionId)) {
+            wp_send_json_error(['message' => __('ID azione non specificato', 'fp-performance-suite')]);
+            return;
+        }
+
+        // Applica la raccomandazione in base all'action_id
+        try {
+            $result = $this->executeRecommendation($actionId);
+            
+            if ($result['success']) {
+                wp_send_json_success([
+                    'message' => $result['message'] ?? __('Raccomandazione applicata con successo', 'fp-performance-suite')
+                ]);
+            } else {
+                wp_send_json_error([
+                    'message' => $result['message'] ?? __('Errore durante l\'applicazione della raccomandazione', 'fp-performance-suite')
+                ]);
+            }
+        } catch (\Throwable $e) {
+            wp_send_json_error([
+                'message' => sprintf(__('Errore: %s', 'fp-performance-suite'), $e->getMessage())
+            ]);
+        }
+    }
+
+    /**
+     * Esegue una raccomandazione specifica
+     * 
+     * @param string $actionId ID dell'azione da eseguire
+     * @return array{success: bool, message: string}
+     */
+    private function executeRecommendation(string $actionId): array
+    {
+        switch ($actionId) {
+            case 'enable_page_cache':
+                $pageCache = $this->container->get(\FP\PerfSuite\Services\Cache\PageCache::class);
+                $pageCache->update(['enabled' => true, 'ttl' => 3600]);
+                return ['success' => true, 'message' => __('Cache delle pagine attivata con TTL di 3600 secondi', 'fp-performance-suite')];
+                
+            case 'enable_browser_cache':
+                $headers = $this->container->get(\FP\PerfSuite\Services\Cache\Headers::class);
+                $headers->update(['enabled' => true]);
+                return ['success' => true, 'message' => __('Headers di cache del browser attivati', 'fp-performance-suite')];
+                
+            case 'enable_minify_html':
+                $optimizer = $this->container->get(\FP\PerfSuite\Services\Assets\Optimizer::class);
+                $settings = $optimizer->settings();
+                $settings['minify_html'] = true;
+                $optimizer->update($settings);
+                return ['success' => true, 'message' => __('Minificazione HTML attivata', 'fp-performance-suite')];
+                
+            case 'enable_defer_js':
+                $optimizer = $this->container->get(\FP\PerfSuite\Services\Assets\Optimizer::class);
+                $settings = $optimizer->settings();
+                $settings['defer_js'] = true;
+                $optimizer->update($settings);
+                return ['success' => true, 'message' => __('Defer JavaScript attivato', 'fp-performance-suite')];
+                
+            case 'enable_remove_emojis':
+                $optimizer = $this->container->get(\FP\PerfSuite\Services\Assets\Optimizer::class);
+                $settings = $optimizer->settings();
+                $settings['remove_emojis'] = true;
+                $optimizer->update($settings);
+                return ['success' => true, 'message' => __('Rimozione script emoji attivata', 'fp-performance-suite')];
+                
+            case 'optimize_heartbeat':
+                $optimizer = $this->container->get(\FP\PerfSuite\Services\Assets\Optimizer::class);
+                $settings = $optimizer->settings();
+                $settings['heartbeat_admin'] = 120;
+                $optimizer->update($settings);
+                return ['success' => true, 'message' => __('Heartbeat API ottimizzato a 120 secondi', 'fp-performance-suite')];
+                
+            case 'optimize_database':
+                // Esegui ottimizzazione database
+                $cleaner = $this->container->get(\FP\PerfSuite\Services\DB\Cleaner::class);
+                $result = $cleaner->cleanup(['optimize_tables'], false, 200);
+                return ['success' => true, 'message' => __('Tabelle database ottimizzate', 'fp-performance-suite')];
+                
+            case 'cleanup_transients':
+                $cleaner = $this->container->get(\FP\PerfSuite\Services\DB\Cleaner::class);
+                $result = $cleaner->cleanup(['expired_transients'], false, 500);
+                return ['success' => true, 'message' => __('Transient scaduti rimossi', 'fp-performance-suite')];
+                
+            case 'enable_webp':
+                $webp = $this->container->get(\FP\PerfSuite\Services\Media\WebPConverter::class);
+                $webp->update(['enabled' => true]);
+                return ['success' => true, 'message' => __('Conversione WebP attivata', 'fp-performance-suite')];
+                
+            default:
+                return ['success' => false, 'message' => sprintf(__('Azione non riconosciuta: %s', 'fp-performance-suite'), $actionId)];
+        }
     }
 
     /**

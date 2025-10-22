@@ -165,65 +165,169 @@ class LighthouseFontOptimization
                     <tr>
                         <th scope="row"><?php esc_html_e('Abilita Ottimizzazione Lighthouse', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> />
-                                <?php esc_html_e('Attiva le ottimizzazioni specifiche per i font identificati nel report Lighthouse', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Attiva le ottimizzazioni specifiche per i font identificati nel report Lighthouse', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator green">
+                                        <div class="fp-ps-risk-tooltip green">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">✓</span>
+                                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Applica automaticamente font-display: swap e preload ai font problematici identificati da Lighthouse.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Elimina render blocking dei font, migliora LCP e FCP, riduce il delay visivo del testo.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Risolve direttamente i problemi identificati da Google Lighthouse. Safe e efficace.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <small><?php esc_html_e('Applica font-display: swap e preload per i font problematici identificati nell\'audit.', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="green" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Applica font-display: swap e preload per i font problematici identificati nell\'audit.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
 
                     <tr>
                         <th scope="row"><?php esc_html_e('Preload Font Critici', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="preload_critical_fonts" value="1" <?php checked($settings['preload_critical_fonts']); ?> />
-                                <?php esc_html_e('Precarica i font critici identificati nel report Lighthouse', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Precarica i font critici identificati nel report Lighthouse', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator green">
+                                        <div class="fp-ps-risk-tooltip green">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">✓</span>
+                                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Aggiunge tag <link rel="preload"> per i font critici, caricandoli con priorità alta.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce drasticamente il render delay dei font. Caricamento anticipato, migliore FCP e LCP.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Best practice moderna. Preloda solo font critici (max 2-3) per evitare overhead.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <small><?php esc_html_e('Riduce il tempo di caricamento dei font critici con fetchpriority="high".', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="preload_critical_fonts" value="1" <?php checked($settings['preload_critical_fonts']); ?> data-risk="green" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Riduce il tempo di caricamento dei font critici con fetchpriority="high".', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
 
                     <tr>
                         <th scope="row"><?php esc_html_e('Iniezione Font Display CSS', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="inject_font_display" value="1" <?php checked($settings['inject_font_display']); ?> />
-                                <?php esc_html_e('Inietta font-display: swap nel CSS per evitare FOIT/FOUT', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Inietta font-display: swap nel CSS per evitare FOIT/FOUT', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator green">
+                                        <div class="fp-ps-risk-tooltip green">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">✓</span>
+                                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Modifica il CSS dei font per aggiungere font-display: swap, mostrando testo subito con font di sistema.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Evita testo invisibile (FOIT). Il testo è visibile immediatamente, poi viene sostituito col font custom.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Migliora drasticamente la percezione di velocità. Piccolo flash di testo accettabile.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <small><?php esc_html_e('Aggiunge automaticamente font-display: swap ai font problematici.', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="inject_font_display" value="1" <?php checked($settings['inject_font_display']); ?> data-risk="green" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Aggiunge automaticamente font-display: swap ai font problematici.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
 
                     <tr>
                         <th scope="row"><?php esc_html_e('Preconnect Provider Font', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="preconnect_providers" value="1" <?php checked($settings['preconnect_providers']); ?> />
-                                <?php esc_html_e('Aggiungi preconnect ai provider dei font problematici', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Aggiungi preconnect ai provider dei font problematici', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator green">
+                                        <div class="fp-ps-risk-tooltip green">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">✓</span>
+                                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Stabilisce connessioni anticipate (DNS, TCP, TLS) ai provider di font esterni come Google Fonts.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Risparmia 200-500ms riducendo la latenza di connessione. Essenziale per font da CDN esterni.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato per Google Fonts: Zero rischi, benefici immediati. Best practice certificata.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <small><?php esc_html_e('Migliora la velocità di connessione ai provider di font esterni.', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="preconnect_providers" value="1" <?php checked($settings['preconnect_providers']); ?> data-risk="green" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Migliora la velocità di connessione ai provider di font esterni.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
 
                     <tr>
                         <th scope="row"><?php esc_html_e('Ottimizzazione Font del Sito', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="optimize_site_fonts" value="1" <?php checked($settings['optimize_site_fonts']); ?> />
-                                <?php esc_html_e('Ottimizza i font locali del sito', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Ottimizza i font locali del sito', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator amber">
+                                        <div class="fp-ps-risk-tooltip amber">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">⚠</span>
+                                                <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Applica ottimizzazioni ai font caricati localmente dal tema (non esterni). Include subsetting e format moderni.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce dimensione font locali del 30-70%, migliora caricamento testo, ottimizza font del tema.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Potrebbe interferire con font custom del tema. Alcuni caratteri speciali potrebbero mancare se subsetting troppo aggressivo.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Testa prima su staging: Verifica che tutti i caratteri siano visibili. Ottimo per performance ma richiede controllo.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                    <small><?php esc_html_e('Applica ottimizzazioni specifiche ai font caricati dal tema del sito.', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="optimize_site_fonts" value="1" <?php checked($settings['optimize_site_fonts']); ?> data-risk="amber" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Applica ottimizzazioni specifiche ai font caricati dal tema del sito.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                 </table>

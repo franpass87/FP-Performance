@@ -1034,12 +1034,30 @@ class Assets extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable critical assets preloading', 'fp-performance-suite'); ?></strong>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Precarica automaticamente le risorse critiche (CSS, font, immagini above-the-fold) con priorità alta.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce LCP e FCP del 20-40%, elimina render delay per risorse critiche, migliora drasticamente la percezione di velocità.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Usa Auto-Detect per identificare asset critici. Preloda solo 2-4 risorse realmente critiche per evitare overhead.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                        <small><?php esc_html_e('Preload the most important assets to improve initial page load time.', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="preload_critical_assets" value="1" <?php checked($settings['preload_critical_assets'] ?? false); ?> />
+                    <input type="checkbox" name="preload_critical_assets" value="1" <?php checked($settings['preload_critical_assets'] ?? false); ?> data-risk="green" />
                 </label>
-                <p class="description" style="margin-left: 30px;">
-                    <?php esc_html_e('Preload the most important assets to improve initial page load time.', 'fp-performance-suite'); ?>
-                </p>
                 
                 <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
                     <h4 style="margin-top: 0; color: #0969da;">🤖 <?php esc_html_e('Smart Asset Detection', 'fp-performance-suite'); ?></h4>

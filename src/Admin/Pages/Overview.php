@@ -138,12 +138,80 @@ class Overview extends AbstractPage
                     <?php echo esc_html($activeLabel); ?>
                 </div>
                 <div class="fp-ps-actions fp-ps-text-center">
-                    <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-presets')); ?>">
+                    <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-ai-config')); ?>">
                         <?php esc_html_e('Cambia Preset', 'fp-performance-suite'); ?>
                     </a>
                 </div>
             </div>
         </section>
+
+        <!-- Quick Wins: Azioni Immediate Consigliate -->
+        <?php 
+        $quickWins = [];
+        
+        // Raccogli le top 3 azioni con massima priorità
+        $allIssues = array_merge(
+            array_map(function($issue) { $issue['type'] = 'critical'; return $issue; }, $analysis['critical'] ?? []),
+            array_map(function($issue) { $issue['type'] = 'warning'; return $issue; }, $analysis['warnings'] ?? []),
+            array_map(function($issue) { $issue['type'] = 'recommendation'; return $issue; }, $analysis['recommendations'] ?? [])
+        );
+        
+        // Filtra solo quelli con action_id
+        $actionableIssues = array_filter($allIssues, function($issue) {
+            return !empty($issue['action_id']);
+        });
+        
+        // Ordina per priorità
+        usort($actionableIssues, function($a, $b) {
+            return $b['priority'] - $a['priority'];
+        });
+        
+        $quickWins = array_slice($actionableIssues, 0, 3);
+        
+        if (!empty($quickWins)) : 
+        ?>
+        <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; margin-bottom: 30px;">
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                <div style="font-size: 48px;">⚡</div>
+                <div>
+                    <h2 style="color: white; margin: 0; font-size: 24px;">
+                        <?php esc_html_e('Quick Wins - Azioni Immediate', 'fp-performance-suite'); ?>
+                    </h2>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                        <?php esc_html_e('Applica questi miglioramenti con un click per ottenere risultati immediati', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="fp-ps-grid three" style="gap: 15px;">
+                <?php foreach ($quickWins as $index => $win) : 
+                    $iconMap = [
+                        'critical' => '🚨',
+                        'warning' => '⚠️',
+                        'recommendation' => '💡'
+                    ];
+                    $icon = $iconMap[$win['type']] ?? '⚡';
+                ?>
+                <div style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 20px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;"><?php echo $icon; ?></div>
+                    <h3 style="color: white; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                        <?php echo esc_html($win['issue']); ?>
+                    </h3>
+                    <p style="margin: 0 0 15px 0; font-size: 13px; opacity: 0.9; line-height: 1.5;">
+                        <?php echo esc_html($win['impact']); ?>
+                    </p>
+                    <button 
+                        type="button" 
+                        class="button button-primary fp-ps-apply-recommendation" 
+                        data-action-id="<?php echo esc_attr($win['action_id']); ?>"
+                        style="background: white; color: #667eea; border: none; font-weight: 600; width: 100%; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                        ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
 
         <!-- Metriche di Performance in Tempo Reale -->
         <section class="fp-ps-grid three">

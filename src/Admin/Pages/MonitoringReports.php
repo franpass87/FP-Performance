@@ -235,30 +235,47 @@ class MonitoringReports extends AbstractPage
             <?php endif; ?>
             
             <?php if (!empty($summary)): ?>
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <div class="fp-ps-mb-lg">
                 <h4 style="margin-top: 0;"><?php esc_html_e('Metriche Ultimi 7 Giorni', 'fp-performance-suite'); ?></h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-                    <?php foreach ($summary as $metricName => $data): ?>
-                    <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;"><?php echo esc_html($metricName); ?></div>
-                        <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                <section class="fp-ps-grid three">
+                    <?php foreach ($summary as $metricName => $data): 
+                        // Determina il rating in base al metricName e p75
+                        $rating = 'success';
+                        if ($metricName === 'LCP') {
+                            $rating = $data['p75'] < 2500 ? 'success' : ($data['p75'] < 4000 ? 'warning' : 'danger');
+                        } elseif ($metricName === 'FID') {
+                            $rating = $data['p75'] < 100 ? 'success' : ($data['p75'] < 300 ? 'warning' : 'danger');
+                        } elseif ($metricName === 'CLS') {
+                            $rating = $data['p75'] < 0.1 ? 'success' : ($data['p75'] < 0.25 ? 'warning' : 'danger');
+                        } elseif ($metricName === 'FCP') {
+                            $rating = $data['p75'] < 1800 ? 'success' : ($data['p75'] < 3000 ? 'warning' : 'danger');
+                        } elseif ($metricName === 'TTFB') {
+                            $rating = $data['p75'] < 800 ? 'success' : ($data['p75'] < 1800 ? 'warning' : 'danger');
+                        }
+                    ?>
+                    <div class="fp-ps-stat-box">
+                        <div class="stat-value <?php echo esc_attr($rating); ?>">
                             <?php 
                             if ($metricName === 'CLS') {
                                 echo number_format($data['p75'], 3);
                             } else {
                                 echo number_format($data['p75']);
                             }
+                            if (in_array($metricName, ['LCP', 'FID', 'FCP', 'TTFB'])) {
+                                echo '<span class="fp-ps-text-md">ms</span>';
+                            }
                             ?>
                         </div>
-                        <div style="font-size: 11px; color: #999;">
+                        <div class="stat-label"><?php echo esc_html($metricName); ?></div>
+                        <p class="description fp-ps-mt-sm">
                             <?php printf(
-                                esc_html__('p75 • %d campioni', 'fp-performance-suite'),
-                                $data['count']
+                                esc_html__('p75 • %s campioni', 'fp-performance-suite'),
+                                number_format($data['count'])
                             ); ?>
-                        </div>
+                        </p>
                     </div>
                     <?php endforeach; ?>
-                </div>
+                </section>
             </div>
             <?php endif; ?>
             

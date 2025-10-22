@@ -333,6 +333,7 @@ class Database extends AbstractPage
             </h2>
             <p class="description"><?php esc_html_e('Monitora le query database in tempo reale e identifica colli di bottiglia.', 'fp-performance-suite'); ?></p>
             
+            <?php if ($queryMonitor) : ?>
             <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
                 <input type="hidden" name="enable_query_monitor" value="1" />
@@ -351,6 +352,11 @@ class Database extends AbstractPage
                     <button type="submit" class="button button-secondary"><?php esc_html_e('Salva Impostazioni', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
+            <?php else : ?>
+                <div class="notice notice-warning inline">
+                    <p><?php esc_html_e('Il servizio Query Monitor non è disponibile. Assicurati che il file DatabaseQueryMonitor.php sia presente.', 'fp-performance-suite'); ?></p>
+                </div>
+            <?php endif; ?>
             
             <?php if ($queryAnalysis && !empty($queryAnalysis['statistics'])) : ?>
                 <div style="margin-top: 20px;">

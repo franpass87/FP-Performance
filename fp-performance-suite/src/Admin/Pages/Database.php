@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function array_map;
@@ -35,7 +36,7 @@ class Database extends AbstractPage
 
     public function title(): string
     {
-        return __('Database Optimization', 'fp-performance-suite');
+        return __('Ottimizzazione Database', 'fp-performance-suite');
     }
 
     public function capability(): string
@@ -52,7 +53,7 @@ class Database extends AbstractPage
     {
         return [
             'title' => $this->title(),
-            'breadcrumbs' => [__('Optimization', 'fp-performance-suite'), __('Database', 'fp-performance-suite')],
+            'breadcrumbs' => [__('Ottimizzazione', 'fp-performance-suite'), __('Database', 'fp-performance-suite')],
         ];
     }
 
@@ -86,17 +87,17 @@ class Database extends AbstractPage
                     'schedule' => sanitize_text_field($_POST['schedule'] ?? 'manual'),
                     'batch' => (int) ($_POST['batch'] ?? 200),
                 ]);
-                $message = __('Database settings updated.', 'fp-performance-suite');
+                $message = __('Impostazioni database aggiornate.', 'fp-performance-suite');
             }
             if (isset($_POST['run_cleanup'])) {
                 $scope = array_map('sanitize_text_field', (array) ($_POST['cleanup_scope'] ?? []));
                 $dry = !empty($_POST['dry_run']);
                 $results = $cleaner->cleanup($scope, $dry, (int) ($_POST['batch'] ?? 200));
-                $message = $dry ? __('Dry run completed.', 'fp-performance-suite') : __('Cleanup completed.', 'fp-performance-suite');
+                $message = $dry ? __('Simulazione completata.', 'fp-performance-suite') : __('Pulizia completata.', 'fp-performance-suite');
             }
             if (isset($_POST['enable_query_monitor']) && $queryMonitor) {
                 $queryMonitor->updateSettings(['enabled' => !empty($_POST['query_monitor_enabled'])]);
-                $message = __('Query Monitor settings updated.', 'fp-performance-suite');
+                $message = __('Impostazioni monitoraggio query aggiornate.', 'fp-performance-suite');
             }
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
@@ -196,112 +197,17 @@ class Database extends AbstractPage
         $healthScore = $reportService ? $reportService->getHealthScore() : ['score' => 0, 'grade' => 'N/A', 'status' => 'unknown', 'issues' => [], 'recommendations' => []];
         $trends = $reportService ? $reportService->analyzeTrends() : ['status' => 'insufficient_data'];
         
-        // Tab corrente
-        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'operations';
-        $valid_tabs = ['operations', 'analysis', 'reports'];
-        if (!in_array($current_tab, $valid_tabs, true)) {
-            $current_tab = 'operations';
-        }
+        // Tab system
+        $validTabs = ['operations', 'analysis', 'reports'];
+        $currentTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) 
+            ? sanitize_key($_GET['tab']) 
+            : 'operations';
         
-        // Mantieni il tab dopo il POST
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
-            $current_tab = sanitize_key($_POST['current_tab']);
-        }
-
         ob_start();
         ?>
-        
-        <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                💾 Ottimizzazione Database
-            </h2>
-            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
-                <?php esc_html_e('Il database è il cuore del tuo WordPress. Queste operazioni lo mantengono veloce, leggero e ottimizzato.', 'fp-performance-suite'); ?>
-            </p>
-            
-            <div class="fp-ps-grid three" style="gap: 20px;">
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🧹</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Pulizia', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Rimuove dati obsoleti come revisioni, bozze automatiche, spam e transient scaduti', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Ottimizzazione', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Riorganizza tabelle, converte a InnoDB, aggiunge indici e recupera spazio sprecato', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">📊</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Monitoraggio', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Analizza query lente, identifica problemi e fornisce raccomandazioni proattive', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Alert Sicurezza -->
-        <div class="notice notice-info inline" style="margin-bottom: 25px; border-left-color: #10b981;">
-            <p style="margin: 0.5em 0;">
-                <strong>🛡️ <?php esc_html_e('Sicurezza Garantita:', 'fp-performance-suite'); ?></strong> 
-                <?php esc_html_e('Viene creato automaticamente un backup completo prima di ogni operazione critica.', 'fp-performance-suite'); ?>
-                <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-logs'); ?>" style="text-decoration: none;">
-                    <?php esc_html_e('Visualizza log operazioni →', 'fp-performance-suite'); ?>
-                </a>
-            </p>
-        </div>
-        
-        <!-- Navigazione Tabs -->
-        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
-            <a href="?page=fp-performance-suite-database&tab=operations" 
-               class="nav-tab <?php echo $current_tab === 'operations' ? 'nav-tab-active' : ''; ?>">
-                🔧 <?php esc_html_e('Operations & Cleanup', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=fp-performance-suite-database&tab=analysis" 
-               class="nav-tab <?php echo $current_tab === 'analysis' ? 'nav-tab-active' : ''; ?>">
-                📊 <?php esc_html_e('Advanced Analysis', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=fp-performance-suite-database&tab=reports" 
-               class="nav-tab <?php echo $current_tab === 'reports' ? 'nav-tab-active' : ''; ?>">
-                📈 <?php esc_html_e('Reports & Plugins', 'fp-performance-suite'); ?>
-            </a>
-        </div>
-
-        <!-- Tab Description -->
-        <?php if ($current_tab === 'operations') : ?>
-            <div class="fp-ps-tab-description success">
-                <p>
-                    <strong>🔧 Operations:</strong> 
-                    <?php esc_html_e('Esegui pulizia database, configura scheduler automatico e monitora le query per identificare colli di bottiglia.', 'fp-performance-suite'); ?>
-                </p>
-            </div>
-        <?php elseif ($current_tab === 'analysis') : ?>
-            <div class="fp-ps-tab-description info">
-                <p>
-                    <strong>📊 Analysis:</strong> 
-                    <?php esc_html_e('Analisi approfondita del database: Health Score, frammentazione, indici mancanti, storage engines e object caching.', 'fp-performance-suite'); ?>
-                </p>
-            </div>
-        <?php elseif ($current_tab === 'reports') : ?>
-            <div class="fp-ps-tab-description info">
-                <p>
-                    <strong>📈 Reports & Plugins:</strong> 
-                    <?php esc_html_e('Report e trend di crescita database, pulizie specifiche per WooCommerce, Elementor e altri plugin.', 'fp-performance-suite'); ?>
-                </p>
-            </div>
-        <?php endif; ?>
-
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
-        
-        <!-- TAB: Operations & Cleanup -->
-        <div class="fp-ps-tab-content" data-tab="operations" style="display: <?php echo $current_tab === 'operations' ? 'block' : 'none'; ?>;">
         
         <?php if (!$optimizer || !$reportService || !$pluginOptimizer) : ?>
             <div class="notice notice-warning">
@@ -325,18 +231,34 @@ class Database extends AbstractPage
             </div>
         <?php endif; ?>
         
+        <!-- Tab Navigation -->
+        <nav class="nav-tab-wrapper wp-clearfix" style="margin-bottom: 20px;">
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=operations" 
+               class="nav-tab <?php echo $currentTab === 'operations' ? 'nav-tab-active' : ''; ?>">
+                🔧 <?php esc_html_e('Operations & Cleanup', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=analysis" 
+               class="nav-tab <?php echo $currentTab === 'analysis' ? 'nav-tab-active' : ''; ?>">
+                📊 <?php esc_html_e('Advanced Analysis', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=<?php echo esc_attr($this->slug()); ?>&tab=reports" 
+               class="nav-tab <?php echo $currentTab === 'reports' ? 'nav-tab-active' : ''; ?>">
+                📈 <?php esc_html_e('Reports & Plugins', 'fp-performance-suite'); ?>
+            </a>
+        </nav>
+        
+        <!-- Tab: Operations & Cleanup -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'operations' ? 'display:none;' : ''; ?>">
+        
         <!-- Query Monitor Section -->
         <section class="fp-ps-card">
-            <h2>
-                <?php esc_html_e('Database Query Monitor', 'fp-performance-suite'); ?>
-                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 8px; font-size: 18px;" title="<?php esc_attr_e('Query Monitor: strumento che registra tutte le query SQL eseguite dal sito per identificare query lente o duplicate che rallentano il caricamento.', 'fp-performance-suite'); ?>">ℹ️</span>
-            </h2>
+            <h2><?php esc_html_e('Database Query Monitor', 'fp-performance-suite'); ?></h2>
             <p class="description"><?php esc_html_e('Monitora le query database in tempo reale e identifica colli di bottiglia.', 'fp-performance-suite'); ?></p>
             
-            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
+            <form method="post">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="enable_query_monitor" value="1" />
-                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 
                 <?php $querySettings = $queryMonitor->getSettings(); ?>
                 <label class="fp-ps-toggle">
@@ -398,10 +320,7 @@ class Database extends AbstractPage
         
         <!-- Object Cache Section -->
         <section class="fp-ps-card">
-            <h2>
-                <?php esc_html_e('Object Caching', 'fp-performance-suite'); ?>
-                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 8px; font-size: 18px;" title="<?php esc_attr_e('Object Cache: sistema che memorizza in RAM (Redis/Memcached) i risultati delle query database per evitare di rieseguirle. Riduce il carico DB del 50-80%.', 'fp-performance-suite'); ?>">ℹ️</span>
-            </h2>
+            <h2><?php esc_html_e('Object Caching', 'fp-performance-suite'); ?></h2>
             <p class="description"><?php esc_html_e('L\'object caching riduce drasticamente il numero di query database memorizzando i risultati in memoria.', 'fp-performance-suite'); ?></p>
             
             <?php if ($cacheInfo['available']) : ?>
@@ -440,6 +359,7 @@ class Database extends AbstractPage
                         
                         <form method="post" style="margin-top: 15px;">
                             <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                            <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                             <input type="hidden" name="disable_object_cache" value="1" />
                             <button type="submit" class="button button-secondary"><?php esc_html_e('Disattiva Object Cache', 'fp-performance-suite'); ?></button>
                         </form>
@@ -448,6 +368,7 @@ class Database extends AbstractPage
                         
                         <form method="post" style="margin-top: 15px;">
                             <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                            <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                             <input type="hidden" name="enable_object_cache" value="1" />
                             <button type="submit" class="button button-primary"><?php esc_html_e('Attiva Object Cache', 'fp-performance-suite'); ?></button>
                         </form>
@@ -464,9 +385,10 @@ class Database extends AbstractPage
             <?php endif; ?>
         </section>
         
-        <!-- Close TAB: Operations, Open TAB: Analysis -->
-        </div>
-        <div class="fp-ps-tab-content" data-tab="analysis" style="display: <?php echo $current_tab === 'analysis' ? 'block' : 'none'; ?>;">
+        </div><!-- End Tab: Operations & Cleanup -->
+        
+        <!-- Tab: Advanced Analysis -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'analysis' ? 'display:none;' : ''; ?>">
         
         <!-- Database Optimizer Section -->
         <section class="fp-ps-card">
@@ -482,10 +404,7 @@ class Database extends AbstractPage
                     <?php if ($dbAnalysis['table_analysis']['total_overhead_mb'] > 0) : ?>
                         <div class="fp-ps-stat-box" style="margin-top: 10px;">
                             <div class="stat-value warning"><?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_overhead_mb'], 2)); ?> MB</div>
-                            <div class="stat-label">
-                                <?php esc_html_e('Overhead Recuperabile', 'fp-performance-suite'); ?>
-                                <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px; font-size: 14px;" title="<?php esc_attr_e('Overhead = spazio sprecato nel database che può essere recuperato ottimizzando le tabelle. Overhead >100MB indica necessità di ottimizzazione.', 'fp-performance-suite'); ?>">ℹ️</span>
-                            </div>
+                            <div class="stat-label"><?php esc_html_e('Overhead Recuperabile', 'fp-performance-suite'); ?></div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -495,7 +414,11 @@ class Database extends AbstractPage
                     <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'])); ?></p>
                     <p><strong><?php esc_html_e('Necessitano ottimizzazione:', 'fp-performance-suite'); ?></strong> 
                         <?php 
-                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization']);
+                        // QUALITY BUG #26: Null pointer protection
+                        $tables = $dbAnalysis['table_analysis']['tables'] ?? [];
+                        $needsOpt = is_array($tables) 
+                            ? array_filter($tables, fn($t) => isset($t['needs_optimization']) && $t['needs_optimization']) 
+                            : [];
                         echo esc_html(number_format_i18n(count($needsOpt))); 
                         ?>
                     </p>
@@ -537,19 +460,43 @@ class Database extends AbstractPage
         <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
             <h2 style="color: white;"><?php esc_html_e('💯 Database Health Score', 'fp-performance-suite'); ?></h2>
             
-            <div class="fp-ps-grid three" style="margin: 20px 0;">
-                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['score']); ?>%</div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Punteggio', 'fp-performance-suite'); ?></div>
-                </div>
-                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 48px; color: white;"><?php echo esc_html($healthScore['grade']); ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Voto', 'fp-performance-suite'); ?></div>
-                </div>
-                <div class="fp-ps-stat-box" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3);">
-                    <div class="stat-value" style="font-size: 24px; color: white;"><?php echo esc_html(ucfirst($healthScore['status'])); ?></div>
-                    <div class="stat-label" style="color: rgba(255,255,255,0.9);"><?php esc_html_e('Stato', 'fp-performance-suite'); ?></div>
-                </div>
+            <div class="fp-ps-status-overview">
+                <?php
+                // Determina lo stato del database in base allo score
+                $dbStatus = StatusIndicator::autoStatus($healthScore['score'], 80, 60);
+                
+                echo StatusIndicator::renderCard(
+                    $dbStatus,
+                    __('Punteggio', 'fp-performance-suite'),
+                    __('Salute del database', 'fp-performance-suite'),
+                    $healthScore['score'] . '%'
+                );
+                
+                // Determina stato del grade
+                $gradeStatus = in_array($healthScore['grade'], ['A', 'A+']) ? 'success' : (in_array($healthScore['grade'], ['B', 'B+']) ? 'warning' : 'error');
+                echo StatusIndicator::renderCard(
+                    $gradeStatus,
+                    __('Voto', 'fp-performance-suite'),
+                    __('Valutazione complessiva', 'fp-performance-suite'),
+                    $healthScore['grade']
+                );
+                
+                // Determina stato in base al testo
+                $statusMap = [
+                    'excellent' => 'success',
+                    'good' => 'success',
+                    'fair' => 'warning',
+                    'poor' => 'error',
+                    'critical' => 'error'
+                ];
+                $currentStatus = $statusMap[$healthScore['status']] ?? 'inactive';
+                echo StatusIndicator::renderCard(
+                    $currentStatus,
+                    __('Stato', 'fp-performance-suite'),
+                    __('Condizione attuale', 'fp-performance-suite'),
+                    ucfirst($healthScore['status'])
+                );
+                ?>
             </div>
             
             <?php if (!empty($healthScore['issues'])) : ?>
@@ -590,13 +537,11 @@ class Database extends AbstractPage
                                     <td><?php echo esc_html(number_format_i18n($table['fragmentation_pct'], 2)); ?>%</td>
                                     <td><?php echo esc_html(number_format_i18n($table['wasted_mb'], 2)); ?> MB</td>
                                     <td>
-                                        <?php if ($table['severity'] === 'high') : ?>
-                                            <span style="color: #dc3232;">🔴 <?php esc_html_e('Alta', 'fp-performance-suite'); ?></span>
-                                        <?php elseif ($table['severity'] === 'medium') : ?>
-                                            <span style="color: #f0b429;">🟡 <?php esc_html_e('Media', 'fp-performance-suite'); ?></span>
-                                        <?php else : ?>
-                                            <span style="color: #46b450;">🟢 <?php esc_html_e('Bassa', 'fp-performance-suite'); ?></span>
-                                        <?php endif; ?>
+                                        <?php
+                                        $severityStatus = $table['severity'] === 'high' ? 'error' : ($table['severity'] === 'medium' ? 'warning' : 'success');
+                                        $severityLabel = $table['severity'] === 'high' ? __('Alta', 'fp-performance-suite') : ($table['severity'] === 'medium' ? __('Media', 'fp-performance-suite') : __('Bassa', 'fp-performance-suite'));
+                                        echo StatusIndicator::render($severityStatus, $severityLabel);
+                                        ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -743,9 +688,10 @@ class Database extends AbstractPage
             <?php endif; ?>
         </section>
         
-        <!-- Close TAB: Analysis, Open TAB: Reports -->
-        </div>
-        <div class="fp-ps-tab-content" data-tab="reports" style="display: <?php echo $current_tab === 'reports' ? 'block' : 'none'; ?>;">
+        </div><!-- End Tab: Advanced Analysis -->
+        
+        <!-- Tab: Reports & Plugins -->
+        <div class="tab-content" style="<?php echo $currentTab !== 'reports' ? 'display:none;' : ''; ?>">
         
         <!-- Plugin-Specific Cleanup -->
         <?php if (!empty($pluginOpportunities['opportunities'])) : ?>
@@ -831,12 +777,14 @@ class Database extends AbstractPage
                 <h3><?php esc_html_e('Export Report', 'fp-performance-suite'); ?></h3>
                 <form method="post" style="display: inline-block; margin-right: 10px;">
                     <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                     <input type="hidden" name="export_report" value="1" />
                     <input type="hidden" name="report_format" value="json" />
                     <button type="submit" class="button button-secondary"><?php esc_html_e('📥 Export JSON', 'fp-performance-suite'); ?></button>
                 </form>
                 <form method="post" style="display: inline-block;">
                     <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                     <input type="hidden" name="export_report" value="1" />
                     <input type="hidden" name="report_format" value="csv" />
                     <button type="submit" class="button button-secondary"><?php esc_html_e('📥 Export CSV', 'fp-performance-suite'); ?></button>
@@ -847,6 +795,7 @@ class Database extends AbstractPage
                 <h3><?php esc_html_e('Crea Snapshot', 'fp-performance-suite'); ?></h3>
                 <form method="post" style="display: flex; gap: 10px; align-items: flex-end;">
                     <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                    <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                     <div>
                         <label for="snapshot_label"><?php esc_html_e('Etichetta (opzionale):', 'fp-performance-suite'); ?></label>
                         <input type="text" name="snapshot_label" id="snapshot_label" class="regular-text" placeholder="<?php esc_attr_e('es. Prima dell\'ottimizzazione', 'fp-performance-suite'); ?>" />
@@ -864,10 +813,10 @@ class Database extends AbstractPage
         <?php endif; ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Scheduler', 'fp-performance-suite'); ?></h2>
-            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
+            <form method="post">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="save_db_settings" value="1" />
-                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <p>
                     <label for="schedule"><?php esc_html_e('Cleanup schedule', 'fp-performance-suite'); ?></label>
                     <select name="schedule" id="schedule">
@@ -877,20 +826,9 @@ class Database extends AbstractPage
                     </select>
                 </p>
                 <p>
-                    <label for="batch">
-                        <?php esc_html_e('Batch size', 'fp-performance-suite'); ?>
-                        <span class="fp-ps-help-icon" style="cursor: help; color: #3b82f6; margin-left: 5px;" title="<?php esc_attr_e('Numero di elementi processati per volta durante la pulizia. Valori più bassi = meno carico ma operazioni più lente. Valori più alti = più veloce ma maggior uso memoria.', 'fp-performance-suite'); ?>">ℹ️</span>
-                    </label>
-                    <input type="number" name="batch" id="batch" value="<?php echo esc_attr((string) $settings['batch']); ?>" min="50" max="500" placeholder="200" class="regular-text" />
+                    <label for="batch"><?php esc_html_e('Batch size', 'fp-performance-suite'); ?></label>
+                    <input type="number" name="batch" id="batch" value="<?php echo esc_attr((string) $settings['batch']); ?>" min="50" max="500" />
                 </p>
-                <div class="fp-ps-input-help" style="margin-top: 8px; margin-bottom: 15px;">
-                    <p style="background: #dbeafe; border-left: 3px solid #3b82f6; padding: 10px; margin: 10px 0; border-radius: 4px;">
-                        💡 <strong><?php esc_html_e('Consigliato: 200 elementi', 'fp-performance-suite'); ?></strong>
-                        <br><small style="color: #64748b;">
-                            <?php esc_html_e('Hosting Condiviso: 100-200 | VPS: 200-300 | Dedicato: 300-500', 'fp-performance-suite'); ?>
-                        </small>
-                    </p>
-                </div>
                 <p>
                     <button type="submit" class="button button-secondary"><?php esc_html_e('Save Scheduler', 'fp-performance-suite'); ?></button>
                 </p>
@@ -914,10 +852,10 @@ class Database extends AbstractPage
         </section>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Cleanup Tools', 'fp-performance-suite'); ?></h2>
-            <form method="post" action="?page=fp-performance-suite-database&tab=<?php echo esc_attr($current_tab); ?>">
+            <form method="post">
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                <input type="hidden" name="current_tab" value="<?php echo esc_attr($currentTab); ?>" />
                 <input type="hidden" name="run_cleanup" value="1" />
-                <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
                 <p><?php esc_html_e('Select components to clean. Red actions require PROCEDI confirmation.', 'fp-performance-suite'); ?></p>
                 <div class="fp-ps-grid two">
                     <?php foreach ($tasks as $key => $label) : ?>
@@ -982,8 +920,7 @@ class Database extends AbstractPage
             <?php endif; ?>
         </section>
         
-        <!-- Close TAB: Reports -->
-        </div>
+        </div><!-- End Tab: Reports & Plugins -->
         
         <?php
         return (string) ob_get_clean();

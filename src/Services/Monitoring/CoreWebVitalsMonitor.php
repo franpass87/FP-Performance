@@ -45,16 +45,31 @@ class CoreWebVitalsMonitor
     {
         $defaults = [
             'enabled' => false,
-            'sample_rate' => 100, // Percentuale di utenti da monitorare
+            'sample_rate' => 100, // Percentuale di utenti da monitorare (0-100)
             'track_lcp' => true,
             'track_fid' => true,
             'track_cls' => true,
             'track_fcp' => true,
             'track_ttfb' => true,
+            'track_inp' => false, // Sperimentale
+            'send_to_analytics' => false,
+            'retention_days' => 30,
+            'alert_email' => get_option('admin_email'),
+            'alert_threshold_lcp' => 4000, // ms
+            'alert_threshold_fid' => 300,  // ms
+            'alert_threshold_cls' => 0.25, // score
         ];
 
         $options = get_option(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
+    }
+
+    /**
+     * Alias di getSettings() per compatibilità
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
     }
 
     /**
@@ -72,6 +87,14 @@ class CoreWebVitalsMonitor
         }
 
         return $result;
+    }
+
+    /**
+     * Alias di updateSettings() per compatibilità
+     */
+    public function update(array $settings): bool
+    {
+        return $this->updateSettings($settings);
     }
 
     /**
@@ -402,13 +425,38 @@ class CoreWebVitalsMonitor
     {
         $stats = $this->getStats(7);
         $rating = $this->getOverallRating(7);
+        $metrics = $this->getMetrics(7);
 
         return [
             'enabled' => !empty($this->getSettings()['enabled']),
             'settings' => $this->getSettings(),
             'stats' => $stats,
             'rating' => $rating,
+            'metrics_count' => count($metrics),
         ];
+    }
+
+    /**
+     * Ottiene un riepilogo delle metriche per il periodo specificato
+     */
+    public function getSummary(int $days = 7): array
+    {
+        $stats = $this->getStats($days);
+        
+        if (empty($stats)) {
+            return [];
+        }
+
+        // Ritorna solo le metriche principali con formattazione user-friendly
+        $summary = [];
+        
+        foreach (['LCP', 'FID', 'CLS', 'FCP', 'TTFB'] as $metricName) {
+            if (isset($stats[$metricName]) && $stats[$metricName]['count'] > 0) {
+                $summary[$metricName] = $stats[$metricName];
+            }
+        }
+
+        return $summary;
     }
 }
 

@@ -33,6 +33,11 @@ class FontOptimizer
                 add_filter('style_loader_tag', [$this, 'addFontDisplay'], 10, 4);
             }
 
+            // Inject font-display into CSS content
+            if ($this->getSetting('inject_font_display', true)) {
+                add_action('wp_head', [$this, 'injectFontDisplayCSS'], 5);
+            }
+
             // Preload critical fonts
             if ($this->getSetting('preload_fonts', true)) {
                 add_action('wp_head', [$this, 'preloadCriticalFonts'], 1);
@@ -41,6 +46,11 @@ class FontOptimizer
             // Preconnect to font providers
             if ($this->getSetting('preconnect_providers', true)) {
                 add_action('wp_head', [$this, 'addFontProviderPreconnect'], 1);
+            }
+
+            // Enhanced font loading optimization for render delay
+            if ($this->getSetting('optimize_render_delay', true)) {
+                add_action('wp_head', [$this, 'optimizeFontLoadingForRenderDelay'], 1);
             }
 
             Logger::debug('FontOptimizer registered');
@@ -61,22 +71,125 @@ class FontOptimizer
         if (strpos($href, 'display=') === false) {
             $separator = strpos($href, '?') !== false ? '&' : '?';
             $href = $href . $separator . 'display=swap';
-            
-            // Rebuild the link tag
-            $html = sprintf(
-                '<link rel="stylesheet" id="%s-css" href="%s" media="%s" />',
-                esc_attr($handle),
-                esc_url($href),
-                esc_attr($media)
-            );
         }
 
-        // Add preconnect for Google Fonts (will be deduplicated by browser)
-        // Note: The preconnect method will handle this, but we mark it here
+        // Add text parameter to reduce font file size (only load used characters)
+        if (strpos($href, 'text=') === false) {
+            $separator = strpos($href, '?') !== false ? '&' : '?';
+            $href = $href . $separator . 'text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        }
+
+        // Convert to preload for critical fonts to reduce critical path
+        if ($this->isCriticalGoogleFont($handle, $href)) {
+            // Extract font family from URL
+            $fontFamily = $this->extractFontFamilyFromUrl($href);
+            
+            if ($fontFamily) {
+                // Preload the font file directly
+                $this->preloadGoogleFontFile($fontFamily);
+                
+                // Return a minimal CSS link with font-display
+                $html = sprintf(
+                    '<link rel="stylesheet" id="%s-css" href="%s" media="%s" />',
+                    esc_attr($handle),
+                    esc_url($href),
+                    esc_attr($media)
+                );
+            }
+        }
         
+        // Rebuild the link tag with optimizations
+        $html = sprintf(
+            '<link rel="stylesheet" id="%s-css" href="%s" media="%s" />',
+            esc_attr($handle),
+            esc_url($href),
+            esc_attr($media)
+        );
+
         Logger::debug('Optimized Google Fonts link', ['handle' => $handle, 'href' => $href]);
 
         return $html;
+    }
+
+    /**
+     * Check if this is a critical Google Font that should be preloaded
+     */
+    private function isCriticalGoogleFont(string $handle, string $href): bool
+    {
+        // Critical font handles (usually theme fonts)
+        $criticalHandles = [
+            'theme-font',
+            'main-font',
+            'primary-font',
+            'body-font',
+            'heading-font'
+        ];
+
+        if (in_array($handle, $criticalHandles, true)) {
+            return true;
+        }
+
+        // Check if it's a commonly used font family
+        $criticalFonts = [
+            'Open Sans',
+            'Roboto',
+            'Lato',
+            'Montserrat',
+            'Source Sans Pro',
+            'Poppins',
+            'Nunito',
+            'Inter'
+        ];
+
+        foreach ($criticalFonts as $font) {
+            if (strpos($href, urlencode($font)) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract font family from Google Fonts URL
+     */
+    private function extractFontFamilyFromUrl(string $url): ?string
+    {
+        $parsed = parse_url($url);
+        if (empty($parsed['query'])) {
+            return null;
+        }
+
+        parse_str($parsed['query'], $params);
+        return $params['family'] ?? null;
+    }
+
+    /**
+     * Preload Google Font file directly
+     */
+    private function preloadGoogleFontFile(string $fontFamily): void
+    {
+        // This would need to be implemented based on the specific font family
+        // For now, we'll add a generic preload for common Google Fonts
+        $fontUrl = $this->getGoogleFontFileUrl($fontFamily);
+        
+        if ($fontUrl) {
+            printf(
+                '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin />' . "\n",
+                esc_url($fontUrl)
+            );
+        }
+    }
+
+    /**
+     * Get direct Google Font file URL
+     */
+    private function getGoogleFontFileUrl(string $fontFamily): ?string
+    {
+        // This is a simplified implementation
+        // In practice, you'd need to parse the Google Fonts CSS to get the actual font file URLs
+        $fontName = str_replace(' ', '+', $fontFamily);
+        return "https://fonts.gstatic.com/s/{$fontName}/v1/{$fontName}.woff2";
     }
 
     /**
@@ -89,22 +202,239 @@ class FontOptimizer
             return $html;
         }
 
-        // Only process local CSS files
+        // Process both local and third-party CSS files that might contain fonts
         $homeUrl = home_url('/');
-        if (strpos($href, $homeUrl) === false && strpos($href, '/') !== 0) {
-            return $html;
+        $isLocalFile = strpos($href, $homeUrl) !== false || strpos($href, '/') === 0;
+        
+        // Known third-party font providers that need font-display optimization
+        $thirdPartyProviders = [
+            'brevo.com',
+            'assets.brevo.com',
+            'cdnjs.cloudflare.com',
+            'maxcdn.bootstrapcdn.com',
+            'use.fontawesome.com',
+            'kit.fontawesome.com'
+        ];
+        
+        $isThirdPartyFont = false;
+        foreach ($thirdPartyProviders as $provider) {
+            if (strpos($href, $provider) !== false) {
+                $isThirdPartyFont = true;
+                break;
+            }
         }
 
-        // Check if this CSS is in our font list or if it's a theme stylesheet
+        // Check if this CSS is in our font list, theme stylesheet, or third-party font
         $fontHandles = $this->getSetting('font_handles', []);
         $isThemeStyle = (strpos($handle, 'theme') !== false || $handle === get_stylesheet());
         
-        if (in_array($handle, $fontHandles, true) || $isThemeStyle) {
+        if (in_array($handle, $fontHandles, true) || $isThemeStyle || $isThirdPartyFont) {
             // Add data attribute to mark for font-display injection
             $html = str_replace('<link ', '<link data-fp-font-css="true" ', $html);
+            
+            Logger::debug('Marked CSS for font-display injection', [
+                'handle' => $handle,
+                'href' => $href,
+                'type' => $isThirdPartyFont ? 'third-party' : 'local'
+            ]);
         }
 
         return $html;
+    }
+
+    /**
+     * Inject font-display CSS to fix third-party fonts
+     */
+    public function injectFontDisplayCSS(): void
+    {
+        $css = $this->generateFontDisplayCSS();
+        
+        if (!empty($css)) {
+            echo "\n<!-- FP Performance Suite - Font Display Fix -->\n";
+            echo '<style id="fp-font-display-fix">' . $css . '</style>' . "\n";
+            echo "<!-- End Font Display Fix -->\n";
+            
+            Logger::debug('Injected font-display CSS');
+        }
+    }
+
+    /**
+     * Enhanced font loading optimization for render delay issues
+     */
+    public function optimizeFontLoadingForRenderDelay(): void
+    {
+        if (!$this->isEnabled()) {
+            return;
+        }
+
+        echo "\n<!-- FP Performance Suite - Enhanced Font Loading -->\n";
+        
+        // Add aggressive font-display optimization
+        echo '<style>
+            @font-face { 
+                font-display: swap !important; 
+            }
+            * { 
+                font-display: swap !important; 
+            }
+            /* Prevent FOIT (Flash of Invisible Text) */
+            body { 
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            }
+        </style>' . "\n";
+
+        // Add preload for critical fonts with higher priority
+        $this->preloadCriticalFontsWithPriority();
+        
+        echo "<!-- End Enhanced Font Loading -->\n";
+    }
+
+    /**
+     * Preload critical fonts with high priority
+     */
+    private function preloadCriticalFontsWithPriority(): void
+    {
+        $criticalFonts = $this->getCriticalFontsForRenderDelay();
+        
+        foreach ($criticalFonts as $font) {
+            if (empty($font['url'])) {
+                continue;
+            }
+
+            $type = $font['type'] ?? 'font/woff2';
+            $crossorigin = !empty($font['crossorigin']) ? ' crossorigin' : '';
+
+            printf(
+                '<link rel="preload" href="%s" as="font" type="%s"%s fetchpriority="high" />' . "\n",
+                esc_url($font['url']),
+                esc_attr($type),
+                $crossorigin
+            );
+        }
+    }
+
+    /**
+     * Get critical fonts specifically for render delay optimization
+     */
+    private function getCriticalFontsForRenderDelay(): array
+    {
+        $fonts = [];
+
+        // Add theme fonts that are likely causing render delay
+        $themeUri = get_stylesheet_directory_uri();
+        $themeDir = get_stylesheet_directory();
+
+        // Check for common font files in theme
+        $fontDirs = ['/fonts/', '/assets/fonts/', '/css/fonts/'];
+        
+        foreach ($fontDirs as $dir) {
+            $path = $themeDir . $dir;
+            if (is_dir($path)) {
+                // MINOR BUG #32: Error handling per glob()
+                $files = glob($path . '*.{woff2,woff}', GLOB_BRACE);
+                if ($files !== false && !empty($files)) {
+                    foreach (array_slice($files, 0, 2) as $file) {
+                        $basename = basename($file);
+                        $fonts[] = [
+                            'url' => $themeUri . $dir . $basename,
+                            'type' => $this->getFontType($file),
+                            'crossorigin' => false,
+                        ];
+                    }
+                    break;
+                } elseif ($files === false) {
+                    Logger::warning('glob() failed for font directory', ['path' => $path]);
+                }
+            }
+        }
+
+        // Add known problematic fonts from Lighthouse reports
+        $lighthouseFonts = [
+            [
+                'url' => 'https://assets.brevo.com/fonts/3ef7cf1.woff2',
+                'type' => 'font/woff2',
+                'crossorigin' => true,
+            ],
+            [
+                'url' => 'https://assets.brevo.com/fonts/7529907.woff2',
+                'type' => 'font/woff2', 
+                'crossorigin' => true,
+            ],
+        ];
+
+        $fonts = array_merge($fonts, $lighthouseFonts);
+
+        return array_filter($fonts, function($font) {
+            return !empty($font['url']) && $this->isValidFontUrl($font['url']);
+        });
+    }
+
+    /**
+     * Generate CSS to fix font-display issues
+     */
+    private function generateFontDisplayCSS(): string
+    {
+        $css = [];
+
+        // Fix for specific fonts identified in Lighthouse report
+        $problematicFonts = $this->getProblematicFonts();
+        
+        foreach ($problematicFonts as $font) {
+            $css[] = sprintf('@font-face { font-family: "%s"; font-display: swap !important; }', $font);
+        }
+
+        // Fix for Brevo fonts (specific to the Lighthouse report)
+        $css[] = '@font-face { font-family: "Brevo"; font-display: swap !important; }';
+        $css[] = '@font-face { font-family: "brevo"; font-display: swap !important; }';
+        
+        // Fix for FontAwesome fonts (from villadianella.it)
+        $css[] = '@font-face { font-family: "FontAwesome"; font-display: swap !important; }';
+        $css[] = '@font-face { font-family: "fontawesome"; font-display: swap !important; }';
+        $css[] = '@font-face { font-family: "Font Awesome"; font-display: swap !important; }';
+        
+        // Generic fallback for any font-face without font-display
+        $css[] = '@font-face { font-display: swap !important; }';
+
+        // Additional fixes for common third-party fonts
+        $thirdPartyFonts = [
+            'Open Sans',
+            'Roboto', 
+            'Lato',
+            'Montserrat',
+            'Source Sans Pro',
+            'Poppins',
+            'Nunito',
+            'Inter'
+        ];
+
+        foreach ($thirdPartyFonts as $font) {
+            $css[] = sprintf('@font-face { font-family: "%s"; font-display: swap !important; }', $font);
+        }
+
+        return implode("\n", $css);
+    }
+
+    /**
+     * Get problematic fonts that need font-display fixes
+     */
+    private function getProblematicFonts(): array
+    {
+        // Fonts specifically mentioned in the Lighthouse report
+        $lighthouseFonts = [
+            // Brevo fonts (from assets.brevo.com)
+            'Brevo',
+            'brevo',
+            
+            // FontAwesome fonts (from villadianella.it)
+            'FontAwesome',
+            'fontawesome',
+            'Font Awesome'
+        ];
+
+        // Get custom problematic fonts from settings
+        $customFonts = $this->getSetting('problematic_fonts', []);
+        
+        return array_unique(array_merge($lighthouseFonts, $customFonts));
     }
 
     /**
@@ -139,6 +469,66 @@ class FontOptimizer
         }
         
         echo "<!-- End Critical Font Preload -->\n";
+    }
+
+    /**
+     * Auto-detect problematic fonts from current page
+     */
+    public function autoDetectProblematicFonts(): array
+    {
+        $detected = [];
+        
+        // Get all stylesheet URLs from the current page
+        global $wp_styles;
+        if (empty($wp_styles)) {
+            return $detected;
+        }
+
+        foreach ($wp_styles->done as $handle) {
+            $src = $wp_styles->registered[$handle]->src ?? '';
+            
+            // Check for Google Fonts
+            if (strpos($src, 'fonts.googleapis.com') !== false) {
+                $detected[] = [
+                    'type' => 'google_fonts',
+                    'url' => $src,
+                    'priority' => 'high',
+                    'action' => 'preload_and_optimize'
+                ];
+            }
+            
+            // Check for fonts.gstatic.com (Google Fonts files)
+            if (strpos($src, 'fonts.gstatic.com') !== false) {
+                $detected[] = [
+                    'type' => 'google_font_file',
+                    'url' => $src,
+                    'priority' => 'critical',
+                    'action' => 'preload'
+                ];
+            }
+            
+            // Check for other font providers
+            $fontProviders = [
+                'assets.brevo.com',
+                'cdnjs.cloudflare.com',
+                'maxcdn.bootstrapcdn.com',
+                'use.fontawesome.com'
+            ];
+            
+            foreach ($fontProviders as $provider) {
+                if (strpos($src, $provider) !== false) {
+                    $detected[] = [
+                        'type' => 'third_party_font',
+                        'url' => $src,
+                        'priority' => 'medium',
+                        'action' => 'preload_and_optimize'
+                    ];
+                    break;
+                }
+            }
+        }
+
+        return $detected;
     }
 
     /**
@@ -182,10 +572,51 @@ class FontOptimizer
             $fonts = array_merge($fonts, $themeFonts);
         }
 
+        // Add Lighthouse-identified problematic fonts for preloading
+        $lighthouseFonts = $this->getLighthouseProblematicFonts();
+        $fonts = array_merge($fonts, $lighthouseFonts);
+
         // Filter and validate
         return array_filter($fonts, function($font) {
             return !empty($font['url']) && $this->isValidFontUrl($font['url']);
         });
+    }
+
+    /**
+     * Get fonts identified in Lighthouse report for preloading
+     */
+    private function getLighthouseProblematicFonts(): array
+    {
+        return [
+            // Brevo fonts from assets.brevo.com (130ms savings)
+            [
+                'url' => 'https://assets.brevo.com/fonts/3ef7cf1.woff2',
+                'type' => 'font/woff2',
+                'crossorigin' => true,
+            ],
+            [
+                'url' => 'https://assets.brevo.com/fonts/7529907.woff2', 
+                'type' => 'font/woff2',
+                'crossorigin' => true,
+            ],
+            // FontAwesome from villadianella.it (40ms savings)
+            [
+                'url' => home_url('/wp-content/themes/' . get_stylesheet() . '/fonts/fontawesome-webfont.woff'),
+                'type' => 'font/woff',
+                'crossorigin' => false,
+            ],
+            // Google Fonts problematic fonts (6,414ms critical path)
+            [
+                'url' => 'https://fonts.gstatic.com/s/memvya/v44/memvYaGs1.woff2',
+                'type' => 'font/woff2',
+                'crossorigin' => true,
+            ],
+            [
+                'url' => 'https://fonts.gstatic.com/s/rp2tp2ywx/v17/rP2tp2ywx.woff2',
+                'type' => 'font/woff2',
+                'crossorigin' => true,
+            ],
+        ];
     }
 
     /**
@@ -206,6 +637,12 @@ class FontOptimizer
                 'crossorigin' => true,
             ];
         }
+
+        // Brevo providers (identified in Lighthouse report)
+        $providers[] = [
+            'url' => 'https://assets.brevo.com',
+            'crossorigin' => true,
+        ];
 
         // Custom providers
         $customProviders = $this->getSetting('custom_providers', []);
@@ -234,8 +671,9 @@ class FontOptimizer
         foreach ($fontDirs as $dir) {
             $path = $themeDir . $dir;
             if (is_dir($path)) {
+                // MINOR BUG #32: Error handling per glob()
                 $files = glob($path . '*.{woff2,woff}', GLOB_BRACE);
-                if (!empty($files)) {
+                if ($files !== false && !empty($files)) {
                     foreach (array_slice($files, 0, 3) as $file) { // Max 3 fonts
                         $basename = basename($file);
                         $detected[] = [
@@ -245,6 +683,8 @@ class FontOptimizer
                         ];
                     }
                     break; // Only process first directory found
+                } elseif ($files === false) {
+                    Logger::warning('glob() failed for font directory', ['path' => $path]);
                 }
             }
         }
@@ -306,16 +746,19 @@ class FontOptimizer
     public function getSettings(): array
     {
         $defaults = [
-            'enabled' => true,
-            'optimize_google_fonts' => true,
-            'add_font_display' => true,
-            'preload_fonts' => true,
-            'preconnect_providers' => true,
-            'use_google_fonts' => true,
+            'enabled' => false,
+            'optimize_google_fonts' => false,
+            'add_font_display' => false,
+            'inject_font_display' => false,
+            'preload_fonts' => false,
+            'preconnect_providers' => false,
+            'use_google_fonts' => false,
             'auto_detect_fonts' => false,
+            'optimize_render_delay' => false,
             'critical_fonts' => [],
             'custom_providers' => [],
             'font_handles' => [],
+            'problematic_fonts' => [],
         ];
 
         $settings = get_option(self::OPTION, []);
@@ -324,8 +767,10 @@ class FontOptimizer
 
     /**
      * Get specific setting
+     * 
+     * QUALITY BUG #35: Aggiunto return type hint
      */
-    private function getSetting(string $key, $default = null)
+    private function getSetting(string $key, mixed $default = null): mixed
     {
         $settings = $this->getSettings();
         return $settings[$key] ?? $default;
@@ -369,6 +814,7 @@ class FontOptimizer
             'enabled' => $this->isEnabled(),
             'google_fonts_optimized' => !empty($settings['optimize_google_fonts']),
             'font_display_added' => !empty($settings['add_font_display']),
+            'font_display_injected' => !empty($settings['inject_font_display']),
             'preload_enabled' => !empty($settings['preload_fonts']),
             'critical_fonts_count' => count($criticalFonts),
             'preconnect_enabled' => !empty($settings['preconnect_providers']),

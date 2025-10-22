@@ -8,6 +8,18 @@
     font-size: var(--fp-font-size-xxl);
     font-weight: 700;
     color: var(--fp-accent);
+    line-height: 1;
+    text-align: center;
+    word-break: keep-all;
+    white-space: nowrap;
+}
+
+/* Score con span per /100 */
+.fp-ps-score span {
+    font-size: var(--fp-font-size-lg);
+    font-weight: 500;
+    margin-left: 4px;
+    opacity: 0.7;
 }
 
 /* Score Breakdown Enhancements */
@@ -108,6 +120,19 @@
 }
 
 .fp-ps-status-missing {
+    color: #ef4444;
+}
+
+/* Stat Value Colors for Metrics */
+.stat-value.success {
+    color: #10b981;
+}
+
+.stat-value.warning {
+    color: #f59e0b;
+}
+
+.stat-value.danger {
     color: #ef4444;
 }
 

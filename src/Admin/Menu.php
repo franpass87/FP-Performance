@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin;
 
 use FP\PerfSuite\Admin\Pages\Advanced;
+use FP\PerfSuite\Admin\Pages\AIConfig;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Backend;
 use FP\PerfSuite\Admin\Pages\Cache;
@@ -17,9 +18,11 @@ use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
-use FP\PerfSuite\Admin\Pages\Presets;
 use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Settings;
+use FP\PerfSuite\Admin\Pages\ResponsiveImages;
+use FP\PerfSuite\Admin\Pages\UnusedCSS;
+use FP\PerfSuite\Admin\Pages\CriticalPathOptimization;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
 
@@ -35,6 +38,7 @@ use function wp_create_nonce;
 use function wp_send_json_error;
 use function wp_send_json_success;
 use function esc_html;
+use function sanitize_key;
 
 class Menu
 {
@@ -51,6 +55,9 @@ class Menu
         add_action('admin_notices', [$this, 'showActivationErrors']);
         add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
         add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
+        
+        // NOTA: wp_ajax_fp_ps_apply_recommendation ora gestito da RecommendationsAjax (ripristinato 21 Ott 2025)
+        // Mantenuto metodo applyRecommendation() come fallback per compatibilità
         
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
@@ -293,19 +300,22 @@ class Menu
         // 📊 DASHBOARD & QUICK START
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Overview', 'fp-performance-suite'), __('📊 Overview', 'fp-performance-suite'), $capability, 'fp-performance-suite', [$pages['overview'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Presets', 'fp-performance-suite'), __('⚡ Quick Start', 'fp-performance-suite'), $capability, 'fp-performance-suite-presets', [$pages['presets'], 'render']);
+        add_submenu_page('fp-performance-suite', __('AI Auto-Config', 'fp-performance-suite'), __('⚡ AI Auto-Config', 'fp-performance-suite'), $capability, 'fp-performance-suite-ai-config', [$pages['ai_config'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🚀 PERFORMANCE OPTIMIZATION
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('— 🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('— 📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('— 🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('— 💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('— ⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('— 🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
-        add_submenu_page('fp-performance-suite', __('JavaScript', 'fp-performance-suite'), __('— ⚡ JavaScript', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Lighthouse Fonts', 'fp-performance-suite'), __('— 🎯 Lighthouse Fonts', 'fp-performance-suite'), $capability, 'fp-performance-suite-lighthouse-fonts', [$pages['lighthouse_fonts'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
+        add_submenu_page('fp-performance-suite', __('JavaScript', 'fp-performance-suite'), __('⚡ JavaScript', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Lighthouse Fonts', 'fp-performance-suite'), __('🎯 Lighthouse Fonts', 'fp-performance-suite'), $capability, 'fp-performance-suite-lighthouse-fonts', [$pages['lighthouse_fonts'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Responsive Images', 'fp-performance-suite'), __('🖼️ Responsive Images', 'fp-performance-suite'), $capability, 'fp-performance-suite-responsive-images', [$pages['responsive_images'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Unused CSS', 'fp-performance-suite'), __('🎨 Unused CSS', 'fp-performance-suite'), $capability, 'fp-performance-suite-unused-css', [$pages['unused_css'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Critical Path', 'fp-performance-suite'), __('⚡ Critical Path', 'fp-performance-suite'), $capability, 'fp-performance-suite-critical-path', [$pages['critical_path'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🌐 INFRASTRUCTURE & CDN
@@ -325,15 +335,15 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         // 📊 MONITORING & DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('— 📊 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('— 📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('— 🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('📊 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🔧 CONFIGURATION
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('— ⚙️ Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('— 🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('⚙️ Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
     }
 
     /**
@@ -405,8 +415,11 @@ class Menu
             'compression' => new Compression($this->container),
             'js_optimization' => new JavaScriptOptimization($this->container),
             'lighthouse_fonts' => new LighthouseFontOptimization($this->container),
+            'responsive_images' => new ResponsiveImages($this->container),
+            'unused_css' => new UnusedCSS($this->container),
+            'critical_path' => new CriticalPathOptimization($this->container),
             'infrastructure' => new InfrastructureCdn($this->container),
-            'presets' => new Presets($this->container),
+            'ai_config' => new AIConfig($this->container),
             'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
             'settings' => new Settings($this->container),
@@ -415,5 +428,60 @@ class Menu
             'advanced' => new Advanced($this->container),
             'diagnostics' => new Diagnostics($this->container),
         ];
+    }
+
+    /**
+     * Handler AJAX per applicare le raccomandazioni automaticamente
+     */
+    public function applyRecommendation(): void
+    {
+        // Verifica permessi
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error([
+                'message' => __('Non hai i permessi per eseguire questa azione.', 'fp-performance-suite'),
+            ]);
+            return;
+        }
+
+        // Verifica nonce
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'fp_ps_apply_recommendation')) {
+            wp_send_json_error([
+                'message' => __('Verifica di sicurezza fallita. Ricarica la pagina e riprova.', 'fp-performance-suite'),
+            ]);
+            return;
+        }
+
+        // Ottieni action_id
+        $actionId = sanitize_key($_POST['action_id'] ?? '');
+        if (empty($actionId)) {
+            wp_send_json_error([
+                'message' => __('ID azione non valido.', 'fp-performance-suite'),
+            ]);
+            return;
+        }
+
+        // Applica la raccomandazione
+        try {
+            $applicator = $this->container->get(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class);
+            $result = $applicator->apply($actionId);
+
+            if ($result['success']) {
+                wp_send_json_success([
+                    'message' => $result['message'],
+                ]);
+            } else {
+                wp_send_json_error([
+                    'message' => $result['message'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            wp_send_json_error([
+                'message' => sprintf(
+                    __('Errore imprevisto: %s', 'fp-performance-suite'),
+                    $e->getMessage()
+                ),
+            ]);
+        }
     }
 }

@@ -51,125 +51,207 @@ class Compression extends AbstractPage
 
     protected function content(): string
     {
-        // Check for success message
-        $success_message = '';
-        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
-            $success_message = __('Compression settings saved.', 'fp-performance-suite');
-        }
-
-        // Check for error message
-        $error_message = '';
-        if (isset($_GET['error']) && $_GET['error'] === '1') {
-            $error_message = __('Error saving compression settings.', 'fp-performance-suite');
-        }
-
         // Get compression service
         $compression = $this->container->get(CompressionManager::class);
         $status = $compression->status();
         $info = $compression->getInfo();
 
-        $html = '<div class="fp-ps-admin-page">';
-        
-        // Success/Error messages
-        if (!empty($success_message)) {
-            $html .= '<div class="notice notice-success is-dismissible"><p>' . esc_html($success_message) . '</p></div>';
+        // Check for success/error messages
+        $message = '';
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            $message = __('Compression settings saved.', 'fp-performance-suite');
         }
-        
-        if (!empty($error_message)) {
-            $html .= '<div class="notice notice-error is-dismissible"><p>' . esc_html($error_message) . '</p></div>';
+        if (isset($_GET['error']) && $_GET['error'] === '1') {
+            $message = __('Error saving compression settings.', 'fp-performance-suite');
         }
 
-        $html .= '<div class="fp-ps-page-header">';
-        $html .= '<h1>' . esc_html($this->title()) . '</h1>';
-        $html .= '<p class="description">' . __('Configure compression settings for optimal performance.', 'fp-performance-suite') . '</p>';
-        $html .= '</div>';
-
-        $html .= '<form method="post" action="' . admin_url('admin-post.php') . '" class="fp-ps-form">';
-        $html .= wp_nonce_field('fp_ps_save_compression', 'fp_ps_nonce', true, false);
-        $html .= '<input type="hidden" name="action" value="fp_ps_save_compression">';
-
-        // Compression Status
-        $html .= '<div class="fp-ps-section">';
-        $html .= '<h2>' . __('Compression Status', 'fp-performance-suite') . '</h2>';
-        $html .= '<div class="fp-ps-status-grid">';
+        ob_start();
+        ?>
         
-        $html .= '<div class="fp-ps-status-item">';
-        $html .= '<h3>' . __('Gzip Support', 'fp-performance-suite') . '</h3>';
-        $html .= '<div class="fp-ps-status ' . ($status['gzip_supported'] ? 'success' : 'error') . '">';
-        $html .= $status['gzip_supported'] ? '✅ ' . __('Supported', 'fp-performance-suite') : '❌ ' . __('Not Supported', 'fp-performance-suite');
-        $html .= '</div>';
-        $html .= '</div>';
-
-        $html .= '<div class="fp-ps-status-item">';
-        $html .= '<h3>' . __('Brotli Support', 'fp-performance-suite') . '</h3>';
-        $html .= '<div class="fp-ps-status ' . ($status['brotli_supported'] ? 'success' : 'warning') . '">';
-        $html .= $status['brotli_supported'] ? '✅ ' . __('Supported', 'fp-performance-suite') : '⚠️ ' . __('Not Supported', 'fp-performance-suite');
-        $html .= '</div>';
-        $html .= '</div>';
-
-        $html .= '<div class="fp-ps-status-item">';
-        $html .= '<h3>' . __('Current Status', 'fp-performance-suite') . '</h3>';
-        $html .= '<div class="fp-ps-status ' . ($status['enabled'] ? 'success' : 'info') . '">';
-        $html .= $status['enabled'] ? '✅ ' . __('Enabled', 'fp-performance-suite') : 'ℹ️ ' . __('Disabled', 'fp-performance-suite');
-        $html .= '</div>';
-        $html .= '</div>';
-
-        $html .= '</div>';
-        $html .= '</div>';
-
-        // Compression Settings
-        $html .= '<div class="fp-ps-section">';
-        $html .= '<h2>' . __('Compression Settings', 'fp-performance-suite') . '</h2>';
-        
-        $html .= '<div class="fp-ps-form-group">';
-        $html .= '<label class="fp-ps-checkbox-label">';
-        $html .= '<input type="checkbox" name="compression[enabled]" value="1" ' . checked($status['enabled'], true, false) . '>';
-        $html .= '<span class="fp-ps-checkbox-text">' . __('Enable Compression', 'fp-performance-suite') . '</span>';
-        $html .= '</label>';
-        $html .= '<p class="description">' . __('Enable Gzip/Brotli compression for better performance.', 'fp-performance-suite') . '</p>';
-        $html .= '</div>';
-
-        if ($status['brotli_supported']) {
-            $html .= '<div class="fp-ps-form-group">';
-            $html .= '<label class="fp-ps-checkbox-label">';
-            $html .= '<input type="checkbox" name="compression[brotli_enabled]" value="1" ' . checked($status['brotli_enabled'], true, false) . '>';
-            $html .= '<span class="fp-ps-checkbox-text">' . __('Enable Brotli Compression', 'fp-performance-suite') . '</span>';
-            $html .= '</label>';
-            $html .= '<p class="description">' . __('Brotli provides better compression than Gzip.', 'fp-performance-suite') . '</p>';
-            $html .= '</div>';
-        }
-
-        $html .= '</div>';
-
-        // Server Information
-        if (!empty($info)) {
-            $html .= '<div class="fp-ps-section">';
-            $html .= '<h2>' . __('Server Information', 'fp-performance-suite') . '</h2>';
-            $html .= '<div class="fp-ps-info-grid">';
+        <!-- Pannello Introduttivo -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🗜️ Compressione
+            </h2>
+            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
+                <?php esc_html_e('La compressione riduce drasticamente la dimensione dei file trasferiti, accelerando il caricamento del sito.', 'fp-performance-suite'); ?>
+            </p>
             
-            foreach ($info as $key => $value) {
-                $html .= '<div class="fp-ps-info-item">';
-                $html .= '<strong>' . esc_html(ucfirst(str_replace('_', ' ', $key))) . ':</strong> ';
-                $html .= '<span>' . esc_html($value) . '</span>';
-                $html .= '</div>';
-            }
+            <div class="fp-ps-grid three" style="gap: 20px;">
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🗜️</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Gzip', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Compressione standard supportata da tutti i browser. Riduce i file del 60-80%.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Brotli', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Compressione moderna ancora più efficace. Riduzione file fino al 85%.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🚀</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Performance', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                        <?php esc_html_e('Caricamento pagine 3x più veloce e risparmio banda fino al 70%.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <?php if ($message) : ?>
+            <div class="notice notice-<?php echo isset($_GET['error']) ? 'error' : 'success'; ?> is-dismissible">
+                <p><?php echo esc_html($message); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <!-- Stato Compressione -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Stato Compressione', 'fp-performance-suite'); ?></h2>
+            <p class="description"><?php esc_html_e('Verifica il supporto del server per i diversi algoritmi di compressione.', 'fp-performance-suite'); ?></p>
             
-            $html .= '</div>';
-            $html .= '</div>';
-        }
+            <div class="fp-ps-grid three" style="margin: 20px 0;">
+                <div class="fp-ps-stat-box" style="<?php echo $status['gzip_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #dc3232;'; ?>">
+                    <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Supporto Gzip', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['gzip_supported'] ? '#46b450' : '#dc3232'; ?>;">
+                        <?php echo $status['gzip_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '❌ ' . __('Non Supportato', 'fp-performance-suite'); ?>
+                    </div>
+                </div>
 
-        // Save Button
-        $html .= '<div class="fp-ps-form-actions">';
-        $html .= '<button type="submit" class="button button-primary button-large">';
-        $html .= '<span class="dashicons dashicons-saved" style="vertical-align: middle; margin-right: 5px;"></span>';
-        $html .= __('Save Compression Settings', 'fp-performance-suite');
-        $html .= '</button>';
-        $html .= '</div>';
+                <div class="fp-ps-stat-box" style="<?php echo $status['brotli_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #f0b429;'; ?>">
+                    <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Supporto Brotli', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['brotli_supported'] ? '#46b450' : '#f0b429'; ?>;">
+                        <?php echo $status['brotli_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '⚠️ ' . __('Non Supportato', 'fp-performance-suite'); ?>
+                    </div>
+                </div>
 
-        $html .= '</form>';
-        $html .= '</div>';
+                <div class="fp-ps-stat-box" style="<?php echo $status['enabled'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #72aee6;'; ?>">
+                    <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Stato Attuale', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['enabled'] ? '#46b450' : '#72aee6'; ?>;">
+                        <?php echo $status['enabled'] ? '✅ ' . __('Attiva', 'fp-performance-suite') : 'ℹ️ ' . __('Disattiva', 'fp-performance-suite'); ?>
+                    </div>
+                </div>
+            </div>
 
-        return $html;
+            <?php if (!$status['gzip_supported']) : ?>
+                <div class="notice notice-error inline" style="margin-top: 20px;">
+                    <p>
+                        <strong>⚠️ <?php esc_html_e('Gzip non supportato', 'fp-performance-suite'); ?></strong><br>
+                        <?php esc_html_e('Il server non supporta la compressione Gzip. Contatta il tuo hosting provider per abilitarla.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!$status['brotli_supported'] && $status['gzip_supported']) : ?>
+                <div class="notice notice-info inline" style="margin-top: 20px;">
+                    <p>
+                        <strong>💡 <?php esc_html_e('Brotli consigliato', 'fp-performance-suite'); ?></strong><br>
+                        <?php esc_html_e('Il tuo server supporta Gzip ma non Brotli. Considera di abilitare Brotli per una compressione ancora migliore (15-20% in più).', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+        </section>
+
+        <!-- Impostazioni Compressione -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('Impostazioni Compressione', 'fp-performance-suite'); ?></h2>
+            <p class="description"><?php esc_html_e('Configura quali algoritmi di compressione utilizzare.', 'fp-performance-suite'); ?></p>
+            
+            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+                <?php wp_nonce_field('fp_ps_save_compression', 'fp_ps_nonce'); ?>
+                <input type="hidden" name="action" value="fp_ps_save_compression">
+
+                <div style="margin: 20px 0;">
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Abilita Compressione', 'fp-performance-suite'); ?></strong>
+                            <small><?php esc_html_e('Abilita la compressione Gzip/Brotli per ridurre la dimensione dei file trasferiti', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="compression[enabled]" value="1" <?php checked($status['enabled'], true); ?> />
+                    </label>
+                </div>
+
+                <?php if ($status['brotli_supported']) : ?>
+                    <div style="margin: 20px 0;">
+                        <label class="fp-ps-toggle">
+                            <span class="info">
+                                <strong><?php esc_html_e('Abilita Compressione Brotli', 'fp-performance-suite'); ?></strong>
+                                <small><?php esc_html_e('Brotli offre una compressione migliore rispetto a Gzip (15-20% in più)', 'fp-performance-suite'); ?></small>
+                            </span>
+                            <input type="checkbox" name="compression[brotli_enabled]" value="1" <?php checked($status['brotli_enabled'], true); ?> />
+                        </label>
+                    </div>
+                <?php endif; ?>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <button type="submit" class="button button-primary button-large">
+                        <?php esc_html_e('Salva Impostazioni', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Informazioni Server -->
+        <?php if (!empty($info)) : ?>
+            <section class="fp-ps-card">
+                <h2><?php esc_html_e('Informazioni Server', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Dettagli tecnici sulla configurazione del server.', 'fp-performance-suite'); ?></p>
+                
+                <div class="fp-ps-grid two" style="margin: 20px 0;">
+                    <?php foreach ($info as $key => $value) : ?>
+                        <div style="padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #3b82f6;">
+                            <strong style="display: block; margin-bottom: 5px; color: #3b82f6;">
+                                <?php echo esc_html(ucfirst(str_replace('_', ' ', $key))); ?>
+                            </strong>
+                            <span style="color: #64748b;">
+                                <?php echo esc_html($value); ?>
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <!-- Info Box Benefici -->
+        <section class="fp-ps-card" style="background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%); border: none;">
+            <h2 style="color: #1e40af;"><?php esc_html_e('💡 Vantaggi della Compressione', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid two" style="gap: 20px; margin: 20px 0;">
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: #1e40af;">📊 Risparmio Banda</h3>
+                    <p style="margin: 0; line-height: 1.6;">
+                        <?php esc_html_e('Con Gzip puoi ridurre i file HTML, CSS e JavaScript del 60-80%. Con Brotli fino all\'85%. Questo significa meno banda consumata e costi hosting ridotti.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: #1e40af;">🚀 Velocità</h3>
+                    <p style="margin: 0; line-height: 1.6;">
+                        <?php esc_html_e('Pagine più leggere = caricamento più veloce. Gli utenti vedranno il sito caricarsi 2-3 volte più rapidamente, migliorando l\'esperienza e il punteggio SEO.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: #1e40af;">📱 Mobile</h3>
+                    <p style="margin: 0; line-height: 1.6;">
+                        <?php esc_html_e('Su connessioni mobili lente, la compressione è essenziale. Utenti con 3G/4G beneficeranno enormemente della riduzione dei dati trasferiti.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: #1e40af;">💰 Costi</h3>
+                    <p style="margin: 0; line-height: 1.6;">
+                        <?php esc_html_e('Riducendo la banda utilizzata, puoi risparmiare sui costi di hosting e CDN. Alcuni provider fatturano in base al traffico trasferito.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <?php
+        return (string) ob_get_clean();
     }
 
     /**

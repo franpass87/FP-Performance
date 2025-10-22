@@ -1,0 +1,50 @@
+/**
+ * Page Intro Panel Component
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-intro-panel {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.fp-ps-intro-panel h2 {
+    margin: 0 0 12px 0;
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.fp-ps-intro-panel p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.fp-ps-intro-panel strong {
+    font-weight: 700;
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fp-ps-intro-panel {
+        padding: 20px;
+    }
+    
+    .fp-ps-intro-panel h2 {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+    
+    .fp-ps-intro-panel p {
+        font-size: 14px;
+    }
+}
+

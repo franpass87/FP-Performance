@@ -127,7 +127,31 @@ class Cache extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable page cache', 'fp-performance-suite'); ?></strong>
-                        <span class="description"><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator amber">
+                            <div class="fp-ps-risk-tooltip amber">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">⚠</span>
+                                    <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Salva versioni HTML pre-renderizzate delle pagine su disco per servirle ai visitatori anonimi.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce drasticamente il carico CPU e database, accelera il caricamento del 300-500%, essenziale per hosting condiviso.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Contenuti dinamici potrebbero non aggiornarsi immediatamente. Non compatibile con contenuti personalizzati per utente o carrelli dinamici.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Consigliato per blog e siti informativi. Evita su e-commerce o membership site. Usa TTL brevi (300-900s) se hai contenuti che cambiano spesso.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                        <small><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="page_cache_enabled" value="1" <?php checked($pageSettings['enabled']); ?> data-risk="amber" />
                 </label>
@@ -204,7 +228,27 @@ class Cache extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable headers', 'fp-performance-suite'); ?></strong>
-                        <span class="description"><?php esc_html_e('Adds Cache-Control/Expires headers for static files.', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-risk-indicator green">
+                            <div class="fp-ps-risk-tooltip green">
+                                <div class="fp-ps-risk-tooltip-title">
+                                    <span class="icon">✓</span>
+                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Aggiunge header Cache-Control ed Expires per dire ai browser di salvare localmente CSS, JS e immagini.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce richieste HTTP del 50-80% per visitatori di ritorno, migliora LCP e velocità percepita, riduce consumo banda server.', 'fp-performance-suite'); ?></div>
+                                </div>
+                                <div class="fp-ps-risk-tooltip-section">
+                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Essenziale per performance. Nessun rischio, usa il versioning dei file (?ver=) per forzare aggiornamenti quando necessario.', 'fp-performance-suite'); ?></div>
+                                </div>
+                            </div>
+                        </span>
+                        <small><?php esc_html_e('Adds Cache-Control/Expires headers for static files.', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="browser_cache_enabled" value="1" <?php checked($headerSettings['enabled']); ?> data-risk="green" />
                 </label>

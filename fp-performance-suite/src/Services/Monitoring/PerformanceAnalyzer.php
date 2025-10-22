@@ -112,6 +112,7 @@ class PerformanceAnalyzer
                 'impact' => __('Ogni richiesta rigenera l\'HTML completo, causando carico elevato sul server e tempi di risposta lunghi (300-1000ms vs 10-50ms con cache).', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Cache e attiva "Abilita page cache". Questo memorizzerà l\'HTML su disco riducendo il carico del server del 70-90%.', 'fp-performance-suite'),
                 'priority' => 100,
+                'action_id' => 'enable_page_cache',
             ];
         }
 
@@ -123,6 +124,7 @@ class PerformanceAnalyzer
                 'impact' => __('I browser ricaricano asset statici (CSS, JS, immagini) ad ogni visita, sprecando banda e rallentando il caricamento delle pagine.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Cache > Browser Cache e attiva gli headers. Questo dirà ai browser di mantenere in cache gli asset per 30 giorni.', 'fp-performance-suite'),
                 'priority' => 85,
+                'action_id' => 'enable_browser_cache',
             ];
         }
     }
@@ -138,6 +140,7 @@ class PerformanceAnalyzer
                 'impact' => __('L\'HTML contiene spazi bianchi e commenti non necessari, aumentando la dimensione delle pagine del 10-20%.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Minify HTML". Rimuove spazi bianchi e commenti, riducendo il peso delle pagine.', 'fp-performance-suite'),
                 'priority' => 60,
+                'action_id' => 'enable_minify_html',
             ];
         }
 
@@ -148,6 +151,7 @@ class PerformanceAnalyzer
                 'impact' => __('Gli script bloccano il rendering della pagina, causando un ritardo visibile (200-500ms) prima che il contenuto appaia.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Defer JavaScript". Gli script verranno caricati dopo il contenuto principale, migliorando il First Contentful Paint.', 'fp-performance-suite'),
                 'priority' => 80,
+                'action_id' => 'enable_defer_js',
             ];
         }
 
@@ -158,6 +162,7 @@ class PerformanceAnalyzer
                 'impact' => __('WordPress carica script emoji non necessari (70KB), aggiungendo richieste HTTP e rallentando il caricamento di 50-100ms.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e attiva "Remove Emoji Scripts". Elimina script non necessari su siti moderni.', 'fp-performance-suite'),
                 'priority' => 50,
+                'action_id' => 'enable_remove_emojis',
             ];
         }
 
@@ -169,6 +174,7 @@ class PerformanceAnalyzer
                 'impact' => __('L\'API heartbeat di WordPress invia richieste ogni ' . $heartbeatInterval . ' secondi, consumando risorse server inutilmente.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Assets e imposta l\'intervallo heartbeat su 60+ secondi. Su hosting condiviso è consigliato 120 secondi.', 'fp-performance-suite'),
                 'priority' => 55,
+                'action_id' => 'optimize_heartbeat',
             ];
         }
 
@@ -195,6 +201,7 @@ class PerformanceAnalyzer
                 'impact' => __('Le tabelle frammentate rallentano le query del 30-50%, causando tempi di caricamento più lunghi e maggior uso di memoria.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Database e esegui "Optimize Tables". Considera anche di pulire revisioni vecchie, transient scaduti e spam.', 'fp-performance-suite'),
                 'priority' => 90,
+                'action_id' => 'optimize_database',
             ];
         } elseif ($overhead >= 5) {
             $issues['warnings'][] = [
@@ -202,6 +209,7 @@ class PerformanceAnalyzer
                 'impact' => __('La frammentazione delle tabelle inizia a impattare le performance. Le query potrebbero essere 10-20% più lente del necessario.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Database e pianifica una pulizia. Ottimizza le tabelle e rimuovi dati non necessari.', 'fp-performance-suite'),
                 'priority' => 70,
+                'action_id' => 'optimize_database',
             ];
         }
 
@@ -230,6 +238,7 @@ class PerformanceAnalyzer
                 'impact' => __('Le immagini JPEG/PNG pesano 25-35% più delle versioni WebP. Questo aumenta i tempi di caricamento, specialmente su mobile, e consuma più banda.', 'fp-performance-suite'),
                 'solution' => __('Vai su FP Performance > Media e avvia la conversione bulk WebP. Il formato WebP riduce le dimensioni delle immagini mantenendo la qualità visiva.', 'fp-performance-suite'),
                 'priority' => 80,
+                'action_id' => 'enable_webp',
             ];
         } elseif ($coverage < 80) {
             $issues['recommendations'][] = [
@@ -237,6 +246,7 @@ class PerformanceAnalyzer
                 'impact' => __('Alcune immagini non sono ancora in formato WebP, perdendo l\'opportunità di ridurre il peso delle pagine del 15-25%.', 'fp-performance-suite'),
                 'solution' => __('Completa la conversione WebP delle immagini rimanenti su FP Performance > Media. Considera di abilitare la conversione automatica per i nuovi upload.', 'fp-performance-suite'),
                 'priority' => 60,
+                'action_id' => 'enable_webp',
             ];
         }
     }

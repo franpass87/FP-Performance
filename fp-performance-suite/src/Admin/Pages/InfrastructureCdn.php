@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function esc_attr;
@@ -230,35 +231,31 @@ class InfrastructureCdn extends AbstractPage
             <!-- Status Overview -->
             <div style="background: #f0f0f1; padding: 15px; border-radius: 4px; margin: 15px 0;">
                 <h4 style="margin-top: 0;"><?php esc_html_e('Stato Attuale', 'fp-performance-suite'); ?></h4>
-                <ul style="margin: 0;">
-                    <li>
-                        <?php if ($status['active']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Compressione attiva', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Compressione non attiva', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['brotli_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Brotli supportato', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('Brotli non disponibile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['gzip_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('Gzip supportato', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #d63638;">✗</span> <?php esc_html_e('Gzip non disponibile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
-                    <li>
-                        <?php if ($status['htaccess_supported']): ?>
-                            <span style="color: #00a32a;">✓</span> <?php esc_html_e('.htaccess modificabile', 'fp-performance-suite'); ?>
-                        <?php else: ?>
-                            <span style="color: #dba617;">⚠</span> <?php esc_html_e('.htaccess non modificabile', 'fp-performance-suite'); ?>
-                        <?php endif; ?>
-                    </li>
+                <ul class="fp-ps-status-list">
+                    <?php
+                    echo StatusIndicator::renderListItem(
+                        $status['active'] ? 'success' : 'error',
+                        __('Compressione attiva', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['brotli_supported'] ? 'success' : 'warning',
+                        __('Brotli supportato', 'fp-performance-suite'),
+                        $status['brotli_supported'] ? '' : __('Richiede mod_brotli', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['gzip_supported'] ? 'success' : 'error',
+                        __('Gzip supportato', 'fp-performance-suite'),
+                        $status['gzip_supported'] ? '' : __('Richiede mod_deflate', 'fp-performance-suite')
+                    );
+                    
+                    echo StatusIndicator::renderListItem(
+                        $status['htaccess_supported'] ? 'success' : 'warning',
+                        __('.htaccess modificabile', 'fp-performance-suite'),
+                        $status['htaccess_supported'] ? '' : __('Permessi insufficienti', 'fp-performance-suite')
+                    );
+                    ?>
                 </ul>
             </div>
 

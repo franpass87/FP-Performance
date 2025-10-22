@@ -104,7 +104,30 @@ class Plugin
             // Theme Compatibility (essenziale per funzionamento)
             $container->get(ThemeCompatibility::class)->register();
             $container->get(CompatibilityFilters::class)->register();
+            
+            // Ottimizzatori Assets Avanzati (Ripristinato 21 Ott 2025 - FASE 2)
+            // Registrati solo se le loro opzioni sono abilitate
+            if (get_option('fp_ps_batch_dom_updates_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\BatchDOMUpdater::class)->register();
+            }
+            if (get_option('fp_ps_css_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\CSSOptimizer::class)->register();
+            }
+            if (get_option('fp_ps_jquery_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class)->register();
+            }
         });
+        
+        // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
+        // Registrati solo durante richieste AJAX per ottimizzare performance
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            add_action('init', static function () use ($container) {
+                $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
+                $container->get(\FP\PerfSuite\Http\Ajax\WebPAjax::class)->register();
+                $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
+                $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
+            }, 5);
+        }
 
         // Register WP-CLI commands
         if (defined('WP_CLI') && WP_CLI) {
@@ -224,6 +247,16 @@ class Plugin
             );
         });
         
+        // Recommendation Applicator
+        $container->set(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class, static function (ServiceContainer $c) {
+            return new \FP\PerfSuite\Services\Monitoring\RecommendationApplicator(
+                $c->get(PageCache::class),
+                $c->get(Headers::class),
+                $c->get(Optimizer::class),
+                $c->get(Cleaner::class)
+            );
+        });
+        
         // v1.3.0 Advanced Performance Services
         
         // Object Cache (Redis/Memcached)
@@ -270,6 +303,62 @@ class Plugin
         
         // Smart Asset Delivery
         $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
+        
+        // Responsive Image Optimizer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler::class, static fn() => new \FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler());
+        
+        // Unused CSS Optimizer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\Assets\UnusedCSSOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\UnusedCSSOptimizer());
+        
+        // Render Blocking Optimizer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\RenderBlockingOptimizer());
+        
+        // Critical Path Optimizer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalPathOptimizer());
+        
+        // DOM Reflow Optimizer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\DOMReflowOptimizer());
+        
+        // AI Analyzer (Ripristinato 21 Ott 2025)
+        $container->set(\FP\PerfSuite\Services\AI\Analyzer::class, static fn() => new \FP\PerfSuite\Services\AI\Analyzer());
+        
+        // Ottimizzatori Assets Avanzati (Ripristinato 21 Ott 2025 - FASE 2)
+        $container->set(\FP\PerfSuite\Services\Assets\BatchDOMUpdater::class, static fn() => new \FP\PerfSuite\Services\Assets\BatchDOMUpdater());
+        $container->set(\FP\PerfSuite\Services\Assets\CSSOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\CSSOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\jQueryOptimizer());
+        
+        // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
+        $container->set(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\RecommendationsAjax($c));
+        $container->set(\FP\PerfSuite\Http\Ajax\WebPAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\WebPAjax($c));
+        $container->set(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\CriticalCssAjax($c));
+        $container->set(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\AIConfigAjax($c));
+        
+        // EdgeCache Providers (Ripristinato 21 Ott 2025 - FASE 2) - Architettura modulare SOLID
+        $container->set(\FP\PerfSuite\Services\Cache\EdgeCache\CloudflareProvider::class, static function (ServiceContainer $c) {
+            $settings = $c->get(EdgeCacheManager::class)->settings()['cloudflare'] ?? [];
+            return new \FP\PerfSuite\Services\Cache\EdgeCache\CloudflareProvider(
+                $settings['api_token'] ?? '',
+                $settings['zone_id'] ?? '',
+                $settings['email'] ?? ''
+            );
+        });
+        $container->set(\FP\PerfSuite\Services\Cache\EdgeCache\CloudFrontProvider::class, static function (ServiceContainer $c) {
+            $settings = $c->get(EdgeCacheManager::class)->settings()['cloudfront'] ?? [];
+            return new \FP\PerfSuite\Services\Cache\EdgeCache\CloudFrontProvider(
+                $settings['access_key_id'] ?? '',
+                $settings['secret_access_key'] ?? '',
+                $settings['distribution_id'] ?? '',
+                $settings['region'] ?? 'us-east-1'
+            );
+        });
+        $container->set(\FP\PerfSuite\Services\Cache\EdgeCache\FastlyProvider::class, static function (ServiceContainer $c) {
+            $settings = $c->get(EdgeCacheManager::class)->settings()['fastly'] ?? [];
+            return new \FP\PerfSuite\Services\Cache\EdgeCache\FastlyProvider(
+                $settings['api_key'] ?? '',
+                $settings['service_id'] ?? ''
+            );
+        });
         
         // Theme Asset Configuration (gestisce asset specifici per tema/builder)
         $container->set(ThemeAssetConfiguration::class, static fn(ServiceContainer $c) => new ThemeAssetConfiguration($c->get(ThemeDetector::class)));

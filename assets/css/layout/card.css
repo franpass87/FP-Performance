@@ -9,9 +9,150 @@
     border-radius: var(--fp-radius-lg);
     padding: var(--fp-spacing-lg);
     box-shadow: var(--fp-shadow-sm);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
 }
 
 .fp-ps-card h2 {
     margin-top: 0;
+    margin-bottom: var(--fp-spacing-md);
     font-size: var(--fp-font-size-lg);
+    line-height: 1.3;
+    flex-shrink: 0;
+}
+
+/* Score container con spazio dedicato */
+.fp-ps-card .fp-ps-score {
+    margin: var(--fp-spacing-lg) 0;
+    flex-shrink: 0;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Descrizione con spazio dedicato */
+.fp-ps-card .description {
+    margin-top: auto;
+    margin-bottom: 0;
+    padding-top: var(--fp-spacing-md);
+    font-size: var(--fp-font-size-sm);
+    line-height: 1.4;
+    color: var(--fp-text);
+    opacity: 0.8;
+    flex-shrink: 0;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+/* Stat boxes specifici */
+.fp-ps-stat-box {
+    background: var(--fp-card);
+    border-radius: var(--fp-radius-lg);
+    padding: var(--fp-spacing-lg);
+    box-shadow: var(--fp-shadow-sm);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.fp-ps-stat-box .stat-value {
+    font-size: var(--fp-font-size-xl);
+    font-weight: 700;
+    color: var(--fp-accent);
+    line-height: 1;
+    margin-bottom: var(--fp-spacing-sm);
+}
+
+.fp-ps-stat-box .stat-value span {
+    font-size: var(--fp-font-size-base);
+    font-weight: 500;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.fp-ps-stat-box .stat-label {
+    font-size: var(--fp-font-size-sm);
+    font-weight: 600;
+    color: var(--fp-text);
+    margin-bottom: var(--fp-spacing-xs);
+    line-height: 1.3;
+}
+
+.fp-ps-stat-box .description {
+    font-size: var(--fp-font-size-xs);
+    color: var(--fp-text);
+    opacity: 0.7;
+    line-height: 1.3;
+    margin: 0;
+    padding: 0;
+    min-height: auto;
+    display: block;
+}
+
+/* Preset card specifica */
+.fp-ps-card .fp-ps-preset-label {
+    font-size: var(--fp-font-size-xl);
+    font-weight: 700;
+    margin: var(--fp-spacing-lg) 0;
+    text-align: center;
+    flex-shrink: 0;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fp-ps-card .fp-ps-actions {
+    margin-top: auto;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.fp-ps-card .fp-ps-actions .button {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+/* Prevenire overflow del testo */
+.fp-ps-card h2,
+.fp-ps-card .description,
+.fp-ps-card .fp-ps-preset-label {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+}
+
+/* Migliorare la leggibilità dei testi lunghi */
+.fp-ps-card .description {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+}
+
+/* Assicurarsi che i contenuti non escano dai container */
+.fp-ps-card,
+.fp-ps-stat-box {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Migliorare la spaziatura per testi lunghi */
+.fp-ps-card .description {
+    padding-right: var(--fp-spacing-xs);
+    padding-left: var(--fp-spacing-xs);
 }
