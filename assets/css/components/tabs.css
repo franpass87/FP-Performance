@@ -17,7 +17,7 @@
     padding: var(--fp-spacing-md);
     margin-bottom: var(--fp-spacing-lg);
     border-radius: var(--fp-radius-sm);
-    border-left: 4px solid;
+    border-left: var(--fp-border-width) solid;
 }
 
 .fp-ps-tab-description p {

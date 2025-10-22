@@ -32,6 +32,18 @@
     opacity: 1;
 }
 
+.fp-ps-intro-title {
+    color: white;
+    margin: 0 0 var(--fp-spacing-md) 0;
+    font-size: var(--fp-font-size-xxl);
+}
+
+.fp-ps-intro-description {
+    margin: 0;
+    font-size: var(--fp-font-size-md);
+    opacity: 0.95;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .fp-ps-intro-panel {

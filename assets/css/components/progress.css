@@ -12,7 +12,7 @@
     background: #f0f0f1;
     border-radius: var(--fp-radius-sm);
     overflow: hidden;
-    height: 24px;
+    height: var(--fp-spacing-lg);
     position: relative;
 }
 
@@ -42,7 +42,7 @@
 /* Responsive */
 @media (max-width: 768px) {
     .fp-ps-progress-bar {
-        height: 20px;
+        height: var(--fp-spacing-md);
     }
     
     .fp-ps-progress-label {

@@ -67,7 +67,7 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--fp-radius-md);
-    font-size: 24px;
+    font-size: var(--fp-font-size-xl);
     flex-shrink: 0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -152,7 +152,7 @@
 .fp-ps-advanced-content {
     margin-top: var(--fp-spacing-md);
     padding-top: var(--fp-spacing-md);
-    border-top: 1px solid #e2e8f0;
+    border-top: var(--fp-border-width) solid #e2e8f0;
 }
 
 .fp-ps-form-row {

@@ -75,7 +75,7 @@ class ThirdPartyTab
                 </p>
                 
                 <h3><?php esc_html_e('Individual Script Management', 'fp-performance-suite'); ?></h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 20px 0;">
+                <div class="fp-ps-scripts-grid">
                     <?php
                     $scripts = [
                         'google_analytics' => __('Google Analytics', 'fp-performance-suite'),
@@ -124,7 +124,7 @@ class ThirdPartyTab
                         $isEnabled = $thirdPartySettings['scripts'][$key]['enabled'] ?? false;
                         ?>
                         <label class="fp-ps-script-item">
-                            <input type="checkbox" name="<?php echo esc_attr($scriptKey); ?>" value="1" <?php checked($isEnabled); ?> style="margin-right: 8px;" />
+                            <input type="checkbox" name="<?php echo esc_attr($scriptKey); ?>" value="1" <?php checked($isEnabled); ?> class="fp-ps-script-checkbox" />
                             <span><?php echo esc_html($label); ?></span>
                         </label>
                         <?php
@@ -204,7 +204,7 @@ class ThirdPartyTab
         </section>
         
         <!-- Smart Asset Delivery Section -->
-        <section class="fp-ps-card" style="margin-top: 30px;">
+        <section class="fp-ps-card fp-ps-mt-xl">
             <h2><?php esc_html_e('Smart Asset Delivery', 'fp-performance-suite'); ?></h2>
             <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
@@ -246,7 +246,7 @@ class ThirdPartyTab
                     <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adaptive_videos']); ?> />
                 </label>
                 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+                <div class="fp-ps-push-grid">
                     <p>
                         <label for="smart_quality_slow"><?php esc_html_e('Quality for slow connections (%)', 'fp-performance-suite'); ?></label>
                         <input type="number" name="smart_quality_slow" id="smart_quality_slow" value="<?php echo esc_attr($smartDeliverySettings['quality_slow']); ?>" min="10" max="100" />

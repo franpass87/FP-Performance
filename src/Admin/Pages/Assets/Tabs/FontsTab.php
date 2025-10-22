@@ -32,16 +32,16 @@ class FontsTab
         
         <!-- Intro Panel -->
         <div class="fp-ps-intro-panel">
-            <h2 style="color: white; margin: 0 0 15px 0; font-size: 28px;">
+            <h2 class="fp-ps-intro-title">
                 ⚡ <?php esc_html_e('Font Optimization & Critical Path', 'fp-performance-suite'); ?>
             </h2>
-            <p style="margin: 0; font-size: 16px; opacity: 0.95;">
+            <p class="fp-ps-intro-description">
                 <?php esc_html_e('Ottimizza il caricamento dei font e risolvi il problema del Maximum critical path latency (6,414ms) causato dai font che bloccano il rendering.', 'fp-performance-suite'); ?>
             </p>
         </div>
         
         <!-- Status Cards -->
-        <div class="fp-ps-grid three" style="margin-bottom: 30px;">
+        <div class="fp-ps-grid three fp-ps-mb-xl">
             <?php 
             echo StatusIndicator::renderCard(
                 $cpStatus['enabled'] ? 'success' : 'inactive',
