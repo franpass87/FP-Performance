@@ -24,7 +24,6 @@ import { BulkProcessor } from './utils/bulk-processor.js';
 import { initLogViewer } from './features/log-viewer.js';
 import { initPresets } from './features/presets.js';
 import { initBulkActions } from './features/bulk-actions.js';
-import { initDarkMode } from './features/dark-mode.js';
 import { initAccessibility } from './utils/accessibility.js';
 import { initWebPBulkConvert } from './features/webp-bulk-convert.js';
 import { confirm, alert, deleteConfirm, initConfirmModals } from './components/modal.js';
@@ -33,11 +32,14 @@ import { confirm, alert, deleteConfirm, initConfirmModals } from './components/m
  * Initialize all features on DOM ready
  */
 document.addEventListener('DOMContentLoaded', function () {
+<<<<<<< Current (Your changes)
     console.log('FP Performance Suite: DOM ready, initializing features');
     
     // Initialize dark mode (needs to run early for smooth transition)
     initDarkMode();
     
+=======
+>>>>>>> Incoming (Background Agent changes)
     // Initialize tooltips (early to prevent positioning issues)
     initTooltips();
     

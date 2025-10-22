@@ -1,213 +1,109 @@
 /**
- * Quick Wins Section Component
+ * Quick Wins Section Styles
  * 
  * @package FP\PerfSuite
  */
 
-/* Quick Wins Section Container */
 .fp-ps-quick-wins {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    margin-bottom: 30px;
-    padding: var(--fp-spacing-lg);
+    margin-bottom: var(--fp-spacing-xl);
     border-radius: var(--fp-radius-lg);
-    box-shadow: var(--fp-shadow-md);
-    overflow: hidden;
-    position: relative;
+    padding: var(--fp-spacing-xl);
 }
 
-/* Header della sezione Quick Wins */
 .fp-ps-quick-wins-header {
     display: flex;
     align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
+    gap: var(--fp-spacing-lg);
+    margin-bottom: var(--fp-spacing-lg);
 }
 
 .fp-ps-quick-wins-icon {
-    font-size: 48px;
-    flex-shrink: 0;
-    line-height: 1;
+    font-size: var(--fp-font-size-xxl);
 }
 
-.fp-ps-quick-wins-title {
+.fp-ps-quick-wins-content h2 {
     color: white;
     margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.2;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    font-size: var(--fp-font-size-xl);
 }
 
-.fp-ps-quick-wins-subtitle {
-    margin: 5px 0 0 0;
+.fp-ps-quick-wins-content p {
+    margin: var(--fp-spacing-xs) 0 0 0;
     opacity: 0.9;
-    font-size: 14px;
-    line-height: 1.4;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
 }
 
-/* Grid per le card dei Quick Wins */
 .fp-ps-quick-wins-grid {
     display: grid;
-    gap: 15px;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--fp-spacing-md);
 }
 
-/* Card individuale dei Quick Wins */
-.fp-ps-quick-wins-card {
+.fp-ps-quick-win-card {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: var(--fp-radius-sm);
+    padding: var(--fp-spacing-lg);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    overflow: hidden;
-    box-sizing: border-box;
 }
 
-.fp-ps-quick-wins-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.fp-ps-quick-win-icon {
+    font-size: var(--fp-font-size-xl);
+    margin-bottom: var(--fp-spacing-sm);
 }
 
-.fp-ps-quick-wins-card-icon {
-    font-size: 32px;
-    margin-bottom: 10px;
-    line-height: 1;
-    display: block;
-}
-
-.fp-ps-quick-wins-card-title {
+.fp-ps-quick-win-title {
     color: white;
-    margin: 0 0 10px 0;
-    font-size: 16px;
+    margin: 0 0 var(--fp-spacing-sm) 0;
+    font-size: var(--fp-font-size-md);
     font-weight: 600;
-    line-height: 1.3;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
 }
 
-.fp-ps-quick-wins-card-description {
-    margin: 0 0 15px 0;
-    font-size: 13px;
+.fp-ps-quick-win-description {
+    margin: 0 0 var(--fp-spacing-md) 0;
+    font-size: var(--fp-font-size-base);
     opacity: 0.9;
     line-height: 1.5;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
-.fp-ps-quick-wins-card-button {
+.fp-ps-quick-win-button {
     background: white;
     color: #667eea;
     border: none;
     font-weight: 600;
     width: 100%;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    padding: 12px 16px;
-    border-radius: 6px;
-    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: var(--fp-spacing-sm) var(--fp-spacing-md);
+    border-radius: var(--fp-radius-sm);
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-sizing: border-box;
+    transition: all var(--fp-transition-fast);
 }
 
-.fp-ps-quick-wins-card-button:hover {
-    background: #f8f9fa;
+.fp-ps-quick-win-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.fp-ps-quick-wins-card-button:active {
+.fp-ps-quick-win-button:active {
     transform: translateY(0);
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
-    .fp-ps-quick-wins {
-        padding: var(--fp-spacing-md);
-        margin-bottom: 20px;
-    }
-    
     .fp-ps-quick-wins-header {
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-    
-    .fp-ps-quick-wins-icon {
-        font-size: 36px;
-    }
-    
-    .fp-ps-quick-wins-title {
-        font-size: 20px;
-    }
-    
-    .fp-ps-quick-wins-subtitle {
-        font-size: 13px;
+        flex-direction: column;
+        text-align: center;
+        gap: var(--fp-spacing-md);
     }
     
     .fp-ps-quick-wins-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: var(--fp-spacing-sm);
     }
     
-    .fp-ps-quick-wins-card {
-        padding: 16px;
-    }
-    
-    .fp-ps-quick-wins-card-icon {
-        font-size: 28px;
-        margin-bottom: 8px;
-    }
-    
-    .fp-ps-quick-wins-card-title {
-        font-size: 15px;
-        margin-bottom: 8px;
-    }
-    
-    .fp-ps-quick-wins-card-description {
-        font-size: 12px;
-        margin-bottom: 12px;
-        -webkit-line-clamp: 3;
-    }
-    
-    .fp-ps-quick-wins-card-button {
-        padding: 10px 14px;
-        font-size: 13px;
-    }
-}
-
-@media (max-width: 480px) {
-    .fp-ps-quick-wins-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 10px;
-    }
-    
-    .fp-ps-quick-wins-icon {
-        font-size: 32px;
-    }
-    
-    .fp-ps-quick-wins-title {
-        font-size: 18px;
-    }
-    
-    .fp-ps-quick-wins-subtitle {
-        font-size: 12px;
+    .fp-ps-quick-wins {
+        padding: var(--fp-spacing-lg);
     }
 }

@@ -173,11 +173,11 @@ class Overview extends AbstractPage
         <section class="fp-ps-quick-wins">
             <div class="fp-ps-quick-wins-header">
                 <div class="fp-ps-quick-wins-icon">⚡</div>
-                <div>
-                    <h2 class="fp-ps-quick-wins-title">
+                <div class="fp-ps-quick-wins-content">
+                    <h2>
                         <?php esc_html_e('Quick Wins - Azioni Immediate', 'fp-performance-suite'); ?>
                     </h2>
-                    <p class="fp-ps-quick-wins-subtitle">
+                    <p>
                         <?php esc_html_e('Applica questi miglioramenti con un click per ottenere risultati immediati', 'fp-performance-suite'); ?>
                     </p>
                 </div>
@@ -192,17 +192,17 @@ class Overview extends AbstractPage
                     ];
                     $icon = $iconMap[$win['type']] ?? '⚡';
                 ?>
-                <div class="fp-ps-quick-wins-card">
-                    <div class="fp-ps-quick-wins-card-icon"><?php echo $icon; ?></div>
-                    <h3 class="fp-ps-quick-wins-card-title">
+                <div class="fp-ps-quick-win-card">
+                    <div class="fp-ps-quick-win-icon"><?php echo $icon; ?></div>
+                    <h3 class="fp-ps-quick-win-title">
                         <?php echo esc_html($win['issue']); ?>
                     </h3>
-                    <p class="fp-ps-quick-wins-card-description">
+                    <p class="fp-ps-quick-win-description">
                         <?php echo esc_html($win['impact']); ?>
                     </p>
                     <button 
                         type="button" 
-                        class="fp-ps-quick-wins-card-button fp-ps-apply-recommendation" 
+                        class="fp-ps-quick-win-button fp-ps-apply-recommendation" 
                         data-action-id="<?php echo esc_attr($win['action_id']); ?>">
                         ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
                     </button>
@@ -443,7 +443,7 @@ class Overview extends AbstractPage
             <?php if (empty($analysis['critical']) && empty($analysis['warnings']) && empty($analysis['recommendations'])) : ?>
             <div class="fp-ps-notice success fp-ps-text-center">
                 <div class="fp-ps-notice-content">
-                    <div class="fp-ps-score">✅</div>
+                    <div class="fp-ps-score fp-ps-text-xxl">✅</div>
                     <p class="fp-ps-font-medium">
                         <?php esc_html_e('Nessun problema rilevato! Il tuo sito è ottimizzato correttamente.', 'fp-performance-suite'); ?>
                     </p>

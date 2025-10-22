@@ -24,7 +24,7 @@ class CssTab
         ob_start();
         ?>
         <!-- TAB: CSS -->
-        <div class="fp-ps-tab-content" data-tab="css" style="display: <?php echo $current_tab === 'css' ? 'block' : 'none'; ?>;">
+        <div class="fp-ps-tab-content <?php echo $current_tab === 'css' ? 'active' : ''; ?>" data-tab="css">
         
         <!-- SECTION 1: Base CSS Optimization -->
         <section class="fp-ps-card">

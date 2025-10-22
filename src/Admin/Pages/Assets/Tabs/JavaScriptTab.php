@@ -25,7 +25,7 @@ class JavaScriptTab
         ob_start();
         ?>
         <!-- TAB: JavaScript -->
-        <div class="fp-ps-tab-content" data-tab="javascript" style="display: <?php echo $current_tab === 'javascript' ? 'block' : 'none'; ?>;">
+        <div class="fp-ps-tab-content <?php echo $current_tab === 'javascript' ? 'active' : ''; ?>" data-tab="javascript">
         
         <section class="fp-ps-card">
             <h2><?php esc_html_e('JavaScript Optimization', 'fp-performance-suite'); ?></h2>

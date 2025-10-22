@@ -1,0 +1,51 @@
+/**
+ * Progress Bar Component Styles
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-progress {
+    margin: var(--fp-spacing-lg) 0;
+}
+
+.fp-ps-progress-bar {
+    background: #f0f0f1;
+    border-radius: var(--fp-radius-sm);
+    overflow: hidden;
+    height: var(--fp-spacing-lg);
+    position: relative;
+}
+
+.fp-ps-progress-fill {
+    height: 100%;
+    transition: width var(--fp-transition-base);
+}
+
+.fp-ps-progress-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1d2327;
+    font-weight: 600;
+    font-size: var(--fp-font-size-sm);
+}
+
+.fp-ps-progress-cancel {
+    margin-top: var(--fp-spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fp-ps-progress-bar {
+        height: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-progress-label {
+        font-size: var(--fp-font-size-xs);
+    }
+}

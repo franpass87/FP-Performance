@@ -24,8 +24,8 @@
     justify-content: center;
     z-index: 100000;
     opacity: 0;
-    transition: opacity 0.3s ease;
-    padding: 20px;
+    transition: opacity var(--fp-transition-base);
+    padding: var(--fp-spacing-lg);
 }
 
 .fp-ps-modal-overlay--open {
@@ -41,7 +41,7 @@
    =========================== */
 .fp-ps-modal {
     background: #ffffff;
-    border-radius: 8px;
+    border-radius: var(--fp-radius-sm);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 500px;
     width: 100%;
@@ -49,7 +49,7 @@
     overflow: auto;
     transform: scale(0.9) translateY(-20px);
     opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition: transform var(--fp-transition-base), opacity var(--fp-transition-base);
 }
 
 .fp-ps-modal--open {
@@ -136,15 +136,15 @@
 .fp-ps-modal__confirm,
 .fp-ps-modal__cancel {
     padding: 10px 20px !important;
-    font-size: 14px !important;
+    font-size: var(--fp-font-size-sm) !important;
     font-weight: 600 !important;
-    border-radius: 6px !important;
-    transition: all 0.2s ease !important;
+    border-radius: var(--fp-radius-sm) !important;
+    transition: all var(--fp-transition-fast) !important;
     cursor: pointer;
 }
 
 .fp-ps-modal__confirm {
-    background: #2271b1 !important;
+    background: var(--fp-accent) !important;
     color: #ffffff !important;
     border: none !important;
 }
@@ -152,17 +152,14 @@
 .fp-ps-modal__confirm:hover {
     background: #135e96 !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(34, 113, 177, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(45, 108, 223, 0.3) !important;
 }
 
 .fp-ps-modal__confirm:active {
     transform: translateY(0);
 }
 
-.fp-ps-modal__confirm:focus {
-    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.3) !important;
-    outline: none !important;
-}
+/* Focus states moved to utilities/focus.css */
 
 /* Stile danger per bottone conferma */
 .fp-ps-modal--danger .fp-ps-modal__confirm,
@@ -188,15 +185,12 @@
     border-color: #9ca3af !important;
 }
 
-.fp-ps-modal__cancel:focus {
-    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.3) !important;
-    outline: none !important;
-}
+/* Focus states moved to utilities/focus.css */
 
 /* ===========================
    Responsive
    =========================== */
-@media screen and (max-width: 600px) {
+@media (max-width: 768px) {
     .fp-ps-modal-overlay {
         padding: 10px;
     }

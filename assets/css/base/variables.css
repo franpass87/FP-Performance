@@ -58,4 +58,8 @@
     /* Transitions */
     --fp-transition-fast: 0.2s ease;
     --fp-transition-base: 0.3s ease;
+    
+    /* Border Width */
+    --fp-border-width: 1px;
+    --fp-border-width-thick: 2px;
 }

@@ -30,14 +30,22 @@
 @import url('components/modal.css');
 @import url('components/bulk-convert.css');
 @import url('components/quick-wins.css');
+<<<<<<< Current (Your changes)
 @import url('components/issue-boxes.css');
+=======
+@import url('components/analysis.css');
+@import url('components/progress.css');
+@import url('components/tabs.css');
+@import url('components/forms.css');
+>>>>>>> Incoming (Background Agent changes)
 
 /* Utilities */
+@import url('utilities/utilities.css');
+@import url('utilities/focus.css');
 @import url('utilities/score.css');
 @import url('utilities/utilities.css');
 
 /* Themes & Accessibility */
-@import url('themes/dark-mode.css');
 @import url('themes/high-contrast.css');
 @import url('themes/reduced-motion.css');
 @import url('themes/print.css');
