@@ -170,20 +170,20 @@ class Overview extends AbstractPage
         
         if (!empty($quickWins)) : 
         ?>
-        <section class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; margin-bottom: 30px;">
-            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-                <div style="font-size: 48px;">⚡</div>
-                <div>
-                    <h2 style="color: white; margin: 0; font-size: 24px;">
+        <section class="fp-ps-quick-wins">
+            <div class="fp-ps-quick-wins-header">
+                <div class="fp-ps-quick-wins-icon">⚡</div>
+                <div class="fp-ps-quick-wins-content">
+                    <h2>
                         <?php esc_html_e('Quick Wins - Azioni Immediate', 'fp-performance-suite'); ?>
                     </h2>
-                    <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                    <p>
                         <?php esc_html_e('Applica questi miglioramenti con un click per ottenere risultati immediati', 'fp-performance-suite'); ?>
                     </p>
                 </div>
             </div>
             
-            <div class="fp-ps-grid three" style="gap: 15px;">
+            <div class="fp-ps-quick-wins-grid">
                 <?php foreach ($quickWins as $index => $win) : 
                     $iconMap = [
                         'critical' => '🚨',
@@ -192,19 +192,18 @@ class Overview extends AbstractPage
                     ];
                     $icon = $iconMap[$win['type']] ?? '⚡';
                 ?>
-                <div style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 20px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;"><?php echo $icon; ?></div>
-                    <h3 style="color: white; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">
+                <div class="fp-ps-quick-win-card">
+                    <div class="fp-ps-quick-win-icon"><?php echo $icon; ?></div>
+                    <h3 class="fp-ps-quick-win-title">
                         <?php echo esc_html($win['issue']); ?>
                     </h3>
-                    <p style="margin: 0 0 15px 0; font-size: 13px; opacity: 0.9; line-height: 1.5;">
+                    <p class="fp-ps-quick-win-description">
                         <?php echo esc_html($win['impact']); ?>
                     </p>
                     <button 
                         type="button" 
-                        class="button button-primary fp-ps-apply-recommendation" 
-                        data-action-id="<?php echo esc_attr($win['action_id']); ?>"
-                        style="background: white; color: #667eea; border: none; font-weight: 600; width: 100%; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                        class="fp-ps-quick-win-button fp-ps-apply-recommendation" 
+                        data-action-id="<?php echo esc_attr($win['action_id']); ?>">
                         ✨ <?php esc_html_e('Applica Ora', 'fp-performance-suite'); ?>
                     </button>
                 </div>
@@ -444,7 +443,7 @@ class Overview extends AbstractPage
             <?php if (empty($analysis['critical']) && empty($analysis['warnings']) && empty($analysis['recommendations'])) : ?>
             <div class="fp-ps-notice success fp-ps-text-center">
                 <div class="fp-ps-notice-content">
-                    <div class="fp-ps-score" style="font-size: var(--fp-font-size-xxl);">✅</div>
+                    <div class="fp-ps-score fp-ps-text-xxl">✅</div>
                     <p class="fp-ps-font-medium">
                         <?php esc_html_e('Nessun problema rilevato! Il tuo sito è ottimizzato correttamente.', 'fp-performance-suite'); ?>
                     </p>
@@ -456,7 +455,7 @@ class Overview extends AbstractPage
             $totalIssues = count($analysis['critical']) + count($analysis['warnings']) + count($analysis['recommendations']);
             if ($totalIssues > 9) : 
             ?>
-            <div style="text-align: center; margin-top: 20px;">
+            <div class="fp-ps-text-center fp-ps-mt-lg">
                 <p class="description">
                     <?php printf(
                         esc_html__('Visualizzati 9 problemi su %d totali', 'fp-performance-suite'),

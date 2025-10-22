@@ -1,0 +1,109 @@
+/**
+ * Quick Wins Section Styles
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-quick-wins {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    margin-bottom: var(--fp-spacing-xl);
+    border-radius: var(--fp-radius-lg);
+    padding: var(--fp-spacing-xl);
+}
+
+.fp-ps-quick-wins-header {
+    display: flex;
+    align-items: center;
+    gap: var(--fp-spacing-lg);
+    margin-bottom: var(--fp-spacing-lg);
+}
+
+.fp-ps-quick-wins-icon {
+    font-size: var(--fp-font-size-xxl);
+}
+
+.fp-ps-quick-wins-content h2 {
+    color: white;
+    margin: 0;
+    font-size: var(--fp-font-size-xl);
+}
+
+.fp-ps-quick-wins-content p {
+    margin: var(--fp-spacing-xs) 0 0 0;
+    opacity: 0.9;
+}
+
+.fp-ps-quick-wins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--fp-spacing-md);
+}
+
+.fp-ps-quick-win-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--fp-radius-sm);
+    padding: var(--fp-spacing-lg);
+    backdrop-filter: blur(10px);
+}
+
+.fp-ps-quick-win-icon {
+    font-size: var(--fp-font-size-xl);
+    margin-bottom: var(--fp-spacing-sm);
+}
+
+.fp-ps-quick-win-title {
+    color: white;
+    margin: 0 0 var(--fp-spacing-sm) 0;
+    font-size: var(--fp-font-size-md);
+    font-weight: 600;
+}
+
+.fp-ps-quick-win-description {
+    margin: 0 0 var(--fp-spacing-md) 0;
+    font-size: var(--fp-font-size-base);
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+.fp-ps-quick-win-button {
+    background: white;
+    color: #667eea;
+    border: none;
+    font-weight: 600;
+    width: 100%;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: var(--fp-spacing-sm) var(--fp-spacing-md);
+    border-radius: var(--fp-radius-sm);
+    cursor: pointer;
+    transition: all var(--fp-transition-fast);
+}
+
+.fp-ps-quick-win-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fp-ps-quick-win-button:active {
+    transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fp-ps-quick-wins-header {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-quick-wins-grid {
+        grid-template-columns: 1fr;
+        gap: var(--fp-spacing-sm);
+    }
+    
+    .fp-ps-quick-wins {
+        padding: var(--fp-spacing-lg);
+    }
+}
