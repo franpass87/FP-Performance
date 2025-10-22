@@ -30,14 +30,11 @@
 @import url('components/modal.css');
 @import url('components/bulk-convert.css');
 @import url('components/quick-wins.css');
-<<<<<<< Current (Your changes)
 @import url('components/issue-boxes.css');
-=======
 @import url('components/analysis.css');
 @import url('components/progress.css');
 @import url('components/tabs.css');
 @import url('components/forms.css');
->>>>>>> Incoming (Background Agent changes)
 
 /* Utilities */
 @import url('utilities/utilities.css');

@@ -7,7 +7,6 @@ class Assets
     public function boot(): void
     {
         add_action('admin_enqueue_scripts', [$this, 'enqueue']);
-        add_action('admin_head', [$this, 'injectDarkModeScript'], 1);
     }
 
     public function enqueue(string $hook): void
@@ -66,40 +65,4 @@ class Assets
         return $tag;
     }
 
-    /**
-     * Inject dark mode script early to prevent flash of unstyled content (FOUC)
-     * This applies the saved dark mode preference before the page renders
-     *
-     * @return void
-     */
-    public function injectDarkModeScript(): void
-    {
-        // Only inject on our admin pages
-        $screen = get_current_screen();
-        if (!$screen || strpos($screen->id, 'fp-performance-suite') === false) {
-            return;
-        }
-
-        ?>
-        <script>
-        (function() {
-            // Apply dark mode preference immediately to prevent FOUC
-            var preference = localStorage.getItem('fp_ps_dark_mode') || 'auto';
-            var body = document.body;
-            
-            // Check if body is available (it should be in admin_head, but let's be safe)
-            if (!body) {
-                return;
-            }
-            
-            if (preference === 'dark') {
-                body.classList.add('fp-dark-mode');
-            } else if (preference === 'light') {
-                body.classList.add('fp-light-mode');
-            }
-            // 'auto' mode is handled by CSS media queries
-        })();
-        </script>
-        <?php
-    }
 }

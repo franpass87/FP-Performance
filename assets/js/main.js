@@ -32,14 +32,8 @@ import { confirm, alert, deleteConfirm, initConfirmModals } from './components/m
  * Initialize all features on DOM ready
  */
 document.addEventListener('DOMContentLoaded', function () {
-<<<<<<< Current (Your changes)
     console.log('FP Performance Suite: DOM ready, initializing features');
     
-    // Initialize dark mode (needs to run early for smooth transition)
-    initDarkMode();
-    
-=======
->>>>>>> Incoming (Background Agent changes)
     // Initialize tooltips (early to prevent positioning issues)
     initTooltips();
     
