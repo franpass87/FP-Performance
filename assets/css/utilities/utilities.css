@@ -1,0 +1,259 @@
+/**
+ * Utility Classes
+ * 
+ * @package FP\PerfSuite
+ */
+
+/* Text Alignment */
+.fp-ps-text-center {
+    text-align: center;
+}
+
+.fp-ps-text-left {
+    text-align: left;
+}
+
+.fp-ps-text-right {
+    text-align: right;
+}
+
+/* Margins */
+.fp-ps-mt-xs {
+    margin-top: var(--fp-spacing-xs);
+}
+
+.fp-ps-mt-sm {
+    margin-top: var(--fp-spacing-sm);
+}
+
+.fp-ps-mt-md {
+    margin-top: var(--fp-spacing-md);
+}
+
+.fp-ps-mt-lg {
+    margin-top: var(--fp-spacing-lg);
+}
+
+.fp-ps-mt-xl {
+    margin-top: var(--fp-spacing-xl);
+}
+
+.fp-ps-mb-xs {
+    margin-bottom: var(--fp-spacing-xs);
+}
+
+.fp-ps-mb-sm {
+    margin-bottom: var(--fp-spacing-sm);
+}
+
+.fp-ps-mb-md {
+    margin-bottom: var(--fp-spacing-md);
+}
+
+.fp-ps-mb-lg {
+    margin-bottom: var(--fp-spacing-lg);
+}
+
+.fp-ps-mb-xl {
+    margin-bottom: var(--fp-spacing-xl);
+}
+
+.fp-ps-my-xs {
+    margin-top: var(--fp-spacing-xs);
+    margin-bottom: var(--fp-spacing-xs);
+}
+
+.fp-ps-my-sm {
+    margin-top: var(--fp-spacing-sm);
+    margin-bottom: var(--fp-spacing-sm);
+}
+
+.fp-ps-my-md {
+    margin-top: var(--fp-spacing-md);
+    margin-bottom: var(--fp-spacing-md);
+}
+
+.fp-ps-my-lg {
+    margin-top: var(--fp-spacing-lg);
+    margin-bottom: var(--fp-spacing-lg);
+}
+
+.fp-ps-my-xl {
+    margin-top: var(--fp-spacing-xl);
+    margin-bottom: var(--fp-spacing-xl);
+}
+
+/* Font Weights */
+.fp-ps-font-light {
+    font-weight: 300;
+}
+
+.fp-ps-font-normal {
+    font-weight: 400;
+}
+
+.fp-ps-font-medium {
+    font-weight: 500;
+}
+
+.fp-ps-font-semibold {
+    font-weight: 600;
+}
+
+.fp-ps-font-bold {
+    font-weight: 700;
+}
+
+/* Text Sizes */
+.fp-ps-text-xs {
+    font-size: var(--fp-font-size-xs);
+}
+
+.fp-ps-text-sm {
+    font-size: var(--fp-font-size-sm);
+}
+
+.fp-ps-text-base {
+    font-size: var(--fp-font-size-base);
+}
+
+.fp-ps-text-lg {
+    font-size: var(--fp-font-size-lg);
+}
+
+.fp-ps-text-xl {
+    font-size: var(--fp-font-size-xl);
+}
+
+.fp-ps-text-xxl {
+    font-size: var(--fp-font-size-xxl);
+}
+
+/* Text Colors */
+.fp-ps-text-muted {
+    color: #6b7280;
+    opacity: 0.8;
+}
+
+.fp-ps-text-primary {
+    color: var(--fp-accent);
+}
+
+.fp-ps-text-success {
+    color: var(--fp-ok);
+}
+
+.fp-ps-text-warning {
+    color: var(--fp-warn);
+}
+
+.fp-ps-text-danger {
+    color: var(--fp-danger);
+}
+
+/* Display */
+.fp-ps-hidden {
+    display: none;
+}
+
+.fp-ps-block {
+    display: block;
+}
+
+.fp-ps-inline {
+    display: inline;
+}
+
+.fp-ps-inline-block {
+    display: inline-block;
+}
+
+.fp-ps-flex {
+    display: flex;
+}
+
+.fp-ps-inline-flex {
+    display: inline-flex;
+}
+
+.fp-ps-grid {
+    display: grid;
+}
+
+/* Flexbox Utilities */
+.fp-ps-flex-col {
+    flex-direction: column;
+}
+
+.fp-ps-flex-row {
+    flex-direction: row;
+}
+
+.fp-ps-items-center {
+    align-items: center;
+}
+
+.fp-ps-items-start {
+    align-items: flex-start;
+}
+
+.fp-ps-items-end {
+    align-items: flex-end;
+}
+
+.fp-ps-justify-center {
+    justify-content: center;
+}
+
+.fp-ps-justify-start {
+    justify-content: flex-start;
+}
+
+.fp-ps-justify-end {
+    justify-content: flex-end;
+}
+
+.fp-ps-justify-between {
+    justify-content: space-between;
+}
+
+.fp-ps-justify-around {
+    justify-content: space-around;
+}
+
+/* Spacing */
+.fp-ps-gap-xs {
+    gap: var(--fp-spacing-xs);
+}
+
+.fp-ps-gap-sm {
+    gap: var(--fp-spacing-sm);
+}
+
+.fp-ps-gap-md {
+    gap: var(--fp-spacing-md);
+}
+
+.fp-ps-gap-lg {
+    gap: var(--fp-spacing-lg);
+}
+
+.fp-ps-gap-xl {
+    gap: var(--fp-spacing-xl);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+    .fp-ps-mt-lg {
+        margin-top: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-mb-lg {
+        margin-bottom: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-my-lg {
+        margin-top: var(--fp-spacing-md);
+        margin-bottom: var(--fp-spacing-md);
+    }
+}

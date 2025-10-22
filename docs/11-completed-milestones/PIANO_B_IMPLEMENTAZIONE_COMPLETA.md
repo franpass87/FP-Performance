@@ -74,7 +74,11 @@ FP Performance Suite v1.5.0
 │   └── ⚡ Quick Start (Presets)
 │
 ├── 🚀 PERFORMANCE OPTIMIZATION
-│   ├── — 🚀 Cache
+│   ├── — 🚀 Cache ✨ AGGIORNATO
+│   │   ├─── Section: 📄 Page Cache
+│   │   ├─── Section: 🌐 Browser Cache Headers
+│   │   ├─── Section: 🚀 Predictive Prefetching
+│   │   └─── Section: ⏱️ Cache Rules (.htaccess) ✨ NUOVO
 │   │
 │   ├── — 📦 Assets ✨ TAB SYSTEM
 │   │   ├─── Tab: 📦 Delivery & Core
@@ -95,7 +99,13 @@ FP Performance Suite v1.5.0
 │       └─── Section: ⚡ Admin AJAX & Revisions
 │
 ├── 🛡️ SECURITY & INFRASTRUCTURE
-│   └── 🛡️ Security
+│   └── 🛡️ Security ✨ AGGIORNATO
+│       ├─── Section: 🔄 Canonical Redirect
+│       ├─── Section: 🛡️ Security Headers
+│       ├─── Section: 🌐 CORS Headers
+│       ├─── Section: 🔒 File Protection
+│       ├─── Section: 🚫 XML-RPC Control
+│       └─── Section: 🖼️ Hotlink Protection
 │
 ├── 🧠 INTELLIGENCE & AUTO-DETECTION
 │   └── 🧠 Smart Exclusions

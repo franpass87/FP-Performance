@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
 
@@ -64,7 +65,7 @@ class Media extends AbstractPage
     {
         // Determina la tab attiva
         $activeTab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'webp';
-        $validTabs = ['webp', 'responsive'];
+        $validTabs = ['webp', 'avif', 'responsive'];
         if (!in_array($activeTab, $validTabs, true)) {
             $activeTab = 'webp';
         }
@@ -80,6 +81,8 @@ class Media extends AbstractPage
         // Render content based on active tab
         if ($activeTab === 'responsive') {
             echo $this->renderResponsiveImagesTab();
+        } elseif ($activeTab === 'avif') {
+            echo $this->renderAVIFTab();
         } else {
             echo $this->renderWebPTab();
         }
@@ -99,6 +102,42 @@ class Media extends AbstractPage
                 return;
             }
             // Il form sarà gestito nel rendering
+        }
+
+        // AVIF form submission
+        if ($activeTab === 'avif' && isset($_POST['fp_ps_avif_nonce'])) {
+            if (!wp_verify_nonce(wp_unslash($_POST['fp_ps_avif_nonce']), 'fp_ps_avif')) {
+                return;
+            }
+            
+            try {
+                $avifConverter = $this->container->get(AVIFConverter::class);
+                
+                $settings = [
+                    'enabled' => !empty($_POST['enabled']),
+                    'auto_convert' => !empty($_POST['auto_convert']),
+                    'replace_in_content' => !empty($_POST['replace_in_content']),
+                    'quality' => (int) ($_POST['quality'] ?? 80),
+                    'max_width' => (int) ($_POST['max_width'] ?? 2560),
+                    'max_height' => (int) ($_POST['max_height'] ?? 2560),
+                ];
+                
+                $result = $avifConverter->updateSettings($settings);
+                
+                if ($result) {
+                    add_action('admin_notices', function() {
+                        echo '<div class="notice notice-success is-dismissible"><p>' . 
+                             esc_html__('Configurazione AVIF salvata con successo!', 'fp-performance-suite') . 
+                             '</p></div>';
+                    });
+                }
+            } catch (\Exception $e) {
+                add_action('admin_notices', function() use ($e) {
+                    echo '<div class="notice notice-error is-dismissible"><p>' . 
+                         esc_html__('Errore nel salvare la configurazione AVIF: ', 'fp-performance-suite') . 
+                         esc_html($e->getMessage()) . '</p></div>';
+                });
+            }
         }
 
         // Responsive Images form submission
@@ -166,6 +205,10 @@ class Media extends AbstractPage
                class="nav-tab <?php echo $activeTab === 'webp' ? 'nav-tab-active' : ''; ?>">
                 🔄 <?php esc_html_e('WebP Conversion', 'fp-performance-suite'); ?>
             </a>
+            <a href="<?php echo esc_url($baseUrl . '&tab=avif'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'avif' ? 'nav-tab-active' : ''; ?>">
+                🎨 <?php esc_html_e('AVIF Conversion', 'fp-performance-suite'); ?>
+            </a>
             <a href="<?php echo esc_url($baseUrl . '&tab=responsive'); ?>" 
                class="nav-tab <?php echo $activeTab === 'responsive' ? 'nav-tab-active' : ''; ?>">
                 🖼️ <?php esc_html_e('Responsive Images', 'fp-performance-suite'); ?>
@@ -209,7 +252,7 @@ class Media extends AbstractPage
         // Controlla se c'è un plugin WebP di terze parti attivo
         $webpWarning = null;
         if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
-            $compatManager = new \FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility();
+            $compatManager = $this->container->get(\FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility::class);
             $webpWarning = $compatManager->getWarningMessage();
         }
         
@@ -734,6 +777,253 @@ class Media extends AbstractPage
         
         <?php
         return (string) ob_get_clean();
+    }
+
+    private function renderAVIFTab(): string
+    {
+        ob_start();
+        
+        // Ottieni il servizio AVIFConverter
+        try {
+            $avifConverter = $this->container->get(AVIFConverter::class);
+            $avifSettings = $avifConverter->getSettings();
+            $isSupported = $avifConverter->isSupported();
+        } catch (\Exception $e) {
+            $avifConverter = null;
+            $avifSettings = [];
+            $isSupported = false;
+        }
+        
+        ?>
+        
+        <!-- AVIF Support Status -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🎨 AVIF Conversion', 'fp-performance-suite'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Converte le immagini in formato AVIF per una compressione superiore rispetto a WebP.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div class="fp-ps-status-indicator" style="margin: 20px 0;">
+                <?php if ($isSupported): ?>
+                    <div class="status-indicator success">
+                        <span class="status-icon">✅</span>
+                        <span class="status-text"><?php esc_html_e('AVIF Supportato', 'fp-performance-suite'); ?></span>
+                    </div>
+                    <p class="description">
+                        <?php esc_html_e('Il server supporta la conversione AVIF. Puoi abilitare questa funzionalità.', 'fp-performance-suite'); ?>
+                    </p>
+                <?php else: ?>
+                    <div class="status-indicator error">
+                        <span class="status-icon">❌</span>
+                        <span class="status-text"><?php esc_html_e('AVIF Non Supportato', 'fp-performance-suite'); ?></span>
+                    </div>
+                    <p class="description">
+                        <?php esc_html_e('Il server non supporta AVIF. Richiede PHP 8.1+ e GD con supporto AVIF.', 'fp-performance-suite'); ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+        </section>
+
+        <?php if ($isSupported): ?>
+        
+        <!-- AVIF Configuration -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('⚙️ Configurazione AVIF', 'fp-performance-suite'); ?></h2>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('fp_ps_avif', 'fp_ps_avif_nonce'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Abilita AVIF', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="enabled" value="1" 
+                                       <?php checked(!empty($avifSettings['enabled'])); ?>>
+                                <?php esc_html_e('Abilita conversione AVIF', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Converte automaticamente le immagini in formato AVIF.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Conversione Automatica', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="auto_convert" value="1" 
+                                       <?php checked(!empty($avifSettings['auto_convert'])); ?>>
+                                <?php esc_html_e('Converti automaticamente al caricamento', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Converte le immagini automaticamente quando vengono caricate.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Sostituzione nel Contenuto', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="replace_in_content" value="1" 
+                                       <?php checked(!empty($avifSettings['replace_in_content'])); ?>>
+                                <?php esc_html_e('Sostituisci immagini nel contenuto', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Sostituisce automaticamente le immagini con versioni AVIF nel contenuto.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Qualità', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="range" name="quality" min="50" max="100" 
+                                   value="<?php echo esc_attr($avifSettings['quality'] ?? 80); ?>" 
+                                   id="avif-quality" style="width: 200px;">
+                            <span id="avif-quality-value"><?php echo esc_html($avifSettings['quality'] ?? 80); ?>%</span>
+                            <p class="description">
+                                <?php esc_html_e('Qualità della compressione AVIF (50-100). Valori più alti = qualità migliore ma file più grandi.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Larghezza Massima', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="number" name="max_width" value="<?php echo esc_attr($avifSettings['max_width'] ?? 2560); ?>" 
+                                   min="100" max="4000" step="100">
+                            <p class="description">
+                                <?php esc_html_e('Larghezza massima in pixel per le immagini convertite.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Altezza Massima', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="number" name="max_height" value="<?php echo esc_attr($avifSettings['max_height'] ?? 2560); ?>" 
+                                   min="100" max="4000" step="100">
+                            <p class="description">
+                                <?php esc_html_e('Altezza massima in pixel per le immagini convertite.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button(__('Salva Configurazione AVIF', 'fp-performance-suite')); ?>
+            </form>
+        </section>
+
+        <!-- AVIF Batch Conversion -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🔄 Conversione Batch', 'fp-performance-suite'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Converte tutte le immagini esistenti in formato AVIF.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <div class="fp-ps-grid two" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box">
+                    <h3><?php esc_html_e('📊 Statistiche Immagini', 'fp-performance-suite'); ?></h3>
+                    <div class="stat-value"><?php echo esc_html($this->getImageStats()['total']); ?></div>
+                    <p class="description"><?php esc_html_e('Immagini totali nel media library', 'fp-performance-suite'); ?></p>
+                </div>
+                
+                <div class="fp-ps-stat-box">
+                    <h3><?php esc_html_e('🎨 AVIF Convertite', 'fp-performance-suite'); ?></h3>
+                    <div class="stat-value"><?php echo esc_html($this->getImageStats()['avif_converted']); ?></div>
+                    <p class="description"><?php esc_html_e('Immagini già convertite in AVIF', 'fp-performance-suite'); ?></p>
+                </div>
+            </div>
+            
+            <form method="post" action="" style="margin-top: 20px;">
+                <?php wp_nonce_field('fp_ps_avif_batch', 'fp_ps_avif_batch_nonce'); ?>
+                <input type="hidden" name="action" value="batch_convert">
+                
+                <p>
+                    <label>
+                        <input type="checkbox" name="confirm_batch" value="1" required>
+                        <?php esc_html_e('Confermo di voler convertire tutte le immagini in AVIF', 'fp-performance-suite'); ?>
+                    </label>
+                </p>
+                
+                <?php submit_button(__('Avvia Conversione Batch', 'fp-performance-suite'), 'primary', 'batch_convert', false, ['onclick' => 'return confirm("' . esc_js(__('Questo processo potrebbe richiedere molto tempo. Continuare?', 'fp-performance-suite')) . '")']); ?>
+            </form>
+        </section>
+
+        <!-- AVIF Benefits -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('📈 Benefici AVIF', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid three" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label"><?php esc_html_e('Compressione Superiore', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value success">50-70%</div>
+                    <p class="description">
+                        <?php esc_html_e('Riduzione dimensioni rispetto a JPEG', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #f093fb;">
+                    <div class="stat-label"><?php esc_html_e('Qualità Migliore', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">🎨</div>
+                    <p class="description">
+                        <?php esc_html_e('Qualità superiore a WebP a parità di dimensioni', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #4facfe;">
+                    <div class="stat-label"><?php esc_html_e('Supporto Moderno', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">🌐</div>
+                    <p class="description">
+                        <?php esc_html_e('Supportato dai browser moderni con fallback', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const qualitySlider = document.getElementById('avif-quality');
+            const qualityValue = document.getElementById('avif-quality-value');
+            
+            if (qualitySlider && qualityValue) {
+                qualitySlider.addEventListener('input', function() {
+                    qualityValue.textContent = this.value + '%';
+                });
+            }
+        });
+        </script>
+        
+        <?php endif; ?>
+        
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    private function getImageStats(): array
+    {
+        global $wpdb;
+        
+        $total = $wpdb->get_var("
+            SELECT COUNT(*) 
+            FROM {$wpdb->posts} 
+            WHERE post_type = 'attachment' 
+            AND post_mime_type LIKE 'image/%'
+        ");
+        
+        $avif_converted = $wpdb->get_var("
+            SELECT COUNT(*) 
+            FROM {$wpdb->postmeta} 
+            WHERE meta_key = '_fp_avif_converted' 
+            AND meta_value = '1'
+        ");
+        
+        return [
+            'total' => (int) $total,
+            'avif_converted' => (int) $avif_converted,
+        ];
     }
 
 }

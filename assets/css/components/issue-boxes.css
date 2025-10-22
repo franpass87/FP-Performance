@@ -1,6 +1,5 @@
 /**
- * Issue Box Component
- * Boxes per visualizzare problemi critici, warnings e raccomandazioni
+ * Issue Boxes Component
  * 
  * @package FP\PerfSuite
  */
@@ -140,36 +139,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Summary Box */
-.fp-ps-analysis-summary {
-    margin-bottom: var(--fp-spacing-lg);
-    padding: var(--fp-spacing-md);
-    border-radius: var(--fp-radius-md);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.fp-ps-analysis-summary.excellent {
-    background: var(--fp-success-light);
-}
-
-.fp-ps-analysis-summary.good {
-    background: var(--fp-warning-light);
-}
-
-.fp-ps-analysis-summary.poor {
-    background: var(--fp-danger-light);
-}
-
-.fp-ps-analysis-summary p {
-    margin: 0;
-    color: var(--fp-gray-700);
-    font-size: var(--fp-font-size-md);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .fp-ps-issue-section-header {
@@ -268,4 +237,3 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-

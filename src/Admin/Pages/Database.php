@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
 use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
+use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 
 use function __;
@@ -66,7 +67,35 @@ class Database extends AbstractPage
     {
         // Wrapper di sicurezza generale per prevenire pagina vuota
         try {
-            return $this->renderContent();
+            // Determina la tab attiva
+            $activeTab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'operations';
+            $validTabs = ['operations', 'monitor', 'query_cache'];
+            if (!in_array($activeTab, $validTabs, true)) {
+                $activeTab = 'operations';
+            }
+            
+            // Gestione dei form submissions
+            $this->handleFormSubmissions($activeTab);
+            
+            ob_start();
+            
+            // Render tabs navigation
+            $this->renderTabsNavigation($activeTab);
+            
+            // Render content based on active tab
+            switch ($activeTab) {
+                case 'monitor':
+                    echo $this->renderQueryMonitorTab();
+                    break;
+                case 'query_cache':
+                    echo $this->renderQueryCacheTab();
+                    break;
+                default:
+                    echo $this->renderOperationsTab();
+                    break;
+            }
+            
+            return (string) ob_get_clean();
         } catch (\Throwable $e) {
             // Log dell'errore se WP_DEBUG_LOG è abilitato
             if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
@@ -1124,6 +1153,416 @@ class Database extends AbstractPage
                 <li><strong>Error:</strong> <?php echo esc_html($message); ?></li>
             </ul>
         </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    private function handleFormSubmissions(string $activeTab): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
+
+        // Query Monitor form submission
+        if ($activeTab === 'monitor' && isset($_POST['fp_ps_query_monitor_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_query_monitor_nonce']), 'fp_ps_query_monitor')) {
+            try {
+                $queryMonitor = $this->container->get(DatabaseQueryMonitor::class);
+                
+                $settings = [
+                    'enabled' => !empty($_POST['enabled']),
+                    'slow_query_threshold' => (float) ($_POST['slow_query_threshold'] ?? 0.005),
+                    'log_duplicates' => !empty($_POST['log_duplicates']),
+                ];
+                
+                $result = $queryMonitor->updateSettings($settings);
+                
+                if ($result) {
+                    add_action('admin_notices', function() {
+                        echo '<div class="notice notice-success is-dismissible"><p>' . 
+                             esc_html__('Configurazione Query Monitor salvata con successo!', 'fp-performance-suite') . 
+                             '</p></div>';
+                    });
+                }
+            } catch (\Exception $e) {
+                add_action('admin_notices', function() use ($e) {
+                    echo '<div class="notice notice-error is-dismissible"><p>' . 
+                         esc_html__('Errore nel salvare la configurazione Query Monitor: ', 'fp-performance-suite') . 
+                         esc_html($e->getMessage()) . '</p></div>';
+                });
+            }
+        }
+
+        // Query Cache form submission
+        if ($activeTab === 'query_cache' && isset($_POST['fp_ps_query_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_query_cache_nonce']), 'fp_ps_query_cache')) {
+            try {
+                $queryCache = $this->container->get(QueryCacheManager::class);
+                
+                $settings = [
+                    'enabled' => !empty($_POST['enabled']),
+                    'ttl' => (int) ($_POST['ttl'] ?? 3600),
+                    'cache_select_only' => !empty($_POST['cache_select_only']),
+                    'max_cache_size' => (int) ($_POST['max_cache_size'] ?? 1000),
+                ];
+                
+                $result = $queryCache->updateSettings($settings);
+                
+                if ($result) {
+                    add_action('admin_notices', function() {
+                        echo '<div class="notice notice-success is-dismissible"><p>' . 
+                             esc_html__('Configurazione Query Cache salvata con successo!', 'fp-performance-suite') . 
+                             '</p></div>';
+                    });
+                }
+            } catch (\Exception $e) {
+                add_action('admin_notices', function() use ($e) {
+                    echo '<div class="notice notice-error is-dismissible"><p>' . 
+                         esc_html__('Errore nel salvare la configurazione Query Cache: ', 'fp-performance-suite') . 
+                         esc_html($e->getMessage()) . '</p></div>';
+                });
+            }
+        }
+    }
+
+    private function renderTabsNavigation(string $activeTab): void
+    {
+        $baseUrl = admin_url('admin.php?page=fp-performance-suite-database');
+        ?>
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="<?php echo esc_url($baseUrl . '&tab=operations'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'operations' ? 'nav-tab-active' : ''; ?>">
+                🔧 <?php esc_html_e('Operations', 'fp-performance-suite'); ?>
+            </a>
+            <a href="<?php echo esc_url($baseUrl . '&tab=monitor'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'monitor' ? 'nav-tab-active' : ''; ?>">
+                📊 <?php esc_html_e('Query Monitor', 'fp-performance-suite'); ?>
+            </a>
+            <a href="<?php echo esc_url($baseUrl . '&tab=query_cache'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'query_cache' ? 'nav-tab-active' : ''; ?>">
+                ⚡ <?php esc_html_e('Query Cache', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+        <?php
+    }
+
+    private function renderOperationsTab(): string
+    {
+        // Sposta qui tutto il contenuto esistente del metodo renderContent()
+        return $this->renderContent();
+    }
+
+    private function renderQueryMonitorTab(): string
+    {
+        ob_start();
+        
+        try {
+            $queryMonitor = $this->container->get(DatabaseQueryMonitor::class);
+            $monitorSettings = $queryMonitor->getSettings();
+            $statistics = $queryMonitor->getStatistics();
+        } catch (\Exception $e) {
+            $queryMonitor = null;
+            $monitorSettings = [];
+            $statistics = [];
+        }
+        
+        ?>
+        
+        <!-- Query Monitor Configuration -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('📊 Query Monitor', 'fp-performance-suite'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Monitora le query database in tempo reale e identifica performance issues.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($queryMonitor): ?>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('fp_ps_query_monitor', 'fp_ps_query_monitor_nonce'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Abilita Query Monitor', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="enabled" value="1" 
+                                       <?php checked(!empty($monitorSettings['enabled'])); ?>>
+                                <?php esc_html_e('Abilita monitoraggio query', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Intercetta e analizza tutte le query database.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Soglia Query Lente', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="number" name="slow_query_threshold" value="<?php echo esc_attr($monitorSettings['slow_query_threshold'] ?? 0.005); ?>" 
+                                   min="0" max="1" step="0.001" class="small-text">
+                            <p class="description">
+                                <?php esc_html_e('Soglia in secondi per considerare una query lenta (default: 0.005 = 5ms).', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Log Query Duplicate', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="log_duplicates" value="1" 
+                                       <?php checked(!empty($monitorSettings['log_duplicates'])); ?>>
+                                <?php esc_html_e('Traccia query duplicate', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Identifica query identiche eseguite multiple volte.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button(__('Salva Configurazione Query Monitor', 'fp-performance-suite')); ?>
+            </form>
+            
+            <?php else: ?>
+            
+            <div class="notice notice-warning">
+                <p><?php esc_html_e('DatabaseQueryMonitor non disponibile. Verifica che il servizio sia registrato correttamente.', 'fp-performance-suite'); ?></p>
+            </div>
+            
+            <?php endif; ?>
+        </section>
+
+        <!-- Query Statistics -->
+        <?php if ($queryMonitor && !empty($statistics)): ?>
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('📈 Statistiche Query', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid four" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label"><?php esc_html_e('Query Totali', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($statistics['total_queries'] ?? 0); ?></div>
+                    <p class="description">
+                        <?php esc_html_e('Query eseguite in questa sessione', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #f093fb;">
+                    <div class="stat-label"><?php esc_html_e('Query Lente', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($statistics['slow_queries'] ?? 0); ?></div>
+                    <p class="description">
+                        <?php esc_html_e('Query che superano la soglia', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #4facfe;">
+                    <div class="stat-label"><?php esc_html_e('Query Duplicate', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($statistics['duplicate_queries'] ?? 0); ?></div>
+                    <p class="description">
+                        <?php esc_html_e('Query identiche ripetute', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #10b981;">
+                    <div class="stat-label"><?php esc_html_e('Tempo Totale', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html(number_format($statistics['total_time'] ?? 0, 3)); ?>s</div>
+                    <p class="description">
+                        <?php esc_html_e('Tempo totale esecuzione query', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <!-- Query Monitor Benefits -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🎯 Benefici Query Monitor', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid three" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label"><?php esc_html_e('Identificazione Problemi', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">🔍</div>
+                    <p class="description">
+                        <?php esc_html_e('Trova query lente e problematiche', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #f093fb;">
+                    <div class="stat-label"><?php esc_html_e('Ottimizzazione Database', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">⚡</div>
+                    <p class="description">
+                        <?php esc_html_e('Migliora le performance del database', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #4facfe;">
+                    <div class="stat-label"><?php esc_html_e('Monitoraggio Real-time', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">📊</div>
+                    <p class="description">
+                        <?php esc_html_e('Statistiche in tempo reale', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    private function renderQueryCacheTab(): string
+    {
+        ob_start();
+        
+        try {
+            $queryCache = $this->container->get(QueryCacheManager::class);
+            $cacheSettings = $queryCache->getSettings();
+            $cacheStats = $queryCache->getStats();
+        } catch (\Exception $e) {
+            $queryCache = null;
+            $cacheSettings = [];
+            $cacheStats = [];
+        }
+        
+        ?>
+        
+        <!-- Query Cache Configuration -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('⚡ Query Cache', 'fp-performance-suite'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Cache i risultati delle query database per migliorare le performance.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php if ($queryCache): ?>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('fp_ps_query_cache', 'fp_ps_query_cache_nonce'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Abilita Query Cache', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="enabled" value="1" 
+                                       <?php checked(!empty($cacheSettings['enabled'])); ?>>
+                                <?php esc_html_e('Abilita cache query database', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Cache i risultati delle query per ridurre il carico sul database.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('TTL Cache', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="number" name="ttl" value="<?php echo esc_attr($cacheSettings['ttl'] ?? 3600); ?>" 
+                                   min="0" class="small-text">
+                            <p class="description">
+                                <?php esc_html_e('Durata cache in secondi (default: 3600 = 1 ora).', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Cache Solo SELECT', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="cache_select_only" value="1" 
+                                       <?php checked(!empty($cacheSettings['cache_select_only'])); ?>>
+                                <?php esc_html_e('Cache solo query SELECT', 'fp-performance-suite'); ?>
+                            </label>
+                            <p class="description">
+                                <?php esc_html_e('Cache solo le query di lettura (SELECT) per sicurezza.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Dimensione Massima Cache', 'fp-performance-suite'); ?></th>
+                        <td>
+                            <input type="number" name="max_cache_size" value="<?php echo esc_attr($cacheSettings['max_cache_size'] ?? 1000); ?>" 
+                                   min="0" class="small-text">
+                            <p class="description">
+                                <?php esc_html_e('Numero massimo di query cachate (default: 1000).', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button(__('Salva Configurazione Query Cache', 'fp-performance-suite')); ?>
+            </form>
+            
+            <?php else: ?>
+            
+            <div class="notice notice-warning">
+                <p><?php esc_html_e('QueryCacheManager non disponibile. Verifica che il servizio sia registrato correttamente.', 'fp-performance-suite'); ?></p>
+            </div>
+            
+            <?php endif; ?>
+        </section>
+
+        <!-- Query Cache Statistics -->
+        <?php if ($queryCache && !empty($cacheStats)): ?>
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('📊 Statistiche Query Cache', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid three" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label"><?php esc_html_e('Cache Hits', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($cacheStats['hits'] ?? 0); ?></div>
+                    <p class="description">
+                        <?php esc_html_e('Query servite dalla cache', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #f093fb;">
+                    <div class="stat-label"><?php esc_html_e('Cache Misses', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($cacheStats['misses'] ?? 0); ?></div>
+                    <p class="description">
+                        <?php esc_html_e('Query non trovate in cache', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #4facfe;">
+                    <div class="stat-label"><?php esc_html_e('Hit Rate', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value"><?php echo esc_html($cacheStats['hit_rate'] ?? 0); ?>%</div>
+                    <p class="description">
+                        <?php esc_html_e('Percentuale di successo cache', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <!-- Query Cache Benefits -->
+        <section class="fp-ps-card">
+            <h2><?php esc_html_e('🚀 Benefici Query Cache', 'fp-performance-suite'); ?></h2>
+            
+            <div class="fp-ps-grid three" style="margin-top: 20px;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
+                    <div class="stat-label"><?php esc_html_e('Performance Database', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value success">50-90%</div>
+                    <p class="description">
+                        <?php esc_html_e('Riduzione carico sul database', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #f093fb;">
+                    <div class="stat-label"><?php esc_html_e('Tempi di Risposta', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">⚡</div>
+                    <p class="description">
+                        <?php esc_html_e('Query cachate servite istantaneamente', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #4facfe;">
+                    <div class="stat-label"><?php esc_html_e('Scalabilità', 'fp-performance-suite'); ?></div>
+                    <div class="stat-value" style="font-size: 40px;">📈</div>
+                    <p class="description">
+                        <?php esc_html_e('Gestisce traffico elevato senza sovraccaricare DB', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            </div>
+        </section>
+        
         <?php
         return (string) ob_get_clean();
     }

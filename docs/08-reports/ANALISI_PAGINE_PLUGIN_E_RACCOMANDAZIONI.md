@@ -140,7 +140,7 @@ Entrambe sono "Impostazioni Avanzate" ma con scopi diversi
 **Problema:** La pagina Security gestisce:
 - .htaccess rules (performance + security)
 - Security headers
-- Cache rules (dovrebbe essere in Cache?)
+- ~~Cache rules (dovrebbe essere in Cache?)~~ ✅ **RISOLTO**: Spostate nella pagina Cache
 - Compression (dovrebbe essere in Advanced?)
 - CORS
 - Firewall rules

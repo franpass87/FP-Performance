@@ -340,7 +340,7 @@ class Plugin
             );
         });
         $container->set(WebPConverter::class, static function (ServiceContainer $c) {
-            return new WebPConverter(
+            $converter = new WebPConverter(
                 $c->get(Fs::class),
                 $c->get(RateLimiter::class),
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
@@ -349,6 +349,13 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class),
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
             );
+            
+            // Inietta automaticamente il CompatibilityManager se disponibile
+            if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
+                $converter->setCompatibilityManager($c->get(WebPPluginCompatibility::class));
+            }
+            
+            return $converter;
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         

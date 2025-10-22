@@ -94,6 +94,9 @@ class Plugin
             if (get_option('fp_ps_webp_enabled', false)) {
                 $container->get(WebPConverter::class)->register();
             }
+            if (get_option('fp_ps_avif', [])['enabled'] ?? false) {
+                $container->get(AVIFConverter::class)->register();
+            }
             
             // Database cleaner solo se schedulato
             $dbSettings = get_option('fp_ps_db', []);
@@ -408,7 +411,7 @@ class Plugin
             );
         });
         $container->set(WebPConverter::class, static function (ServiceContainer $c) {
-            return new WebPConverter(
+            $converter = new WebPConverter(
                 $c->get(Fs::class),
                 $c->get(RateLimiter::class),
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
@@ -417,22 +420,22 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class),
                 $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
             );
+            
+            // Inietta automaticamente il CompatibilityManager se disponibile
+            if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
+                $converter->setCompatibilityManager($c->get(WebPPluginCompatibility::class));
+            }
+            
+            return $converter;
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         
-        // Database Optimization Services (v1.4.0) - Registra solo se le classi esistono
-        if (class_exists('FP\\PerfSuite\\Services\\DB\\DatabaseOptimizer')) {
-            $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
-        }
-        if (class_exists('FP\\PerfSuite\\Services\\DB\\DatabaseQueryMonitor')) {
-            $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());
-        }
-        if (class_exists('FP\\PerfSuite\\Services\\DB\\PluginSpecificOptimizer')) {
-            $container->set(PluginSpecificOptimizer::class, static fn() => new PluginSpecificOptimizer());
-        }
-        if (class_exists('FP\\PerfSuite\\Services\\DB\\DatabaseReportService')) {
-            $container->set(DatabaseReportService::class, static fn() => new DatabaseReportService());
-        }
+        // Database Optimization Services (v1.4.0) - Registra sempre per evitare errori
+        $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
+        $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());
+        $container->set(PluginSpecificOptimizer::class, static fn() => new PluginSpecificOptimizer());
+        $container->set(DatabaseReportService::class, static fn() => new DatabaseReportService());
+        $container->set(QueryCacheManager::class, static fn() => new QueryCacheManager());
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {

@@ -118,6 +118,12 @@ class HtaccessSecurity
     public function update(array $settings): void
     {
         $current = $this->settings();
+        
+        // Preserva le cache_rules esistenti se non vengono fornite nel form
+        if (!isset($settings['cache_rules']) && isset($current['cache_rules'])) {
+            $settings['cache_rules'] = $current['cache_rules'];
+        }
+        
         $new = wp_parse_args($settings, $current);
 
         update_option(self::OPTION, $new);

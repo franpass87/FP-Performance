@@ -10,6 +10,9 @@ use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Services\Assets\UnusedCSSOptimizer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
+use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
+use FP\PerfSuite\Services\Assets\CodeSplittingManager;
+use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 
@@ -120,6 +123,9 @@ class PostHandler
             case 'script_detector':
                 $message = $this->handleScriptDetectorForm();
                 break;
+            case 'advanced_js_optimization':
+                $message = $this->handleAdvancedJsOptimizationForm();
+                break;
         }
 
         return $message;
@@ -181,7 +187,7 @@ class PostHandler
     private function handleThirdPartyForm(array &$thirdPartySettings): string
     {
         $thirdPartyScripts = new ThirdPartyScriptManager();
-        $thirdPartyScripts->update([
+        $thirdPartyScripts->updateSettings([
             'enabled' => !empty($_POST['third_party_enabled']),
             'delay_all' => !empty($_POST['third_party_delay_all']),
             'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
@@ -236,14 +242,12 @@ class PostHandler
     private function handleHttp2PushForm(): string
     {
         $http2Push = new Http2ServerPush();
-        $http2Push->update([
+        $http2Push->updateSettings([
             'enabled' => !empty($_POST['http2_push_enabled']),
-            'push_css' => !empty($_POST['http2_push_css']),
-            'push_js' => !empty($_POST['http2_push_js']),
+            'push_critical_css' => !empty($_POST['http2_push_css']),
+            'push_critical_js' => !empty($_POST['http2_push_js']),
             'push_fonts' => !empty($_POST['http2_push_fonts']),
-            'push_images' => !empty($_POST['http2_push_images']),
-            'max_resources' => (int) ($_POST['http2_max_resources'] ?? 10),
-            'critical_only' => !empty($_POST['http2_critical_only']),
+            'max_push_assets' => (int) ($_POST['http2_max_resources'] ?? 10),
         ]);
         return __('HTTP/2 Server Push settings saved.', 'fp-performance-suite');
     }
@@ -251,15 +255,12 @@ class PostHandler
     private function handleSmartDeliveryForm(): string
     {
         $smartDelivery = new SmartAssetDelivery();
-        $smartDelivery->update([
+        $smartDelivery->updateSettings([
             'enabled' => !empty($_POST['smart_delivery_enabled']),
-            'detect_connection' => !empty($_POST['smart_detect_connection']),
-            'save_data_mode' => !empty($_POST['smart_save_data_mode']),
-            'adaptive_images' => !empty($_POST['smart_adaptive_images']),
-            'adaptive_videos' => !empty($_POST['smart_adaptive_videos']),
-            'quality_slow' => (int) ($_POST['smart_quality_slow'] ?? 50),
-            'quality_moderate' => (int) ($_POST['smart_quality_moderate'] ?? 70),
-            'quality_fast' => (int) ($_POST['smart_quality_fast'] ?? 85),
+            'adapt_images' => !empty($_POST['smart_adaptive_images']),
+            'adapt_videos' => !empty($_POST['smart_adaptive_videos']),
+            'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
+            'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
         ]);
         return __('Smart Asset Delivery settings saved.', 'fp-performance-suite');
     }
@@ -341,5 +342,28 @@ class PostHandler
         }
         
         return '';
+    }
+
+    private function handleAdvancedJsOptimizationForm(): string
+    {
+        // Handle unused optimization settings
+        if (isset($_POST['unused_optimization'])) {
+            $unusedOptimizer = new UnusedJavaScriptOptimizer();
+            $unusedOptimizer->update($_POST['unused_optimization']);
+        }
+
+        // Handle code splitting settings
+        if (isset($_POST['code_splitting'])) {
+            $codeSplittingManager = new CodeSplittingManager();
+            $codeSplittingManager->update($_POST['code_splitting']);
+        }
+
+        // Handle tree shaking settings
+        if (isset($_POST['tree_shaking'])) {
+            $treeShaker = new JavaScriptTreeShaker();
+            $treeShaker->update($_POST['tree_shaking']);
+        }
+
+        return __('Advanced JavaScript optimization settings saved successfully!', 'fp-performance-suite');
     }
 }

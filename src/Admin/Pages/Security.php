@@ -88,14 +88,7 @@ class Security extends AbstractPage
                     'referrer_policy' => sanitize_text_field($_POST['referrer_policy'] ?? 'strict-origin-when-cross-origin'),
                     'permissions_policy' => sanitize_text_field(wp_unslash($_POST['permissions_policy'] ?? '')),
                 ],
-                'cache_rules' => [
-                    'enabled' => !empty($_POST['cache_rules_enabled']),
-                    'html_cache' => !empty($_POST['html_cache']),
-                    'fonts_cache' => !empty($_POST['fonts_cache']),
-                    'fonts_max_age' => max(0, (int)($_POST['fonts_max_age'] ?? 31536000)),
-                    'images_max_age' => max(0, (int)($_POST['images_max_age'] ?? 31536000)),
-                    'css_js_max_age' => max(0, (int)($_POST['css_js_max_age'] ?? 2592000)),
-                ],
+                // cache_rules spostate nella pagina Cache
                 'cors' => [
                     'enabled' => !empty($_POST['cors_enabled']),
                     'fonts_origin' => sanitize_text_field($_POST['fonts_origin'] ?? '*'),
@@ -264,52 +257,8 @@ class Security extends AbstractPage
             
             <!-- 2. Security Headers (SPOSTATO NEL TAB SECURITY) -->
             
-            <!-- 3. Cache Rules -->
-            <section class="fp-ps-card">
-                <h2>⏱️ <?php esc_html_e('Regole di Cache Ottimizzate', 'fp-performance-suite'); ?></h2>
-                <p class="description"><?php esc_html_e('Definisci tempi di cache precisi per HTML, font, immagini, CSS/JS.', 'fp-performance-suite'); ?></p>
-                
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Abilita Cache Rules', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="cache_rules_enabled" value="1" <?php checked($settings['cache_rules']['enabled']); ?> />
-                </label>
-                
-                <div style="margin-left: 20px; margin-top: 15px;">
-                    <p>
-                        <label>
-                            <input type="checkbox" name="html_cache" value="1" <?php checked($settings['cache_rules']['html_cache']); ?> />
-                            <?php esc_html_e('Cache HTML', 'fp-performance-suite'); ?>
-                        </label>
-                        <span class="description" style="display: block; margin-left: 24px; color: #d63638;"><?php esc_html_e('❌ Sconsigliato: meglio no-cache per contenuti dinamici', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p>
-                        <label>
-                            <input type="checkbox" name="fonts_cache" value="1" <?php checked($settings['cache_rules']['fonts_cache']); ?> />
-                            <?php esc_html_e('Cache Font (woff2, woff, ttf, otf)', 'fp-performance-suite'); ?>
-                        </label>
-                    </p>
-                    <p style="margin-left: 24px;">
-                        <label for="fonts_max_age"><?php esc_html_e('Durata cache font (secondi)', 'fp-performance-suite'); ?></label><br>
-                        <input type="number" name="fonts_max_age" id="fonts_max_age" value="<?php echo esc_attr($settings['cache_rules']['fonts_max_age']); ?>" min="0" class="small-text">
-                        <span class="description"><?php esc_html_e('(default: 31536000 = 1 anno)', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p style="margin-left: 24px;">
-                        <label for="images_max_age"><?php esc_html_e('Durata cache immagini (secondi)', 'fp-performance-suite'); ?></label><br>
-                        <input type="number" name="images_max_age" id="images_max_age" value="<?php echo esc_attr($settings['cache_rules']['images_max_age']); ?>" min="0" class="small-text">
-                        <span class="description"><?php esc_html_e('(default: 31536000 = 1 anno)', 'fp-performance-suite'); ?></span>
-                    </p>
-                    
-                    <p style="margin-left: 24px;">
-                        <label for="css_js_max_age"><?php esc_html_e('Durata cache CSS/JS (secondi)', 'fp-performance-suite'); ?></label><br>
-                        <input type="number" name="css_js_max_age" id="css_js_max_age" value="<?php echo esc_attr($settings['cache_rules']['css_js_max_age']); ?>" min="0" class="small-text">
-                        <span class="description"><?php esc_html_e('(default: 2592000 = 1 mese)', 'fp-performance-suite'); ?></span>
-                    </p>
-                </div>
-            </section>
+            <!-- 3. Cache Rules: SPOSTATO NELLA PAGINA CACHE -->
+            <!-- Le regole di cache sono state spostate nella pagina Cache per una migliore organizzazione logica -->
             
             <!-- 4. Compressione: RIMOSSA - Ora gestita nella pagina Compression dedicata -->
             <!-- Per evitare conflitti con il servizio CompressionManager, la compressione è stata spostata -->

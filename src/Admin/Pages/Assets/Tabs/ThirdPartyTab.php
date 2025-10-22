@@ -23,20 +23,20 @@ class ThirdPartyTab
         $criticalScripts = $data['criticalScripts'] ?? null;
         $container = $data['container'];
 
-        // Initialize services
-        $thirdPartyScripts = new ThirdPartyScriptManager();
+        // Initialize services using container
+        $thirdPartyScripts = $container->get(ThirdPartyScriptManager::class);
         $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
-        $http2Push = new Http2ServerPush();
-        $smartDelivery = new SmartAssetDelivery();
+        $http2Push = $container->get(Http2ServerPush::class);
+        $smartDelivery = $container->get(SmartAssetDelivery::class);
 
         $thirdPartyStatus = $thirdPartyScripts->status();
-        $http2Settings = $http2Push->settings();
-        $smartDeliverySettings = $smartDelivery->settings();
+        $http2Settings = $http2Push->getSettings();
+        $smartDeliverySettings = $smartDelivery->getSettings();
 
         ob_start();
         ?>
         <!-- TAB: Third-Party -->
-        <div class="fp-ps-tab-content" data-tab="thirdparty" style="display: <?php echo $current_tab === 'thirdparty' ? 'block' : 'none'; ?>;">
+        <div class="fp-ps-tab-content" data-tab="thirdparty">
         
         <!-- Third-Party Scripts Section -->
         <section class="fp-ps-card">
@@ -159,14 +159,14 @@ class ThirdPartyTab
                     <span class="info">
                         <strong><?php esc_html_e('Push CSS files', 'fp-performance-suite'); ?></strong>
                     </span>
-                    <input type="checkbox" name="http2_push_css" value="1" <?php checked($http2Settings['push_css']); ?> />
+                    <input type="checkbox" name="http2_push_css" value="1" <?php checked($http2Settings['push_critical_css']); ?> />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push JavaScript files', 'fp-performance-suite'); ?></strong>
                     </span>
-                    <input type="checkbox" name="http2_push_js" value="1" <?php checked($http2Settings['push_js']); ?> />
+                    <input type="checkbox" name="http2_push_js" value="1" <?php checked($http2Settings['push_critical_js']); ?> />
                 </label>
                 
                 <label class="fp-ps-toggle">
@@ -176,24 +176,10 @@ class ThirdPartyTab
                     <input type="checkbox" name="http2_push_fonts" value="1" <?php checked($http2Settings['push_fonts']); ?> />
                 </label>
                 
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Push critical images', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="http2_push_images" value="1" <?php checked($http2Settings['push_images']); ?> />
-                </label>
-                
                 <p>
                     <label for="http2_max_resources"><?php esc_html_e('Maximum resources to push', 'fp-performance-suite'); ?></label>
-                    <input type="number" name="http2_max_resources" id="http2_max_resources" value="<?php echo esc_attr($http2Settings['max_resources']); ?>" min="1" max="20" />
+                    <input type="number" name="http2_max_resources" id="http2_max_resources" value="<?php echo esc_attr($http2Settings['max_push_assets']); ?>" min="1" max="20" />
                 </p>
-                
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Push only critical resources', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="http2_critical_only" value="1" <?php checked($http2Settings['critical_only']); ?> />
-                </label>
                 
                 <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 6px;">
                     <button type="submit" class="button button-primary button-large">
@@ -220,44 +206,26 @@ class ThirdPartyTab
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Detect connection speed', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="smart_detect_connection" value="1" <?php checked($smartDeliverySettings['detect_connection']); ?> />
-                </label>
-                
-                <label class="fp-ps-toggle">
-                    <span class="info">
-                        <strong><?php esc_html_e('Respect save-data mode', 'fp-performance-suite'); ?></strong>
-                    </span>
-                    <input type="checkbox" name="smart_save_data_mode" value="1" <?php checked($smartDeliverySettings['save_data_mode']); ?> />
-                </label>
-                
-                <label class="fp-ps-toggle">
-                    <span class="info">
                         <strong><?php esc_html_e('Adaptive image quality', 'fp-performance-suite'); ?></strong>
                     </span>
-                    <input type="checkbox" name="smart_adaptive_images" value="1" <?php checked($smartDeliverySettings['adaptive_images']); ?> />
+                    <input type="checkbox" name="smart_adaptive_images" value="1" <?php checked($smartDeliverySettings['adapt_images']); ?> />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Adaptive video quality', 'fp-performance-suite'); ?></strong>
                     </span>
-                    <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adaptive_videos']); ?> />
+                    <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adapt_videos']); ?> />
                 </label>
                 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;">
                     <p>
                         <label for="smart_quality_slow"><?php esc_html_e('Quality for slow connections (%)', 'fp-performance-suite'); ?></label>
-                        <input type="number" name="smart_quality_slow" id="smart_quality_slow" value="<?php echo esc_attr($smartDeliverySettings['quality_slow']); ?>" min="10" max="100" />
-                    </p>
-                    <p>
-                        <label for="smart_quality_moderate"><?php esc_html_e('Quality for moderate connections (%)', 'fp-performance-suite'); ?></label>
-                        <input type="number" name="smart_quality_moderate" id="smart_quality_moderate" value="<?php echo esc_attr($smartDeliverySettings['quality_moderate']); ?>" min="10" max="100" />
+                        <input type="number" name="smart_quality_slow" id="smart_quality_slow" value="<?php echo esc_attr($smartDeliverySettings['slow_quality']); ?>" min="10" max="100" />
                     </p>
                     <p>
                         <label for="smart_quality_fast"><?php esc_html_e('Quality for fast connections (%)', 'fp-performance-suite'); ?></label>
-                        <input type="number" name="smart_quality_fast" id="smart_quality_fast" value="<?php echo esc_attr($smartDeliverySettings['quality_fast']); ?>" min="10" max="100" />
+                        <input type="number" name="smart_quality_fast" id="smart_quality_fast" value="<?php echo esc_attr($smartDeliverySettings['fast_quality']); ?>" min="10" max="100" />
                     </p>
                 </div>
                 

@@ -126,11 +126,14 @@
 /* Prevenire overflow del testo */
 .fp-ps-card h2,
 .fp-ps-card .description,
-.fp-ps-card .fp-ps-preset-label {
+.fp-ps-card .fp-ps-preset-label,
+.fp-ps-card p,
+.fp-ps-card div {
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
     max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Migliorare la leggibilità dei testi lunghi */
@@ -138,9 +141,19 @@
     text-overflow: ellipsis;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     line-height: 1.4;
+}
+
+/* Gestione overflow per tutti i contenuti delle card */
+.fp-ps-card {
+    overflow: hidden;
+}
+
+.fp-ps-card * {
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Assicurarsi che i contenuti non escano dai container */

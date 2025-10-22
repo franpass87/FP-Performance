@@ -29,9 +29,12 @@
 @import url('components/actions.css');
 @import url('components/modal.css');
 @import url('components/bulk-convert.css');
+@import url('components/quick-wins.css');
+@import url('components/issue-boxes.css');
 
 /* Utilities */
 @import url('utilities/score.css');
+@import url('utilities/utilities.css');
 
 /* Themes & Accessibility */
 @import url('themes/dark-mode.css');

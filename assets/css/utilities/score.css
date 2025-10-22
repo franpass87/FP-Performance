@@ -136,6 +136,28 @@
     color: #ef4444;
 }
 
+/* Miglioramenti per testi lunghi */
+.fp-ps-score-breakdown-item {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+.fp-ps-score-breakdown-label strong {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+}
+
+.fp-ps-suggestion-box p,
+.fp-ps-optimized-box p {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    line-height: 1.4;
+}
+
 /* Responsive adjustments */
 @media (max-width: 782px) {
     .fp-ps-score-breakdown-header {
@@ -146,5 +168,14 @@
     
     .fp-ps-score-breakdown-value {
         align-self: flex-end;
+    }
+    
+    .fp-ps-score-breakdown-label {
+        font-size: 13px;
+    }
+    
+    .fp-ps-suggestion-box p,
+    .fp-ps-optimized-box p {
+        font-size: 12px;
     }
 }

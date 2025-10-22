@@ -11,7 +11,6 @@ use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
 use FP\PerfSuite\Admin\Pages\Cdn;
-use FP\PerfSuite\Admin\Pages\JavaScriptOptimization;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
@@ -59,7 +58,6 @@ class Menu
         add_action('admin_post_fp_ps_save_compression', [$this, 'handleCompressionSave']);
         add_action('admin_post_fp_ps_save_cdn', [$this, 'handleCdnSave']);
         add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
-        add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJsOptimizationSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
 
@@ -305,7 +303,6 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
-        add_submenu_page('fp-performance-suite', __('JavaScript', 'fp-performance-suite'), __('⚡ JavaScript', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🌐 CDN
@@ -371,14 +368,6 @@ class Menu
         $monitoringPage->handleSave();
     }
 
-    /**
-     * Handler per il salvataggio delle impostazioni JavaScript Optimization
-     */
-    public function handleJsOptimizationSave(): void
-    {
-        $jsOptimizationPage = new JavaScriptOptimization($this->container);
-        $jsOptimizationPage->handleSave();
-    }
 
     /**
      * @return array<string, object>
@@ -393,7 +382,6 @@ class Menu
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
-            'js_optimization' => new JavaScriptOptimization($this->container),
             'cdn' => new Cdn($this->container),
             'ai_config' => new AIConfig($this->container),
             'monitoring' => new MonitoringReports($this->container),

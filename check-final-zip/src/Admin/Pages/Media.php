@@ -79,7 +79,7 @@ class Media extends AbstractPage
         // Controlla se c'è un plugin WebP di terze parti attivo
         $webpWarning = null;
         if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
-            $compatManager = new \FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility();
+            $compatManager = $this->container->get(\FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility::class);
             $webpWarning = $compatManager->getWarningMessage();
         }
         

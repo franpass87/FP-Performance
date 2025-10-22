@@ -74,7 +74,8 @@ class ObjectCacheManager
      */
     public function isEnabled(): bool
     {
-        return wp_using_ext_object_cache();
+        $result = wp_using_ext_object_cache();
+        return $result === true;
     }
     
     /**
@@ -512,7 +513,8 @@ PHP;
      */
     public function flush(): bool
     {
-        return wp_cache_flush();
+        $result = wp_cache_flush();
+        return $result === true;
     }
     
     /**

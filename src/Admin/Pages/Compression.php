@@ -232,15 +232,41 @@ class Compression extends AbstractPage
                 <h2><?php esc_html_e('Informazioni Server', 'fp-performance-suite'); ?></h2>
                 <p class="description"><?php esc_html_e('Dettagli tecnici sulla configurazione del server.', 'fp-performance-suite'); ?></p>
                 
-                <div class="fp-ps-grid two" style="margin: 20px 0;">
+                <div style="margin: 20px 0;">
                     <?php foreach ($info as $key => $value) : ?>
-                        <div style="padding: 15px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #3b82f6;">
-                            <strong style="display: block; margin-bottom: 5px; color: #3b82f6;">
+                        <div style="margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <h3 style="margin: 0 0 15px 0; color: #3b82f6; font-size: 18px;">
                                 <?php echo esc_html(ucfirst(str_replace('_', ' ', $key))); ?>
-                            </strong>
-                            <span style="color: #64748b;">
-                                <?php echo esc_html($value); ?>
-                            </span>
+                            </h3>
+                            
+                            <?php if (is_array($value)) : ?>
+                                <div style="display: grid; gap: 10px;">
+                                    <?php foreach ($value as $subKey => $subValue) : ?>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                            <span style="font-weight: 500; color: #374151;">
+                                                <?php echo esc_html(ucfirst(str_replace('_', ' ', $subKey))); ?>
+                                            </span>
+                                            <span style="color: #64748b; font-family: monospace;">
+                                                <?php if (is_bool($subValue)) : ?>
+                                                    <span style="color: <?php echo $subValue ? '#10b981' : '#ef4444'; ?>; font-weight: bold;">
+                                                        <?php echo $subValue ? '✅ Sì' : '❌ No'; ?>
+                                                    </span>
+                                                <?php elseif (is_numeric($subValue)) : ?>
+                                                    <?php echo esc_html($subValue); ?>
+                                                <?php else : ?>
+                                                    <?php echo esc_html($subValue ?: 'Non impostato'); ?>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else : ?>
+                                <div style="padding: 8px 12px; background: white; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                    <span style="color: #64748b; font-family: monospace;">
+                                        <?php echo esc_html($value); ?>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
