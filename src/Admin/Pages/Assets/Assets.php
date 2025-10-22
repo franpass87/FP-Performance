@@ -16,11 +16,9 @@ use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
-use FP\PerfSuite\Admin\Pages\Assets\Handlers\PostHandler;
 
 use function __;
 use function esc_attr;
-use function esc_html;
 use function esc_html_e;
 use function sanitize_key;
 

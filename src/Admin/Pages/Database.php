@@ -58,7 +58,34 @@ class Database extends AbstractPage
 
     protected function content(): string
     {
-        $cleaner = $this->container->get(Cleaner::class);
+        // Wrapper di sicurezza generale per prevenire pagina vuota
+        try {
+            return $this->renderContent();
+        } catch (\Throwable $e) {
+            // Log dell'errore se WP_DEBUG_LOG è abilitato
+            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
+                error_log('FP Performance Suite - Database Page Error: ' . $e->getMessage());
+                error_log('Stack trace: ' . $e->getTraceAsString());
+            }
+            
+            return $this->renderError(
+                'Errore durante il rendering della pagina: ' . $e->getMessage() . 
+                ' (File: ' . basename($e->getFile()) . ':' . $e->getLine() . ')'
+            );
+        }
+    }
+    
+    /**
+     * Renderizza il contenuto effettivo della pagina
+     */
+    private function renderContent(): string
+    {
+        // Error handling robusto per prevenire pagina vuota
+        try {
+            $cleaner = $this->container->get(Cleaner::class);
+        } catch (\Exception $e) {
+            return $this->renderError('Cleaner service non disponibile: ' . $e->getMessage());
+        }
         
         // Servizi avanzati - verifica disponibilità (v1.4.0)
         $queryMonitor = $this->container->has(DatabaseQueryMonitor::class) 
@@ -67,7 +94,12 @@ class Database extends AbstractPage
         $optimizer = $this->container->has(DatabaseOptimizer::class) 
             ? $this->container->get(DatabaseOptimizer::class) 
             : null;
-        $objectCache = $this->container->get(ObjectCacheManager::class);
+        
+        try {
+            $objectCache = $this->container->get(ObjectCacheManager::class);
+        } catch (\Exception $e) {
+            return $this->renderError('ObjectCacheManager service non disponibile: ' . $e->getMessage());
+        }
         
         // Crea istanze dirette se le classi esistono
         $pluginOptimizer = class_exists('FP\\PerfSuite\\Services\\DB\\PluginSpecificOptimizer') 
@@ -103,15 +135,15 @@ class Database extends AbstractPage
                 $message = sprintf(__('Ottimizzate %d tabelle.', 'fp-performance-suite'), count($results['optimized'] ?? []));
             }
             if (isset($_POST['enable_object_cache'])) {
-                $settings = $objectCache->settings();
+                $settings = $objectCache->getSettings();
                 $settings['enabled'] = true;
-                $objectCache->update($settings);
+                $objectCache->updateSettings($settings);
                 $message = __('Object Cache abilitato.', 'fp-performance-suite');
             }
             if (isset($_POST['disable_object_cache'])) {
-                $settings = $objectCache->settings();
+                $settings = $objectCache->getSettings();
                 $settings['enabled'] = false;
-                $objectCache->update($settings);
+                $objectCache->updateSettings($settings);
                 $message = __('Object Cache disabilitato.', 'fp-performance-suite');
             }
             // Nuove azioni - verifica disponibilità servizi
@@ -173,10 +205,11 @@ class Database extends AbstractPage
         $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
         
         // Object Cache - usa metodi esistenti
-        $cacheSettings = $objectCache->settings();
-        $cacheStats = $objectCache->getStats();
+        $cacheSettings = $objectCache->getSettings();
+        $cacheStats = $objectCache->getStatistics();
         $cacheEnabled = $cacheSettings['enabled'] ?? false;
-        $cacheDriver = $cacheSettings['driver'] ?? 'none';
+        // Il driver viene dal backend disponibile, non dalle settings
+        $cacheDriver = $objectCache->getAvailableBackend() ?? 'none';
         
         // Crea struttura compatibile per la vista
         $cacheInfo = [
@@ -250,7 +283,7 @@ class Database extends AbstractPage
             <p style="margin: 0.5em 0;">
                 <strong>🛡️ <?php esc_html_e('Sicurezza Garantita:', 'fp-performance-suite'); ?></strong> 
                 <?php esc_html_e('Viene creato automaticamente un backup completo prima di ogni operazione critica.', 'fp-performance-suite'); ?>
-                <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-logs'); ?>" style="text-decoration: none;">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>" style="text-decoration: none;">
                     <?php esc_html_e('Visualizza log operazioni →', 'fp-performance-suite'); ?>
                 </a>
             </p>
@@ -501,7 +534,7 @@ class Database extends AbstractPage
                     <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'])); ?></p>
                     <p><strong><?php esc_html_e('Necessitano ottimizzazione:', 'fp-performance-suite'); ?></strong> 
                         <?php 
-                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization']);
+                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization'] ?? false);
                         echo esc_html(number_format_i18n(count($needsOpt))); 
                         ?>
                     </p>
@@ -1055,5 +1088,37 @@ class Database extends AbstractPage
         ];
         
         return $descriptions[$driver] ?? $descriptions['none'];
+    }
+    
+    /**
+     * Renderizza messaggio di errore invece della pagina vuota
+     */
+    private function renderError(string $message): string
+    {
+        ob_start();
+        ?>
+        <div class="notice notice-error" style="margin: 20px 0; padding: 20px;">
+            <h2><?php esc_html_e('Errore Caricamento Pagina Database', 'fp-performance-suite'); ?></h2>
+            <p><strong><?php esc_html_e('Si è verificato un errore:', 'fp-performance-suite'); ?></strong></p>
+            <p><code><?php echo esc_html($message); ?></code></p>
+            <hr>
+            <h3><?php esc_html_e('Possibili Soluzioni:', 'fp-performance-suite'); ?></h3>
+            <ol>
+                <li><?php esc_html_e('Disattiva e riattiva il plugin', 'fp-performance-suite'); ?></li>
+                <li><?php esc_html_e('Verifica che tutti i file del plugin siano presenti', 'fp-performance-suite'); ?></li>
+                <li><?php esc_html_e('Controlla il log degli errori PHP', 'fp-performance-suite'); ?></li>
+                <li><?php esc_html_e('Contatta il supporto se il problema persiste', 'fp-performance-suite'); ?></li>
+            </ol>
+            
+            <h3><?php esc_html_e('Informazioni per il Debug:', 'fp-performance-suite'); ?></h3>
+            <ul style="font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 15px;">
+                <li><strong>PHP Version:</strong> <?php echo esc_html(PHP_VERSION); ?></li>
+                <li><strong>WordPress Version:</strong> <?php echo esc_html(get_bloginfo('version')); ?></li>
+                <li><strong>Plugin Version:</strong> <?php echo esc_html(FP_PERF_SUITE_VERSION); ?></li>
+                <li><strong>Error:</strong> <?php echo esc_html($message); ?></li>
+            </ul>
+        </div>
+        <?php
+        return (string) ob_get_clean();
     }
 }

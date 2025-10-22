@@ -13,11 +13,12 @@ use FP\PerfSuite\Utils\Logger;
  * - Redirect canonico HTTPS + WWW unificato
  * - Security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS)
  * - Cache ottimizzata (HTML, font, immagini, SVG)
- * - Compressione Brotli + Deflate
  * - CORS per font/SVG
  * - Protezione file sensibili
  * - Opzione anti-hotlink
  * - Opzione disabilitazione XML-RPC
+ * 
+ * NOTA: La compressione (Brotli/Gzip) è gestita dal servizio CompressionManager separato
  * 
  * @since 1.3.4
  */
@@ -54,7 +55,6 @@ class HtaccessSecurity
      *     canonical_redirect: array,
      *     security_headers: array,
      *     cache_rules: array,
-     *     compression: array,
      *     cors: array,
      *     file_protection: array,
      *     xmlrpc_disabled: bool,
@@ -89,11 +89,6 @@ class HtaccessSecurity
                 'fonts_max_age' => 31536000, // 1 anno
                 'images_max_age' => 31536000, // 1 anno
                 'css_js_max_age' => 2592000, // 1 mese
-            ],
-            'compression' => [
-                'deflate_enabled' => true,
-                'brotli_enabled' => true,
-                'brotli_quality' => 5,
             ],
             'cors' => [
                 'enabled' => true,
@@ -158,11 +153,8 @@ class HtaccessSecurity
             $rules[] = $this->buildCacheRules($settings['cache_rules']);
         }
 
-        // 4. Compression (Brotli + Deflate)
-        if (!empty($settings['compression']['deflate_enabled']) || !empty($settings['compression']['brotli_enabled'])) {
-            $rules[] = $this->buildCompressionRules($settings['compression']);
-        }
-
+        // 4. Compression: RIMOSSA - Ora gestita da CompressionManager per evitare conflitti
+        
         // 5. CORS Headers
         if (!empty($settings['cors']['enabled'])) {
             $rules[] = $this->buildCorsRules($settings['cors']);
@@ -332,34 +324,14 @@ class HtaccessSecurity
 
     /**
      * Costruisce le regole di compressione Brotli + Deflate
+     * 
+     * @deprecated Metodo deprecato - La compressione è ora gestita da CompressionManager
      */
     private function buildCompressionRules(array $config): string
     {
-        $rules = "# === Compressione ===\n";
-
-        // Brotli (se abilitato)
-        if (!empty($config['brotli_enabled'])) {
-            $quality = max(1, min(11, (int)($config['brotli_quality'] ?? 5)));
-            $rules .= "# Brotli: compressione avanzata (più efficiente di Deflate)\n";
-            $rules .= "<IfModule mod_brotli.c>\n";
-            $rules .= "  BrotliCompressionQuality {$quality}\n";
-            $rules .= "  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css\n";
-            $rules .= "  AddOutputFilterByType BROTLI_COMPRESS text/javascript application/javascript application/json\n";
-            $rules .= "  AddOutputFilterByType BROTLI_COMPRESS application/xml application/rss+xml image/svg+xml\n";
-            $rules .= "</IfModule>\n\n";
-        }
-
-        // Deflate (fallback compatibile)
-        if (!empty($config['deflate_enabled'])) {
-            $rules .= "# Deflate: compressione standard (fallback)\n";
-            $rules .= "<IfModule mod_deflate.c>\n";
-            $rules .= "  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css\n";
-            $rules .= "  AddOutputFilterByType DEFLATE text/javascript application/javascript application/json\n";
-            $rules .= "  AddOutputFilterByType DEFLATE application/xml application/rss+xml image/svg+xml\n";
-            $rules .= "</IfModule>";
-        }
-
-        return rtrim($rules);
+        // La compressione è ora gestita dalla pagina Compression dedicata
+        // tramite il servizio CompressionManager per evitare conflitti
+        return '';
     }
 
     /**

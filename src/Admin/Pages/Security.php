@@ -90,11 +90,6 @@ class Security extends AbstractPage
                     'images_max_age' => max(0, (int)($_POST['images_max_age'] ?? 31536000)),
                     'css_js_max_age' => max(0, (int)($_POST['css_js_max_age'] ?? 2592000)),
                 ],
-                'compression' => [
-                    'deflate_enabled' => !empty($_POST['deflate_enabled']),
-                    'brotli_enabled' => !empty($_POST['brotli_enabled']),
-                    'brotli_quality' => max(1, min(11, (int)($_POST['brotli_quality'] ?? 5))),
-                ],
                 'cors' => [
                     'enabled' => !empty($_POST['cors_enabled']),
                     'fonts_origin' => sanitize_text_field($_POST['fonts_origin'] ?? '*'),
@@ -159,7 +154,11 @@ class Security extends AbstractPage
             <div class="fp-ps-tab-description success">
                 <p>
                     <strong>⚡ .htaccess Performance:</strong> 
-                    <?php esc_html_e('Redirect canonici, regole cache ottimizzate, compressione Brotli e CORS headers per massimizzare le performance via .htaccess.', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Redirect canonici, regole cache ottimizzate e CORS headers per massimizzare le performance via .htaccess.', 'fp-performance-suite'); ?>
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>💡 <?php esc_html_e('Nota:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('Per la compressione (Brotli/Gzip), utilizza la pagina Compression dedicata per evitare conflitti.', 'fp-performance-suite'); ?>
                 </p>
             </div>
         <?php endif; ?>
@@ -306,32 +305,8 @@ class Security extends AbstractPage
                 </div>
             </section>
             
-            <!-- 4. Compressione -->
-            <section class="fp-ps-card">
-                <h2>📦 <?php esc_html_e('Compressione (Brotli + Deflate)', 'fp-performance-suite'); ?></h2>
-                <p class="description"><?php esc_html_e('Riduci la dimensione dei file trasferiti. Brotli è più efficiente di Deflate (gzip).', 'fp-performance-suite'); ?></p>
-                
-                <p>
-                    <label>
-                        <input type="checkbox" name="brotli_enabled" value="1" <?php checked($settings['compression']['brotli_enabled']); ?> />
-                        <?php esc_html_e('Abilita Brotli', 'fp-performance-suite'); ?>
-                    </label>
-                    <span class="description" style="display: block; margin-left: 24px;"><?php esc_html_e('Richiede mod_brotli sul server', 'fp-performance-suite'); ?></span>
-                </p>
-                <p style="margin-left: 24px;">
-                    <label for="brotli_quality"><?php esc_html_e('Qualità Brotli (1-11)', 'fp-performance-suite'); ?></label><br>
-                    <input type="number" name="brotli_quality" id="brotli_quality" value="<?php echo esc_attr($settings['compression']['brotli_quality']); ?>" min="1" max="11" class="small-text">
-                    <span class="description"><?php esc_html_e('(default: 5, più alto = migliore compressione ma più lento)', 'fp-performance-suite'); ?></span>
-                </p>
-                
-                <p>
-                    <label>
-                        <input type="checkbox" name="deflate_enabled" value="1" <?php checked($settings['compression']['deflate_enabled']); ?> />
-                        <?php esc_html_e('Abilita Deflate (gzip)', 'fp-performance-suite'); ?>
-                    </label>
-                    <span class="description" style="display: block; margin-left: 24px;"><?php esc_html_e('Fallback compatibile per tutti i browser', 'fp-performance-suite'); ?></span>
-                </p>
-            </section>
+            <!-- 4. Compressione: RIMOSSA - Ora gestita nella pagina Compression dedicata -->
+            <!-- Per evitare conflitti con il servizio CompressionManager, la compressione è stata spostata -->
             
             <!-- 5. CORS -->
             <section class="fp-ps-card">

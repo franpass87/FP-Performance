@@ -174,6 +174,16 @@ class Compression extends AbstractPage
                     </label>
                 </div>
 
+                <div style="margin: 20px 0;">
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Abilita Compressione Gzip/Deflate', 'fp-performance-suite'); ?></strong>
+                            <small><?php esc_html_e('Compressione standard supportata da tutti i browser e server', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="compression[deflate_enabled]" value="1" <?php checked($status['deflate_enabled'], true); ?> />
+                    </label>
+                </div>
+
                 <?php if ($status['brotli_supported']) : ?>
                     <div style="margin: 20px 0;">
                         <label class="fp-ps-toggle">
@@ -184,6 +194,28 @@ class Compression extends AbstractPage
                             <input type="checkbox" name="compression[brotli_enabled]" value="1" <?php checked($status['brotli_enabled'], true); ?> />
                         </label>
                     </div>
+
+                    <div style="margin: 20px 0 20px 40px;" id="brotli-quality-container">
+                        <label for="brotli_quality" style="display: block; margin-bottom: 10px;">
+                            <strong><?php esc_html_e('Qualità Compressione Brotli', 'fp-performance-suite'); ?></strong>
+                        </label>
+                        <input type="range" name="compression[brotli_quality]" id="brotli_quality" min="1" max="11" value="<?php echo esc_attr($status['brotli_quality']); ?>" style="width: 300px; vertical-align: middle;" />
+                        <span id="brotli_quality_value" style="margin-left: 15px; font-weight: bold; font-size: 16px;"><?php echo esc_html($status['brotli_quality']); ?></span>
+                        <p class="description" style="margin-top: 8px;">
+                            <?php esc_html_e('1 = Veloce ma compressione minore | 5 = Bilanciato (consigliato) | 11 = Massima compressione ma più lento', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var qualityInput = document.getElementById('brotli_quality');
+                            var qualityValue = document.getElementById('brotli_quality_value');
+                            
+                            qualityInput.addEventListener('input', function() {
+                                qualityValue.textContent = this.value;
+                            });
+                        });
+                    </script>
                 <?php endif; ?>
 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
@@ -277,11 +309,17 @@ class Compression extends AbstractPage
             
             // Save compression settings
             $enabled = !empty($_POST['compression']['enabled']);
+            $deflate_enabled = !empty($_POST['compression']['deflate_enabled']);
             $brotli_enabled = !empty($_POST['compression']['brotli_enabled']);
+            $brotli_quality = isset($_POST['compression']['brotli_quality']) 
+                ? max(1, min(11, (int)$_POST['compression']['brotli_quality'])) 
+                : 5;
             
             // Update settings
             update_option('fp_ps_compression_enabled', $enabled);
+            update_option('fp_ps_compression_deflate_enabled', $deflate_enabled);
             update_option('fp_ps_compression_brotli_enabled', $brotli_enabled);
+            update_option('fp_ps_compression_brotli_quality', $brotli_quality);
             
             // Apply settings
             if ($enabled) {

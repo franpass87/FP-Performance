@@ -116,6 +116,12 @@ class Plugin
             if (get_option('fp_ps_jquery_optimization_enabled', false)) {
                 $container->get(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class)->register();
             }
+            
+            // Predictive Prefetching - Cache predittiva intelligente
+            $prefetchSettings = get_option('fp_ps_predictive_prefetch', []);
+            if (!empty($prefetchSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+            }
         });
         
         // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
@@ -288,6 +294,12 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector(
             $c->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)
         ));
+        
+        // Smart Asset Delivery
+        $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
+        
+        // HTTP/2 Server Push
+        $container->set(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, static fn() => new \FP\PerfSuite\Services\Assets\Http2ServerPush());
         
         // Service Worker / PWA
         $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));

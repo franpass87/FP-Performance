@@ -2,7 +2,6 @@
 
 namespace FP\PerfSuite\Admin;
 
-use FP\PerfSuite\Admin\Pages\Advanced;
 use FP\PerfSuite\Admin\Pages\AIConfig;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Backend;
@@ -11,18 +10,14 @@ use FP\PerfSuite\Admin\Pages\Compression;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
-use FP\PerfSuite\Admin\Pages\InfrastructureCdn;
+use FP\PerfSuite\Admin\Pages\Cdn;
 use FP\PerfSuite\Admin\Pages\JavaScriptOptimization;
-use FP\PerfSuite\Admin\Pages\LighthouseFontOptimization;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Settings;
-use FP\PerfSuite\Admin\Pages\ResponsiveImages;
-use FP\PerfSuite\Admin\Pages\UnusedCSS;
-use FP\PerfSuite\Admin\Pages\CriticalPathOptimization;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
 
@@ -61,9 +56,8 @@ class Menu
         
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
-        add_action('admin_post_fp_ps_save_advanced', [$this, 'handleAdvancedSave']);
         add_action('admin_post_fp_ps_save_compression', [$this, 'handleCompressionSave']);
-        add_action('admin_post_fp_ps_save_infrastructure', [$this, 'handleInfrastructureSave']);
+        add_action('admin_post_fp_ps_save_cdn', [$this, 'handleCdnSave']);
         add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
         add_action('admin_post_fp_ps_save_js_optimization', [$this, 'handleJsOptimizationSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
@@ -312,15 +306,11 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
         add_submenu_page('fp-performance-suite', __('JavaScript', 'fp-performance-suite'), __('⚡ JavaScript', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Lighthouse Fonts', 'fp-performance-suite'), __('🎯 Lighthouse Fonts', 'fp-performance-suite'), $capability, 'fp-performance-suite-lighthouse-fonts', [$pages['lighthouse_fonts'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Responsive Images', 'fp-performance-suite'), __('🖼️ Responsive Images', 'fp-performance-suite'), $capability, 'fp-performance-suite-responsive-images', [$pages['responsive_images'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Unused CSS', 'fp-performance-suite'), __('🎨 Unused CSS', 'fp-performance-suite'), $capability, 'fp-performance-suite-unused-css', [$pages['unused_css'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Critical Path', 'fp-performance-suite'), __('⚡ Critical Path', 'fp-performance-suite'), $capability, 'fp-performance-suite-critical-path', [$pages['critical_path'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🌐 INFRASTRUCTURE & CDN
+        // 🌐 CDN
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Infrastructure', 'fp-performance-suite'), __('🌐 Infrastructure & CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-infrastructure', [$pages['infrastructure'], 'render']);
+        add_submenu_page('fp-performance-suite', __('CDN', 'fp-performance-suite'), __('🌐 CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-cdn', [$pages['cdn'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🛡️ SECURITY & INFRASTRUCTURE
@@ -342,17 +332,7 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         // 🔧 CONFIGURATION
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Advanced', 'fp-performance-suite'), __('⚙️ Advanced', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-advanced', [$pages['advanced'], 'render']);
         add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
-    }
-
-    /**
-     * Handler per il salvataggio delle impostazioni avanzate
-     */
-    public function handleAdvancedSave(): void
-    {
-        $advancedPage = new Advanced($this->container);
-        $advancedPage->handleSave();
     }
 
     /**
@@ -374,12 +354,12 @@ class Menu
     }
 
     /**
-     * Handler per il salvataggio delle impostazioni Infrastructure
+     * Handler per il salvataggio delle impostazioni CDN
      */
-    public function handleInfrastructureSave(): void
+    public function handleCdnSave(): void
     {
-        $infrastructurePage = new InfrastructureCdn($this->container);
-        $infrastructurePage->handleSave();
+        $cdnPage = new Cdn($this->container);
+        $cdnPage->handleSave();
     }
 
     /**
@@ -414,18 +394,13 @@ class Menu
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
             'js_optimization' => new JavaScriptOptimization($this->container),
-            'lighthouse_fonts' => new LighthouseFontOptimization($this->container),
-            'responsive_images' => new ResponsiveImages($this->container),
-            'unused_css' => new UnusedCSS($this->container),
-            'critical_path' => new CriticalPathOptimization($this->container),
-            'infrastructure' => new InfrastructureCdn($this->container),
+            'cdn' => new Cdn($this->container),
             'ai_config' => new AIConfig($this->container),
             'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
             'settings' => new Settings($this->container),
             'security' => new Security($this->container),
             'exclusions' => new Exclusions($this->container),
-            'advanced' => new Advanced($this->container),
             'diagnostics' => new Diagnostics($this->container),
         ];
     }

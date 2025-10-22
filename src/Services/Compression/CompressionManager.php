@@ -58,6 +58,22 @@ class CompressionManager
     }
 
     /**
+     * Verifica se Deflate/Gzip è abilitato
+     */
+    public function isDeflateEnabled(): bool
+    {
+        return (bool) get_option('fp_ps_compression_deflate_enabled', true); // true di default per compatibilità
+    }
+
+    /**
+     * Ottiene la qualità Brotli (1-11)
+     */
+    public function getBrotliQuality(): int
+    {
+        return max(1, min(11, (int) get_option('fp_ps_compression_brotli_quality', 5)));
+    }
+
+    /**
      * Verifica se Brotli è supportato dal server
      */
     public function isBrotliSupported(): bool
@@ -209,46 +225,52 @@ class CompressionManager
         $rules[] = '</FilesMatch>';
         $rules[] = '';
 
-        // Regole Brotli (preferito se supportato)
-        if ($this->isBrotliSupported()) {
+        // Regole Brotli (se abilitato e supportato)
+        if ($this->isBrotliEnabled() && $this->isBrotliSupported()) {
+            $quality = $this->getBrotliQuality();
+            $rules[] = '# Compressione Brotli (più efficiente di Deflate)';
             $rules[] = '<IfModule mod_brotli.c>';
+            $rules[] = "    BrotliCompressionQuality {$quality}";
             $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript';
             $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/xml application/xhtml+xml application/rss+xml';
             $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/x-javascript';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/json';
+            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/json application/ld+json';
             $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/font-woff application/font-woff2';
             $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml';
             $rules[] = '</IfModule>';
             $rules[] = '';
         }
 
-        // Regole Gzip/Deflate (fallback universale)
-        $rules[] = '<IfModule mod_deflate.c>';
-        $rules[] = '    # Comprimi HTML, CSS, JavaScript, Text, XML e Font';
-        $rules[] = '    AddOutputFilterByType DEFLATE text/html';
-        $rules[] = '    AddOutputFilterByType DEFLATE text/plain';
-        $rules[] = '    AddOutputFilterByType DEFLATE text/xml';
-        $rules[] = '    AddOutputFilterByType DEFLATE text/css';
-        $rules[] = '    AddOutputFilterByType DEFLATE text/javascript';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/xml';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/xhtml+xml';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/rss+xml';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/javascript';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/x-javascript';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/json';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/ld+json';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff';
-        $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff2';
-        $rules[] = '    AddOutputFilterByType DEFLATE image/svg+xml';
-        $rules[] = '';
-        $rules[] = '    # Gestisci browser con bug di compressione';
-        $rules[] = '    BrowserMatch ^Mozilla/4 gzip-only-text/html';
-        $rules[] = '    BrowserMatch ^Mozilla/4\\.0[678] no-gzip';
-        $rules[] = '    BrowserMatch \\bMSIE !no-gzip !gzip-only-text/html';
-        $rules[] = '';
-        $rules[] = '    # Assicurati che i proxy memorizzino entrambe le versioni';
-        $rules[] = '    Header append Vary User-Agent env=!dont-vary';
-        $rules[] = '</IfModule>';
+        // Regole Gzip/Deflate (se abilitato)
+        if ($this->isDeflateEnabled()) {
+            $rules[] = '# Compressione Deflate/Gzip (compatibile con tutti i browser)';
+            $rules[] = '<IfModule mod_deflate.c>';
+            $rules[] = '    # Comprimi HTML, CSS, JavaScript, Text, XML e Font';
+            $rules[] = '    AddOutputFilterByType DEFLATE text/html';
+            $rules[] = '    AddOutputFilterByType DEFLATE text/plain';
+            $rules[] = '    AddOutputFilterByType DEFLATE text/xml';
+            $rules[] = '    AddOutputFilterByType DEFLATE text/css';
+            $rules[] = '    AddOutputFilterByType DEFLATE text/javascript';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/xml';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/xhtml+xml';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/rss+xml';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/javascript';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/x-javascript';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/json';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/ld+json';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff';
+            $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff2';
+            $rules[] = '    AddOutputFilterByType DEFLATE image/svg+xml';
+            $rules[] = '';
+            $rules[] = '    # Gestisci browser con bug di compressione';
+            $rules[] = '    BrowserMatch ^Mozilla/4 gzip-only-text/html';
+            $rules[] = '    BrowserMatch ^Mozilla/4\\.0[678] no-gzip';
+            $rules[] = '    BrowserMatch \\bMSIE !no-gzip !gzip-only-text/html';
+            $rules[] = '';
+            $rules[] = '    # Assicurati che i proxy memorizzino entrambe le versioni';
+            $rules[] = '    Header append Vary User-Agent env=!dont-vary';
+            $rules[] = '</IfModule>';
+        }
 
         return implode(PHP_EOL, $rules);
     }
@@ -263,6 +285,8 @@ class CompressionManager
             'active' => $this->isActive(),
             'brotli_supported' => $this->isBrotliSupported(),
             'brotli_enabled' => $this->isBrotliEnabled(),
+            'brotli_quality' => $this->getBrotliQuality(),
+            'deflate_enabled' => $this->isDeflateEnabled(),
             'gzip_supported' => $this->isGzipSupported(),
             'htaccess_supported' => $this->htaccess->isSupported(),
             'has_rules' => $this->htaccess->hasSection(self::SECTION_NAME),

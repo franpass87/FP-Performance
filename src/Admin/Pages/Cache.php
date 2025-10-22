@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
+use FP\PerfSuite\Services\Assets\PredictivePrefetching;
 
 use function __;
 use function checked;
@@ -50,6 +51,7 @@ class Cache extends AbstractPage
     {
         $pageCache = $this->container->get(PageCache::class);
         $headers = $this->container->get(Headers::class);
+        $prefetching = $this->container->get(PredictivePrefetching::class);
         $message = '';
         $headerSettings = $headers->settings();
 
@@ -80,6 +82,20 @@ class Cache extends AbstractPage
                 ]);
                 $message = __('Browser cache settings saved.', 'fp-performance-suite');
             }
+            if (isset($_POST['fp_ps_prefetch'])) {
+                $ignorePatterns = isset($_POST['prefetch_ignore_patterns']) 
+                    ? array_filter(array_map('trim', explode("\n", wp_unslash($_POST['prefetch_ignore_patterns'])))) 
+                    : [];
+                
+                $prefetching->updateSettings([
+                    'enabled' => !empty($_POST['prefetch_enabled']),
+                    'strategy' => sanitize_text_field($_POST['prefetch_strategy'] ?? 'hover'),
+                    'hover_delay' => isset($_POST['prefetch_delay']) ? (int) $_POST['prefetch_delay'] : 100,
+                    'prefetch_limit' => isset($_POST['prefetch_limit']) ? (int) $_POST['prefetch_limit'] : 5,
+                    'ignore_patterns' => $ignorePatterns,
+                ]);
+                $message = __('Predictive prefetching settings saved.', 'fp-performance-suite');
+            }
             if (isset($_POST['fp_ps_clear_cache'])) {
                 $pageCache->clear();
                 $message = __('Page cache cleared.', 'fp-performance-suite');
@@ -88,6 +104,7 @@ class Cache extends AbstractPage
 
         $pageSettings = $pageCache->settings();
         $headerSettings = $headers->settings();
+        $prefetchSettings = $prefetching->getSettings();
         $status = $pageCache->status();
 
         ob_start();
@@ -236,6 +253,102 @@ class Cache extends AbstractPage
                 </div>
                 <p>
                     <button type="submit" class="button button-primary"><?php esc_html_e('Save Headers', 'fp-performance-suite'); ?></button>
+                </p>
+            </form>
+        </section>
+
+        <section class="fp-ps-card">
+            <h2>🚀 <?php esc_html_e('Predictive Prefetching', 'fp-performance-suite'); ?></h2>
+            <p><?php esc_html_e('Precarica intelligentemente le pagine che l\'utente probabilmente visiterà, basato su hover, scroll e viewport. Rende la navigazione quasi istantanea.', 'fp-performance-suite'); ?></p>
+            <form method="post">
+                <?php wp_nonce_field('fp-ps-cache', 'fp_ps_cache_nonce'); ?>
+                <input type="hidden" name="fp_ps_prefetch" value="1" />
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable Predictive Prefetching', 'fp-performance-suite'); ?></strong>
+                        <span class="description"><?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?></span>
+                    </span>
+                    <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled']); ?> data-risk="green" />
+                </label>
+
+                <table class="form-table" style="margin-top: 20px;">
+                    <tr>
+                        <th scope="row">
+                            <label for="prefetch_strategy"><?php esc_html_e('Strategia', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <select name="prefetch_strategy" id="prefetch_strategy" class="regular-text">
+                                <option value="hover" <?php selected($prefetchSettings['strategy'], 'hover'); ?>>
+                                    <?php esc_html_e('Hover - Precarica al passaggio del mouse (Consigliato)', 'fp-performance-suite'); ?>
+                                </option>
+                                <option value="viewport" <?php selected($prefetchSettings['strategy'], 'viewport'); ?>>
+                                    <?php esc_html_e('Viewport - Precarica link visibili', 'fp-performance-suite'); ?>
+                                </option>
+                                <option value="aggressive" <?php selected($prefetchSettings['strategy'], 'aggressive'); ?>>
+                                    <?php esc_html_e('Aggressive - Precarica tutti i link (Alto uso banda)', 'fp-performance-suite'); ?>
+                                </option>
+                            </select>
+                            <p class="description">
+                                <?php esc_html_e('La strategia "hover" offre il miglior rapporto performance/banda.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="prefetch_delay"><?php esc_html_e('Delay (ms)', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" name="prefetch_delay" id="prefetch_delay" value="<?php echo esc_attr((string) $prefetchSettings['hover_delay']); ?>" min="0" max="2000" step="50" class="small-text" />
+                            <span>ms</span>
+                            <p class="description">
+                                <?php esc_html_e('Ritardo prima del prefetch quando il mouse è su un link (default: 100ms). Previene prefetch accidentali.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="prefetch_limit"><?php esc_html_e('Limite prefetch', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <input type="number" name="prefetch_limit" id="prefetch_limit" value="<?php echo esc_attr((string) $prefetchSettings['prefetch_limit']); ?>" min="1" max="20" class="small-text" />
+                            <p class="description">
+                                <?php esc_html_e('Numero massimo di pagine da precaricare simultaneamente (consigliato: 5). Previene sovraccarico.', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="prefetch_ignore_patterns"><?php esc_html_e('Pattern da ignorare', 'fp-performance-suite'); ?></label>
+                        </th>
+                        <td>
+                            <textarea name="prefetch_ignore_patterns" id="prefetch_ignore_patterns" rows="5" class="large-text code"><?php echo esc_textarea(implode("\n", $prefetchSettings['ignore_patterns'])); ?></textarea>
+                            <p class="description">
+                                <?php esc_html_e('URL o pattern da escludere dal prefetch (uno per riga). Esempio: /wp-admin/, /cart/, /checkout/', 'fp-performance-suite'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                    <p style="margin: 0; font-weight: 600; color: #2271b1;">💡 <?php esc_html_e('Benefici Predictive Prefetching:', 'fp-performance-suite'); ?></p>
+                    <ul style="margin: 10px 0 0 20px; color: #1e293b; line-height: 1.6;">
+                        <li><?php esc_html_e('⚡ Navigazione quasi istantanea tra pagine', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('🎯 Riduce il tempo di caricamento percepito a ~0ms', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('🧠 Intelligente: prefetch solo pagine con alta probabilità di click', 'fp-performance-suite'); ?></li>
+                        <li><?php esc_html_e('📱 Rispetta Save-Data e connessioni lente automaticamente', 'fp-performance-suite'); ?></li>
+                    </ul>
+                </div>
+
+                <div style="background: #fef3c7; border-left: 3px solid #fbbf24; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                    <strong style="color: #92400e;">💡 <?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 8px 0 0 0; color: #78350f; line-height: 1.5; font-size: 13px;">
+                        <?php esc_html_e('Inizia con strategia "hover" e delay 100ms. È il setup più efficiente che non spreca banda.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+
+                <p>
+                    <button type="submit" class="button button-primary"><?php esc_html_e('Save Prefetching Settings', 'fp-performance-suite'); ?></button>
                 </p>
             </form>
         </section>
