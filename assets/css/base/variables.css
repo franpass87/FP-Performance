@@ -14,6 +14,21 @@
     --fp-danger: #d94452;
     --fp-text: #1c1e21;
     
+    /* Extended Colors for Issue Boxes */
+    --fp-danger-light: #fef2f2;
+    --fp-danger-border: #dc2626;
+    --fp-danger-dark: #991b1b;
+    --fp-warning-light: #fffbeb;
+    --fp-warning-border: #f59e0b;
+    --fp-warning-dark: #92400e;
+    --fp-info-light: #eff6ff;
+    --fp-info-border: #3b82f6;
+    --fp-info-dark: #1e40af;
+    --fp-success-light: #d1fae5;
+    --fp-success: #059669;
+    --fp-info: #3b82f6;
+    --fp-gray-700: #374151;
+    
     /* Spacing */
     --fp-spacing-xs: 8px;
     --fp-spacing-sm: 12px;
@@ -32,9 +47,10 @@
     --fp-shadow-md: 0 8px 16px rgba(31, 35, 41, 0.1);
     
     /* Typography */
-    --fp-font-size-xs: 11px;
-    --fp-font-size-sm: 12px;
-    --fp-font-size-base: 13px;
+    --fp-font-size-xs: 12px;
+    --fp-font-size-sm: 13px;
+    --fp-font-size-base: 14px;
+    --fp-font-size-md: 16px;
     --fp-font-size-lg: 20px;
     --fp-font-size-xl: 28px;
     --fp-font-size-xxl: 48px;

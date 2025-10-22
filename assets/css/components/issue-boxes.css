@@ -1,0 +1,83 @@
+/**
+ * Issue Boxes Component
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-issue-box {
+    padding: var(--fp-spacing-md);
+    border-radius: var(--fp-radius-sm);
+    margin-bottom: var(--fp-spacing-md);
+    border-left: 4px solid;
+}
+
+.fp-ps-issue-box--error {
+    background: var(--fp-danger-light);
+    border-left-color: var(--fp-danger-border);
+    color: var(--fp-danger-dark);
+}
+
+.fp-ps-issue-box--warning {
+    background: var(--fp-warning-light);
+    border-left-color: var(--fp-warning-border);
+    color: var(--fp-warning-dark);
+}
+
+.fp-ps-issue-box--info {
+    background: var(--fp-info-light);
+    border-left-color: var(--fp-info-border);
+    color: var(--fp-info-dark);
+}
+
+.fp-ps-issue-box--success {
+    background: var(--fp-success-light);
+    border-left-color: var(--fp-success);
+    color: var(--fp-success);
+}
+
+.fp-ps-issue-box h3 {
+    margin: 0 0 var(--fp-spacing-sm) 0;
+    font-size: var(--fp-font-size-md);
+    font-weight: 600;
+}
+
+.fp-ps-issue-box p {
+    margin: 0;
+    font-size: var(--fp-font-size-sm);
+    line-height: 1.5;
+}
+
+.fp-ps-issue-box .fp-ps-issue-actions {
+    margin-top: var(--fp-spacing-sm);
+    display: flex;
+    gap: var(--fp-spacing-sm);
+}
+
+.fp-ps-issue-box .fp-ps-issue-actions .button {
+    font-size: var(--fp-font-size-xs);
+    padding: 6px 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fp-ps-issue-box {
+        padding: var(--fp-spacing-sm);
+    }
+    
+    .fp-ps-issue-box h3 {
+        font-size: var(--fp-font-size-sm);
+    }
+    
+    .fp-ps-issue-box p {
+        font-size: var(--fp-font-size-xs);
+    }
+    
+    .fp-ps-issue-box .fp-ps-issue-actions {
+        flex-direction: column;
+    }
+    
+    .fp-ps-issue-box .fp-ps-issue-actions .button {
+        width: 100%;
+        text-align: center;
+    }
+}

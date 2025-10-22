@@ -17,6 +17,7 @@
 @import url('layout/header.css');
 @import url('layout/grid.css');
 @import url('layout/card.css');
+@import url('layout/content.css');
 
 /* Components */
 @import url('components/status-indicator.css');
@@ -30,6 +31,7 @@
 @import url('components/modal.css');
 @import url('components/bulk-convert.css');
 @import url('components/quick-wins.css');
+@import url('components/issue-boxes.css');
 @import url('components/analysis.css');
 @import url('components/progress.css');
 @import url('components/tabs.css');
