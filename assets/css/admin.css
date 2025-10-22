@@ -17,6 +17,7 @@
 @import url('layout/header.css');
 @import url('layout/grid.css');
 @import url('layout/card.css');
+@import url('layout/content.css');
 
 /* Components */
 @import url('components/status-indicator.css');

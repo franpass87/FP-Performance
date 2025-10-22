@@ -162,6 +162,7 @@
 
 .stat-value.danger {
     color: var(--fp-danger);
+<<<<<<< HEAD
 }
 
 /* Miglioramenti per testi lunghi */
@@ -184,6 +185,8 @@
     overflow-wrap: break-word;
     hyphens: auto;
     line-height: 1.4;
+=======
+>>>>>>> cursor/controlla-incoerenze-grafiche-per-pagina-c5c2
 }
 
 /* Responsive adjustments */
