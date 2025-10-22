@@ -28,10 +28,10 @@ class FontsTab
         ob_start();
         ?>
         <!-- TAB: Fonts -->
-        <div class="fp-ps-tab-content" data-tab="fonts" style="display: <?php echo $current_tab === 'fonts' ? 'block' : 'none'; ?>;">
+        <div class="fp-ps-tab-content <?php echo $current_tab === 'fonts' ? 'active' : ''; ?>" data-tab="fonts">
         
         <!-- Intro Panel -->
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div class="fp-ps-intro-panel">
             <h2 style="color: white; margin: 0 0 15px 0; font-size: 28px;">
                 ⚡ <?php esc_html_e('Font Optimization & Critical Path', 'fp-performance-suite'); ?>
             </h2>

@@ -21,14 +21,14 @@ export function showProgress(container, current, total, label = '', options = {}
     const showCancel = options.showCancel || false;
     
     const progressHtml = `
-        <div class="fp-ps-progress" style="margin: 20px 0;" data-progress-id="${options.id || 'default'}">
-            <div class="fp-ps-progress-bar" style="background: #f0f0f1; border-radius: 4px; overflow: hidden; height: ${height}; position: relative;">
-                <div class="fp-ps-progress-fill" style="background: ${color}; height: 100%; width: ${percent}%; transition: ${animated ? 'width 0.3s ease-out' : 'none'};"></div>
-                <div class="fp-ps-progress-label" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: #1d2327; font-weight: 600; font-size: 12px;">
+        <div class="fp-ps-progress fp-ps-my-lg" data-progress-id="${options.id || 'default'}">
+            <div class="fp-ps-progress-bar" style="height: ${height};">
+                <div class="fp-ps-progress-fill" style="background: ${color}; width: ${percent}%; transition: ${animated ? 'width var(--fp-transition-base)' : 'none'};"></div>
+                <div class="fp-ps-progress-label">
                     ${label || `${current}/${total} (${percent}%)`}
                 </div>
             </div>
-            ${showCancel ? '<button type="button" class="button fp-ps-progress-cancel" style="margin-top: 10px;">Annulla</button>' : ''}
+            ${showCancel ? '<button type="button" class="button fp-ps-progress-cancel fp-ps-mt-sm">Annulla</button>' : ''}
         </div>
     `;
     

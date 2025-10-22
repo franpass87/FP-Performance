@@ -1,0 +1,79 @@
+/**
+ * Tab Content Component Styles
+ * 
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-tab-content {
+    display: none;
+}
+
+.fp-ps-tab-content.active {
+    display: block;
+}
+
+/* Tab descriptions */
+.fp-ps-tab-description {
+    padding: var(--fp-spacing-md);
+    margin-bottom: var(--fp-spacing-lg);
+    border-radius: var(--fp-radius-sm);
+    border-left: 4px solid;
+}
+
+.fp-ps-tab-description p {
+    margin: 0;
+    font-size: var(--fp-font-size-base);
+    line-height: 1.5;
+}
+
+/* JavaScript tab description */
+.fp-ps-tab-description[data-tab="javascript"] {
+    background: #fef3c7;
+    border-left-color: #eab308;
+}
+
+.fp-ps-tab-description[data-tab="javascript"] p {
+    color: #713f12;
+}
+
+/* CSS tab description */
+.fp-ps-tab-description[data-tab="css"] {
+    background: #e0f2fe;
+    border-left-color: #0ea5e9;
+}
+
+.fp-ps-tab-description[data-tab="css"] p {
+    color: #0c4a6e;
+}
+
+/* Fonts tab description */
+.fp-ps-tab-description[data-tab="fonts"] {
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+}
+
+.fp-ps-tab-description[data-tab="fonts"] p {
+    color: #78350f;
+}
+
+/* Third-party tab description */
+.fp-ps-tab-description[data-tab="thirdparty"] {
+    background: #e0e7ff;
+    border-left-color: #6366f1;
+}
+
+.fp-ps-tab-description[data-tab="thirdparty"] p {
+    color: #3730a3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fp-ps-tab-description {
+        padding: var(--fp-spacing-sm);
+        margin-bottom: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-tab-description p {
+        font-size: var(--fp-font-size-sm);
+    }
+}

@@ -31,6 +31,9 @@
 @import url('components/bulk-convert.css');
 @import url('components/quick-wins.css');
 @import url('components/analysis.css');
+@import url('components/progress.css');
+@import url('components/tabs.css');
+@import url('components/forms.css');
 
 /* Utilities */
 @import url('utilities/utilities.css');

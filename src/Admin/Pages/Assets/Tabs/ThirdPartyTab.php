@@ -36,7 +36,7 @@ class ThirdPartyTab
         ob_start();
         ?>
         <!-- TAB: Third-Party -->
-        <div class="fp-ps-tab-content" data-tab="thirdparty" style="display: <?php echo $current_tab === 'thirdparty' ? 'block' : 'none'; ?>;">
+        <div class="fp-ps-tab-content <?php echo $current_tab === 'thirdparty' ? 'active' : ''; ?>" data-tab="thirdparty">
         
         <!-- Third-Party Scripts Section -->
         <section class="fp-ps-card">
@@ -123,7 +123,7 @@ class ThirdPartyTab
                         $scriptKey = 'third_party_' . str_replace('_', '', $key);
                         $isEnabled = $thirdPartySettings['scripts'][$key]['enabled'] ?? false;
                         ?>
-                        <label style="display: flex; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 6px;">
+                        <label class="fp-ps-script-item">
                             <input type="checkbox" name="<?php echo esc_attr($scriptKey); ?>" value="1" <?php checked($isEnabled); ?> style="margin-right: 8px;" />
                             <span><?php echo esc_html($label); ?></span>
                         </label>
@@ -132,7 +132,7 @@ class ThirdPartyTab
                     ?>
                 </div>
                 
-                <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 6px;">
+                <div class="fp-ps-info-section">
                     <button type="submit" class="button button-primary button-large">
                         💾 <?php esc_html_e('Save Third-Party Settings', 'fp-performance-suite'); ?>
                     </button>
@@ -141,7 +141,7 @@ class ThirdPartyTab
         </section>
         
         <!-- HTTP/2 Server Push Section -->
-        <section class="fp-ps-card" style="margin-top: 30px;">
+        <section class="fp-ps-card fp-ps-mt-xl">
             <h2><?php esc_html_e('HTTP/2 Server Push', 'fp-performance-suite'); ?></h2>
             <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
