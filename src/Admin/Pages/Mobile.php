@@ -17,12 +17,33 @@ use FP\PerfSuite\Services\Mobile\ResponsiveImageManager;
  */
 class Mobile extends AbstractPage
 {
-    private ServiceContainer $container;
+    protected ServiceContainer $container;
 
     public function __construct(ServiceContainer $container)
     {
-        $this->container = $container;
-        parent::__construct('mobile', __('Mobile Optimization', 'fp-performance-suite'));
+        parent::__construct($container);
+    }
+
+    public function slug(): string
+    {
+        return 'fp-performance-suite-mobile';
+    }
+
+    public function title(): string
+    {
+        return __('Mobile Optimization', 'fp-performance-suite');
+    }
+
+    public function view(): string
+    {
+        return FP_PERF_SUITE_DIR . '/views/admin-page.php';
+    }
+
+    protected function content(): string
+    {
+        ob_start();
+        $this->render();
+        return ob_get_clean();
     }
 
     public function render(): void

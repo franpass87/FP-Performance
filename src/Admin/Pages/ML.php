@@ -17,12 +17,33 @@ use FP\PerfSuite\Services\ML\AutoTuner;
  */
 class ML extends AbstractPage
 {
-    private ServiceContainer $container;
+    protected ServiceContainer $container;
 
     public function __construct(ServiceContainer $container)
     {
-        $this->container = $container;
-        parent::__construct('ml', __('Machine Learning', 'fp-performance-suite'));
+        parent::__construct($container);
+    }
+
+    public function slug(): string
+    {
+        return 'fp-performance-suite-ml';
+    }
+
+    public function title(): string
+    {
+        return __('Machine Learning', 'fp-performance-suite');
+    }
+
+    public function view(): string
+    {
+        return FP_PERF_SUITE_DIR . '/views/admin-page.php';
+    }
+
+    protected function content(): string
+    {
+        ob_start();
+        $this->render();
+        return ob_get_clean();
     }
 
     public function render(): void
