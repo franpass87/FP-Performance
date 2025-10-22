@@ -9,6 +9,8 @@
  * @link https://francescopasseri.com
  */
 
+console.log('FP Performance Suite: Main script loaded');
+
 // Components
 import { showNotice } from './components/notice.js';
 import { showProgress, removeProgress, updateProgress } from './components/progress.js';
@@ -31,6 +33,8 @@ import { confirm, alert, deleteConfirm, initConfirmModals } from './components/m
  * Initialize all features on DOM ready
  */
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('FP Performance Suite: DOM ready, initializing features');
+    
     // Initialize dark mode (needs to run early for smooth transition)
     initDarkMode();
     
@@ -50,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initBulkActions();
     
     // Initialize WebP bulk conversion with progress tracking
+    console.log('FP Performance Suite: Initializing WebP bulk convert');
     initWebPBulkConvert();
     
     // Initialize accessibility features (ARIA, keyboard navigation)

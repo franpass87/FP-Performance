@@ -449,7 +449,7 @@ class Media extends AbstractPage
             </div>
             
             <!-- Bulk Conversion Form -->
-            <form method="post" class="fp-ps-bulk-convert-form">
+            <form method="post" class="fp-ps-bulk-convert-form" id="fp-ps-webp-bulk-form">
                 <?php wp_nonce_field('fp_ps_media', 'fp_ps_media_nonce'); ?>
                 <input type="hidden" name="bulk_convert" value="1" />
                 
@@ -484,7 +484,7 @@ class Media extends AbstractPage
                     </div>
                     
                     <div class="fp-ps-bulk-action-wrapper">
-                        <button type="submit" class="button button-primary button-hero fp-ps-bulk-start-btn" data-risk="amber">
+                        <button type="submit" class="button button-primary button-hero fp-ps-bulk-start-btn" id="fp-ps-webp-bulk-btn" data-risk="amber" data-status-nonce="<?php echo wp_create_nonce('fp_ps_webp_status'); ?>">
                             <span class="fp-ps-btn-icon">🚀</span>
                             <?php esc_html_e('Avvia Conversione Bulk', 'fp-performance-suite'); ?>
                         </button>
