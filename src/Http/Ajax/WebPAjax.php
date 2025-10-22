@@ -39,9 +39,11 @@ class WebPAjax
         }
         
         try {
+            error_log('FP Performance Suite: getQueueStatus called');
             $converter = $this->container->get(WebPConverter::class);
             $queue = $converter->getQueue();
             $state = $queue->getState();
+            error_log('FP Performance Suite: Queue state: ' . print_r($state, true));
             
             if ($state === null) {
                 wp_send_json_success([
@@ -85,8 +87,10 @@ class WebPAjax
             $limit = isset($_POST['limit']) ? (int) $_POST['limit'] : 20;
             $offset = isset($_POST['offset']) ? (int) $_POST['offset'] : 0;
             
+            error_log("FP Performance Suite: bulkConvert called with limit=$limit, offset=$offset");
             $converter = $this->container->get(WebPConverter::class);
             $result = $converter->bulkConvert($limit, $offset);
+            error_log('FP Performance Suite: bulkConvert result: ' . print_r($result, true));
             
             if (!empty($result['error'])) {
                 wp_send_json_error($result['error'], 429);

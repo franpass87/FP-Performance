@@ -176,6 +176,7 @@ class WebPConverter
         $this->batchProcessor->processBatch($settings);
     }
 
+
     /**
      * Count total images in media library
      *

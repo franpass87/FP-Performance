@@ -138,6 +138,15 @@ class Plugin
                 $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
             }
             
+            // Third-Party Script Management
+            $thirdPartySettings = get_option('fp_ps_third_party_scripts', []);
+            if (!empty($thirdPartySettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+            }
+            
+            // Third-Party Script Detector (AI Auto-detect) - Sempre attivo per rilevare nuovi script
+            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
+            
             // Mobile Optimization Services (v1.6.0)
             $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
             if (!empty($mobileSettings['enabled'])) {

@@ -84,6 +84,7 @@ class WebPQueue
 
         update_option(self::QUEUE_OPTION, $state, false);
 
+        // Programma il primo batch immediatamente
         $this->scheduleBatch();
 
         return [
@@ -150,10 +151,10 @@ class WebPQueue
      */
     public function scheduleBatch(): void
     {
-        if (!wp_next_scheduled(self::CRON_HOOK)) {
-            wp_schedule_single_event(time() + 1, self::CRON_HOOK);
-        }
+        // Esegui il processing immediatamente invece di programmare un cron job
+        do_action(self::CRON_HOOK);
     }
+
 
     /**
      * Get attachment IDs for next batch

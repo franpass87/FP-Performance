@@ -17,7 +17,7 @@ use function wp_update_attachment_metadata;
  */
 class WebPBatchProcessor
 {
-    private const CRON_CHUNK = 5;
+    private const CRON_CHUNK = 2; // Riduciamo per processing più veloce
 
     private WebPQueue $queue;
     private WebPAttachmentProcessor $attachmentProcessor;
@@ -35,9 +35,12 @@ class WebPBatchProcessor
      */
     public function processBatch(array $settings): void
     {
+        error_log('FP Performance Suite: WebPBatchProcessor::processBatch called');
         $state = $this->queue->getState();
+        error_log('FP Performance Suite: Queue state: ' . print_r($state, true));
 
         if ($state === null) {
+            error_log('FP Performance Suite: No queue state found');
             return;
         }
 
@@ -61,6 +64,7 @@ class WebPBatchProcessor
         $converted = $this->processAttachments($attachmentIds, $settings);
 
         $processedThisRun = count($attachmentIds);
+        error_log("FP Performance Suite: Processed $processedThisRun attachments, converted $converted");
 
         $this->queue->updateState([
             'processed' => $state['processed'] + $processedThisRun,
@@ -71,12 +75,17 @@ class WebPBatchProcessor
 
         // Check if we're done
         if ($newState && ($newState['processed'] >= $newState['limit'] || $processedThisRun < $chunk)) {
+            error_log('FP Performance Suite: Batch processing completed');
             $this->queue->clear();
             return;
         }
 
-        // Schedule next batch
-        $this->queue->scheduleBatch();
+        // Schedule next batch for polling with a small delay
+        if ($newState && $newState['processed'] < $newState['limit']) {
+            error_log('FP Performance Suite: Scheduling next batch...');
+            // Aggiungi un piccolo delay per permettere al polling di funzionare
+            wp_schedule_single_event(time() + 1, $this->queue->getCronHook());
+        }
     }
 
     /**

@@ -115,6 +115,8 @@ class ThirdPartyTab
                         'activecampaign' => __('ActiveCampaign', 'fp-performance-suite'),
                         'userway' => __('UserWay', 'fp-performance-suite'),
                         'typeform' => __('Typeform', 'fp-performance-suite'),
+                        'brevo' => __('Brevo', 'fp-performance-suite'),
+                        'wonderpush' => __('WonderPush', 'fp-performance-suite'),
                     ];
                     
                     foreach ($scripts as $key => $label) {

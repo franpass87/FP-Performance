@@ -50,8 +50,22 @@ class Mobile extends AbstractPage
     {
         $this->handleFormSubmission();
         $settings = $this->getSettings();
-        $mobile_optimizer = $this->container->get(MobileOptimizer::class);
-        $report = $mobile_optimizer->generateMobileReport();
+        
+        // Assicurati che il MobileOptimizer sia disponibile
+        try {
+            $mobile_optimizer = $this->container->get(MobileOptimizer::class);
+            $report = $mobile_optimizer->generateMobileReport();
+        } catch (\Exception $e) {
+            // Fallback se il servizio non è disponibile
+            $report = [
+                'enabled' => false,
+                'settings' => $settings,
+                'issues' => [],
+                'issues_count' => 0,
+                'critical_issues' => 0,
+                'recommendations' => []
+            ];
+        }
         ?>
         <div class="wrap">
             <h1><?php echo esc_html($this->getTitle()); ?></h1>

@@ -120,6 +120,7 @@ export class BulkProcessor {
             }
             
             // Avvia polling per il progresso
+            console.log('FP Performance Suite: Starting polling for operation');
             showNotice(`Operazione avviata: ${result.total} elementi in coda`, 'success');
             this.startPolling();
             
@@ -132,7 +133,9 @@ export class BulkProcessor {
      * Avvia il polling dello stato
      */
     startPolling() {
+        console.log('FP Performance Suite: startPolling called');
         const checkStatus = async () => {
+            console.log('FP Performance Suite: Checking status...');
             const formData = new FormData();
             formData.append('action', this.statusAction);
             formData.append('nonce', this.statusNonce);
@@ -145,6 +148,7 @@ export class BulkProcessor {
                 });
                 
                 const data = await response.json();
+                console.log('FP Performance Suite: Status response:', data);
                 
                 if (!data.success) {
                     throw new Error(data.data || 'Errore durante il controllo dello stato');

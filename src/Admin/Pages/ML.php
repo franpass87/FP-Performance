@@ -63,7 +63,7 @@ class ML extends AbstractPage
         $tuning_report = $auto_tuner->generateTuningReport();
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html($this->getTitle()); ?></h1>
+            <h1><?php echo esc_html($this->title()); ?></h1>
             
             <div class="fp-ps-admin-grid">
                 <!-- ML Settings -->

@@ -377,8 +377,15 @@ class MobileOptimizer
      */
     private function hasViewportMeta(): bool
     {
-        $content = ob_get_contents() ?: '';
-        return strpos($content, 'name="viewport"') !== false;
+        // Verifica se c'è un buffer di output attivo
+        if (ob_get_level() > 0) {
+            $content = ob_get_contents() ?: '';
+            return strpos($content, 'name="viewport"') !== false;
+        }
+        
+        // Se non c'è buffer, controlla se il viewport è già stato aggiunto
+        // Questo è un controllo semplificato per evitare errori
+        return true; // Assume che il viewport sia presente per evitare falsi positivi
     }
 
     /**

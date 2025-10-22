@@ -66,7 +66,7 @@ class Cache extends AbstractPage
         }
         
         // Gestione dei form submissions
-        $this->handleFormSubmissions($activeTab);
+        $message = $this->handleFormSubmissions($activeTab);
         
         ob_start();
         
@@ -76,7 +76,7 @@ class Cache extends AbstractPage
         // Render content based on active tab
         switch ($activeTab) {
             case 'browser':
-                echo $this->renderBrowserCacheTab();
+                echo $this->renderBrowserCacheTab($message);
                 break;
             case 'pwa':
                 echo $this->renderPWATab();
@@ -95,10 +95,10 @@ class Cache extends AbstractPage
         return (string) ob_get_clean();
     }
 
-    private function handleFormSubmissions(string $activeTab): void
+    private function handleFormSubmissions(string $activeTab): string
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            return;
+            return '';
         }
 
         $pageCache = $this->container->get(PageCache::class);
@@ -202,6 +202,21 @@ class Cache extends AbstractPage
             }
         }
 
+        // Browser Cache form submission
+        if ($activeTab === 'browser' && isset($_POST['fp_ps_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_cache_nonce']), 'fp-ps-cache')) {
+            if (isset($_POST['fp_ps_browser_cache'])) {
+                $headers->update([
+                    'enabled' => !empty($_POST['browser_cache_enabled']),
+                    'headers' => [
+                        'Cache-Control' => sanitize_text_field($_POST['cache_control'] ?? 'public, max-age=31536000'),
+                    ],
+                    'expires_ttl' => isset($_POST['expires_ttl']) ? (int) $_POST['expires_ttl'] : $headerSettings['expires_ttl'],
+                    'htaccess' => wp_unslash($_POST['htaccess_rules'] ?? ''),
+                ]);
+                $message = __('Browser cache settings saved.', 'fp-performance-suite');
+            }
+        }
+
         // Edge Cache form submission
         if ($activeTab === 'edge' && isset($_POST['fp_ps_edge_cache_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_edge_cache_nonce']), 'fp_ps_edge_cache')) {
             try {
@@ -231,6 +246,8 @@ class Cache extends AbstractPage
                 });
             }
         }
+        
+        return $message;
     }
 
     private function renderTabsNavigation(string $activeTab): void
@@ -561,7 +578,7 @@ class Cache extends AbstractPage
         return (string) ob_get_clean();
     }
 
-    private function renderBrowserCacheTab(): string
+    private function renderBrowserCacheTab(string $message = ''): string
     {
         ob_start();
         
@@ -569,6 +586,12 @@ class Cache extends AbstractPage
         $headerSettings = $headers->settings();
         
         ?>
+        
+        <?php if (!empty($message)): ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php echo esc_html($message); ?></p>
+        </div>
+        <?php endif; ?>
         
         <!-- Browser Cache Configuration -->
         <section class="fp-ps-card">

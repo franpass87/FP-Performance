@@ -584,6 +584,38 @@ class ThirdPartyScriptManager
     }
 
     /**
+     * Register a new service (used by auto-detector)
+     *
+     * @param string $id Service ID
+     * @param array $config Service configuration
+     */
+    public function registerService(string $id, array $config): void
+    {
+        $settings = $this->settings();
+        
+        // Add new service to scripts if not already present
+        if (!isset($settings['scripts'][$id])) {
+            $settings['scripts'][$id] = [
+                'enabled' => false, // Auto-detected services start disabled
+                'patterns' => $config['patterns'] ?? [],
+                'delay' => true,
+                'detected_automatically' => true,
+                'category' => $config['category'] ?? 'unknown',
+                'name' => $config['name'] ?? $id,
+            ];
+            
+            // Update settings
+            update_option(self::OPTION, $settings);
+            
+            Logger::info('New third-party service auto-registered', [
+                'service_id' => $id,
+                'name' => $config['name'] ?? $id,
+                'category' => $config['category'] ?? 'unknown',
+            ]);
+        }
+    }
+
+    /**
      * Get status
      *
      * @return array{enabled:bool,delay_all:bool,managed_scripts:int,custom_scripts:int}

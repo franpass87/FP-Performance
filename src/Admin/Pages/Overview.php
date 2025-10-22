@@ -5,7 +5,6 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer;
-use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 
 use function __;
@@ -75,9 +74,6 @@ class Overview extends AbstractPage
         // Dati dal Scorer (ex-Dashboard)
         $scorer = $this->container->get(Scorer::class);
         $score = $scorer->calculate();
-        $presetManager = $this->container->get(PresetManager::class);
-        $active = $presetManager->getActivePreset();
-        $activeLabel = $active ? $presetManager->labelFor($active) : __('Custom', 'fp-performance-suite');
         
         // Dati dal Performance Monitor (ex-Performance)
         $monitor = PerformanceMonitor::instance();
@@ -94,7 +90,7 @@ class Overview extends AbstractPage
         ?>
         
         <!-- Header con Score e Metriche Principali -->
-        <section class="fp-ps-grid three">
+        <section class="fp-ps-grid two">
             <!-- Technical SEO Score -->
             <?php 
             $seoScore = (int) $score['total'];
@@ -136,18 +132,6 @@ class Overview extends AbstractPage
                 </p>
             </div>
 
-            <!-- Preset Attivo -->
-            <div class="fp-ps-card">
-                <h2><?php esc_html_e('Preset Attivo', 'fp-performance-suite'); ?></h2>
-                <div class="fp-ps-preset-label">
-                    <?php echo esc_html($activeLabel); ?>
-                </div>
-                <div class="fp-ps-actions fp-ps-text-center">
-                    <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-ai-config')); ?>">
-                        <?php esc_html_e('Cambia Preset', 'fp-performance-suite'); ?>
-                    </a>
-                </div>
-            </div>
         </section>
 
         <!-- Quick Wins: Azioni Immediate Consigliate -->
