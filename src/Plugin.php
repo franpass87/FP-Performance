@@ -83,6 +83,9 @@ class Plugin
             // Inizializza opzioni di default per utenti esistenti (solo se non esistono)
             self::ensureDefaultOptionsExist();
             
+            // Fix critico per pagina mobile - Forza inizializzazione se necessario
+            self::forceMobileOptionsInitialization();
+            
             // Aggiungi cron schedules personalizzati per ML
             add_filter('cron_schedules', function($schedules) {
                 $schedules['fp_ps_6hourly'] = [
@@ -100,7 +103,8 @@ class Plugin
             $container->get(Headers::class)->register();
             
             // Optimizer e WebP solo se abilitati nelle opzioni
-            if (get_option('fp_ps_asset_optimization_enabled', false)) {
+            $assetSettings = get_option('fp_ps_assets', []);
+            if (!empty($assetSettings['enabled']) || get_option('fp_ps_asset_optimization_enabled', false)) {
                 $container->get(Optimizer::class)->register();
             }
             if (get_option('fp_ps_webp_enabled', false)) {
@@ -619,7 +623,7 @@ class Plugin
      */
     private static function ensureDefaultOptionsExist(): void
     {
-        // Mobile Optimization Services (v1.6.0) - DISATTIVATI di default
+        // Mobile Optimization Services (v1.6.0) - DISATTIVATI di default ma inizializzati per evitare errori
         if (!get_option('fp_ps_mobile_optimizer')) {
             update_option('fp_ps_mobile_optimizer', [
                 'enabled' => false,
@@ -630,7 +634,7 @@ class Plugin
             ], false);
         }
         
-        // Touch Optimizer - DISATTIVATO di default
+        // Touch Optimizer - DISATTIVATO di default ma inizializzato per evitare errori
         if (!get_option('fp_ps_touch_optimizer')) {
             update_option('fp_ps_touch_optimizer', [
                 'enabled' => false,
@@ -641,7 +645,7 @@ class Plugin
             ], false);
         }
         
-        // Responsive Images - DISATTIVATO di default
+        // Responsive Images - DISATTIVATO di default ma inizializzato per evitare errori
         if (!get_option('fp_ps_responsive_images')) {
             update_option('fp_ps_responsive_images', [
                 'enabled' => false,
@@ -652,14 +656,14 @@ class Plugin
             ], false);
         }
         
-        // Mobile Cache Manager - DISATTIVATO di default
+        // Mobile Cache Manager - ABILITATO di default per risolvere errore critico
         if (!get_option('fp_ps_mobile_cache')) {
             update_option('fp_ps_mobile_cache', [
-                'enabled' => false,
-                'enable_mobile_cache_headers' => false,
-                'enable_resource_caching' => false,
-                'cache_mobile_css' => false,
-                'cache_mobile_js' => false,
+                'enabled' => true,
+                'enable_mobile_cache_headers' => true,
+                'enable_resource_caching' => true,
+                'cache_mobile_css' => true,
+                'cache_mobile_js' => true,
                 'html_cache_duration' => 300,
                 'css_cache_duration' => 3600,
                 'js_cache_duration' => 3600
@@ -902,6 +906,29 @@ class Plugin
             'php_version' => PHP_VERSION,
             'wp_version' => get_bloginfo('version'),
         ];
+    }
+
+    /**
+     * Forza l'inizializzazione delle opzioni mobile per risolvere errori critici
+     */
+    private static function forceMobileOptionsInitialization(): void
+    {
+        // Controlla se almeno una opzione mobile esiste
+        $has_mobile_options = get_option('fp_ps_mobile_optimizer') || 
+                             get_option('fp_ps_touch_optimizer') || 
+                             get_option('fp_ps_mobile_cache') || 
+                             get_option('fp_ps_responsive_images');
+        
+        // Se nessuna opzione mobile esiste, forza l'inizializzazione
+        if (!$has_mobile_options) {
+            // Log per debug
+            if (function_exists('error_log')) {
+                error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
+            }
+            
+            // Forza l'inizializzazione chiamando ensureDefaultOptionsExist
+            self::ensureDefaultOptionsExist();
+        }
     }
 
     public static function onDeactivate(): void
