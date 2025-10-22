@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Admin\Pages\AbstractPage;
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
@@ -29,9 +30,9 @@ class Assets extends AbstractPage
     private PostHandler $postHandler;
     private array $tabs = [];
 
-    public function __construct()
+    public function __construct(ServiceContainer $container)
     {
-        parent::__construct();
+        parent::__construct($container);
         $this->postHandler = new PostHandler();
         $this->initializeTabs();
     }
