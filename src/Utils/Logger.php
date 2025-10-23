@@ -126,7 +126,9 @@ class Logger
             $message
         );
 
-        error_log($formattedMessage);
+        if (function_exists('error_log')) {
+            error_log($formattedMessage);
+        }
     }
 
     /**

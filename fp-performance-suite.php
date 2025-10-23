@@ -38,16 +38,20 @@ function fp_perf_suite_is_db_available(): bool {
     
     // Per mysqli - Verifica connessione
     if (is_object($wpdb->dbh) && $wpdb->dbh instanceof \mysqli) {
-        // ping() è deprecated in PHP 8.4, verifica semplicemente che l'oggetto esista
-        // Se dbh è un oggetto mysqli valido, la connessione è disponibile
+        // Verifica che la connessione mysqli sia valida
+        if (method_exists($wpdb->dbh, 'ping')) {
+            return $wpdb->dbh->ping();
+        }
+        // Se ping() non è disponibile, verifica che l'oggetto sia valido
         return true;
     }
     
     // Fallback: tenta una query semplice
     try {
-        $result = @$wpdb->query('SELECT 1');
+        $result = $wpdb->query('SELECT 1');
         return $result !== false;
     } catch (\Throwable $e) {
+        fp_perf_suite_safe_log('Database connection test failed: ' . $e->getMessage(), 'WARNING');
         return false;
     }
 }
