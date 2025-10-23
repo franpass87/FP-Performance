@@ -100,6 +100,11 @@ class Assets extends AbstractPage
             // Handle POST requests
             $message = $this->postHandler->handlePost($settings, $fontSettings, $thirdPartySettings);
             
+            // Fallback: Handle direct form submissions if PostHandler fails
+            if (empty($message) && 'POST' === $_SERVER['REQUEST_METHOD']) {
+                $message = $this->handleDirectFormSubmission($settings, $fontSettings, $thirdPartySettings);
+            }
+            
             // Debug: Log if we have a message
             if ($message) {
                 error_log('FP Performance Suite - Assets page message: ' . $message);
@@ -257,5 +262,25 @@ class Assets extends AbstractPage
             'fonts' => new FontsTab(),
             'thirdparty' => new ThirdPartyTab(),
         ];
+    }
+
+    /**
+     * Fallback method to handle direct form submissions
+     */
+    private function handleDirectFormSubmission(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
+    {
+        // Check for main toggle form
+        if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+            if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
+                $optimizer = $this->container->get(Optimizer::class);
+                $currentSettings = $optimizer->settings();
+                $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
+                $optimizer->update($currentSettings);
+                $settings = $optimizer->settings();
+                return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
+            }
+        }
+        
+        return '';
     }
 }

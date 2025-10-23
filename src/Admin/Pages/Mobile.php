@@ -75,7 +75,7 @@ class Mobile extends AbstractPage
                 <div class="fp-ps-admin-card">
                     <h2><?php _e('Mobile Optimization Settings', 'fp-performance-suite'); ?></h2>
                     
-                    <form method="post" action="">
+                    <form method="post" action="?page=fp-performance-suite-mobile">
                         <?php wp_nonce_field('fp_ps_mobile_settings', 'fp_ps_mobile_nonce'); ?>
                         
                         <table class="form-table">
@@ -187,7 +187,7 @@ class Mobile extends AbstractPage
                     $touch_settings = get_option('fp_ps_touch_optimizer', []);
                     ?>
                     
-                    <form method="post" action="">
+                    <form method="post" action="?page=fp-performance-suite-mobile">
                         <?php wp_nonce_field('fp_ps_touch_settings', 'fp_ps_touch_nonce'); ?>
                         
                         <table class="form-table">
@@ -254,7 +254,7 @@ class Mobile extends AbstractPage
                     $responsive_settings = get_option('fp_ps_responsive_images', []);
                     ?>
                     
-                    <form method="post" action="">
+                    <form method="post" action="?page=fp-performance-suite-mobile">
                         <?php wp_nonce_field('fp_ps_responsive_settings', 'fp_ps_responsive_nonce'); ?>
                         
                         <table class="form-table">
