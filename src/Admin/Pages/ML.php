@@ -214,6 +214,36 @@ class ML extends AbstractPage
                                 <span class="fp-ps-stat-value"><?php echo $tuning_report['last_tuning'] ? esc_html(date('Y-m-d H:i:s', $tuning_report['last_tuning'])) : __('Never', 'fp-performance-suite'); ?></span>
                             </div>
                         </div>
+                        
+                        <!-- Pulsanti Azione -->
+                        <div class="fp-ps-ml-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <h3><?php _e('Azioni Manuali', 'fp-performance-suite'); ?></h3>
+                            <p class="description"><?php _e('Esegui analisi manuali quando necessario', 'fp-performance-suite'); ?></p>
+                            
+                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
+                                <?php wp_nonce_field('fp_ps_ml_manual_analysis', 'fp_ps_ml_manual_nonce'); ?>
+                                <input type="hidden" name="action" value="manual_analysis" />
+                                <?php submit_button(__('Esegui Analisi Pattern', 'fp-performance-suite'), 'secondary', 'manual_analysis', false); ?>
+                            </form>
+                            
+                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
+                                <?php wp_nonce_field('fp_ps_ml_manual_prediction', 'fp_ps_ml_manual_nonce'); ?>
+                                <input type="hidden" name="action" value="manual_prediction" />
+                                <?php submit_button(__('Genera Predizioni', 'fp-performance-suite'), 'secondary', 'manual_prediction', false); ?>
+                            </form>
+                            
+                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
+                                <?php wp_nonce_field('fp_ps_ml_manual_anomaly', 'fp_ps_ml_manual_nonce'); ?>
+                                <input type="hidden" name="action" value="manual_anomaly" />
+                                <?php submit_button(__('Rileva Anomalie', 'fp-performance-suite'), 'secondary', 'manual_anomaly', false); ?>
+                            </form>
+                            
+                            <form method="post" action="" style="display: inline-block;">
+                                <?php wp_nonce_field('fp_ps_ml_check_cron', 'fp_ps_ml_manual_nonce'); ?>
+                                <input type="hidden" name="action" value="check_cron" />
+                                <?php submit_button(__('Verifica Cron Jobs', 'fp-performance-suite'), 'secondary', 'check_cron', false); ?>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php elseif ($current_tab === 'settings'): ?>
@@ -429,6 +459,7 @@ class ML extends AbstractPage
 
     private function handleFormSubmission(): void
     {
+        // Handle ML Settings
         if (isset($_POST['fp_ps_ml_nonce']) && wp_verify_nonce($_POST['fp_ps_ml_nonce'], 'fp_ps_ml_settings')) {
             $settings = [
                 'enabled' => !empty($_POST['enabled']),
@@ -441,6 +472,89 @@ class ML extends AbstractPage
             update_option('fp_ps_ml_predictor', $settings);
             echo '<div class="notice notice-success"><p>' . __('ML settings saved successfully!', 'fp-performance-suite') . '</p></div>';
         }
+        
+        // Handle Manual Actions
+        if (isset($_POST['fp_ps_ml_manual_nonce']) && isset($_POST['action'])) {
+            $action = sanitize_text_field($_POST['action']);
+            
+            if ($action === 'manual_analysis' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_analysis')) {
+                $this->executeManualAnalysis();
+            } elseif ($action === 'manual_prediction' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_prediction')) {
+                $this->executeManualPrediction();
+            } elseif ($action === 'manual_anomaly' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_anomaly')) {
+                $this->executeManualAnomalyDetection();
+            } elseif ($action === 'check_cron' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_check_cron')) {
+                $this->checkCronJobs();
+            }
+        }
+    }
+    
+    private function executeManualAnalysis(): void
+    {
+        try {
+            $predictor = $this->container->get(MLPredictor::class);
+            $predictor->analyzePatterns();
+            
+            // Aggiorna timestamp ultima analisi
+            update_option('fp_ps_ml_last_analysis', time());
+            
+            echo '<div class="notice notice-success"><p>' . __('Analisi pattern eseguita con successo!', 'fp-performance-suite') . '</p></div>';
+        } catch (Exception $e) {
+            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante l\'analisi: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
+        }
+    }
+    
+    private function executeManualPrediction(): void
+    {
+        try {
+            $predictor = $this->container->get(MLPredictor::class);
+            $predictions = $predictor->predictIssues();
+            
+            echo '<div class="notice notice-success"><p>' . sprintf(__('Predizioni generate con successo! Trovate %d predizioni.', 'fp-performance-suite'), count($predictions)) . '</p></div>';
+        } catch (Exception $e) {
+            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante la generazione predizioni: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
+        }
+    }
+    
+    private function executeManualAnomalyDetection(): void
+    {
+        try {
+            $predictor = $this->container->get(MLPredictor::class);
+            $anomalies = $predictor->detectAnomalies();
+            
+            echo '<div class="notice notice-success"><p>' . sprintf(__('Rilevamento anomalie completato! Trovate %d anomalie.', 'fp-performance-suite'), count($anomalies)) . '</p></div>';
+        } catch (Exception $e) {
+            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante il rilevamento anomalie: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
+        }
+    }
+    
+    private function checkCronJobs(): void
+    {
+        $next_analysis = wp_next_scheduled('fp_ps_ml_analyze_patterns');
+        $next_prediction = wp_next_scheduled('fp_ps_ml_predict_issues');
+        
+        $message = '<div class="notice notice-info"><p><strong>' . __('Stato Cron Jobs ML:', 'fp-performance-suite') . '</strong></p>';
+        $message .= '<ul>';
+        $message .= '<li>' . sprintf(__('Prossima analisi pattern: %s', 'fp-performance-suite'), 
+            $next_analysis ? date('Y-m-d H:i:s', $next_analysis) : __('Non programmata', 'fp-performance-suite')) . '</li>';
+        $message .= '<li>' . sprintf(__('Prossima predizione: %s', 'fp-performance-suite'), 
+            $next_prediction ? date('Y-m-d H:i:s', $next_prediction) : __('Non programmata', 'fp-performance-suite')) . '</li>';
+        $message .= '</ul>';
+        
+        if (!$next_analysis || !$next_prediction) {
+            $message .= '<p><strong>' . __('⚠️ Attenzione:', 'fp-performance-suite') . '</strong> ' . 
+                __('Alcuni cron job non sono programmati. Il sistema potrebbe non funzionare correttamente.', 'fp-performance-suite') . '</p>';
+            
+            // Prova a riprogrammare i cron job
+            $predictor = $this->container->get(MLPredictor::class);
+            $predictor->register(); // Questo dovrebbe riprogrammare i cron job
+            
+            $message .= '<p>' . __('Tentativo di riprogrammazione cron job eseguito.', 'fp-performance-suite') . '</p>';
+        }
+        
+        $message .= '</div>';
+        
+        echo $message;
     }
 
     private function getSettings(): array
