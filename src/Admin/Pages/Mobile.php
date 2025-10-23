@@ -444,9 +444,9 @@ class Mobile extends AbstractPage
         return get_option('fp_ps_mobile_optimizer', [
             'enabled' => false,
             'disable_animations' => false,
-            'remove_unnecessary_scripts' => true,
-            'optimize_touch_targets' => true,
-            'enable_responsive_images' => true
+            'remove_unnecessary_scripts' => false,
+            'optimize_touch_targets' => false,
+            'enable_responsive_images' => false
         ]);
     }
 }

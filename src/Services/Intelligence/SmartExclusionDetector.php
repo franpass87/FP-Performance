@@ -18,6 +18,15 @@ use FP\PerfSuite\Utils\AssetLockManager;
 class SmartExclusionDetector
 {
     /**
+     * Registra gli hook del servizio
+     */
+    public function register(): void
+    {
+        // SmartExclusionDetector non ha hook specifici da registrare
+        // È utilizzato principalmente per rilevamento on-demand
+    }
+
+    /**
      * Pattern sensibili comuni
      */
     private const SENSITIVE_URL_PATTERNS = [

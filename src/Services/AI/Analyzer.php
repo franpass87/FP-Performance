@@ -17,6 +17,15 @@ use function set_transient;
 class Analyzer
 {
     /**
+     * Registra gli hook del servizio
+     */
+    public function register(): void
+    {
+        // AI Analyzer non ha hook specifici da registrare
+        // È utilizzato principalmente per analisi on-demand
+    }
+
+    /**
      * Analizza il sito e restituisce i dati di analisi
      */
     public function analyze(): array

@@ -23,6 +23,15 @@ class Manager
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
 
+    /**
+     * Registra gli hook del servizio
+     */
+    public function register(): void
+    {
+        // PresetManager non ha hook specifici da registrare
+        // È utilizzato principalmente per gestione preset on-demand
+    }
+
     public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler)
     {
         $this->pageCache = $pageCache;

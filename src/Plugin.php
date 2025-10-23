@@ -706,9 +706,6 @@ class Plugin
         // Smart Asset Delivery
         $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
         
-        // HTTP/2 Server Push
-        $container->set(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, static fn() => new \FP\PerfSuite\Services\Assets\Http2ServerPush());
-        
         // Service Worker / PWA
         $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
         
@@ -720,9 +717,6 @@ class Plugin
         
         // Predictive Prefetching
         $container->set(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class, static fn() => new \FP\PerfSuite\Services\Assets\PredictivePrefetching());
-        
-        // Smart Asset Delivery
-        $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
         
         // Responsive Image Optimizer (Ripristinato 21 Ott 2025)
         $container->set(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer());
@@ -1019,7 +1013,7 @@ class Plugin
      */
     private static function ensureDefaultOptionsExist(): void
     {
-        // Mobile Optimization Services (v1.6.0) - DISATTIVATI di default ma inizializzati per evitare errori
+        // Mobile Optimization Services (v1.6.0) - INIZIALIZZATI ma DISABILITATI di default
         if (!get_option('fp_ps_mobile_optimizer')) {
             update_option('fp_ps_mobile_optimizer', [
                 'enabled' => false,
@@ -1030,7 +1024,7 @@ class Plugin
             ], false);
         }
         
-        // Touch Optimizer - DISATTIVATO di default ma inizializzato per evitare errori
+        // Touch Optimizer - INIZIALIZZATO ma DISABILITATO di default
         if (!get_option('fp_ps_touch_optimizer')) {
             update_option('fp_ps_touch_optimizer', [
                 'enabled' => false,
@@ -1041,7 +1035,7 @@ class Plugin
             ], false);
         }
         
-        // Responsive Images - DISATTIVATO di default ma inizializzato per evitare errori
+        // Responsive Images - INIZIALIZZATO ma DISABILITATO di default
         if (!get_option('fp_ps_responsive_images')) {
             update_option('fp_ps_responsive_images', [
                 'enabled' => false,
@@ -1052,7 +1046,7 @@ class Plugin
             ], false);
         }
         
-        // Mobile Cache Manager - DISATTIVATO di default (tutte le opzioni devono essere disattivate al primo avvio)
+        // Mobile Cache Manager - INIZIALIZZATO ma DISABILITATO di default
         if (!get_option('fp_ps_mobile_cache')) {
             update_option('fp_ps_mobile_cache', [
                 'enabled' => false,
@@ -1455,27 +1449,41 @@ class Plugin
     }
 
     /**
-     * Forza l'inizializzazione delle opzioni mobile per risolvere errori critici
+     * Forza l'inizializzazione delle opzioni mobile per risolvere il problema della pagina vuota
+     * Metodo pubblico per essere chiamato da script esterni o admin
      */
-    private static function forceMobileOptionsInitialization(): void
+    public static function forceMobileOptionsInitialization(): bool
     {
-        // Controlla se almeno una opzione mobile esiste
-        $has_mobile_options = get_option('fp_ps_mobile_optimizer') || 
-                             get_option('fp_ps_touch_optimizer') || 
-                             get_option('fp_ps_mobile_cache') || 
-                             get_option('fp_ps_responsive_images');
-        
-        // Se nessuna opzione mobile esiste, forza l'inizializzazione
-        if (!$has_mobile_options) {
-            // Log per debug
-            if (function_exists('error_log')) {
-                error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
+        try {
+            // Controlla se almeno una opzione mobile esiste
+            $has_mobile_options = get_option('fp_ps_mobile_optimizer') || 
+                                 get_option('fp_ps_touch_optimizer') || 
+                                 get_option('fp_ps_mobile_cache') || 
+                                 get_option('fp_ps_responsive_images');
+            
+            // Se nessuna opzione mobile esiste, forza l'inizializzazione
+            if (!$has_mobile_options) {
+                // Log per debug
+                if (function_exists('error_log')) {
+                    error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
+                }
+                
+                // Forza l'inizializzazione chiamando ensureDefaultOptionsExist
+                self::ensureDefaultOptionsExist();
             }
             
-            // Forza l'inizializzazione chiamando ensureDefaultOptionsExist
-            self::ensureDefaultOptionsExist();
+            // Le opzioni vengono inizializzate ma rimangono disabilitate di default
+            // L'utente può abilitarle manualmente dalla pagina admin
+            
+            return true;
+        } catch (\Exception $e) {
+            if (function_exists('error_log')) {
+                error_log('[FP Performance Suite] Errore durante inizializzazione opzioni mobile: ' . $e->getMessage());
+            }
+            return false;
         }
     }
+
 
     public static function onDeactivate(): void
     {

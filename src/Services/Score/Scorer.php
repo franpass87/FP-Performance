@@ -54,6 +54,15 @@ class Scorer
     private ?CriticalCss $criticalCss = null;
     private ?CompressionManager $compression = null;
 
+    /**
+     * Registra gli hook del servizio
+     */
+    public function register(): void
+    {
+        // Scorer non ha hook specifici da registrare
+        // È utilizzato principalmente per calcoli on-demand
+    }
+
     public function __construct(
         PageCache $pageCache,
         Headers $headers,

@@ -157,7 +157,7 @@ class Backend extends AbstractPage
                 <input type="hidden" name="form_type" value="main_toggle" />
                 
                 <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
-                    <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($backendSettings['enabled'])); ?> style="transform: scale(1.2);" />
+                    <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($allSettings['enabled'])); ?> style="transform: scale(1.2);" />
                     <span class="info">
                         <strong><?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?></strong>
                         <br>

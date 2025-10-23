@@ -169,190 +169,190 @@ class PostHandler
 
     private function handleJavaScriptForm(array &$settings): string
     {
-        $optimizer = new Optimizer();
-        $excludeJs = isset($_POST['exclude_js']) 
-            ? wp_unslash($_POST['exclude_js']) 
-            : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
-        
-        $optimizer->update([
-            'defer_js' => !empty($_POST['defer_js']),
-            'async_js' => !empty($_POST['async_js']),
-            'combine_js' => !empty($_POST['combine_js']),
-            'remove_emojis' => !empty($_POST['remove_emojis']),
-            'minify_inline_js' => !empty($_POST['minify_inline_js']),
-            'exclude_js' => $excludeJs,
-        ]);
-        
-        $settings = $optimizer->settings();
-        
-        // Redirect per evitare pagina bianca e mostrare messaggio di successo
-        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'javascript');
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'tab' => $current_tab,
-            'msg' => 'javascript_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        try {
+            $optimizer = new Optimizer();
+            $excludeJs = isset($_POST['exclude_js']) 
+                ? wp_unslash($_POST['exclude_js']) 
+                : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
+            
+            $optimizer->update([
+                'defer_js' => !empty($_POST['defer_js']),
+                'async_js' => !empty($_POST['async_js']),
+                'combine_js' => !empty($_POST['combine_js']),
+                'remove_emojis' => !empty($_POST['remove_emojis']),
+                'minify_inline_js' => !empty($_POST['minify_inline_js']),
+                'exclude_js' => $excludeJs,
+            ]);
+            
+            $settings = $optimizer->settings();
+            
+            return __('JavaScript settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - JavaScript Form Error: ' . $e->getMessage());
+            return sprintf(
+                __('Error saving JavaScript settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 
     private function handleCssForm(array &$settings): string
     {
-        $optimizer = new Optimizer();
-        $excludeCss = isset($_POST['exclude_css']) 
-            ? wp_unslash($_POST['exclude_css']) 
-            : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
-        
-        $optimizer->update([
-            'combine_css' => !empty($_POST['combine_css']),
-            'minify_inline_css' => !empty($_POST['minify_inline_css']),
-            'remove_comments' => !empty($_POST['remove_comments']),
-            'optimize_google_fonts' => !empty($_POST['optimize_google_fonts_assets']),
-            'exclude_css' => $excludeCss,
-        ]);
-        
-        // Handle Unused CSS settings
-        $unusedCssOptimizer = new UnusedCSSOptimizer();
-        $unusedCssOptimizer->updateSettings([
-            'enabled' => !empty($_POST['unusedcss_enabled']),
-            'remove_unused_css' => !empty($_POST['unusedcss_remove_unused_css']),
-            'defer_non_critical' => !empty($_POST['unusedcss_defer_non_critical']),
-        ]);
+        try {
+            $optimizer = new Optimizer();
+            $excludeCss = isset($_POST['exclude_css']) 
+                ? wp_unslash($_POST['exclude_css']) 
+                : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
+            
+            $optimizer->update([
+                'combine_css' => !empty($_POST['combine_css']),
+                'minify_inline_css' => !empty($_POST['minify_inline_css']),
+                'remove_comments' => !empty($_POST['remove_comments']),
+                'optimize_google_fonts' => !empty($_POST['optimize_google_fonts_assets']),
+                'exclude_css' => $excludeCss,
+            ]);
+            
+            // Handle Unused CSS settings
+            $unusedCssOptimizer = new UnusedCSSOptimizer();
+            $unusedCssOptimizer->updateSettings([
+                'enabled' => !empty($_POST['unusedcss_enabled']),
+                'remove_unused_css' => !empty($_POST['unusedcss_remove_unused_css']),
+                'defer_non_critical' => !empty($_POST['unusedcss_defer_non_critical']),
+            ]);
 
-        // Handle Critical CSS settings
-        $criticalCssService = new CriticalCss();
-        if (isset($_POST['critical_css'])) {
-            $result = $criticalCssService->update(wp_unslash($_POST['critical_css']));
-            if (!$result['success']) {
-                throw new \Exception($result['error'] ?? 'Errore nel salvataggio del Critical CSS');
+            // Handle Critical CSS settings
+            $criticalCssService = new CriticalCss();
+            if (isset($_POST['critical_css'])) {
+                $result = $criticalCssService->update(wp_unslash($_POST['critical_css']));
+                if (!$result['success']) {
+                    throw new \Exception($result['error'] ?? 'Errore nel salvataggio del Critical CSS');
+                }
             }
+            
+            $settings = $optimizer->settings();
+            
+            return __('CSS settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - CSS Form Error: ' . $e->getMessage());
+            return sprintf(
+                __('Error saving CSS settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
         }
-        
-        $settings = $optimizer->settings();
-        
-        // Redirect per evitare pagina bianca e mostrare messaggio di successo
-        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'css');
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'tab' => $current_tab,
-            'msg' => 'css_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
     }
 
     private function handleThirdPartyForm(array &$thirdPartySettings): string
     {
-        $thirdPartyScripts = new ThirdPartyScriptManager();
-        $thirdPartyScripts->updateSettings([
-            'enabled' => !empty($_POST['third_party_enabled']),
-            'delay_all' => !empty($_POST['third_party_delay_all']),
-            'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
-            'load_on' => sanitize_text_field($_POST['third_party_load_on'] ?? 'interaction'),
-            'scripts' => [
-                'google_analytics' => ['enabled' => !empty($_POST['third_party_ga']), 'delay' => true],
-                'facebook_pixel' => ['enabled' => !empty($_POST['third_party_fb']), 'delay' => true],
-                'google_ads' => ['enabled' => !empty($_POST['third_party_ads']), 'delay' => true],
-                'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
-                'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
-                'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
-                'linkedin_insight' => ['enabled' => !empty($_POST['third_party_linkedin']), 'delay' => true],
-                'twitter_pixel' => ['enabled' => !empty($_POST['third_party_twitter']), 'delay' => true],
-                'tiktok_pixel' => ['enabled' => !empty($_POST['third_party_tiktok']), 'delay' => true],
-                'pinterest_tag' => ['enabled' => !empty($_POST['third_party_pinterest']), 'delay' => true],
-                'hubspot' => ['enabled' => !empty($_POST['third_party_hubspot']), 'delay' => true],
-                'zendesk' => ['enabled' => !empty($_POST['third_party_zendesk']), 'delay' => true],
-                'drift' => ['enabled' => !empty($_POST['third_party_drift']), 'delay' => true],
-                'crisp' => ['enabled' => !empty($_POST['third_party_crisp']), 'delay' => true],
-                'tidio' => ['enabled' => !empty($_POST['third_party_tidio']), 'delay' => true],
-                'segment' => ['enabled' => !empty($_POST['third_party_segment']), 'delay' => true],
-                'mixpanel' => ['enabled' => !empty($_POST['third_party_mixpanel']), 'delay' => true],
-                'mailchimp' => ['enabled' => !empty($_POST['third_party_mailchimp']), 'delay' => true],
-                'stripe' => ['enabled' => !empty($_POST['third_party_stripe']), 'delay' => true],
-                'paypal' => ['enabled' => !empty($_POST['third_party_paypal']), 'delay' => true],
-                'recaptcha' => ['enabled' => !empty($_POST['third_party_recaptcha']), 'delay' => true],
-                'google_maps' => ['enabled' => !empty($_POST['third_party_gmaps']), 'delay' => true],
-                'microsoft_clarity' => ['enabled' => !empty($_POST['third_party_clarity']), 'delay' => true],
-                'vimeo' => ['enabled' => !empty($_POST['third_party_vimeo']), 'delay' => true],
-                'tawk_to' => ['enabled' => !empty($_POST['third_party_tawk']), 'delay' => true],
-                'optimizely' => ['enabled' => !empty($_POST['third_party_optimizely']), 'delay' => true],
-                'trustpilot' => ['enabled' => !empty($_POST['third_party_trustpilot']), 'delay' => true],
-                'klaviyo' => ['enabled' => !empty($_POST['third_party_klaviyo']), 'delay' => true],
-                'onetrust' => ['enabled' => !empty($_POST['third_party_onetrust']), 'delay' => true],
-                'calendly' => ['enabled' => !empty($_POST['third_party_calendly']), 'delay' => true],
-                'fullstory' => ['enabled' => !empty($_POST['third_party_fullstory']), 'delay' => true],
-                'snapchat_pixel' => ['enabled' => !empty($_POST['third_party_snapchat']), 'delay' => true],
-                'soundcloud' => ['enabled' => !empty($_POST['third_party_soundcloud']), 'delay' => true],
-                'klarna' => ['enabled' => !empty($_POST['third_party_klarna']), 'delay' => true],
-                'spotify' => ['enabled' => !empty($_POST['third_party_spotify']), 'delay' => true],
-                'livechat' => ['enabled' => !empty($_POST['third_party_livechat']), 'delay' => true],
-                'activecampaign' => ['enabled' => !empty($_POST['third_party_activecampaign']), 'delay' => true],
-                'userway' => ['enabled' => !empty($_POST['third_party_userway']), 'delay' => true],
-                'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
-            ],
-        ]);
-        
-        // Ricarica le impostazioni dopo il salvataggio
-        $thirdPartySettings = $thirdPartyScripts->settings();
-        
-        // Redirect per evitare pagina bianca e mostrare messaggio di successo
-        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'tab' => $current_tab,
-            'msg' => 'third_party_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        try {
+            $thirdPartyScripts = new ThirdPartyScriptManager();
+            $thirdPartyScripts->updateSettings([
+                'enabled' => !empty($_POST['third_party_enabled']),
+                'delay_all' => !empty($_POST['third_party_delay_all']),
+                'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
+                'load_on' => sanitize_text_field($_POST['third_party_load_on'] ?? 'interaction'),
+                'scripts' => [
+                    'google_analytics' => ['enabled' => !empty($_POST['third_party_ga']), 'delay' => true],
+                    'facebook_pixel' => ['enabled' => !empty($_POST['third_party_fb']), 'delay' => true],
+                    'google_ads' => ['enabled' => !empty($_POST['third_party_ads']), 'delay' => true],
+                    'hotjar' => ['enabled' => !empty($_POST['third_party_hotjar']), 'delay' => true],
+                    'intercom' => ['enabled' => !empty($_POST['third_party_intercom']), 'delay' => true],
+                    'youtube' => ['enabled' => !empty($_POST['third_party_youtube']), 'delay' => true],
+                    'linkedin_insight' => ['enabled' => !empty($_POST['third_party_linkedin']), 'delay' => true],
+                    'twitter_pixel' => ['enabled' => !empty($_POST['third_party_twitter']), 'delay' => true],
+                    'tiktok_pixel' => ['enabled' => !empty($_POST['third_party_tiktok']), 'delay' => true],
+                    'pinterest_tag' => ['enabled' => !empty($_POST['third_party_pinterest']), 'delay' => true],
+                    'hubspot' => ['enabled' => !empty($_POST['third_party_hubspot']), 'delay' => true],
+                    'zendesk' => ['enabled' => !empty($_POST['third_party_zendesk']), 'delay' => true],
+                    'drift' => ['enabled' => !empty($_POST['third_party_drift']), 'delay' => true],
+                    'crisp' => ['enabled' => !empty($_POST['third_party_crisp']), 'delay' => true],
+                    'tidio' => ['enabled' => !empty($_POST['third_party_tidio']), 'delay' => true],
+                    'segment' => ['enabled' => !empty($_POST['third_party_segment']), 'delay' => true],
+                    'mixpanel' => ['enabled' => !empty($_POST['third_party_mixpanel']), 'delay' => true],
+                    'mailchimp' => ['enabled' => !empty($_POST['third_party_mailchimp']), 'delay' => true],
+                    'stripe' => ['enabled' => !empty($_POST['third_party_stripe']), 'delay' => true],
+                    'paypal' => ['enabled' => !empty($_POST['third_party_paypal']), 'delay' => true],
+                    'recaptcha' => ['enabled' => !empty($_POST['third_party_recaptcha']), 'delay' => true],
+                    'google_maps' => ['enabled' => !empty($_POST['third_party_gmaps']), 'delay' => true],
+                    'microsoft_clarity' => ['enabled' => !empty($_POST['third_party_clarity']), 'delay' => true],
+                    'vimeo' => ['enabled' => !empty($_POST['third_party_vimeo']), 'delay' => true],
+                    'tawk_to' => ['enabled' => !empty($_POST['third_party_tawk']), 'delay' => true],
+                    'optimizely' => ['enabled' => !empty($_POST['third_party_optimizely']), 'delay' => true],
+                    'trustpilot' => ['enabled' => !empty($_POST['third_party_trustpilot']), 'delay' => true],
+                    'klaviyo' => ['enabled' => !empty($_POST['third_party_klaviyo']), 'delay' => true],
+                    'onetrust' => ['enabled' => !empty($_POST['third_party_onetrust']), 'delay' => true],
+                    'calendly' => ['enabled' => !empty($_POST['third_party_calendly']), 'delay' => true],
+                    'fullstory' => ['enabled' => !empty($_POST['third_party_fullstory']), 'delay' => true],
+                    'snapchat_pixel' => ['enabled' => !empty($_POST['third_party_snapchat']), 'delay' => true],
+                    'soundcloud' => ['enabled' => !empty($_POST['third_party_soundcloud']), 'delay' => true],
+                    'klarna' => ['enabled' => !empty($_POST['third_party_klarna']), 'delay' => true],
+                    'spotify' => ['enabled' => !empty($_POST['third_party_spotify']), 'delay' => true],
+                    'livechat' => ['enabled' => !empty($_POST['third_party_livechat']), 'delay' => true],
+                    'activecampaign' => ['enabled' => !empty($_POST['third_party_activecampaign']), 'delay' => true],
+                    'userway' => ['enabled' => !empty($_POST['third_party_userway']), 'delay' => true],
+                    'typeform' => ['enabled' => !empty($_POST['third_party_typeform']), 'delay' => true],
+                ],
+            ]);
+            
+            // Ricarica le impostazioni dopo il salvataggio
+            $thirdPartySettings = $thirdPartyScripts->settings();
+            
+            return __('Third-Party Script settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - Third Party Form Error: ' . $e->getMessage());
+            return sprintf(
+                __('Error saving Third-Party settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 
     private function handleHttp2PushForm(): string
     {
-        $http2Push = new Http2ServerPush();
-        $http2Push->updateSettings([
-            'enabled' => !empty($_POST['http2_push_enabled']),
-            'push_critical_css' => !empty($_POST['http2_push_css']),
-            'push_critical_js' => !empty($_POST['http2_push_js']),
-            'push_fonts' => !empty($_POST['http2_push_fonts']),
-            'max_push_assets' => (int) ($_POST['http2_max_resources'] ?? 10),
-        ]);
-        
-        // Redirect per evitare pagina bianca e mostrare messaggio di successo
-        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'tab' => $current_tab,
-            'msg' => 'http2_push_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        try {
+            $http2Push = new Http2ServerPush();
+            $http2Push->updateSettings([
+                'enabled' => !empty($_POST['http2_push_enabled']),
+                'push_critical_css' => !empty($_POST['http2_push_css']),
+                'push_critical_js' => !empty($_POST['http2_push_js']),
+                'push_fonts' => !empty($_POST['http2_push_fonts']),
+                'max_push_assets' => (int) ($_POST['http2_max_resources'] ?? 10),
+            ]);
+            
+            return __('HTTP/2 Server Push settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - HTTP/2 Push Form Error: ' . $e->getMessage());
+            return sprintf(
+                __('Error saving HTTP/2 Push settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 
     private function handleSmartDeliveryForm(): string
     {
-        $smartDelivery = new SmartAssetDelivery();
-        $smartDelivery->updateSettings([
-            'enabled' => !empty($_POST['smart_delivery_enabled']),
-            'adapt_images' => !empty($_POST['smart_adaptive_images']),
-            'adapt_videos' => !empty($_POST['smart_adaptive_videos']),
-            'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
-            'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
-        ]);
-        
-        // Redirect per evitare pagina bianca e mostrare messaggio di successo
-        $current_tab = sanitize_text_field($_POST['current_tab'] ?? 'thirdparty');
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'tab' => $current_tab,
-            'msg' => 'smart_delivery_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        try {
+            $smartDelivery = new SmartAssetDelivery();
+            $smartDelivery->updateSettings([
+                'enabled' => !empty($_POST['smart_delivery_enabled']),
+                'adapt_images' => !empty($_POST['smart_adaptive_images']),
+                'adapt_videos' => !empty($_POST['smart_adaptive_videos']),
+                'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
+                'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
+            ]);
+            
+            return __('Smart Asset Delivery settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - Smart Delivery Form Error: ' . $e->getMessage());
+            return sprintf(
+                __('Error saving Smart Delivery settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 
     private function handleUnusedCssForm(): string
@@ -459,27 +459,33 @@ class PostHandler
 
     private function handleMainToggleForm(array &$settings): string
     {
-        $optimizer = new Optimizer();
-        
-        // Get current settings
-        $currentSettings = $optimizer->settings();
-        
-        // Update the main enabled flag
-        $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
-        
-        // Save the updated settings
-        $optimizer->update($currentSettings);
-        
-        // Update the settings array for the view
-        $settings = $optimizer->settings();
-        
-        // Redirect to avoid page refresh issues
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-assets',
-            'msg' => 'main_toggle_saved'
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        try {
+            $optimizer = new Optimizer();
+            
+            // Get current settings
+            $currentSettings = $optimizer->settings();
+            
+            // Update the main enabled flag
+            $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
+            
+            // Save the updated settings
+            $optimizer->update($currentSettings);
+            
+            // Update the settings array for the view
+            $settings = $optimizer->settings();
+            
+            // Return success message instead of redirect to avoid page issues
+            return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
+            
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            error_log('FP Performance Suite - Main Toggle Error: ' . $e->getMessage());
+            
+            // Return error message instead of redirect
+            return sprintf(
+                __('Error saving settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
+        }
     }
 }
