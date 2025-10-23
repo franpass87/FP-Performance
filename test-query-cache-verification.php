@@ -136,8 +136,8 @@ $reset_stats = [
 ];
 update_option($stats_key, $reset_stats);
 
-$reset_verification = get_option($stats_key);
-$reset_success = $reset_verification['hits'] === 0 && $reset_verification['misses'] === 0;
+$reset_verification = get_option($stats_key, []);
+$reset_success = ($reset_verification['hits'] ?? 0) === 0 && ($reset_verification['misses'] ?? 0) === 0;
 echo "Reset statistiche: " . ($reset_success ? '✓' : '✗') . "\n";
 
 echo "\n=== VERIFICA COMPLETATA ===\n";
