@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Compatibility;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\HookManager;
 
 /**
  * Compatibility Filters
@@ -34,10 +35,10 @@ class CompatibilityFilters
         }
         
         // Filtri generali
-        add_filter('fp_ps_defer_js_exclusions', [$this, 'addDeferExclusions']);
-        add_filter('fp_ps_minify_html_exclusions', [$this, 'addMinifyExclusions']);
-        add_filter('fp_ps_cache_exclusions', [$this, 'addCacheExclusions']);
-        add_filter('fp_ps_critical_assets', [$this, 'addCriticalAssets']);
+        HookManager::addFilterOnce('fp_ps_defer_js_exclusions', [$this, 'addDeferExclusions']);
+        HookManager::addFilterOnce('fp_ps_minify_html_exclusions', [$this, 'addMinifyExclusions']);
+        HookManager::addFilterOnce('fp_ps_cache_exclusions', [$this, 'addCacheExclusions']);
+        HookManager::addFilterOnce('fp_ps_critical_assets', [$this, 'addCriticalAssets']);
 
         // Filtri specifici per tema
         $this->registerThemeSpecificFilters();

@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Services\Compatibility;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\HookManager;
 
 /**
  * Theme Compatibility Manager
@@ -37,14 +38,14 @@ class ThemeCompatibility
         }
         
         // Applica fix specifici per tema
-        add_action('init', [$this, 'applyThemeFixes'], 5);
+        HookManager::addActionOnce('init', [$this, 'applyThemeFixes'], 5);
         
         // Applica fix per page builder
-        add_action('init', [$this, 'applyPageBuilderFixes'], 5);
+        HookManager::addActionOnce('init', [$this, 'applyPageBuilderFixes'], 5);
 
         // Compatibilità WooCommerce
         if ($this->detector->hasWooCommerce()) {
-            add_action('init', [$this, 'applyWooCommerceFixes'], 5);
+            HookManager::addActionOnce('init', [$this, 'applyWooCommerceFixes'], 5);
         }
 
         // Hook per disabilitare ottimizzazioni su editor

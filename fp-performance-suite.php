@@ -132,12 +132,14 @@ register_deactivation_hook(__FILE__, static function () {
 });
 
 if (function_exists('add_action')) {
-    // Flag per prevenire inizializzazioni multiple
-    static $plugin_initialized = false;
+    // Usa una costante globale per prevenire inizializzazioni multiple
+    if (!defined('FP_PERF_SUITE_INITIALIZED')) {
+        define('FP_PERF_SUITE_INITIALIZED', false);
+    }
     
-    add_action('plugins_loaded', static function () use (&$plugin_initialized) {
-        // Prevenire inizializzazioni multiple
-        if ($plugin_initialized) {
+    add_action('plugins_loaded', static function () {
+        // Prevenire inizializzazioni multiple usando la costante
+        if (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED) {
             return;
         }
         
@@ -201,16 +203,19 @@ if (function_exists('add_action')) {
             );
             
             // Riprova dopo che WordPress è completamente caricato
-            add_action('wp_loaded', static function () use (&$plugin_initialized) {
+            add_action('wp_loaded', static function () {
                 // Prevenire inizializzazioni multiple anche qui
-                if ($plugin_initialized) {
+                if (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED) {
                     return;
                 }
                 
                 if (fp_perf_suite_is_db_available()) {
                     try {
                         \FP\PerfSuite\Plugin::init();
-                        $plugin_initialized = true;
+                        // Marca come inizializzato
+                        if (!defined('FP_PERF_SUITE_INITIALIZED')) {
+                            define('FP_PERF_SUITE_INITIALIZED', true);
+                        }
                     } catch (\Throwable $e) {
                         fp_perf_suite_safe_log(
                             'Plugin initialization failed: ' . $e->getMessage(),
@@ -231,7 +236,10 @@ if (function_exists('add_action')) {
         // Database disponibile, inizializza normalmente
         try {
             \FP\PerfSuite\Plugin::init();
-            $plugin_initialized = true;
+            // Marca come inizializzato usando una costante globale
+            if (!defined('FP_PERF_SUITE_INITIALIZED')) {
+                define('FP_PERF_SUITE_INITIALIZED', true);
+            }
         } catch (\Throwable $e) {
             fp_perf_suite_safe_log(
                 'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),

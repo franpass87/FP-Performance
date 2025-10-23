@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\HookManager;
 
 /**
  * Third Party Script Detector
@@ -129,9 +130,9 @@ class ThirdPartyScriptDetector
      */
     public function register(): void
     {
-        // Scan automatico
-        add_action('wp_footer', [$this, 'detectScripts'], PHP_INT_MAX);
-        add_action('admin_footer', [$this, 'detectScripts'], PHP_INT_MAX);
+        // Scan automatico - usa HookManager per prevenire doppia registrazione
+        HookManager::addActionOnce('wp_footer', [$this, 'detectScripts'], PHP_INT_MAX);
+        HookManager::addActionOnce('admin_footer', [$this, 'detectScripts'], PHP_INT_MAX);
 
         Logger::debug('Third Party Script Detector registered');
     }

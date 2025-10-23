@@ -59,13 +59,18 @@ class Plugin
 
     public static function init(): void
     {
-        // Prevenire inizializzazioni multiple con doppio controllo
-        if (self::$initialized || self::$container instanceof ServiceContainer) {
+        // Prevenire inizializzazioni multiple con triplo controllo
+        if (self::$initialized || self::$container instanceof ServiceContainer || (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED)) {
             return;
         }
         
         // Marca come inizializzato immediatamente per prevenire race conditions
         self::$initialized = true;
+        
+        // Marca anche la costante globale
+        if (!defined('FP_PERF_SUITE_INITIALIZED')) {
+            define('FP_PERF_SUITE_INITIALIZED', true);
+        }
         
         // Aumenta temporaneamente i limiti per l'inizializzazione
         $original_memory_limit = ini_get('memory_limit');
