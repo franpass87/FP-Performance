@@ -132,14 +132,16 @@ register_deactivation_hook(__FILE__, static function () {
 });
 
 if (function_exists('add_action')) {
-    // Usa una costante globale per prevenire inizializzazioni multiple
-    if (!defined('FP_PERF_SUITE_INITIALIZED')) {
-        define('FP_PERF_SUITE_INITIALIZED', false);
+    // Usa una variabile globale per prevenire inizializzazioni multiple
+    global $fp_perf_suite_initialized;
+    if (!isset($fp_perf_suite_initialized)) {
+        $fp_perf_suite_initialized = false;
     }
     
     add_action('plugins_loaded', static function () {
-        // Prevenire inizializzazioni multiple usando la costante
-        if (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED) {
+        global $fp_perf_suite_initialized;
+        // Prevenire inizializzazioni multiple usando la variabile globale
+        if ($fp_perf_suite_initialized) {
             return;
         }
         
@@ -204,8 +206,9 @@ if (function_exists('add_action')) {
             
             // Riprova dopo che WordPress è completamente caricato
             add_action('wp_loaded', static function () {
+                global $fp_perf_suite_initialized;
                 // Prevenire inizializzazioni multiple anche qui
-                if (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED) {
+                if ($fp_perf_suite_initialized) {
                     return;
                 }
                 
@@ -213,9 +216,7 @@ if (function_exists('add_action')) {
                     try {
                         \FP\PerfSuite\Plugin::init();
                         // Marca come inizializzato
-                        if (!defined('FP_PERF_SUITE_INITIALIZED')) {
-                            define('FP_PERF_SUITE_INITIALIZED', true);
-                        }
+                        $fp_perf_suite_initialized = true;
                     } catch (\Throwable $e) {
                         fp_perf_suite_safe_log(
                             'Plugin initialization failed: ' . $e->getMessage(),
@@ -236,10 +237,8 @@ if (function_exists('add_action')) {
         // Database disponibile, inizializza normalmente
         try {
             \FP\PerfSuite\Plugin::init();
-            // Marca come inizializzato usando una costante globale
-            if (!defined('FP_PERF_SUITE_INITIALIZED')) {
-                define('FP_PERF_SUITE_INITIALIZED', true);
-            }
+            // Marca come inizializzato usando la variabile globale
+            $fp_perf_suite_initialized = true;
         } catch (\Throwable $e) {
             fp_perf_suite_safe_log(
                 'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),

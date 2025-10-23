@@ -56,21 +56,22 @@ class Plugin
 {
     private static ?ServiceContainer $container = null;
     private static bool $initialized = false;
+    private static array $registeredServices = [];
 
     public static function init(): void
     {
+        global $fp_perf_suite_initialized;
+        
         // Prevenire inizializzazioni multiple con triplo controllo
-        if (self::$initialized || self::$container instanceof ServiceContainer || (defined('FP_PERF_SUITE_INITIALIZED') && FP_PERF_SUITE_INITIALIZED)) {
+        if (self::$initialized || self::$container instanceof ServiceContainer || $fp_perf_suite_initialized) {
             return;
         }
         
         // Marca come inizializzato immediatamente per prevenire race conditions
         self::$initialized = true;
         
-        // Marca anche la costante globale
-        if (!defined('FP_PERF_SUITE_INITIALIZED')) {
-            define('FP_PERF_SUITE_INITIALIZED', true);
-        }
+        // Marca anche la variabile globale
+        $fp_perf_suite_initialized = true;
         
         // Aumenta temporaneamente i limiti per l'inizializzazione
         $original_memory_limit = ini_get('memory_limit');
@@ -126,8 +127,12 @@ class Plugin
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
             // Core services (sempre attivi)
-            $container->get(PageCache::class)->register();
-            $container->get(Headers::class)->register();
+            self::registerServiceOnce(PageCache::class, function() use ($container) {
+                $container->get(PageCache::class)->register();
+            });
+            self::registerServiceOnce(Headers::class, function() use ($container) {
+                $container->get(Headers::class)->register();
+            });
             
             // Optimizer e WebP solo se abilitati nelle opzioni
             $assetSettings = get_option('fp_ps_assets', []);
@@ -148,8 +153,12 @@ class Plugin
             }
             
             // Theme Compatibility (essenziale per funzionamento)
-            $container->get(ThemeCompatibility::class)->register();
-            $container->get(CompatibilityFilters::class)->register();
+            self::registerServiceOnce(ThemeCompatibility::class, function() use ($container) {
+                $container->get(ThemeCompatibility::class)->register();
+            });
+            self::registerServiceOnce(CompatibilityFilters::class, function() use ($container) {
+                $container->get(CompatibilityFilters::class)->register();
+            });
             
             // Ottimizzatori Assets Avanzati (Ripristinato 21 Ott 2025 - FASE 2)
             // Registrati solo se le loro opzioni sono abilitate
@@ -176,30 +185,40 @@ class Plugin
             }
             
             // Third-Party Script Detector (AI Auto-detect) - Sempre attivo per rilevare nuovi script
-            $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
+            });
             
             // Mobile Optimization Services (v1.6.0)
             $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
             if (!empty($mobileSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class)->register();
+                });
             }
             
             // Touch Optimizer
             $touchSettings = get_option('fp_ps_touch_optimizer', []);
             if (!empty($touchSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class)->register();
+                });
             }
             
             // Mobile Cache Manager
             $mobileCacheSettings = get_option('fp_ps_mobile_cache', []);
             if (!empty($mobileCacheSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class)->register();
+                });
             }
             
             // Responsive Image Manager
             $responsiveSettings = get_option('fp_ps_responsive_images', []);
             if (!empty($responsiveSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class)->register();
+                });
             }
             
             // Machine Learning Services (v1.6.0)
@@ -772,6 +791,33 @@ class Plugin
     public static function isInitialized(): bool
     {
         return self::$initialized && self::$container instanceof ServiceContainer;
+    }
+    
+    /**
+     * Registra un servizio solo se non è già stato registrato
+     */
+    public static function registerServiceOnce(string $serviceClass, callable $registerCallback): bool
+    {
+        if (isset(self::$registeredServices[$serviceClass])) {
+            return false; // Già registrato
+        }
+        
+        try {
+            $registerCallback();
+            self::$registeredServices[$serviceClass] = true;
+            return true;
+        } catch (\Throwable $e) {
+            Logger::error('Failed to register service: ' . $serviceClass, ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+    
+    /**
+     * Verifica se un servizio è già stato registrato
+     */
+    public static function isServiceRegistered(string $serviceClass): bool
+    {
+        return isset(self::$registeredServices[$serviceClass]);
     }
 
     public static function onActivate(): void
