@@ -135,13 +135,20 @@ class Plugin
             // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
-            // Core services (sempre attivi)
-            self::registerServiceOnce(PageCache::class, function() use ($container) {
-                $container->get(PageCache::class)->register();
-            });
-            self::registerServiceOnce(Headers::class, function() use ($container) {
-                $container->get(Headers::class)->register();
-            });
+            // Core services - Solo se abilitati esplicitamente
+            $pageCacheSettings = get_option('fp_ps_page_cache', []);
+            if (!empty($pageCacheSettings['enabled'])) {
+                self::registerServiceOnce(PageCache::class, function() use ($container) {
+                    $container->get(PageCache::class)->register();
+                });
+            }
+            
+            $headersSettings = get_option('fp_ps_browser_cache', []);
+            if (!empty($headersSettings['enabled'])) {
+                self::registerServiceOnce(Headers::class, function() use ($container) {
+                    $container->get(Headers::class)->register();
+                });
+            }
             
             // Optimizer e WebP solo se abilitati nelle opzioni
             $assetSettings = get_option('fp_ps_assets', []);
@@ -169,13 +176,15 @@ class Plugin
                 });
             }
             
-            // Theme Compatibility (essenziale per funzionamento)
-            self::registerServiceOnce(ThemeCompatibility::class, function() use ($container) {
-                $container->get(ThemeCompatibility::class)->register();
-            });
-            self::registerServiceOnce(CompatibilityFilters::class, function() use ($container) {
-                $container->get(CompatibilityFilters::class)->register();
-            });
+            // Theme Compatibility - Solo se abilitato esplicitamente
+            if (get_option('fp_ps_compatibility_enabled', false)) {
+                self::registerServiceOnce(ThemeCompatibility::class, function() use ($container) {
+                    $container->get(ThemeCompatibility::class)->register();
+                });
+                self::registerServiceOnce(CompatibilityFilters::class, function() use ($container) {
+                    $container->get(CompatibilityFilters::class)->register();
+                });
+            }
             
             // Ottimizzatori Assets Avanzati (Ripristinato 21 Ott 2025 - FASE 2)
             // Registrati solo se le loro opzioni sono abilitate
@@ -211,10 +220,12 @@ class Plugin
                 });
             }
             
-            // Third-Party Script Detector (AI Auto-detect) - Sempre attivo per rilevare nuovi script
-            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
-            });
+            // Third-Party Script Detector - Solo se abilitato esplicitamente
+            if (get_option('fp_ps_third_party_detector_enabled', false)) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
+                });
+            }
             
             // Mobile Optimization Services (v1.6.0) - SEMPRE protetti
             $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
@@ -341,15 +352,19 @@ class Plugin
                 });
             }
             
-            // Scoring Services - FIX CRITICO (sempre attivo per calcolo score)
-            self::registerServiceOnce(Scorer::class, function() use ($container) {
-                $container->get(Scorer::class)->register();
-            });
+            // Scoring Services - Solo se abilitato esplicitamente
+            if (get_option('fp_ps_scoring_enabled', false)) {
+                self::registerServiceOnce(Scorer::class, function() use ($container) {
+                    $container->get(Scorer::class)->register();
+                });
+            }
             
-            // Preset Services - FIX CRITICO (sempre attivo per gestione preset)
-            self::registerServiceOnce(PresetManager::class, function() use ($container) {
-                $container->get(PresetManager::class)->register();
-            });
+            // Preset Services - Solo se abilitato esplicitamente
+            if (get_option('fp_ps_presets_enabled', false)) {
+                self::registerServiceOnce(PresetManager::class, function() use ($container) {
+                    $container->get(PresetManager::class)->register();
+                });
+            }
             
             // AI Services - FIX CRITICO
             if (get_option('fp_ps_ai_enabled', false)) {
@@ -358,13 +373,15 @@ class Plugin
                 });
             }
             
-            // Intelligence Services - FIX CRITICO (sempre attivi per rilevamento automatico)
-            self::registerServiceOnce(SmartExclusionDetector::class, function() use ($container) {
-                $container->get(SmartExclusionDetector::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
-            });
+            // Intelligence Services - Solo se abilitati esplicitamente
+            if (get_option('fp_ps_intelligence_enabled', false)) {
+                self::registerServiceOnce(SmartExclusionDetector::class, function() use ($container) {
+                    $container->get(SmartExclusionDetector::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
+                });
+            }
             
             // PWA Services - FIX CRITICO
             if (get_option('fp_ps_pwa_enabled', false)) {
@@ -1250,6 +1267,45 @@ class Plugin
         // Reports Services - DISATTIVATI di default
         if (!get_option('fp_ps_reports_enabled')) {
             update_option('fp_ps_reports_enabled', false, false);
+        }
+        
+        // Core Services - DISATTIVATI di default
+        if (!get_option('fp_ps_page_cache')) {
+            update_option('fp_ps_page_cache', [
+                'enabled' => false,
+                'ttl' => 3600
+            ], false);
+        }
+        
+        if (!get_option('fp_ps_browser_cache')) {
+            update_option('fp_ps_browser_cache', [
+                'enabled' => false
+            ], false);
+        }
+        
+        // Third-Party Script Detector - DISATTIVATO di default
+        if (!get_option('fp_ps_third_party_detector_enabled')) {
+            update_option('fp_ps_third_party_detector_enabled', false, false);
+        }
+        
+        // Scoring Services - DISATTIVATI di default
+        if (!get_option('fp_ps_scoring_enabled')) {
+            update_option('fp_ps_scoring_enabled', false, false);
+        }
+        
+        // Preset Services - DISATTIVATI di default
+        if (!get_option('fp_ps_presets_enabled')) {
+            update_option('fp_ps_presets_enabled', false, false);
+        }
+        
+        // Intelligence Services - DISATTIVATI di default
+        if (!get_option('fp_ps_intelligence_enabled')) {
+            update_option('fp_ps_intelligence_enabled', false, false);
+        }
+        
+        // Compatibility Services - DISATTIVATI di default
+        if (!get_option('fp_ps_compatibility_enabled')) {
+            update_option('fp_ps_compatibility_enabled', false, false);
         }
         
         // AI Services - DISATTIVATI di default

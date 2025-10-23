@@ -14,42 +14,42 @@ La pagina admin **FP Performance > Mobile** risultava vuota perché le opzioni d
 
 ### 1. Modifiche al File `src/Plugin.php`
 
-Ho modificato il metodo `ensureDefaultOptionsExist()` per abilitare le opzioni mobile di default:
+Ho modificato il metodo `ensureDefaultOptionsExist()` per inizializzare le opzioni mobile (ma rimangono disabilitate di default):
 
 #### A. Mobile Optimizer
 ```php
 // PRIMA (causava pagina vuota)
-'enabled' => false,
+// Opzioni non esistevano nel database
 
 // DOPO (risolve il problema)
-'enabled' => true,
+'enabled' => false, // UNCHECKED di default (sicuro)
 ```
 
 #### B. Touch Optimizer
 ```php
 // PRIMA (causava pagina vuota)
-'enabled' => false,
+// Opzioni non esistevano nel database
 
 // DOPO (risolve il problema)
-'enabled' => true,
+'enabled' => false, // UNCHECKED di default (sicuro)
 ```
 
 #### C. Responsive Images
 ```php
 // PRIMA (causava pagina vuota)
-'enabled' => false,
+// Opzioni non esistevano nel database
 
 // DOPO (risolve il problema)
-'enabled' => true,
+'enabled' => false, // UNCHECKED di default (sicuro)
 ```
 
 #### D. Mobile Cache Manager
 ```php
 // PRIMA (causava pagina vuota)
-'enabled' => false,
+// Opzioni non esistevano nel database
 
 // DOPO (risolve il problema)
-'enabled' => true,
+'enabled' => false, // UNCHECKED di default (sicuro)
 ```
 
 ### 2. Nuovo Metodo Pubblico
@@ -91,15 +91,15 @@ La pagina `FP Performance > Mobile` mostrerà tutte le sezioni:
 - **Impostazioni Touch Optimization**
 - **Impostazioni Responsive Images**
 
-### 2. Servizi Attivi
-I servizi mobile saranno caricati e funzionanti:
-- `MobileOptimizer` - Ottimizzazioni generali mobile
-- `TouchOptimizer` - Ottimizzazioni touch
-- `MobileCacheManager` - Cache mobile
-- `ResponsiveImageManager` - Immagini responsive
+### 2. Opzioni UNCHECKED di Default
+Le opzioni mobile saranno inizializzate ma disabilitate per sicurezza:
+- `MobileOptimizer` - Disponibile ma disabilitato
+- `TouchOptimizer` - Disponibile ma disabilitato
+- `MobileCacheManager` - Disponibile ma disabilitato
+- `ResponsiveImageManager` - Disponibile ma disabilitato
 
-### 3. Funzionalità Complete
-Tutte le funzionalità mobile saranno disponibili e configurabili.
+### 3. Controllo Utente
+L'utente può abilitare manualmente le funzionalità che desidera utilizzare.
 
 ## 🚀 Come Applicare la Soluzione
 
@@ -130,14 +130,14 @@ php fix-mobile-page-empty.php
 - **Sicurezza**: Nessun rischio (solo creazione/abilitazione opzioni)
 - **Funzionalità**: Risolve completamente il problema "pagina mobile vuota"
 
-## 🎯 Opzioni Mobile Abilitate di Default
+## 🎯 Opzioni Mobile Inizializzate di Default
 
 | Opzione | Valore Default | Descrizione |
 |---------|----------------|-------------|
-| `fp_ps_mobile_optimizer` | `enabled: true` | Servizio principale mobile |
-| `fp_ps_touch_optimizer` | `enabled: true` | Ottimizzazioni touch |
-| `fp_ps_responsive_images` | `enabled: true` | Gestione immagini responsive |
-| `fp_ps_mobile_cache` | `enabled: true` | Cache specifica mobile |
+| `fp_ps_mobile_optimizer` | `enabled: false` | Servizio principale mobile (UNCHECKED) |
+| `fp_ps_touch_optimizer` | `enabled: false` | Ottimizzazioni touch (UNCHECKED) |
+| `fp_ps_responsive_images` | `enabled: false` | Gestione immagini responsive (UNCHECKED) |
+| `fp_ps_mobile_cache` | `enabled: false` | Cache specifica mobile (UNCHECKED) |
 
 ## ✅ Status
 

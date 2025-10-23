@@ -75,8 +75,7 @@ class PostHandler
                 $smartDetector = new SmartExclusionDetector();
                 $result = $smartDetector->autoDetectExcludeJs();
                 set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-                wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('JavaScript exclusions detected successfully!', 'fp-performance-suite');
             }
 
             if (isset($_POST['auto_detect_exclude_css'])) {
@@ -84,8 +83,7 @@ class PostHandler
                 $smartDetector = new SmartExclusionDetector();
                 $result = $smartDetector->autoDetectExcludeCss();
                 set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-                wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('CSS exclusions detected successfully!', 'fp-performance-suite');
             }
 
             if (isset($_POST['apply_js_exclusions'])) {
@@ -93,8 +91,7 @@ class PostHandler
                 $smartDetector = new SmartExclusionDetector();
                 $result = $smartDetector->detectExcludeJs();
                 set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-                wp_safe_redirect(add_query_arg(['msg' => 'js_excluded'], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('JavaScript exclusions applied successfully!', 'fp-performance-suite');
             }
 
             if (isset($_POST['apply_css_exclusions'])) {
@@ -102,16 +99,15 @@ class PostHandler
                 $smartDetector = new SmartExclusionDetector();
                 $result = $smartDetector->detectExcludeCss();
                 set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-                wp_safe_redirect(add_query_arg(['msg' => 'css_excluded'], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('CSS exclusions applied successfully!', 'fp-performance-suite');
             }
 
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $optimizer = new Optimizer();
                 $assetsDetector = new CriticalAssetsDetector();
                 $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
-                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
-                exit;
+                $count = $result['applied'] ?? 0;
+                $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $count);
             }
 
             // Handle form submissions

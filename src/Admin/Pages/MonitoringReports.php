@@ -22,7 +22,6 @@ use function wp_nonce_field;
 use function wp_verify_nonce;
 use function wp_unslash;
 use function current_user_can;
-use function wp_safe_redirect;
 use function admin_url;
 use function add_query_arg;
 use function is_array;
@@ -81,16 +80,25 @@ class MonitoringReports extends AbstractPage
 
     protected function content(): string
     {
-        // Check for success message
-        $success_message = '';
-        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
-            $success_message = __('Impostazioni monitoraggio salvate con successo!', 'fp-performance-suite');
+        // Handle form submission
+        $message = '';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_wpnonce'])) {
+            $message = $this->handleSave();
         }
 
-        // Check for error message
-        $error_message = '';
+        // Check for messages from URL (from admin_post handlers)
+        if (isset($_GET['message'])) {
+            $message = urldecode($_GET['message']);
+        }
+        
+        // Check for legacy success message from URL
+        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+            $message = __('Impostazioni monitoraggio salvate con successo!', 'fp-performance-suite');
+        }
+
+        // Check for legacy error message from URL
         if (isset($_GET['error']) && $_GET['error'] === '1') {
-            $error_message = isset($_GET['message']) 
+            $message = isset($_GET['message']) 
                 ? urldecode($_GET['message']) 
                 : __('Si è verificato un errore durante il salvataggio.', 'fp-performance-suite');
         }
@@ -98,12 +106,14 @@ class MonitoringReports extends AbstractPage
         ob_start();
         ?>
         
-        <?php if ($success_message) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($success_message); ?></p></div>
-        <?php endif; ?>
-        
-        <?php if ($error_message) : ?>
-            <div class="notice notice-error is-dismissible"><p><?php echo esc_html($error_message); ?></p></div>
+        <?php if ($message) : ?>
+            <?php 
+            $is_error = strpos($message, 'Error') === 0 || strpos($message, 'Errore') === 0;
+            $notice_class = $is_error ? 'notice-error' : 'notice-success';
+            ?>
+            <div class="notice <?php echo esc_attr($notice_class); ?> is-dismissible">
+                <p><?php echo esc_html($message); ?></p>
+            </div>
         <?php endif; ?>
         
         <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
@@ -765,18 +775,16 @@ class MonitoringReports extends AbstractPage
     /**
      * Handle form submission
      */
-    public function handleSave(): void
+    public function handleSave(): string
     {
         // Verifica permessi utente
         if (!current_user_can($this->capability())) {
-            $this->redirectWithError(__('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite'));
-            return;
+            return __('Permesso negato. Non hai i permessi necessari per salvare queste impostazioni.', 'fp-performance-suite');
         }
 
         // Verifica nonce di sicurezza
         if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'fp_ps_monitoring')) {
-            $this->redirectWithError(__('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite'));
-            return;
+            return __('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite');
         }
 
         try {
@@ -795,10 +803,7 @@ class MonitoringReports extends AbstractPage
             // Save Performance Budget settings
             $this->savePerformanceBudgetSettings();
 
-            // Redirect con successo
-            $redirect_url = add_query_arg('updated', '1', admin_url('admin.php?page=' . $this->slug()));
-            wp_safe_redirect($redirect_url);
-            exit;
+            return __('Monitoring & Reports settings saved successfully!', 'fp-performance-suite');
 
         } catch (\Throwable $e) {
             // Log dell'errore
@@ -809,23 +814,13 @@ class MonitoringReports extends AbstractPage
                 $e->getLine()
             ));
             
-            // Redirect con errore
-            $this->redirectWithError($e->getMessage());
+            return sprintf(
+                __('Error saving Monitoring & Reports settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
         }
     }
 
-    /**
-     * Redirect con messaggio di errore
-     */
-    private function redirectWithError(string $message): void
-    {
-        $redirect_url = add_query_arg(
-            ['error' => '1', 'message' => urlencode($message)],
-            admin_url('admin.php?page=' . $this->slug())
-        );
-        wp_safe_redirect($redirect_url);
-        exit;
-    }
 
     /**
      * Salva le impostazioni di monitoring

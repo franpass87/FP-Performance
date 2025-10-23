@@ -342,7 +342,16 @@ class Menu
     public function handleCompressionSave(): void
     {
         $compressionPage = new Compression($this->container);
-        $compressionPage->handleSave();
+        $message = $compressionPage->handleSave();
+        
+        // Redirect with message
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-compression',
+            'message' => urlencode($message)
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     /**
@@ -360,7 +369,16 @@ class Menu
     public function handleCdnSave(): void
     {
         $cdnPage = new Cdn($this->container);
-        $cdnPage->handleSave();
+        $message = $cdnPage->handleSave();
+        
+        // Redirect with message
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-cdn',
+            'message' => urlencode($message)
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
     /**
@@ -369,7 +387,16 @@ class Menu
     public function handleMonitoringSave(): void
     {
         $monitoringPage = new MonitoringReports($this->container);
-        $monitoringPage->handleSave();
+        $message = $monitoringPage->handleSave();
+        
+        // Redirect with message
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-monitoring',
+            'message' => urlencode($message)
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 
 

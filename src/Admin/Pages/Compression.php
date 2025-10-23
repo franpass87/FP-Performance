@@ -56,8 +56,19 @@ class Compression extends AbstractPage
         $status = $compression->status();
         $info = $compression->getInfo();
 
-        // Check for success/error messages
-        $message = '';
+        // Handle form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fp_ps_nonce'])) {
+            $message = $this->handleSave();
+        } else {
+            $message = '';
+        }
+
+        // Check for messages from URL (from admin_post handlers)
+        if (isset($_GET['message'])) {
+            $message = urldecode($_GET['message']);
+        }
+        
+        // Check for legacy success/error messages from URL
         if (isset($_GET['updated']) && $_GET['updated'] === '1') {
             $message = __('Compression settings saved.', 'fp-performance-suite');
         }
@@ -67,6 +78,16 @@ class Compression extends AbstractPage
 
         ob_start();
         ?>
+        
+        <?php if ($message) : ?>
+            <?php 
+            $is_error = strpos($message, 'Error') === 0 || strpos($message, 'Errore') === 0;
+            $notice_class = $is_error ? 'notice-error' : 'notice-success';
+            ?>
+            <div class="notice <?php echo esc_attr($notice_class); ?> is-dismissible">
+                <p><?php echo esc_html($message); ?></p>
+            </div>
+        <?php endif; ?>
         
         <!-- Pannello Introduttivo -->
         <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -315,18 +336,16 @@ class Compression extends AbstractPage
     /**
      * Handle form submission
      */
-    public function handleSave(): void
+    public function handleSave(): string
     {
         // Verify nonce
         if (!isset($_POST['fp_ps_nonce']) || !wp_verify_nonce($_POST['fp_ps_nonce'], 'fp_ps_save_compression')) {
-            wp_redirect(admin_url('admin.php?page=fp-performance-suite-compression&error=1'));
-            exit;
+            return __('Security error: invalid nonce. Please reload the page and try again.', 'fp-performance-suite');
         }
 
         // Check permissions
         if (!current_user_can('manage_options')) {
-            wp_redirect(admin_url('admin.php?page=fp-performance-suite-compression&error=1'));
-            exit;
+            return __('Permission denied. You do not have sufficient permissions to save these settings.', 'fp-performance-suite');
         }
 
         try {
@@ -354,14 +373,14 @@ class Compression extends AbstractPage
                 $compression->disable();
             }
             
-            // Redirect with success
-            wp_redirect(admin_url('admin.php?page=fp-performance-suite-compression&updated=1'));
-            exit;
+            return __('Compression settings saved successfully!', 'fp-performance-suite');
             
         } catch (\Exception $e) {
             error_log('[FP Performance Suite] Compression save error: ' . $e->getMessage());
-            wp_redirect(admin_url('admin.php?page=fp-performance-suite-compression&error=1'));
-            exit;
+            return sprintf(
+                __('Error saving compression settings: %s. Please try again.', 'fp-performance-suite'),
+                $e->getMessage()
+            );
         }
     }
 }

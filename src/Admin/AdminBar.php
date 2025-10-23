@@ -188,16 +188,26 @@ class AdminBar
             wp_die(__('Permessi insufficienti', 'fp-performance-suite'));
         }
 
-        $container = \FP\PerfSuite\Plugin::container();
-        $pageCache = $container->get(PageCache::class);
-        
-        $result = $pageCache->clear();
+        try {
+            $container = \FP\PerfSuite\Plugin::container();
+            $pageCache = $container->get(PageCache::class);
+            
+            $result = $pageCache->clear();
 
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite');
-        $redirect = add_query_arg('fp_cache_cleared', $result ? '1' : '0', $redirect);
-        
-        wp_safe_redirect($redirect);
-        exit;
+            $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite');
+            $redirect = add_query_arg('fp_cache_cleared', $result ? '1' : '0', $redirect);
+            
+            wp_safe_redirect($redirect);
+            exit;
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - Cache clear error: ' . $e->getMessage());
+            
+            $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite');
+            $redirect = add_query_arg('fp_cache_error', '1', $redirect);
+            
+            wp_safe_redirect($redirect);
+            exit;
+        }
     }
 
     /**
@@ -211,25 +221,35 @@ class AdminBar
             wp_die(__('Permessi insufficienti', 'fp-performance-suite'));
         }
 
-        $container = \FP\PerfSuite\Plugin::container();
-        $cleaner = $container->get(\FP\PerfSuite\Services\DB\Cleaner::class);
-        
-        // FIX BUG #20: optimizeTables() è privato, usa cleanup() pubblico
-        $result = $cleaner->cleanup(['optimize_tables'], false);
-        
-        $tablesOptimized = 0;
-        if (isset($result['optimize_tables']['tables'])) {
-            $tablesOptimized = count($result['optimize_tables']['tables']);
-        }
+        try {
+            $container = \FP\PerfSuite\Plugin::container();
+            $cleaner = $container->get(\FP\PerfSuite\Services\DB\Cleaner::class);
+            
+            // FIX BUG #20: optimizeTables() è privato, usa cleanup() pubblico
+            $result = $cleaner->cleanup(['optimize_tables'], false);
+            
+            $tablesOptimized = 0;
+            if (isset($result['optimize_tables']['tables'])) {
+                $tablesOptimized = count($result['optimize_tables']['tables']);
+            }
 
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite-database');
-        $redirect = add_query_arg([
-            'fp_db_optimized' => '1',
-            'tables_count' => $tablesOptimized,
-        ], $redirect);
-        
-        wp_safe_redirect($redirect);
-        exit;
+            $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite-database');
+            $redirect = add_query_arg([
+                'fp_db_optimized' => '1',
+                'tables_count' => $tablesOptimized,
+            ], $redirect);
+            
+            wp_safe_redirect($redirect);
+            exit;
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - Database optimization error: ' . $e->getMessage());
+            
+            $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite-database');
+            $redirect = add_query_arg('fp_db_error', '1', $redirect);
+            
+            wp_safe_redirect($redirect);
+            exit;
+        }
     }
 }
 
