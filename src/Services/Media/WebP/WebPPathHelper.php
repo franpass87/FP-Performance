@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Media\WebP;
 
+use FP\PerfSuite\Utils\Logger;
+
 use function filesize;
 use function pathinfo;
 
@@ -62,5 +64,15 @@ class WebPPathHelper
             return null;
         }
         return (int) $size;
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPPathHelper is a utility class that doesn't need WordPress hooks
+        // It's used by other services for path manipulation
+        Logger::debug('WebP Path Helper registered');
     }
 }

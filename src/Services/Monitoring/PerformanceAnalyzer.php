@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Media\WebPConverter;
+use FP\PerfSuite\Utils\Logger;
 
 use function __;
 use function apache_get_modules;
@@ -419,5 +420,15 @@ class PerformanceAnalyzer
         }
 
         return $value;
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // PerformanceAnalyzer is a utility class that doesn't need WordPress hooks
+        // It's used by other services for performance analysis
+        Logger::debug('Performance Analyzer registered');
     }
 }

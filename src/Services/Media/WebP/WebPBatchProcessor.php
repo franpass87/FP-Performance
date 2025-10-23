@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Media\WebP;
 
+use FP\PerfSuite\Utils\Logger;
+
 use function get_attached_file;
 use function is_array;
 use function wp_get_attachment_metadata;
@@ -125,5 +127,15 @@ class WebPBatchProcessor
     public function setChunkSize(int $size): void
     {
         // For future implementation if needed
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPBatchProcessor is a utility class that doesn't need WordPress hooks
+        // It's used by other services for batch processing
+        Logger::debug('WebP Batch Processor registered');
     }
 }

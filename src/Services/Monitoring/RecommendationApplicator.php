@@ -6,6 +6,7 @@ use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Utils\Logger;
 
 use function __;
 use function update_option;
@@ -229,6 +230,16 @@ class RecommendationApplicator
                 ),
             ];
         }
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // RecommendationApplicator is a utility class that doesn't need WordPress hooks
+        // It's used by other services for applying recommendations
+        Logger::debug('Recommendation Applicator registered');
     }
 }
 

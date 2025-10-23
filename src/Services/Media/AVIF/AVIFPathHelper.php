@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Media\AVIF;
 
+use FP\PerfSuite\Utils\Logger;
+
 /**
  * AVIF Path Helper
  * 
@@ -248,6 +250,16 @@ class AVIFPathHelper
             'total_size_formatted' => size_format($this->getTotalAVIFSize()),
             'directory' => $this->getAVIFDirectory(),
         ];
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // AVIFPathHelper is a utility class that doesn't need WordPress hooks
+        // It's used by other services for AVIF path manipulation
+        Logger::debug('AVIF Path Helper registered');
     }
 }
 

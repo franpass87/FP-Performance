@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Media\WebP;
 
+use FP\PerfSuite\Utils\Logger;
+
 use function delete_post_meta;
 use function dirname;
 use function file_exists;
@@ -220,5 +222,15 @@ class WebPAttachmentProcessor
             delete_post_meta($attachmentId, self::CONVERSION_META);
             delete_post_meta($attachmentId, self::SETTINGS_META);
         }
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPAttachmentProcessor is a utility class that doesn't need WordPress hooks
+        // It's used by other services for attachment processing
+        Logger::debug('WebP Attachment Processor registered');
     }
 }

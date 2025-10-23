@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Compatibility;
 
+use FP\PerfSuite\Utils\Logger;
+
 /**
  * Theme Detector
  * 
@@ -453,6 +455,16 @@ class ThemeDetector
     {
         $this->currentTheme = null;
         $this->activePageBuilders = null;
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // ThemeDetector is a utility class that doesn't need WordPress hooks
+        // It's used by other services for theme detection
+        Logger::debug('Theme Detector registered');
     }
 }
 

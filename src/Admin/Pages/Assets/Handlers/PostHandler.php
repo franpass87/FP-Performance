@@ -27,6 +27,7 @@ class PostHandler
 {
     public function handlePost(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
     {
+        // Verifica che sia una richiesta POST
         if (!isset($_POST['fp_ps_assets_nonce']) || !wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
             return '';
         }
@@ -456,6 +457,9 @@ class PostHandler
     private function handleMainToggleForm(array &$settings): string
     {
         try {
+            // Debug: Log the POST data
+            error_log('FP Performance Suite - Main Toggle POST data: ' . print_r($_POST, true));
+            
             $optimizer = new Optimizer();
             
             // Get current settings
@@ -464,8 +468,14 @@ class PostHandler
             // Update the main enabled flag
             $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
             
+            // Debug: Log the settings being saved
+            error_log('FP Performance Suite - Saving settings: ' . print_r($currentSettings, true));
+            
             // Save the updated settings
-            $optimizer->update($currentSettings);
+            $result = $optimizer->update($currentSettings);
+            
+            // Debug: Log the result
+            error_log('FP Performance Suite - Update result: ' . ($result ? 'success' : 'failed'));
             
             // Update the settings array for the view
             $settings = $optimizer->settings();
@@ -476,6 +486,7 @@ class PostHandler
         } catch (\Exception $e) {
             // Log the error for debugging
             error_log('FP Performance Suite - Main Toggle Error: ' . $e->getMessage());
+            error_log('FP Performance Suite - Main Toggle Stack trace: ' . $e->getTraceAsString());
             
             // Return error message instead of redirect
             return sprintf(

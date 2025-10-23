@@ -99,6 +99,11 @@ class Assets extends AbstractPage
         // Handle POST requests
         $message = $this->postHandler->handlePost($settings, $fontSettings, $thirdPartySettings);
         
+        // Debug: Log if we have a message
+        if ($message) {
+            error_log('FP Performance Suite - Assets page message: ' . $message);
+        }
+        
         // Get current tab
         $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'javascript';
         $valid_tabs = ['javascript', 'css', 'fonts', 'thirdparty'];
@@ -112,8 +117,10 @@ class Assets extends AbstractPage
             <h1><?php esc_html_e('Assets Optimization', 'fp-performance-suite'); ?></h1>
             
             <?php if ($message) : ?>
-                <div class="notice notice-success is-dismissible">
-                    <p><?php echo esc_html($message); ?></p>
+                <div class="notice notice-success is-dismissible" style="margin: 20px 0; padding: 15px; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px;">
+                    <p style="margin: 0; color: #0f5132; font-weight: 500;">
+                        <strong>✅ <?php echo esc_html($message); ?></strong>
+                    </p>
                 </div>
             <?php endif; ?>
 

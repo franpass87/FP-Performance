@@ -95,6 +95,16 @@ class WebPQueue
     }
 
     /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPQueue is a utility class that doesn't need WordPress hooks
+        // It's used by other services for queue management
+        Logger::debug('WebP Queue registered');
+    }
+
+    /**
      * Get current queue state
      *
      * @return array{limit:int,offset:int,processed:int,converted:int,total:int}|null

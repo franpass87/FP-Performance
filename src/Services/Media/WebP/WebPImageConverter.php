@@ -253,4 +253,14 @@ class WebPImageConverter
     {
         return self::SUPPORTED_EXTENSIONS;
     }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPImageConverter is a utility class that doesn't need WordPress hooks
+        // It's used by other services for image conversion
+        Logger::debug('WebP Image Converter registered');
+    }
 }

@@ -246,5 +246,15 @@ class AVIFImageConverter
             'estimated_savings_percent' => round((($sourceSize - $estimatedSize) / $sourceSize) * 100, 2),
         ];
     }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // AVIFImageConverter is a utility class that doesn't need WordPress hooks
+        // It's used by other services for AVIF conversion
+        Logger::debug('AVIF Image Converter registered');
+    }
 }
 

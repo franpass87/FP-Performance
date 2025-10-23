@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Compatibility;
 
+use FP\PerfSuite\Utils\Logger;
+
 use function get_option;
 use function is_object;
 use function update_option;
@@ -362,6 +364,16 @@ class WebPPluginCompatibility
         }
 
         return $result;
+    }
+
+    /**
+     * Register the service
+     */
+    public function register(): void
+    {
+        // WebPPluginCompatibility is a utility class that doesn't need WordPress hooks
+        // It's used by other services for plugin compatibility checks
+        Logger::debug('WebP Plugin Compatibility registered');
     }
 }
 
