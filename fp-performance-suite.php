@@ -132,7 +132,15 @@ register_deactivation_hook(__FILE__, static function () {
 });
 
 if (function_exists('add_action')) {
-    add_action('plugins_loaded', static function () {
+    // Flag per prevenire inizializzazioni multiple
+    static $plugin_initialized = false;
+    
+    add_action('plugins_loaded', static function () use (&$plugin_initialized) {
+        // Prevenire inizializzazioni multiple
+        if ($plugin_initialized) {
+            return;
+        }
+        
         // Verifica che il file Plugin.php esista PRIMA di provare a caricarlo
         $pluginFile = __DIR__ . '/src/Plugin.php';
         
@@ -193,10 +201,16 @@ if (function_exists('add_action')) {
             );
             
             // Riprova dopo che WordPress è completamente caricato
-            add_action('wp_loaded', static function () {
+            add_action('wp_loaded', static function () use (&$plugin_initialized) {
+                // Prevenire inizializzazioni multiple anche qui
+                if ($plugin_initialized) {
+                    return;
+                }
+                
                 if (fp_perf_suite_is_db_available()) {
                     try {
                         \FP\PerfSuite\Plugin::init();
+                        $plugin_initialized = true;
                     } catch (\Throwable $e) {
                         fp_perf_suite_safe_log(
                             'Plugin initialization failed: ' . $e->getMessage(),
@@ -217,6 +231,7 @@ if (function_exists('add_action')) {
         // Database disponibile, inizializza normalmente
         try {
             \FP\PerfSuite\Plugin::init();
+            $plugin_initialized = true;
         } catch (\Throwable $e) {
             fp_perf_suite_safe_log(
                 'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),

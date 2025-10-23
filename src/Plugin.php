@@ -55,16 +55,38 @@ use function wp_clear_scheduled_hook;
 class Plugin
 {
     private static ?ServiceContainer $container = null;
+    private static bool $initialized = false;
 
     public static function init(): void
     {
-        if (self::$container instanceof ServiceContainer) {
+        // Prevenire inizializzazioni multiple con doppio controllo
+        if (self::$initialized || self::$container instanceof ServiceContainer) {
             return;
         }
-
-        $container = new ServiceContainer();
-        self::register($container);
-        self::$container = $container;
+        
+        // Marca come inizializzato immediatamente per prevenire race conditions
+        self::$initialized = true;
+        
+        // Aumenta temporaneamente i limiti per l'inizializzazione
+        $original_memory_limit = ini_get('memory_limit');
+        $original_time_limit = ini_get('max_execution_time');
+        
+        try {
+            @ini_set('memory_limit', '512M');
+            @ini_set('max_execution_time', 60);
+            
+            $container = new ServiceContainer();
+            self::register($container);
+            self::$container = $container;
+        } finally {
+            // Ripristina i limiti originali
+            if ($original_memory_limit) {
+                @ini_set('memory_limit', $original_memory_limit);
+            }
+            if ($original_time_limit) {
+                @ini_set('max_execution_time', $original_time_limit);
+            }
+        }
 
         // Solo admin e routes - NIENTE altro durante init
         // I servizi verranno caricati lazy quando servono
@@ -728,6 +750,23 @@ class Plugin
         }
 
         return self::$container;
+    }
+    
+    /**
+     * Resetta lo stato di inizializzazione (per debug/recupero errori)
+     */
+    public static function reset(): void
+    {
+        self::$container = null;
+        self::$initialized = false;
+    }
+    
+    /**
+     * Verifica se il plugin è stato inizializzato
+     */
+    public static function isInitialized(): bool
+    {
+        return self::$initialized && self::$container instanceof ServiceContainer;
     }
 
     public static function onActivate(): void
