@@ -21,40 +21,41 @@
 .fp-ps-stat-item {
     display: flex;
     flex-direction: column;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    padding: var(--fp-spacing-md);
+    background: var(--fp-card);
+    border-radius: var(--fp-radius-sm);
+    border: var(--fp-border-width) solid #e0e0e0;
+    box-shadow: var(--fp-shadow-sm);
 }
 
 .fp-ps-stat-label {
     font-weight: 600;
     color: #666;
-    margin-bottom: 0.5rem;
-    font-size: 0.9em;
+    margin-bottom: var(--fp-spacing-xs);
+    font-size: var(--fp-font-size-sm);
 }
 
 .fp-ps-stat-value {
-    font-size: 1.2em;
+    font-size: var(--fp-font-size-lg);
     font-weight: bold;
-    color: #333;
+    color: var(--fp-text);
 }
 
 /* Status Colors */
 .fp-ps-status-enabled {
-    color: #46b450;
+    color: var(--fp-ok);
 }
 
 .fp-ps-status-disabled {
-    color: #dc3232;
+    color: var(--fp-danger);
 }
 
 .fp-ps-critical {
-    color: #dc3232;
+    color: var(--fp-danger);
 }
 
 .fp-ps-high {
-    color: #ffb900;
+    color: var(--fp-warn);
 }
 
 /* Predictions, Anomalies, Recommendations */
@@ -67,34 +68,35 @@
 .fp-ps-prediction,
 .fp-ps-anomaly,
 .fp-ps-recommendation {
-    padding: 1rem;
-    margin: 0.5rem 0;
+    padding: var(--fp-spacing-md);
+    margin: var(--fp-spacing-xs) 0;
     border-left: 4px solid #ddd;
-    background: #f9f9f9;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    background: var(--fp-card);
+    border-radius: var(--fp-radius-sm);
+    border: var(--fp-border-width) solid #e0e0e0;
+    box-shadow: var(--fp-shadow-sm);
 }
 
 /* Severity Colors */
 .fp-ps-prediction-high,
 .fp-ps-anomaly-critical,
 .fp-ps-recommendation-high {
-    border-left-color: #dc3232;
-    background: #fef7f7;
+    border-left-color: var(--fp-danger);
+    background: var(--fp-danger-light);
 }
 
 .fp-ps-prediction-medium,
 .fp-ps-anomaly-high,
 .fp-ps-recommendation-medium {
-    border-left-color: #ffb900;
-    background: #fffbf0;
+    border-left-color: var(--fp-warn);
+    background: var(--fp-warning-light);
 }
 
 .fp-ps-prediction-low,
 .fp-ps-anomaly-medium,
 .fp-ps-recommendation-low {
-    border-left-color: #00a0d2;
-    background: #f0f8ff;
+    border-left-color: var(--fp-info);
+    background: var(--fp-info-light);
 }
 
 /* Headers */
@@ -109,11 +111,11 @@
 
 .fp-ps-confidence,
 .fp-ps-rec-confidence {
-    font-size: 0.9em;
+    font-size: var(--fp-font-size-sm);
     color: #666;
     background: #e0e0e0;
-    padding: 0.2rem 0.5rem;
-    border-radius: 3px;
+    padding: 0.2rem var(--fp-spacing-xs);
+    border-radius: var(--fp-radius-sm);
     font-weight: 500;
 }
 
@@ -150,30 +152,31 @@
 }
 
 .fp-ps-tuning-category {
-    margin: 1rem 0;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
+    margin: var(--fp-spacing-md) 0;
+    padding: var(--fp-spacing-md);
+    background: var(--fp-card);
+    border-radius: var(--fp-radius-sm);
+    border: var(--fp-border-width) solid #e0e0e0;
+    box-shadow: var(--fp-shadow-sm);
 }
 
 .fp-ps-tuning-category h4 {
-    margin: 0 0 0.5rem 0;
-    color: #333;
-    font-size: 1.1em;
+    margin: 0 0 var(--fp-spacing-xs) 0;
+    color: var(--fp-text);
+    font-size: var(--fp-font-size-md);
 }
 
 .fp-ps-tuning-change {
-    margin: 0.5rem 0;
-    padding: 0.5rem;
+    margin: var(--fp-spacing-xs) 0;
+    padding: var(--fp-spacing-xs);
     background: #fff;
-    border-radius: 3px;
-    border: 1px solid #e0e0e0;
-    font-size: 0.9em;
+    border-radius: var(--fp-radius-sm);
+    border: var(--fp-border-width) solid #e0e0e0;
+    font-size: var(--fp-font-size-sm);
 }
 
 .fp-ps-tuning-change strong {
-    color: #333;
+    color: var(--fp-text);
 }
 
 .fp-ps-tuning-change em {
@@ -203,35 +206,129 @@
     }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .fp-ps-stat-item {
-        background: #2c2c2c;
-        border-color: #444;
+/* Auto-Tuning Controls */
+.fp-ps-tuning-controls {
+    background: #f8f9fa;
+    border-radius: var(--fp-radius-sm);
+    padding: var(--fp-spacing-lg);
+    margin: var(--fp-spacing-md) 0;
+}
+
+.fp-ps-tuning-controls h3 {
+    margin: 0 0 var(--fp-spacing-md) 0;
+    color: var(--fp-text);
+    font-size: var(--fp-font-size-lg);
+    font-weight: 600;
+}
+
+.fp-ps-form-group {
+    margin-bottom: var(--fp-spacing-md);
+}
+
+.fp-ps-form-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--fp-spacing-xs);
+    font-weight: 600;
+    color: var(--fp-text);
+    margin-bottom: var(--fp-spacing-xs);
+}
+
+.fp-ps-form-group input[type="checkbox"] {
+    transform: scale(1.2);
+    accent-color: var(--fp-primary);
+}
+
+.fp-ps-form-group select {
+    padding: var(--fp-spacing-xs) var(--fp-spacing-sm);
+    border: 1px solid #ddd;
+    border-radius: var(--fp-radius-sm);
+    background: white;
+    font-size: var(--fp-font-size-sm);
+    min-width: 200px;
+}
+
+.fp-ps-form-group .description {
+    margin-top: var(--fp-spacing-xs);
+    color: #666;
+    font-size: var(--fp-font-size-sm);
+    line-height: 1.4;
+}
+
+.fp-ps-tuning-actions {
+    display: flex;
+    gap: var(--fp-spacing-sm);
+    flex-wrap: wrap;
+    margin-top: var(--fp-spacing-md);
+    padding-top: var(--fp-spacing-md);
+    border-top: 1px solid #ddd;
+}
+
+.fp-ps-tuning-actions .button {
+    padding: var(--fp-spacing-xs) var(--fp-spacing-md);
+    border-radius: var(--fp-radius-sm);
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fp-ps-tuning-actions .button-primary {
+    background: var(--fp-primary);
+    color: white;
+}
+
+.fp-ps-tuning-actions .button-primary:hover {
+    background: var(--fp-primary-dark);
+    transform: translateY(-1px);
+}
+
+.fp-ps-tuning-actions .button-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.fp-ps-tuning-actions .button-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.fp-ps-tuning-actions .button[style*="background: #28a745"] {
+    background: #28a745 !important;
+    color: white !important;
+}
+
+.fp-ps-tuning-actions .button[style*="background: #28a745"]:hover {
+    background: #218838 !important;
+    transform: translateY(-1px);
+}
+
+.fp-ps-tuning-actions .button[style*="background: #dc3545"] {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.fp-ps-tuning-actions .button[style*="background: #dc3545"]:hover {
+    background: #c82333 !important;
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments for tuning controls */
+@media (max-width: 768px) {
+    .fp-ps-tuning-actions {
+        flex-direction: column;
     }
     
-    .fp-ps-stat-label {
-        color: #ccc;
+    .fp-ps-tuning-actions .button {
+        width: 100%;
+        text-align: center;
     }
     
-    .fp-ps-stat-value {
-        color: #fff;
-    }
-    
-    .fp-ps-prediction,
-    .fp-ps-anomaly,
-    .fp-ps-recommendation {
-        background: #2c2c2c;
-        border-color: #444;
-    }
-    
-    .fp-ps-tuning-category {
-        background: #2c2c2c;
-        border-color: #444;
-    }
-    
-    .fp-ps-tuning-change {
-        background: #333;
-        border-color: #444;
+    .fp-ps-form-group select {
+        width: 100%;
+        min-width: auto;
     }
 }
+
+/* Coherent styling with plugin design system - removed dark mode auto-detection */

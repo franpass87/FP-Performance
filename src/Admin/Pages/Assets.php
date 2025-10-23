@@ -71,58 +71,68 @@ class Assets extends AbstractPage
 
     protected function content(): string
     {
-        // Initialize services
-        $optimizer = $this->container->get(Optimizer::class);
-        $fontOptimizer = $this->container->get(FontOptimizer::class);
-        $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
-        $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
-        $http2Push = $this->container->get(Http2ServerPush::class);
-        $smartDelivery = $this->container->get(SmartAssetDelivery::class);
-        
-        // Load current settings
-        $settings = $optimizer->settings();
-        $fontSettings = $fontOptimizer->getSettings();
-        $thirdPartySettings = $thirdPartyScripts->settings();
-        
-        // Smart detectors
-        $smartDetector = new SmartExclusionDetector();
-        $assetsDetector = new CriticalAssetsDetector();
-        $themeDetector = $this->container->get(ThemeDetector::class);
-        $hints = new ThemeHints($themeDetector);
-        
-        // Load cached detection results
-        $criticalScripts = get_transient('fp_ps_critical_scripts_detected');
-        $excludeCss = get_transient('fp_ps_exclude_css_detected');
-        $excludeJs = get_transient('fp_ps_exclude_js_detected');
-        $criticalAssets = get_transient('fp_ps_critical_assets_detected');
-        
-        // Handle POST requests
-        $message = $this->postHandler->handlePost($settings, $fontSettings, $thirdPartySettings);
-        
-        // Debug: Log if we have a message
-        if ($message) {
-            error_log('FP Performance Suite - Assets page message: ' . $message);
-        }
-        
-        // Get current tab
-        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'javascript';
-        $valid_tabs = ['javascript', 'css', 'fonts', 'thirdparty'];
-        if (!in_array($current_tab, $valid_tabs, true)) {
-            $current_tab = 'javascript';
+        try {
+            // Initialize services
+            $optimizer = $this->container->get(Optimizer::class);
+            $fontOptimizer = $this->container->get(FontOptimizer::class);
+            $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+            $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
+            $http2Push = $this->container->get(Http2ServerPush::class);
+            $smartDelivery = $this->container->get(SmartAssetDelivery::class);
+            
+            // Load current settings
+            $settings = $optimizer->settings();
+            $fontSettings = $fontOptimizer->getSettings();
+            $thirdPartySettings = $thirdPartyScripts->settings();
+            
+            // Smart detectors
+            $smartDetector = new SmartExclusionDetector();
+            $assetsDetector = new CriticalAssetsDetector();
+            $themeDetector = $this->container->get(ThemeDetector::class);
+            $hints = new ThemeHints($themeDetector);
+            
+            // Load cached detection results
+            $criticalScripts = get_transient('fp_ps_critical_scripts_detected');
+            $excludeCss = get_transient('fp_ps_exclude_css_detected');
+            $excludeJs = get_transient('fp_ps_exclude_js_detected');
+            $criticalAssets = get_transient('fp_ps_critical_assets_detected');
+            
+            // Handle POST requests
+            $message = $this->postHandler->handlePost($settings, $fontSettings, $thirdPartySettings);
+            
+            // Debug: Log if we have a message
+            if ($message) {
+                error_log('FP Performance Suite - Assets page message: ' . $message);
+            }
+            
+            // Get current tab
+            $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'javascript';
+            $valid_tabs = ['javascript', 'css', 'fonts', 'thirdparty'];
+            if (!in_array($current_tab, $valid_tabs, true)) {
+                $current_tab = 'javascript';
+            }
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            error_log('FP Performance Suite - Assets page initialization error: ' . $e->getMessage());
+            error_log('FP Performance Suite - Assets page stack trace: ' . $e->getTraceAsString());
+            
+            // Return error message instead of empty page
+            return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore:</strong> ' . esc_html($e->getMessage()) . '</p></div></div>';
         }
 
-        ob_start();
-        ?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Assets Optimization', 'fp-performance-suite'); ?></h1>
-            
-            <?php if ($message) : ?>
-                <div class="notice notice-success is-dismissible" style="margin: 20px 0; padding: 15px; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px;">
-                    <p style="margin: 0; color: #0f5132; font-weight: 500;">
-                        <strong>✅ <?php echo esc_html($message); ?></strong>
-                    </p>
-                </div>
-            <?php endif; ?>
+        try {
+            ob_start();
+            ?>
+            <div class="wrap">
+                <h1><?php esc_html_e('Assets Optimization', 'fp-performance-suite'); ?></h1>
+                
+                <?php if ($message) : ?>
+                    <div class="notice notice-success is-dismissible" style="margin: 20px 0; padding: 15px; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px;">
+                        <p style="margin: 0; color: #0f5132; font-weight: 500;">
+                            <strong>✅ <?php echo esc_html($message); ?></strong>
+                        </p>
+                    </div>
+                <?php endif; ?>
 
             <!-- Main Toggle for Asset Optimization -->
             <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
@@ -225,9 +235,18 @@ class Assets extends AbstractPage
             ?>
         </div>
 
-        <?php echo ThemeHints::renderTooltipScript(); ?>
-        <?php
-        return (string) ob_get_clean();
+            <?php echo ThemeHints::renderTooltipScript(); ?>
+            <?php
+            return (string) ob_get_clean();
+            
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            error_log('FP Performance Suite - Assets page rendering error: ' . $e->getMessage());
+            error_log('FP Performance Suite - Assets page rendering stack trace: ' . $e->getTraceAsString());
+            
+            // Return error message instead of empty page
+            return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore nel rendering:</strong> ' . esc_html($e->getMessage()) . '</p></div></div>';
+        }
     }
 
     private function initializeTabs(): void

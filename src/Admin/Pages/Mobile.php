@@ -67,7 +67,7 @@ class Mobile extends AbstractPage
             ];
         }
         ?>
-        <div class="wrap">
+        <div class="wrap fp-ps-mobile-page">
             <h1><?php echo esc_html($this->title()); ?></h1>
             
             <div class="fp-ps-admin-grid">
@@ -140,19 +140,19 @@ class Mobile extends AbstractPage
                     
                     <div class="fp-ps-mobile-stats">
                         <div class="fp-ps-stat-item">
-                            <span class="fp-ps-stat-label"><?php _e('Status', 'fp-performance-suite'); ?>:</span>
+                            <span class="fp-ps-stat-label"><?php _e('Status', 'fp-performance-suite'); ?></span>
                             <span class="fp-ps-stat-value <?php echo $report['enabled'] ? 'fp-ps-status-enabled' : 'fp-ps-status-disabled'; ?>">
                                 <?php echo $report['enabled'] ? __('Enabled', 'fp-performance-suite') : __('Disabled', 'fp-performance-suite'); ?>
                             </span>
                         </div>
                         
                         <div class="fp-ps-stat-item">
-                            <span class="fp-ps-stat-label"><?php _e('Issues Found', 'fp-performance-suite'); ?>:</span>
+                            <span class="fp-ps-stat-label"><?php _e('Issues Found', 'fp-performance-suite'); ?></span>
                             <span class="fp-ps-stat-value"><?php echo esc_html($report['issues_count']); ?></span>
                         </div>
                         
                         <div class="fp-ps-stat-item">
-                            <span class="fp-ps-stat-label"><?php _e('Critical Issues', 'fp-performance-suite'); ?>:</span>
+                            <span class="fp-ps-stat-label"><?php _e('Critical Issues', 'fp-performance-suite'); ?></span>
                             <span class="fp-ps-stat-value fp-ps-critical"><?php echo esc_html($report['critical_issues']); ?></span>
                         </div>
                     </div>
@@ -314,83 +314,6 @@ class Mobile extends AbstractPage
                 </div>
             </div>
         </div>
-        
-        <style>
-        .fp-ps-mobile-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .fp-ps-stat-item {
-            display: flex;
-            flex-direction: column;
-            padding: 1rem;
-            background: #f9f9f9;
-            border-radius: 4px;
-        }
-        
-        .fp-ps-stat-label {
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-        
-        .fp-ps-stat-value {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        
-        .fp-ps-status-enabled {
-            color: #46b450;
-        }
-        
-        .fp-ps-status-disabled {
-            color: #dc3232;
-        }
-        
-        .fp-ps-critical {
-            color: #dc3232;
-        }
-        
-        .fp-ps-issues-list {
-            margin: 1rem 0;
-        }
-        
-        .fp-ps-issue {
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border-left: 4px solid #ddd;
-            background: #f9f9f9;
-        }
-        
-        .fp-ps-issue-high {
-            border-left-color: #dc3232;
-            background: #fef7f7;
-        }
-        
-        .fp-ps-issue-medium {
-            border-left-color: #ffb900;
-            background: #fffbf0;
-        }
-        
-        .fp-ps-issue-low {
-            border-left-color: #00a0d2;
-            background: #f0f8ff;
-        }
-        
-        .fp-ps-recommendations {
-            margin: 1rem 0;
-        }
-        
-        .fp-ps-recommendations li {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
-            background: #f0f8ff;
-            border-radius: 4px;
-        }
-        </style>
         <?php
     }
 

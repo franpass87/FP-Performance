@@ -431,6 +431,86 @@ class ML extends AbstractPage
                             </div>
                         </div>
                         
+                        <!-- Controlli Auto-Tuning -->
+                        <div class="fp-ps-tuning-controls" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <h3><?php _e('Auto-Tuning Controls', 'fp-performance-suite'); ?></h3>
+                            
+                            <form method="post" action="">
+                                <?php wp_nonce_field('fp_ps_auto_tuner_settings', 'fp_ps_auto_tuner_nonce'); ?>
+                                
+                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
+                                    <label for="auto_tuner_enabled" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                                        <input type="checkbox" 
+                                               id="auto_tuner_enabled" 
+                                               name="auto_tuner_enabled" 
+                                               value="1" 
+                                               <?php checked($tuning_report['enabled'], true); ?>
+                                               style="transform: scale(1.2);" />
+                                        <?php _e('Enable Auto-Tuning', 'fp-performance-suite'); ?>
+                                    </label>
+                                    <p class="description" style="margin-top: 5px; color: #666;">
+                                        <?php _e('Automatically optimize performance settings based on machine learning analysis', 'fp-performance-suite'); ?>
+                                    </p>
+                                </div>
+                                
+                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
+                                    <label for="tuning_frequency" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                        <?php _e('Tuning Frequency', 'fp-performance-suite'); ?>
+                                    </label>
+                                    <select id="tuning_frequency" name="tuning_frequency" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                                        <?php 
+                                        $frequencies = [
+                                            'hourly' => __('Every Hour', 'fp-performance-suite'),
+                                            '6hourly' => __('Every 6 Hours', 'fp-performance-suite'),
+                                            'daily' => __('Daily', 'fp-performance-suite'),
+                                            'weekly' => __('Weekly', 'fp-performance-suite')
+                                        ];
+                                        $current_frequency = get_option('fp_ps_auto_tuner')['tuning_frequency'] ?? '6hourly';
+                                        foreach ($frequencies as $value => $label): ?>
+                                            <option value="<?php echo esc_attr($value); ?>" <?php selected($current_frequency, $value); ?>>
+                                                <?php echo esc_html($label); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
+                                    <label for="aggressive_mode" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                                        <input type="checkbox" 
+                                               id="aggressive_mode" 
+                                               name="aggressive_mode" 
+                                               value="1" 
+                                               <?php checked(get_option('fp_ps_auto_tuner')['aggressive_mode'] ?? false, true); ?>
+                                               style="transform: scale(1.2);" />
+                                        <?php _e('Aggressive Mode', 'fp-performance-suite'); ?>
+                                    </label>
+                                    <p class="description" style="margin-top: 5px; color: #666;">
+                                        <?php _e('Apply more aggressive optimizations (use with caution)', 'fp-performance-suite'); ?>
+                                    </p>
+                                </div>
+                                
+                                <div class="fp-ps-tuning-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button type="submit" name="save_auto_tuner_settings" class="button button-primary" style="padding: 8px 16px;">
+                                        <?php _e('Save Settings', 'fp-performance-suite'); ?>
+                                    </button>
+                                    
+                                    <?php if ($tuning_report['enabled']): ?>
+                                        <button type="submit" name="run_manual_tuning" class="button button-secondary" style="padding: 8px 16px;">
+                                            <?php _e('Run Manual Tuning', 'fp-performance-suite'); ?>
+                                        </button>
+                                        
+                                        <button type="submit" name="disable_auto_tuning" class="button" style="padding: 8px 16px; background: #dc3545; color: white; border: none;">
+                                            <?php _e('Disable Auto-Tuning', 'fp-performance-suite'); ?>
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="submit" name="enable_auto_tuning" class="button button-primary" style="padding: 8px 16px; background: #28a745; color: white; border: none;">
+                                            <?php _e('Enable Auto-Tuning', 'fp-performance-suite'); ?>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
+                        </div>
+                        
                         <?php if (!empty($tuning_report['recent_changes'])): ?>
                             <h3><?php _e('Recent Changes', 'fp-performance-suite'); ?></h3>
                             <div class="fp-ps-tuning-changes">
@@ -471,6 +551,19 @@ class ML extends AbstractPage
             
             update_option('fp_ps_ml_predictor', $settings);
             echo '<div class="notice notice-success"><p>' . __('ML settings saved successfully!', 'fp-performance-suite') . '</p></div>';
+        }
+        
+        // Handle Auto-Tuner Settings
+        if (isset($_POST['fp_ps_auto_tuner_nonce']) && wp_verify_nonce($_POST['fp_ps_auto_tuner_nonce'], 'fp_ps_auto_tuner_settings')) {
+            if (isset($_POST['save_auto_tuner_settings'])) {
+                $this->saveAutoTunerSettings();
+            } elseif (isset($_POST['enable_auto_tuning'])) {
+                $this->enableAutoTuning();
+            } elseif (isset($_POST['disable_auto_tuning'])) {
+                $this->disableAutoTuning();
+            } elseif (isset($_POST['run_manual_tuning'])) {
+                $this->runManualTuning();
+            }
         }
         
         // Handle Manual Actions
@@ -566,5 +659,79 @@ class ML extends AbstractPage
             'anomaly_threshold' => 0.8,
             'pattern_confidence_threshold' => 0.8
         ]);
+    }
+    
+    /**
+     * Salva le impostazioni Auto-Tuner
+     */
+    private function saveAutoTunerSettings(): void
+    {
+        $settings = [
+            'enabled' => !empty($_POST['auto_tuner_enabled']),
+            'tuning_frequency' => sanitize_text_field($_POST['tuning_frequency'] ?? '6hourly'),
+            'aggressive_mode' => !empty($_POST['aggressive_mode']),
+            'auto_apply_changes' => true,
+            'tuning_threshold' => 0.1
+        ];
+        
+        update_option('fp_ps_auto_tuner', $settings);
+        
+        // Se abilitato, registra il servizio
+        if ($settings['enabled']) {
+            $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
+            $autoTuner->register();
+        }
+        
+        echo '<div class="notice notice-success"><p>' . __('Auto-Tuner settings saved successfully!', 'fp-performance-suite') . '</p></div>';
+    }
+    
+    /**
+     * Abilita Auto-Tuning
+     */
+    private function enableAutoTuning(): void
+    {
+        $settings = get_option('fp_ps_auto_tuner', []);
+        $settings['enabled'] = true;
+        update_option('fp_ps_auto_tuner', $settings);
+        
+        // Registra il servizio
+        $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
+        $autoTuner->register();
+        
+        echo '<div class="notice notice-success"><p>' . __('Auto-Tuning enabled successfully!', 'fp-performance-suite') . '</p></div>';
+    }
+    
+    /**
+     * Disabilita Auto-Tuning
+     */
+    private function disableAutoTuning(): void
+    {
+        $settings = get_option('fp_ps_auto_tuner', []);
+        $settings['enabled'] = false;
+        update_option('fp_ps_auto_tuner', $settings);
+        
+        // Rimuovi cron job
+        wp_clear_scheduled_hook('fp_ps_auto_tune');
+        
+        echo '<div class="notice notice-warning"><p>' . __('Auto-Tuning disabled successfully!', 'fp-performance-suite') . '</p></div>';
+    }
+    
+    /**
+     * Esegue tuning manuale
+     */
+    private function runManualTuning(): void
+    {
+        try {
+            $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
+            $results = $autoTuner->performAutoTuning();
+            
+            if (!empty($results)) {
+                echo '<div class="notice notice-success"><p>' . __('Manual tuning completed successfully!', 'fp-performance-suite') . '</p></div>';
+            } else {
+                echo '<div class="notice notice-info"><p>' . __('Manual tuning completed with no changes.', 'fp-performance-suite') . '</p></div>';
+            }
+        } catch (Exception $e) {
+            echo '<div class="notice notice-error"><p>' . sprintf(__('Manual tuning failed: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
+        }
     }
 }

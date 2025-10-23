@@ -1,0 +1,193 @@
+/**
+ * System Metrics Component Styles
+ * 
+ * Styling for server system metrics display in overview
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ * @link https://francescopasseri.com
+ */
+
+/* System Info Rows */
+.fp-ps-system-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.fp-ps-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--fp-ps-border-light);
+}
+
+.fp-ps-info-row:last-child {
+    border-bottom: none;
+}
+
+.fp-ps-info-label {
+    font-weight: 500;
+    color: var(--fp-ps-text-muted);
+    font-size: 0.875rem;
+}
+
+.fp-ps-info-value {
+    font-weight: 600;
+    color: var(--fp-ps-text-primary);
+    font-size: 0.875rem;
+    text-align: right;
+    word-break: break-word;
+}
+
+/* Resource Usage */
+.fp-ps-resource-usage {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.fp-ps-resource-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fp-ps-resource-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fp-ps-resource-label {
+    font-weight: 500;
+    color: var(--fp-ps-text-primary);
+    font-size: 0.875rem;
+}
+
+.fp-ps-resource-value {
+    font-weight: 600;
+    color: var(--fp-ps-text-primary);
+    font-size: 0.875rem;
+}
+
+.fp-ps-resource-details {
+    font-size: 0.75rem;
+    color: var(--fp-ps-text-muted);
+    margin-top: 0.25rem;
+}
+
+/* Progress Bar for Resources */
+.fp-ps-resource-item .fp-ps-progress-bar {
+    height: 8px;
+    background-color: var(--fp-ps-bg-light);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fp-ps-resource-item .fp-ps-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.fp-ps-resource-item .fp-ps-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* System Metrics Grid Enhancements */
+.fp-ps-grid.three .fp-ps-stat-box {
+    position: relative;
+    overflow: hidden;
+}
+
+.fp-ps-grid.three .fp-ps-stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--fp-ps-primary), var(--fp-ps-secondary));
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .fp-ps-system-info {
+        gap: 0.5rem;
+    }
+    
+    .fp-ps-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        padding: 0.75rem 0;
+    }
+    
+    .fp-ps-info-value {
+        text-align: left;
+        font-size: 0.8rem;
+    }
+    
+    .fp-ps-resource-usage {
+        gap: 1rem;
+    }
+    
+    .fp-ps-resource-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .fp-ps-resource-value {
+        font-size: 0.8rem;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .fp-ps-info-row {
+        border-bottom-color: var(--fp-ps-border-dark);
+    }
+    
+    .fp-ps-resource-item .fp-ps-progress-bar {
+        background-color: var(--fp-ps-bg-dark);
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .fp-ps-info-row {
+        border-bottom-width: 2px;
+    }
+    
+    .fp-ps-resource-item .fp-ps-progress-bar {
+        border: 1px solid var(--fp-ps-border-primary);
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .fp-ps-resource-item .fp-ps-progress-fill {
+        transition: none;
+    }
+    
+    .fp-ps-resource-item .fp-ps-progress-fill::after {
+        animation: none;
+    }
+}

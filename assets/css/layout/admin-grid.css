@@ -1,0 +1,203 @@
+/**
+ * Admin Grid Layout
+ * 
+ * Layout specifico per le pagine admin del plugin
+ * Utilizza il design system modulare per coerenza grafica
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ */
+
+/* ===========================
+   Admin Grid System
+   =========================== */
+
+.fp-ps-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--fp-spacing-xl);
+    margin: var(--fp-spacing-xl) 0;
+}
+
+.fp-ps-admin-card {
+    background: var(--fp-card);
+    border-radius: var(--fp-radius-lg);
+    padding: var(--fp-spacing-xl);
+    box-shadow: var(--fp-shadow-sm);
+    border: 1px solid #e5e7eb;
+    transition: all var(--fp-transition-base);
+}
+
+.fp-ps-admin-card:hover {
+    box-shadow: var(--fp-shadow-md);
+    transform: translateY(-2px);
+}
+
+.fp-ps-admin-card h2 {
+    margin: 0 0 var(--fp-spacing-lg) 0;
+    font-size: var(--fp-font-size-lg);
+    color: var(--fp-text);
+    border-bottom: 2px solid var(--fp-accent);
+    padding-bottom: var(--fp-spacing-sm);
+    font-weight: 600;
+}
+
+.fp-ps-admin-card h3 {
+    margin: var(--fp-spacing-lg) 0 var(--fp-spacing-md) 0;
+    font-size: var(--fp-font-size-md);
+    color: var(--fp-text);
+    font-weight: 600;
+}
+
+/* ===========================
+   Responsive Admin Grid
+   =========================== */
+
+@media (max-width: 768px) {
+    .fp-ps-admin-grid {
+        grid-template-columns: 1fr;
+        gap: var(--fp-spacing-lg);
+        margin: var(--fp-spacing-lg) 0;
+    }
+    
+    .fp-ps-admin-card {
+        padding: var(--fp-spacing-lg);
+    }
+    
+    .fp-ps-admin-card h2 {
+        font-size: var(--fp-font-size-md);
+        margin-bottom: var(--fp-spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .fp-ps-admin-grid {
+        gap: var(--fp-spacing-md);
+        margin: var(--fp-spacing-md) 0;
+    }
+    
+    .fp-ps-admin-card {
+        padding: var(--fp-spacing-md);
+    }
+    
+    .fp-ps-admin-card h2 {
+        font-size: var(--fp-font-size-base);
+        padding-bottom: var(--fp-spacing-xs);
+    }
+}
+
+/* ===========================
+   Admin Card Variants
+   =========================== */
+
+.fp-ps-admin-card--primary {
+    border-left: 4px solid var(--fp-accent);
+}
+
+.fp-ps-admin-card--success {
+    border-left: 4px solid var(--fp-ok);
+}
+
+.fp-ps-admin-card--warning {
+    border-left: 4px solid var(--fp-warn);
+}
+
+.fp-ps-admin-card--danger {
+    border-left: 4px solid var(--fp-danger);
+}
+
+/* ===========================
+   Admin Card Content
+   =========================== */
+
+.fp-ps-admin-card .form-table {
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.fp-ps-admin-card .form-table th {
+    background: transparent;
+    border-bottom: 1px solid #e5e7eb;
+    padding: var(--fp-spacing-md) 0;
+    font-weight: 600;
+    color: var(--fp-text);
+    width: 30%;
+}
+
+.fp-ps-admin-card .form-table td {
+    padding: var(--fp-spacing-md) 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.fp-ps-admin-card .form-table tr:last-child th,
+.fp-ps-admin-card .form-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* ===========================
+   Admin Card Actions
+   =========================== */
+
+.fp-ps-admin-card .submit {
+    margin-top: var(--fp-spacing-lg);
+    padding: 0;
+}
+
+.fp-ps-admin-card .button-primary {
+    background: var(--fp-accent);
+    border-color: var(--fp-accent);
+    color: white;
+    padding: var(--fp-spacing-sm) var(--fp-spacing-xl);
+    border-radius: var(--fp-radius-sm);
+    font-weight: 600;
+    transition: all var(--fp-transition-base);
+    box-shadow: none;
+}
+
+.fp-ps-admin-card .button-primary:hover {
+    background: #1e4fd4;
+    border-color: #1e4fd4;
+    transform: translateY(-1px);
+    box-shadow: var(--fp-shadow-md);
+}
+
+.fp-ps-admin-card .button-primary:focus {
+    box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.2);
+}
+
+/* ===========================
+   Admin Card Notices
+   =========================== */
+
+.fp-ps-admin-card .notice {
+    margin: var(--fp-spacing-md) 0;
+    padding: var(--fp-spacing-md);
+    border-radius: var(--fp-radius-sm);
+    border-left: 4px solid;
+}
+
+.fp-ps-admin-card .notice-success {
+    background: var(--fp-success-light);
+    border-left-color: var(--fp-success);
+    color: var(--fp-success-dark);
+}
+
+.fp-ps-admin-card .notice-error {
+    background: var(--fp-danger-light);
+    border-left-color: var(--fp-danger);
+    color: var(--fp-danger-dark);
+}
+
+.fp-ps-admin-card .notice-warning {
+    background: var(--fp-warning-light);
+    border-left-color: var(--fp-warn);
+    color: var(--fp-warning-dark);
+}
+
+.fp-ps-admin-card .notice-info {
+    background: var(--fp-info-light);
+    border-left-color: var(--fp-info);
+    color: var(--fp-info-dark);
+}

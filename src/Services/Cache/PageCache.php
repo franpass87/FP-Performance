@@ -1035,16 +1035,32 @@ class PageCache implements CacheInterface
                 'count' => $count,
                 'cached_at' => date('H:i:s', $this->cachedFileCountTime),
             ]);
-        } else if (is_dir($dir)) {
-            [$count, $size] = $this->countCacheFiles($dir);
-            $this->cachedFileCount = $count;
-            $this->cachedFileCountTime = $now;
+        } else {
+            // Assicurati che la directory esista prima di contare
+            if (!is_dir($dir)) {
+                wp_mkdir_p($dir);
+            }
             
-            // Log solo se il conteggio è significativo o se è la prima volta
-            if ($count > 0 || $this->cachedFileCount === null) {
-                Logger::debug('Cache file count refreshed', [
-                    'count' => $count,
-                    'size_mb' => round($size / 1024 / 1024, 2),
+            if (is_dir($dir)) {
+                [$count, $size] = $this->countCacheFiles($dir);
+                $this->cachedFileCount = $count;
+                $this->cachedFileCountTime = $now;
+                
+                // Log solo se il conteggio è significativo o se è la prima volta
+                if ($count > 0 || $this->cachedFileCount === null) {
+                    Logger::debug('Cache file count refreshed', [
+                        'count' => $count,
+                        'size_mb' => round($size / 1024 / 1024, 2),
+                    ]);
+                }
+            } else {
+                // Se la directory non può essere creata, resetta la cache del conteggio
+                $this->cachedFileCount = 0;
+                $this->cachedFileCountTime = $now;
+                
+                Logger::warning('Cache directory cannot be created or accessed', [
+                    'dir' => $dir,
+                    'wp_content_dir' => defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : 'undefined',
                 ]);
             }
         }
@@ -1057,6 +1073,16 @@ class PageCache implements CacheInterface
         ];
     }
     
+    /**
+     * Forza il refresh del conteggio cache
+     * Utile per test e debug
+     */
+    public function refreshCacheCount(): void
+    {
+        $this->cachedFileCount = null;
+        $this->cachedFileCountTime = 0;
+    }
+
     /**
      * Conta i file cache con ottimizzazione
      * 

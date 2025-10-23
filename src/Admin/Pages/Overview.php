@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer;
+use FP\PerfSuite\Services\Monitoring\SystemMonitor;
 use FP\PerfSuite\Services\Score\Scorer;
 
 use function __;
@@ -83,6 +84,19 @@ class Overview extends AbstractPage
         // Analisi dei problemi
         $analyzer = $this->container->get(PerformanceAnalyzer::class);
         $analysis = $analyzer->analyze();
+        
+        // Metriche del sistema server
+        $systemMonitor = SystemMonitor::instance();
+        
+        // Raccoglie metriche correnti se non ci sono dati recenti
+        $systemStats = $systemMonitor->getStats(7);
+        if ($systemStats['samples'] === 0) {
+            $systemMonitor->collectMetrics();
+            $systemStats = $systemMonitor->getStats(7);
+        }
+        
+        // Raccoglie metriche correnti per aggiornare i dati
+        $systemMonitor->collectMetrics();
         
         $exportUrl = wp_nonce_url(admin_url('admin-post.php?action=fp_ps_export_csv'), 'fp-ps-export');
 
@@ -234,6 +248,151 @@ class Overview extends AbstractPage
                 <p class="description fp-ps-mt-sm">
                     <?php esc_html_e('Peak memory usage', 'fp-performance-suite'); ?>
                 </p>
+            </div>
+        </section>
+
+        <!-- Metriche del Sistema Server -->
+        <section class="fp-ps-grid three">
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
+                    <?php echo number_format($systemStats['memory']['avg_usage_mb'], 1); ?><span class="fp-ps-text-md">MB</span>
+                </div>
+                <div class="stat-label">💾 <?php esc_html_e('Memoria Media', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
+                    <?php printf(
+                        esc_html__('Picco: %s MB', 'fp-performance-suite'),
+                        number_format($systemStats['memory']['max_peak_mb'], 1)
+                    ); ?>
+                </p>
+            </div>
+            
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
+                    <?php echo number_format($systemStats['disk']['usage_percent'], 1); ?><span class="fp-ps-text-md">%</span>
+                </div>
+                <div class="stat-label">💿 <?php esc_html_e('Spazio Disco', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
+                    <?php printf(
+                        esc_html__('%s GB liberi su %s GB', 'fp-performance-suite'),
+                        number_format($systemStats['disk']['free_gb'], 1),
+                        number_format($systemStats['disk']['total_gb'], 1)
+                    ); ?>
+                </p>
+            </div>
+            
+            <div class="fp-ps-stat-box">
+                <div class="stat-value">
+                    <?php echo number_format($systemStats['load']['avg_1min'], 2); ?>
+                </div>
+                <div class="stat-label">⚡ <?php esc_html_e('Carico Sistema', 'fp-performance-suite'); ?></div>
+                <p class="description fp-ps-mt-sm">
+                    <?php printf(
+                        esc_html__('5min: %s, 15min: %s', 'fp-performance-suite'),
+                        number_format($systemStats['load']['avg_5min'], 2),
+                        number_format($systemStats['load']['avg_15min'], 2)
+                    ); ?>
+                </p>
+            </div>
+        </section>
+
+        <!-- Dettagli Sistema Server -->
+        <section class="fp-ps-grid two">
+            <div class="fp-ps-card">
+                <h2>🖥️ <?php esc_html_e('Informazioni Sistema', 'fp-performance-suite'); ?></h2>
+                <div class="fp-ps-system-info">
+                    <div class="fp-ps-info-row">
+                        <span class="fp-ps-info-label"><?php esc_html_e('PHP Version:', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-info-value"><?php echo esc_html($systemStats['system']['php_version']); ?></span>
+                    </div>
+                    <div class="fp-ps-info-row">
+                        <span class="fp-ps-info-label"><?php esc_html_e('Server:', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-info-value"><?php echo esc_html($systemStats['system']['server_software']); ?></span>
+                    </div>
+                    <?php if ($systemStats['system']['cpu_cores']) : ?>
+                    <div class="fp-ps-info-row">
+                        <span class="fp-ps-info-label"><?php esc_html_e('CPU Cores:', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-info-value"><?php echo esc_html($systemStats['system']['cpu_cores']); ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($systemStats['system']['cpu_model']) : ?>
+                    <div class="fp-ps-info-row">
+                        <span class="fp-ps-info-label"><?php esc_html_e('CPU Model:', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-info-value"><?php echo esc_html($systemStats['system']['cpu_model']); ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <div class="fp-ps-info-row">
+                        <span class="fp-ps-info-label"><?php esc_html_e('Database Size:', 'fp-performance-suite'); ?></span>
+                        <span class="fp-ps-info-value"><?php echo number_format($systemStats['database']['size_mb'], 1); ?> MB (<?php echo esc_html($systemStats['database']['tables']); ?> tables)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fp-ps-card">
+                <h2>📊 <?php esc_html_e('Utilizzo Risorse', 'fp-performance-suite'); ?></h2>
+                <div class="fp-ps-resource-usage">
+                    <!-- Memoria -->
+                    <div class="fp-ps-resource-item">
+                        <div class="fp-ps-resource-header">
+                            <span class="fp-ps-resource-label"><?php esc_html_e('Memoria PHP', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-resource-value"><?php echo number_format($systemStats['memory']['avg_usage_percent'], 1); ?>%</span>
+                        </div>
+                        <div class="fp-ps-progress-bar">
+                            <div class="fp-ps-progress-fill" 
+                                 style="width: <?php echo esc_attr($systemStats['memory']['avg_usage_percent']); ?>%; 
+                                        background-color: <?php echo $systemStats['memory']['avg_usage_percent'] > 80 ? '#ef4444' : ($systemStats['memory']['avg_usage_percent'] > 60 ? '#f59e0b' : '#10b981'); ?>"></div>
+                        </div>
+                        <div class="fp-ps-resource-details">
+                            <?php printf(
+                                esc_html__('Media: %s MB | Picco: %s MB', 'fp-performance-suite'),
+                                number_format($systemStats['memory']['avg_usage_mb'], 1),
+                                number_format($systemStats['memory']['max_usage_mb'], 1)
+                            ); ?>
+                        </div>
+                    </div>
+
+                    <!-- Spazio Disco -->
+                    <div class="fp-ps-resource-item">
+                        <div class="fp-ps-resource-header">
+                            <span class="fp-ps-resource-label"><?php esc_html_e('Spazio Disco', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-resource-value"><?php echo number_format($systemStats['disk']['usage_percent'], 1); ?>%</span>
+                        </div>
+                        <div class="fp-ps-progress-bar">
+                            <div class="fp-ps-progress-fill" 
+                                 style="width: <?php echo esc_attr($systemStats['disk']['usage_percent']); ?>%; 
+                                        background-color: <?php echo $systemStats['disk']['usage_percent'] > 90 ? '#ef4444' : ($systemStats['disk']['usage_percent'] > 80 ? '#f59e0b' : '#10b981'); ?>"></div>
+                        </div>
+                        <div class="fp-ps-resource-details">
+                            <?php printf(
+                                esc_html__('Usato: %s GB | Libero: %s GB', 'fp-performance-suite'),
+                                number_format($systemStats['disk']['used_gb'], 1),
+                                number_format($systemStats['disk']['free_gb'], 1)
+                            ); ?>
+                        </div>
+                    </div>
+
+                    <!-- Carico Sistema -->
+                    <?php if ($systemStats['load']['avg_1min'] > 0) : ?>
+                    <div class="fp-ps-resource-item">
+                        <div class="fp-ps-resource-header">
+                            <span class="fp-ps-resource-label"><?php esc_html_e('Carico Sistema', 'fp-performance-suite'); ?></span>
+                            <span class="fp-ps-resource-value"><?php echo number_format($systemStats['load']['avg_1min'], 2); ?></span>
+                        </div>
+                        <div class="fp-ps-progress-bar">
+                            <div class="fp-ps-progress-fill" 
+                                 style="width: <?php echo esc_attr(min(($systemStats['load']['avg_1min'] / 4) * 100, 100)); ?>%; 
+                                        background-color: <?php echo $systemStats['load']['avg_1min'] > 3 ? '#ef4444' : ($systemStats['load']['avg_1min'] > 2 ? '#f59e0b' : '#10b981'); ?>"></div>
+                        </div>
+                        <div class="fp-ps-resource-details">
+                            <?php printf(
+                                esc_html__('1min: %s | 5min: %s | 15min: %s', 'fp-performance-suite'),
+                                number_format($systemStats['load']['avg_1min'], 2),
+                                number_format($systemStats['load']['avg_5min'], 2),
+                                number_format($systemStats['load']['avg_15min'], 2)
+                            ); ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </section>
 
@@ -568,6 +727,9 @@ class Overview extends AbstractPage
         
         $analyzer = $this->container->get(PerformanceAnalyzer::class);
         $analysis = $analyzer->analyze();
+        
+        $systemMonitor = SystemMonitor::instance();
+        $systemStats = $systemMonitor->getStats(7);
 
         nocache_headers();
         header('Content-Type: text/csv; charset=utf-8');
@@ -586,6 +748,18 @@ class Overview extends AbstractPage
         fputcsv($output, [__('Avg DB Queries', 'fp-performance-suite'), number_format($stats7days['avg_queries'], 1)]);
         fputcsv($output, [__('Avg Memory (MB)', 'fp-performance-suite'), number_format($stats7days['avg_memory'], 1)]);
         fputcsv($output, [__('Samples', 'fp-performance-suite'), $stats7days['samples']]);
+        fputcsv($output, []);
+        
+        // System Metrics
+        fputcsv($output, [__('System Metrics', 'fp-performance-suite')]);
+        fputcsv($output, [__('Server Memory Usage (%)', 'fp-performance-suite'), number_format($systemStats['memory']['avg_usage_percent'], 1)]);
+        fputcsv($output, [__('Server Memory Peak (MB)', 'fp-performance-suite'), number_format($systemStats['memory']['max_peak_mb'], 1)]);
+        fputcsv($output, [__('Disk Usage (%)', 'fp-performance-suite'), number_format($systemStats['disk']['usage_percent'], 1)]);
+        fputcsv($output, [__('Disk Free (GB)', 'fp-performance-suite'), number_format($systemStats['disk']['free_gb'], 1)]);
+        fputcsv($output, [__('System Load (1min)', 'fp-performance-suite'), number_format($systemStats['load']['avg_1min'], 2)]);
+        fputcsv($output, [__('Database Size (MB)', 'fp-performance-suite'), number_format($systemStats['database']['size_mb'], 1)]);
+        fputcsv($output, [__('PHP Version', 'fp-performance-suite'), $systemStats['system']['php_version']]);
+        fputcsv($output, [__('Server Software', 'fp-performance-suite'), $systemStats['system']['server_software']]);
         fputcsv($output, []);
         
         // Score Breakdown
