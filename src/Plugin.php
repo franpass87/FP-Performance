@@ -846,6 +846,9 @@ class Plugin
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
         
+        // Backend Optimization Service - Registra sempre per evitare errori
+        $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
+        
         // Database Optimization Services (v1.4.0) - Registra sempre per evitare errori
         $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
         $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());

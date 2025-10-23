@@ -76,6 +76,11 @@ class BackendOptimizer
             $this->disableHeavyScreenOptions();
         }
 
+        // Ottimizzazioni Admin Bar
+        if (!empty($settings['admin_bar'])) {
+            $this->optimizeAdminBar($settings['admin_bar']);
+        }
+
         Logger::debug('Backend Optimizer initialized');
     }
 
@@ -354,6 +359,16 @@ class BackendOptimizer
                 'widgets_removed' => !empty($settings['remove_dashboard_widgets']),
                 'status' => !empty($settings['optimize_dashboard']) ? 'optimal' : 'default',
             ],
+            'admin_bar' => [
+                'optimized' => !empty($settings['admin_bar']),
+                'frontend_disabled' => !empty($settings['admin_bar']['disable_frontend']),
+                'logo_removed' => !empty($settings['admin_bar']['disable_wordpress_logo']),
+                'updates_removed' => !empty($settings['admin_bar']['disable_updates']),
+                'comments_removed' => !empty($settings['admin_bar']['disable_comments']),
+                'new_menu_removed' => !empty($settings['admin_bar']['disable_new']),
+                'customize_removed' => !empty($settings['admin_bar']['disable_customize']),
+                'status' => !empty($settings['admin_bar']) ? 'optimal' : 'default',
+            ],
         ];
 
         return [
@@ -372,27 +387,108 @@ class BackendOptimizer
         $score = 0;
         $maxScore = 100;
 
-        // Heartbeat (30 punti)
+        // Heartbeat (25 punti)
         if ($optimizations['heartbeat']['status'] === 'optimal') {
-            $score += 30;
+            $score += 25;
         }
 
-        // Revisioni (20 punti)
+        // Revisioni (15 punti)
         if ($optimizations['revisions']['status'] === 'optimal') {
-            $score += 20;
-        }
-
-        // Autosave (15 punti)
-        if ($optimizations['autosave']['status'] === 'optimal') {
             $score += 15;
         }
 
-        // Dashboard (35 punti)
+        // Autosave (10 punti)
+        if ($optimizations['autosave']['status'] === 'optimal') {
+            $score += 10;
+        }
+
+        // Dashboard (25 punti)
         if ($optimizations['dashboard']['status'] === 'optimal') {
-            $score += 35;
+            $score += 25;
+        }
+
+        // Admin Bar (25 punti)
+        if ($optimizations['admin_bar']['status'] === 'optimal') {
+            $score += 25;
         }
 
         return min($score, $maxScore);
+    }
+
+    /**
+     * Ottimizza Admin Bar
+     */
+    private function optimizeAdminBar(array $adminBarSettings): void
+    {
+        // Disabilita Admin Bar sul frontend
+        if (!empty($adminBarSettings['disable_frontend'])) {
+            add_filter('show_admin_bar', '__return_false');
+        }
+
+        // Rimuovi logo WordPress
+        if (!empty($adminBarSettings['disable_wordpress_logo'])) {
+            add_action('admin_bar_menu', [$this, 'removeWordPressLogo'], 11);
+        }
+
+        // Rimuovi menu aggiornamenti
+        if (!empty($adminBarSettings['disable_updates'])) {
+            add_action('admin_bar_menu', [$this, 'removeUpdatesMenu'], 11);
+        }
+
+        // Rimuovi menu commenti
+        if (!empty($adminBarSettings['disable_comments'])) {
+            add_action('admin_bar_menu', [$this, 'removeCommentsMenu'], 11);
+        }
+
+        // Rimuovi menu "+ Nuovo"
+        if (!empty($adminBarSettings['disable_new'])) {
+            add_action('admin_bar_menu', [$this, 'removeNewMenu'], 11);
+        }
+
+        // Rimuovi link Personalizza
+        if (!empty($adminBarSettings['disable_customize'])) {
+            add_action('admin_bar_menu', [$this, 'removeCustomizeLink'], 11);
+        }
+    }
+
+    /**
+     * Rimuove il logo WordPress dalla admin bar
+     */
+    public function removeWordPressLogo(\WP_Admin_Bar $wp_admin_bar): void
+    {
+        $wp_admin_bar->remove_node('wp-logo');
+    }
+
+    /**
+     * Rimuove il menu aggiornamenti dalla admin bar
+     */
+    public function removeUpdatesMenu(\WP_Admin_Bar $wp_admin_bar): void
+    {
+        $wp_admin_bar->remove_node('updates');
+    }
+
+    /**
+     * Rimuove il menu commenti dalla admin bar
+     */
+    public function removeCommentsMenu(\WP_Admin_Bar $wp_admin_bar): void
+    {
+        $wp_admin_bar->remove_node('comments');
+    }
+
+    /**
+     * Rimuove il menu "+ Nuovo" dalla admin bar
+     */
+    public function removeNewMenu(\WP_Admin_Bar $wp_admin_bar): void
+    {
+        $wp_admin_bar->remove_node('new-content');
+    }
+
+    /**
+     * Rimuove il link Personalizza dalla admin bar
+     */
+    public function removeCustomizeLink(\WP_Admin_Bar $wp_admin_bar): void
+    {
+        $wp_admin_bar->remove_node('customize');
     }
 
     /**

@@ -149,32 +149,28 @@ class Assets extends AbstractPage
             if (isset($_POST['auto_detect_scripts'])) {
                 $criticalScripts = $smartDetector->detectCriticalScripts();
                 set_transient('fp_ps_critical_scripts_detected', $criticalScripts, 300);
-                wp_safe_redirect(add_query_arg('msg', 'scripts_detected', $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('Critical scripts detected successfully!', 'fp-performance-suite');
             }
             
             // Auto-detect CSS to exclude
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $excludeCss = $smartDetector->detectExcludeCss();
                 set_transient('fp_ps_exclude_css_detected', $excludeCss, 300);
-                wp_safe_redirect(add_query_arg('msg', 'css_detected', $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('CSS exclusions detected successfully!', 'fp-performance-suite');
             }
             
             // Auto-detect JS to exclude
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $excludeJs = $smartDetector->detectExcludeJs();
                 set_transient('fp_ps_exclude_js_detected', $excludeJs, 300);
-                wp_safe_redirect(add_query_arg('msg', 'js_detected', $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('JavaScript exclusions detected successfully!', 'fp-performance-suite');
             }
             
             // Auto-detect critical assets
             if (isset($_POST['auto_detect_critical_assets'])) {
                 $criticalAssets = $assetsDetector->detectCriticalAssets();
                 set_transient('fp_ps_critical_assets_detected', $criticalAssets, 300);
-                wp_safe_redirect(add_query_arg('msg', 'assets_detected', $_SERVER['REQUEST_URI']));
-                exit;
+                $message = __('Critical assets detected successfully!', 'fp-performance-suite');
             }
             
             // Apply critical scripts suggestions
@@ -204,8 +200,7 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'scripts_applied', 'count' => count($excludeScripts)], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = sprintf(__('%d critical scripts applied successfully!', 'fp-performance-suite'), count($excludeScripts));
             }
             
             // Apply CSS exclusions suggestions
@@ -231,8 +226,7 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_css' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'css_applied', 'count' => count($cssToExclude)], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = sprintf(__('%d CSS exclusions applied successfully!', 'fp-performance-suite'), count($cssToExclude));
             }
             
             // Apply JS exclusions suggestions
@@ -258,15 +252,13 @@ class Assets extends AbstractPage
                 
                 $optimizer->update(['exclude_js' => implode("\n", $mergedExclude)]);
                 
-                wp_safe_redirect(add_query_arg(['msg' => 'js_applied', 'count' => count($jsToExclude)], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = sprintf(__('%d JavaScript exclusions applied successfully!', 'fp-performance-suite'), count($jsToExclude));
             }
             
             // Apply critical assets suggestions
             if (isset($_POST['apply_critical_assets_suggestions'])) {
                 $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
-                wp_safe_redirect(add_query_arg(['msg' => 'assets_applied', 'count' => $result['applied']], $_SERVER['REQUEST_URI']));
-                exit;
+                $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $result['applied']);
             }
             
             // ============================================

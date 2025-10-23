@@ -73,7 +73,7 @@ class PostHandler
             if (isset($_POST['auto_detect_exclude_js'])) {
                 $optimizer = new Optimizer();
                 $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->autoDetectExcludeJs();
+                $result = $smartDetector->detectExcludeJs();
                 set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
                 $message = __('JavaScript exclusions detected successfully!', 'fp-performance-suite');
             }
@@ -81,7 +81,7 @@ class PostHandler
             if (isset($_POST['auto_detect_exclude_css'])) {
                 $optimizer = new Optimizer();
                 $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->autoDetectExcludeCss();
+                $result = $smartDetector->detectExcludeCss();
                 set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
                 $message = __('CSS exclusions detected successfully!', 'fp-performance-suite');
             }

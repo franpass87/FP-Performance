@@ -174,7 +174,19 @@ class Database extends AbstractPage
             }
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
-                $message = sprintf(__('Ottimizzate %d tabelle.', 'fp-performance-suite'), count($results['optimized'] ?? []));
+                $optimizedCount = count($results['optimized'] ?? []);
+                // Ricalcola i dati del database dopo l'ottimizzazione
+                $dbAnalysis = $optimizer->analyze();
+                
+                // Crea messaggio dettagliato con i risultati aggiornati
+                $finalOverhead = $dbAnalysis['table_analysis']['total_overhead_mb'] ?? 0;
+                $finalNeedsOpt = count(array_filter($dbAnalysis['table_analysis']['tables'] ?? [], fn($t) => $t['needs_optimization'] ?? false));
+                
+                if ($finalOverhead == 0 && $finalNeedsOpt == 0) {
+                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile: 0 MB, Tabelle che necessitano ottimizzazione: 0.', 'fp-performance-suite'), $optimizedCount);
+                } else {
+                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile rimanente: %.2f MB, Tabelle che necessitano ancora ottimizzazione: %d.', 'fp-performance-suite'), $optimizedCount, $finalOverhead, $finalNeedsOpt);
+                }
             }
             if (isset($_POST['enable_object_cache'])) {
                 $settings = $objectCache->getSettings();
@@ -244,7 +256,10 @@ class Database extends AbstractPage
         ];
         // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
-        $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
+        // Ricalcola i dati del database solo se non sono già stati ricalcolati dopo l'ottimizzazione
+        if (!isset($dbAnalysis)) {
+            $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
+        }
         
         // Object Cache - usa metodi esistenti
         $cacheSettings = $objectCache->getSettings();
@@ -1259,6 +1274,30 @@ class Database extends AbstractPage
                 });
             }
         }
+
+        // Reset Cache Stats form submission
+        if (isset($_POST['action']) && $_POST['action'] === 'reset_cache_stats' && 
+            isset($_POST['fp_ps_reset_cache_stats_nonce']) && 
+            wp_verify_nonce(wp_unslash($_POST['fp_ps_reset_cache_stats_nonce']), 'fp_ps_reset_cache_stats')) {
+            try {
+                $queryCache = $this->container->get(QueryCacheManager::class);
+                $result = $queryCache->resetStats();
+                
+                if ($result) {
+                    add_action('admin_notices', function() {
+                        echo '<div class="notice notice-success is-dismissible"><p>' . 
+                             esc_html__('Statistiche Query Cache resettate con successo!', 'fp-performance-suite') . 
+                             '</p></div>';
+                    });
+                }
+            } catch (\Exception $e) {
+                add_action('admin_notices', function() use ($e) {
+                    echo '<div class="notice notice-error is-dismissible"><p>' . 
+                         esc_html__('Errore nel resettare le statistiche: ', 'fp-performance-suite') . 
+                         esc_html($e->getMessage()) . '</p></div>';
+                });
+            }
+        }
     }
 
     private function renderTabsNavigation(string $activeTab): void
@@ -1343,7 +1382,19 @@ class Database extends AbstractPage
             }
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
-                $message = sprintf(__('Ottimizzate %d tabelle.', 'fp-performance-suite'), count($results['optimized'] ?? []));
+                $optimizedCount = count($results['optimized'] ?? []);
+                // Ricalcola i dati del database dopo l'ottimizzazione
+                $dbAnalysis = $optimizer->analyze();
+                
+                // Crea messaggio dettagliato con i risultati aggiornati
+                $finalOverhead = $dbAnalysis['table_analysis']['total_overhead_mb'] ?? 0;
+                $finalNeedsOpt = count(array_filter($dbAnalysis['table_analysis']['tables'] ?? [], fn($t) => $t['needs_optimization'] ?? false));
+                
+                if ($finalOverhead == 0 && $finalNeedsOpt == 0) {
+                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile: 0 MB, Tabelle che necessitano ottimizzazione: 0.', 'fp-performance-suite'), $optimizedCount);
+                } else {
+                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile rimanente: %.2f MB, Tabelle che necessitano ancora ottimizzazione: %d.', 'fp-performance-suite'), $optimizedCount, $finalOverhead, $finalNeedsOpt);
+                }
             }
             if (isset($_POST['enable_object_cache'])) {
                 $settings = $objectCache->getSettings();
@@ -1415,7 +1466,10 @@ class Database extends AbstractPage
         
         // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
-        $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
+        // Ricalcola i dati del database solo se non sono già stati ricalcolati dopo l'ottimizzazione
+        if (!isset($dbAnalysis)) {
+            $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
+        }
         
         // Object Cache - usa metodi esistenti
         $cacheSettings = $objectCache->getSettings();
@@ -1844,11 +1898,11 @@ class Database extends AbstractPage
                     </p>
                 </div>
                 
-                <div class="fp-ps-stat-box" style="border-left: 4px solid #10b981;">
+                <div class="fp-ps-stat-box" style="border-left: 4px solid #43e97b;">
                     <div class="stat-label"><?php esc_html_e('Tempo Totale', 'fp-performance-suite'); ?></div>
-                    <div class="stat-value"><?php echo esc_html(number_format($statistics['total_time'] ?? 0, 3)); ?>s</div>
+                    <div class="stat-value"><?php echo esc_html(round($statistics['total_query_time'] ?? 0, 3)); ?>s</div>
                     <p class="description">
-                        <?php esc_html_e('Tempo totale esecuzione query', 'fp-performance-suite'); ?>
+                        <?php esc_html_e('Tempo totale di esecuzione query', 'fp-performance-suite'); ?>
                     </p>
                 </div>
             </div>
@@ -1986,6 +2040,19 @@ class Database extends AbstractPage
         <?php if ($queryCache && !empty($cacheStats)): ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('📊 Statistiche Query Cache', 'fp-performance-suite'); ?></h2>
+            
+            <div style="margin-bottom: 20px;">
+                <form method="post" action="" style="display: inline-block;">
+                    <?php wp_nonce_field('fp_ps_reset_cache_stats', 'fp_ps_reset_cache_stats_nonce'); ?>
+                    <input type="hidden" name="action" value="reset_cache_stats">
+                    <button type="submit" class="button button-secondary" onclick="return confirm('<?php esc_attr_e('Sei sicuro di voler resettare le statistiche della cache?', 'fp-performance-suite'); ?>')">
+                        <?php esc_html_e('🔄 Resetta Statistiche', 'fp-performance-suite'); ?>
+                    </button>
+                </form>
+                <span style="margin-left: 15px; color: #666; font-size: 13px;">
+                    <?php esc_html_e('Le statistiche vengono aggiornate automaticamente durante l\'attività del sito.', 'fp-performance-suite'); ?>
+                </span>
+            </div>
             
             <div class="fp-ps-grid three" style="margin-top: 20px;">
                 <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">

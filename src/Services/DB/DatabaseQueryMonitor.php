@@ -39,66 +39,95 @@ class DatabaseQueryMonitor
             return;
         }
         
-        // Hook per intercettare le query
-        add_filter('query', [$this, 'interceptQuery']);
+        // Abilita il logging delle query
+        $this->enableQueryLogging();
+        
+        // Hook per intercettare le query usando il metodo corretto di WordPress
+        add_filter('log_query_custom_data', [$this, 'interceptQueryData'], 10, 5);
+        add_action('wpdb_query', [$this, 'trackQueryExecution'], 10, 2);
         add_action('shutdown', [$this, 'logStatistics'], PHP_INT_MAX);
         
         // Hook per salvare i log
         add_action('wp_footer', [$this, 'displayAdminBar'], PHP_INT_MAX);
         add_action('admin_footer', [$this, 'displayAdminBar'], PHP_INT_MAX);
+        
+        // Hook alternativo per intercettare le query
+        add_action('init', [$this, 'startQueryMonitoring'], 1);
     }
     
     /**
-     * Intercetta e analizza ogni query
+     * Intercetta i dati delle query per il logging
      */
-    public function interceptQuery(string $query): string
+    public function interceptQueryData(array $query_data, string $query, float $query_time, array $query_callstack, float $query_start): array
     {
         if (!$this->isEnabled) {
-            return $query;
+            return $query_data;
         }
         
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
-        $caller = $this->getQueryCaller($backtrace);
-        
         $queryHash = md5($query);
-        $startTime = microtime(true);
+        $caller = $this->getQueryCaller($query_callstack);
         
         // Registra la query
-        $this->queries[$queryHash] = [
-            'query' => $query,
-            'caller' => $caller,
-            'time' => $startTime,
-            'count' => isset($this->queries[$queryHash]) ? $this->queries[$queryHash]['count'] + 1 : 1,
-        ];
+        if (!isset($this->queries[$queryHash])) {
+            $this->queries[$queryHash] = [
+                'query' => $query,
+                'caller' => $caller,
+                'count' => 0,
+                'total_time' => 0,
+                'max_time' => 0,
+                'min_time' => PHP_FLOAT_MAX,
+            ];
+        }
         
-        // Registra query duplicate
-        if (isset($this->queries[$queryHash]) && $this->queries[$queryHash]['count'] > 1) {
+        // Aggiorna le statistiche
+        $this->queries[$queryHash]['count']++;
+        $this->queries[$queryHash]['total_time'] += $query_time;
+        $this->queries[$queryHash]['max_time'] = max($this->queries[$queryHash]['max_time'], $query_time);
+        $this->queries[$queryHash]['min_time'] = min($this->queries[$queryHash]['min_time'], $query_time);
+        
+        // Aggiorna il tempo totale
+        $this->totalQueryTime += $query_time;
+        
+        // Query lenta?
+        $settings = $this->getSettings();
+        $threshold = $settings['slow_query_threshold'] ?? self::SLOW_QUERY_THRESHOLD;
+        if ($query_time > $threshold) {
+            $this->slowQueries[] = [
+                'query' => $query,
+                'time' => $query_time,
+                'caller' => $caller,
+                'timestamp' => time(),
+            ];
+        }
+        
+        // Query duplicate?
+        if ($this->queries[$queryHash]['count'] > 1) {
             $this->duplicateCount++;
         }
         
-        return $query;
+        return $query_data;
     }
     
     /**
-     * Traccia il tempo di esecuzione delle query
+     * Traccia l'esecuzione delle query
+     */
+    public function trackQueryExecution(string $query, float $query_time): void
+    {
+        if (!$this->isEnabled) {
+            return;
+        }
+        
+        // Questo metodo viene chiamato dopo l'esecuzione di ogni query
+        // Le statistiche sono già state aggiornate in interceptQueryData
+    }
+    
+    /**
+     * Traccia il tempo di esecuzione delle query (metodo legacy mantenuto per compatibilità)
      */
     public function trackQueryTime(string $query, float $executionTime): void
     {
-        $queryHash = md5($query);
-        
-        if (isset($this->queries[$queryHash])) {
-            $this->queries[$queryHash]['execution_time'] = $executionTime;
-            $this->totalQueryTime += $executionTime;
-            
-            // Query lenta?
-            if ($executionTime > self::SLOW_QUERY_THRESHOLD) {
-                $this->slowQueries[] = [
-                    'query' => $query,
-                    'time' => $executionTime,
-                    'caller' => $this->queries[$queryHash]['caller'],
-                ];
-            }
-        }
+        // Questo metodo è ora gestito da interceptQueryData
+        // Mantenuto per compatibilità con codice esistente
     }
     
     /**
@@ -108,17 +137,28 @@ class DatabaseQueryMonitor
     {
         global $wpdb;
         
-        $totalQueries = $wpdb->num_queries ?? count($this->queries);
+        // Calcola il numero totale di query eseguite
+        $totalQueries = 0;
+        foreach ($this->queries as $queryData) {
+            $totalQueries += $queryData['count'];
+        }
+        
+        // Se non abbiamo query registrate, usa il contatore di WordPress
+        if ($totalQueries === 0) {
+            $totalQueries = $wpdb->num_queries ?? 0;
+        }
         
         return [
             'total_queries' => $totalQueries,
             'slow_queries' => count($this->slowQueries),
             'duplicate_queries' => $this->duplicateCount,
-            'total_query_time' => $this->totalQueryTime,
-            'average_query_time' => $totalQueries > 0 ? $this->totalQueryTime / $totalQueries : 0,
+            'total_query_time' => round($this->totalQueryTime, 4),
+            'average_query_time' => $totalQueries > 0 ? round($this->totalQueryTime / $totalQueries, 4) : 0,
+            'unique_queries' => count($this->queries),
             'queries' => $this->queries,
             'slow_queries_list' => $this->slowQueries,
             'timestamp' => time(),
+            'enabled' => $this->isEnabled,
         ];
     }
     
@@ -270,6 +310,101 @@ class DatabaseQueryMonitor
         }
         
         return 'unknown';
+    }
+    
+    /**
+     * Abilita il logging delle query in WordPress
+     */
+    public function enableQueryLogging(): void
+    {
+        if (!$this->isEnabled) {
+            return;
+        }
+        
+        // Abilita il logging delle query in WordPress
+        if (!defined('SAVEQUERIES')) {
+            define('SAVEQUERIES', true);
+        }
+        
+        // Abilita il logging personalizzato
+        add_filter('log_query_custom_data', [$this, 'interceptQueryData'], 10, 5);
+    }
+    
+    /**
+     * Avvia il monitoraggio delle query
+     */
+    public function startQueryMonitoring(): void
+    {
+        if (!$this->isEnabled) {
+            return;
+        }
+        
+        // Intercetta le query usando un approccio più diretto
+        add_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
+    }
+    
+    /**
+     * Analizza le query di WordPress
+     */
+    public function analyzeWordPressQueries(): void
+    {
+        global $wpdb;
+        
+        if (!$this->isEnabled || !$wpdb->queries) {
+            return;
+        }
+        
+        $settings = $this->getSettings();
+        $threshold = $settings['slow_query_threshold'] ?? self::SLOW_QUERY_THRESHOLD;
+        
+        foreach ($wpdb->queries as $query_data) {
+            if (!is_array($query_data) || count($query_data) < 3) {
+                continue;
+            }
+            
+            $query = $query_data[0];
+            $query_time = $query_data[1];
+            $callstack = $query_data[2] ?? [];
+            
+            $queryHash = md5($query);
+            $caller = $this->getQueryCaller($callstack);
+            
+            // Registra la query
+            if (!isset($this->queries[$queryHash])) {
+                $this->queries[$queryHash] = [
+                    'query' => $query,
+                    'caller' => $caller,
+                    'count' => 0,
+                    'total_time' => 0,
+                    'max_time' => 0,
+                    'min_time' => PHP_FLOAT_MAX,
+                ];
+            }
+            
+            // Aggiorna le statistiche
+            $this->queries[$queryHash]['count']++;
+            $this->queries[$queryHash]['total_time'] += $query_time;
+            $this->queries[$queryHash]['max_time'] = max($this->queries[$queryHash]['max_time'], $query_time);
+            $this->queries[$queryHash]['min_time'] = min($this->queries[$queryHash]['min_time'], $query_time);
+            
+            // Aggiorna il tempo totale
+            $this->totalQueryTime += $query_time;
+            
+            // Query lenta?
+            if ($query_time > $threshold) {
+                $this->slowQueries[] = [
+                    'query' => $query,
+                    'time' => $query_time,
+                    'caller' => $caller,
+                    'timestamp' => time(),
+                ];
+            }
+            
+            // Query duplicate?
+            if ($this->queries[$queryHash]['count'] > 1) {
+                $this->duplicateCount++;
+            }
+        }
     }
     
     /**

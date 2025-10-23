@@ -165,6 +165,7 @@ class WebPQueue
      */
     public function getNextBatch(int $batchSize, int $batchOffset): array
     {
+        // Prova prima con post_status 'inherit' (standard per attachment)
         $query = new WP_Query([
             'post_type' => 'attachment',
             'post_status' => 'inherit',
@@ -187,6 +188,30 @@ class WebPQueue
             ],
         ]);
 
+        // Se non trova immagini con 'inherit', prova senza specificare post_status
+        if (empty($query->posts)) {
+            $query = new WP_Query([
+                'post_type' => 'attachment',
+                'post_mime_type' => ['image/jpeg', 'image/png'],
+                'posts_per_page' => $batchSize,
+                'offset' => $batchOffset,
+                'fields' => 'ids',
+                'no_found_rows' => true,
+                'meta_query' => [
+                    'relation' => 'OR',
+                    [
+                        'key' => '_fp_ps_webp_generated',
+                        'compare' => 'NOT EXISTS',
+                    ],
+                    [
+                        'key' => '_fp_ps_webp_generated',
+                        'value' => '1',
+                        'compare' => '!=',
+                    ],
+                ],
+            ]);
+        }
+
         if (empty($query->posts)) {
             return [];
         }
@@ -203,6 +228,7 @@ class WebPQueue
      */
     private function countQueuedImages(int $offset, int $limit): int
     {
+        // Prova prima con post_status 'inherit' (standard per attachment)
         $query = new WP_Query([
             'post_type' => 'attachment',
             'post_status' => 'inherit',
@@ -226,6 +252,32 @@ class WebPQueue
         ]);
 
         $total = (int) $query->found_posts;
+
+        // Se non trova immagini con 'inherit', prova senza specificare post_status
+        if ($total === 0) {
+            $query = new WP_Query([
+                'post_type' => 'attachment',
+                'post_mime_type' => ['image/jpeg', 'image/png'],
+                'posts_per_page' => 1,
+                'offset' => $offset,
+                'fields' => 'ids',
+                'no_found_rows' => false,
+                'meta_query' => [
+                    'relation' => 'OR',
+                    [
+                        'key' => '_fp_ps_webp_generated',
+                        'compare' => 'NOT EXISTS',
+                    ],
+                    [
+                        'key' => '_fp_ps_webp_generated',
+                        'value' => '1',
+                        'compare' => '!=',
+                    ],
+                ],
+            ]);
+
+            $total = (int) $query->found_posts;
+        }
 
         if ($total <= $offset) {
             return 0;
