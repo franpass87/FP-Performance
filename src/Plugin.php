@@ -87,8 +87,8 @@ class Plugin
         $original_time_limit = ini_get('max_execution_time');
         
         try {
-            @ini_set('memory_limit', '512M');
-            @ini_set('max_execution_time', 60);
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', 60);
             
             $container = new ServiceContainer();
             self::register($container);
@@ -96,10 +96,10 @@ class Plugin
         } finally {
             // Ripristina i limiti originali
             if ($original_memory_limit) {
-                @ini_set('memory_limit', $original_memory_limit);
+                ini_set('memory_limit', $original_memory_limit);
             }
             if ($original_time_limit) {
-                @ini_set('max_execution_time', $original_time_limit);
+                ini_set('max_execution_time', $original_time_limit);
             }
         }
 
@@ -984,7 +984,7 @@ class Plugin
     public static function onActivate(): void
     {
         // Aumenta memory limit temporaneamente per l'attivazione
-        @ini_set('memory_limit', '768M');
+        ini_set('memory_limit', '768M');
         
         // Attivazione minimale - solo operazioni essenziali
         try {
@@ -1458,7 +1458,11 @@ class Plugin
                 // Crea file .htaccess per proteggere le directory
                 $htaccessFile = $dir . '/.htaccess';
                 if (!file_exists($htaccessFile)) {
-                    file_put_contents($htaccessFile, "Order deny,allow\nDeny from all\n");
+                    $htaccessContent = "Order deny,allow\nDeny from all\n";
+                    $result = file_put_contents($htaccessFile, $htaccessContent);
+                    if ($result === false) {
+                        error_log('[FP Performance Suite] Impossibile creare file .htaccess in ' . $htaccessFile);
+                    }
                 }
             }
         }
@@ -1524,9 +1528,7 @@ class Plugin
             // Se nessuna opzione mobile esiste, forza l'inizializzazione
             if (!$has_mobile_options) {
                 // Log per debug
-                if (function_exists('error_log')) {
-                    error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
-                }
+                error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
                 
                 // Forza l'inizializzazione chiamando ensureDefaultOptionsExist
                 self::ensureDefaultOptionsExist();
@@ -1537,9 +1539,7 @@ class Plugin
             
             return true;
         } catch (\Exception $e) {
-            if (function_exists('error_log')) {
-                error_log('[FP Performance Suite] Errore durante inizializzazione opzioni mobile: ' . $e->getMessage());
-            }
+            error_log('[FP Performance Suite] Errore durante inizializzazione opzioni mobile: ' . $e->getMessage());
             return false;
         }
     }
