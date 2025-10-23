@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Monitoring;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\MonitoringRateLimiter;
 
 /**
  * Performance Monitoring Service
@@ -149,21 +150,29 @@ class PerformanceMonitor
      */
     private function storeMetric(array $metrics): void
     {
-        $stored = get_option(self::OPTION . '_data', []);
+        // Use rate limiting to prevent database overload
+        $result = MonitoringRateLimiter::executeWithLimit('performance_metrics', function() use ($metrics) {
+            $stored = get_option(self::OPTION . '_data', []);
 
-        if (!is_array($stored)) {
-            $stored = [];
+            if (!is_array($stored)) {
+                $stored = [];
+            }
+
+            // Add new metric
+            $stored[] = $metrics;
+
+            // Keep only last MAX_ENTRIES
+            if (count($stored) > self::MAX_ENTRIES) {
+                $stored = array_slice($stored, -self::MAX_ENTRIES);
+            }
+
+            update_option(self::OPTION . '_data', $stored, false);
+            return true;
+        });
+        
+        if (!$result) {
+            Logger::debug('Performance metric storage rate limited');
         }
-
-        // Add new metric
-        $stored[] = $metrics;
-
-        // Keep only last MAX_ENTRIES
-        if (count($stored) > self::MAX_ENTRIES) {
-            $stored = array_slice($stored, -self::MAX_ENTRIES);
-        }
-
-        update_option(self::OPTION . '_data', $stored, false);
     }
 
     /**

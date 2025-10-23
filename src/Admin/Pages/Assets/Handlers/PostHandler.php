@@ -63,6 +63,9 @@ class PostHandler
                     case 'javascript_saved':
                         $message = __('JavaScript settings saved successfully!', 'fp-performance-suite');
                         break;
+                    case 'main_toggle_saved':
+                        $message = __('Asset optimization settings saved successfully!', 'fp-performance-suite');
+                        break;
                 }
             }
 
@@ -115,6 +118,9 @@ class PostHandler
             $formType = sanitize_text_field($_POST['form_type'] ?? '');
             
             switch ($formType) {
+                case 'main_toggle':
+                    $message = $this->handleMainToggleForm($settings);
+                    break;
                 case 'javascript':
                     $message = $this->handleJavaScriptForm($settings);
                     break;
@@ -449,5 +455,31 @@ class PostHandler
         }
 
         return __('Advanced JavaScript optimization settings saved successfully!', 'fp-performance-suite');
+    }
+
+    private function handleMainToggleForm(array &$settings): string
+    {
+        $optimizer = new Optimizer();
+        
+        // Get current settings
+        $currentSettings = $optimizer->settings();
+        
+        // Update the main enabled flag
+        $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
+        
+        // Save the updated settings
+        $optimizer->update($currentSettings);
+        
+        // Update the settings array for the view
+        $settings = $optimizer->settings();
+        
+        // Redirect to avoid page refresh issues
+        $redirect_url = add_query_arg([
+            'page' => 'fp-performance-suite-assets',
+            'msg' => 'main_toggle_saved'
+        ], admin_url('admin.php'));
+        
+        wp_safe_redirect($redirect_url);
+        exit;
     }
 }

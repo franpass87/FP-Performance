@@ -181,6 +181,166 @@ class Plugin
                 $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
                 $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
             }
+            
+            // Backend Optimization Services - FIX CRITICO
+            $backendSettings = get_option('fp_ps_backend_optimizer', []);
+            if (!empty($backendSettings['enabled'])) {
+                $container->get(BackendOptimizer::class)->register();
+            }
+            
+            // Database Optimization Services - FIX CRITICO
+            $dbSettings = get_option('fp_ps_db', []);
+            if (!empty($dbSettings['enabled'])) {
+                $container->get(DatabaseOptimizer::class)->register();
+                $container->get(DatabaseQueryMonitor::class)->register();
+                $container->get(PluginSpecificOptimizer::class)->register();
+                $container->get(DatabaseReportService::class)->register();
+                $container->get(QueryCacheManager::class)->register();
+            }
+            
+            // Security Services - FIX CRITICO
+            $securitySettings = get_option('fp_ps_htaccess_security', []);
+            if (!empty($securitySettings['enabled'])) {
+                $container->get(HtaccessSecurity::class)->register();
+            }
+            
+            // Compression Services - FIX CRITICO
+            if (get_option('fp_ps_compression_enabled', false) || get_option('fp_ps_compression_deflate_enabled', false) || get_option('fp_ps_compression_brotli_enabled', false)) {
+                $container->get(CompressionManager::class)->register();
+            }
+            
+            // CDN Services - FIX CRITICO
+            $cdnSettings = get_option('fp_ps_cdn', []);
+            if (!empty($cdnSettings['enabled'])) {
+                $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
+            }
+            
+            // Object Cache Services - FIX CRITICO
+            if (get_option('fp_ps_object_cache_enabled', false)) {
+                $container->get(ObjectCacheManager::class)->register();
+            }
+            
+            // Edge Cache Services - FIX CRITICO
+            if (get_option('fp_ps_edge_cache_enabled', false)) {
+                $container->get(EdgeCacheManager::class)->register();
+            }
+            
+            // Monitoring Services - FIX CRITICO
+            if (get_option('fp_ps_monitoring_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
+                $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
+            }
+            
+            // Reports Services - FIX CRITICO
+            if (get_option('fp_ps_reports_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
+            }
+            
+            // Scoring Services - FIX CRITICO (sempre attivo per calcolo score)
+            $container->get(Scorer::class)->register();
+            
+            // Preset Services - FIX CRITICO (sempre attivo per gestione preset)
+            $container->get(PresetManager::class)->register();
+            
+            // AI Services - FIX CRITICO
+            if (get_option('fp_ps_ai_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\AI\Analyzer::class)->register();
+            }
+            
+            // Intelligence Services - FIX CRITICO (sempre attivi per rilevamento automatico)
+            $container->get(SmartExclusionDetector::class)->register();
+            $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
+            
+            // PWA Services - FIX CRITICO
+            if (get_option('fp_ps_pwa_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
+            }
+            
+            // HTTP/2 Services - FIX CRITICO
+            if (get_option('fp_ps_http2_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
+            }
+            
+            // Advanced Assets Services - FIX CRITICO
+            if (get_option('fp_ps_critical_css_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
+                $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
+            }
+            
+            if (get_option('fp_ps_smart_delivery_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+            }
+            
+            // Advanced Assets Optimization Services - FIX CRITICO
+            if (get_option('fp_ps_html_minification_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\HtmlMinifier::class)->register();
+            }
+            
+            if (get_option('fp_ps_script_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class)->register();
+            }
+            
+            if (get_option('fp_ps_wordpress_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class)->register();
+            }
+            
+            if (get_option('fp_ps_resource_hints_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class)->register();
+            }
+            
+            if (get_option('fp_ps_dependency_resolution_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)->register();
+            }
+            
+            if (get_option('fp_ps_lazy_loading_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
+            }
+            
+            if (get_option('fp_ps_font_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
+            }
+            
+            if (get_option('fp_ps_image_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+            }
+            
+            if (get_option('fp_ps_auto_font_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
+            }
+            
+            if (get_option('fp_ps_lighthouse_font_optimization_enabled', false)) {
+                $container->get(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)->register();
+            }
+            
+            // WebP Services - FIX CRITICO (sempre attivi per conversione WebP)
+            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)->register();
+            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class)->register();
+            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class)->register();
+            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)->register();
+            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class)->register();
+            
+            // AVIF Services - FIX CRITICO (sempre attivi per conversione AVIF)
+            $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class)->register();
+            $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)->register();
+            
+            // Performance Analysis Services - FIX CRITICO (sempre attivi per analisi performance)
+            $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class)->register();
+            
+            // Advanced Assets Optimization Services - FIX CRITICO (sempre attivi per ottimizzazioni avanzate)
+            $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\UnusedCSSOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class)->register();
+            
+            // WebP Plugin Compatibility - FIX CRITICO (sempre attivo per compatibilità WebP)
+            $container->get(WebPPluginCompatibility::class)->register();
+            
+            // Theme Services - FIX CRITICO (sempre attivi per gestione tema)
+            $container->get(ThemeAssetConfiguration::class)->register();
+            $container->get(ThemeDetector::class)->register();
         });
         
         // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
@@ -656,14 +816,14 @@ class Plugin
             ], false);
         }
         
-        // Mobile Cache Manager - ABILITATO di default per risolvere errore critico
+        // Mobile Cache Manager - DISATTIVATO di default (tutte le opzioni devono essere disattivate al primo avvio)
         if (!get_option('fp_ps_mobile_cache')) {
             update_option('fp_ps_mobile_cache', [
-                'enabled' => true,
-                'enable_mobile_cache_headers' => true,
-                'enable_resource_caching' => true,
-                'cache_mobile_css' => true,
-                'cache_mobile_js' => true,
+                'enabled' => false,
+                'enable_mobile_cache_headers' => false,
+                'enable_resource_caching' => false,
+                'cache_mobile_css' => false,
+                'cache_mobile_js' => false,
                 'html_cache_duration' => 300,
                 'css_cache_duration' => 3600,
                 'js_cache_duration' => 3600
@@ -775,6 +935,156 @@ class Plugin
         // Compression - DISATTIVATA di default
         if (!get_option('fp_ps_compression_deflate_enabled')) {
             update_option('fp_ps_compression_deflate_enabled', false, false);
+        }
+        
+        // Backend Optimization - DISATTIVATA di default
+        if (!get_option('fp_ps_backend_optimizer')) {
+            update_option('fp_ps_backend_optimizer', [
+                'enabled' => false,
+                'admin_bar' => [
+                    'disable_frontend' => false,
+                    'disable_wordpress_logo' => false,
+                    'disable_updates' => false,
+                    'disable_comments' => false,
+                    'disable_new' => false,
+                    'disable_customize' => false,
+                ],
+                'dashboard' => [
+                    'disable_welcome' => false,
+                    'disable_quick_press' => false,
+                    'disable_activity' => false,
+                    'disable_primary' => false,
+                    'disable_secondary' => false,
+                    'disable_site_health' => false,
+                    'disable_php_update' => false,
+                ],
+                'heartbeat' => [
+                    'dashboard' => 'default',
+                    'editor' => 'default',
+                    'frontend' => 'default',
+                ],
+                'heartbeat_interval' => 60,
+                'admin_ajax' => [
+                    'disable_heartbeat' => false,
+                    'disable_autosave' => false,
+                    'disable_post_lock' => false,
+                ]
+            ], false);
+        }
+        
+        // Database Optimization - DISATTIVATA di default
+        if (!get_option('fp_ps_db')) {
+            update_option('fp_ps_db', [
+                'enabled' => false,
+                'schedule' => 'manual',
+                'batch' => 200,
+                'cleanup_scope' => [],
+                'query_monitor' => [
+                    'enabled' => false,
+                    'log_queries' => false,
+                    'log_slow_queries' => false,
+                    'slow_query_threshold' => 0.5
+                ],
+                'optimization' => [
+                    'auto_optimize' => false,
+                    'optimize_on_cleanup' => false,
+                    'repair_tables' => false
+                ]
+            ], false);
+        }
+        
+        // CDN Services - DISATTIVATI di default
+        if (!get_option('fp_ps_cdn')) {
+            update_option('fp_ps_cdn', [
+                'enabled' => false,
+                'url' => '',
+                'provider' => 'custom'
+            ], false);
+        }
+        
+        // Object Cache - DISATTIVATO di default
+        if (!get_option('fp_ps_object_cache_enabled')) {
+            update_option('fp_ps_object_cache_enabled', false, false);
+        }
+        
+        // Edge Cache - DISATTIVATO di default
+        if (!get_option('fp_ps_edge_cache_enabled')) {
+            update_option('fp_ps_edge_cache_enabled', false, false);
+        }
+        
+        // Monitoring Services - DISATTIVATI di default
+        if (!get_option('fp_ps_monitoring_enabled')) {
+            update_option('fp_ps_monitoring_enabled', false, false);
+        }
+        
+        // Reports Services - DISATTIVATI di default
+        if (!get_option('fp_ps_reports_enabled')) {
+            update_option('fp_ps_reports_enabled', false, false);
+        }
+        
+        // AI Services - DISATTIVATI di default
+        if (!get_option('fp_ps_ai_enabled')) {
+            update_option('fp_ps_ai_enabled', false, false);
+        }
+        
+        // PWA Services - DISATTIVATI di default
+        if (!get_option('fp_ps_pwa_enabled')) {
+            update_option('fp_ps_pwa_enabled', false, false);
+        }
+        
+        // HTTP/2 Services - DISATTIVATI di default
+        if (!get_option('fp_ps_http2_enabled')) {
+            update_option('fp_ps_http2_enabled', false, false);
+        }
+        
+        // Advanced Assets Services - DISATTIVATI di default
+        if (!get_option('fp_ps_critical_css_enabled')) {
+            update_option('fp_ps_critical_css_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_smart_delivery_enabled')) {
+            update_option('fp_ps_smart_delivery_enabled', false, false);
+        }
+        
+        // Advanced Assets Optimization Services - DISATTIVATI di default
+        if (!get_option('fp_ps_html_minification_enabled')) {
+            update_option('fp_ps_html_minification_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_script_optimization_enabled')) {
+            update_option('fp_ps_script_optimization_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_wordpress_optimization_enabled')) {
+            update_option('fp_ps_wordpress_optimization_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_resource_hints_enabled')) {
+            update_option('fp_ps_resource_hints_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_dependency_resolution_enabled')) {
+            update_option('fp_ps_dependency_resolution_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_lazy_loading_enabled')) {
+            update_option('fp_ps_lazy_loading_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_font_optimization_enabled')) {
+            update_option('fp_ps_font_optimization_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_image_optimization_enabled')) {
+            update_option('fp_ps_image_optimization_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_auto_font_optimization_enabled')) {
+            update_option('fp_ps_auto_font_optimization_enabled', false, false);
+        }
+        
+        if (!get_option('fp_ps_lighthouse_font_optimization_enabled')) {
+            update_option('fp_ps_lighthouse_font_optimization_enabled', false, false);
         }
     }
 

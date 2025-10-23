@@ -500,7 +500,7 @@ class PageCache implements CacheInterface
             exit;
         }
 
-        $contents = file_get_contents($file);
+        $contents = $this->safeCacheRead($file);
         if ($contents === false) {
             return;
         }
@@ -614,16 +614,104 @@ class PageCache implements CacheInterface
         }
 
         try {
-            $this->fs->putContents($file, $buffer);
-            $this->fs->putContents($file . '.meta', wp_json_encode([
-                'ttl' => $settings['ttl'],
-                'time' => time(),
-            ]));
+            $this->safeCacheWrite($file, $buffer, $settings);
             Logger::debug('Page cache file saved', ['file' => basename($file)]);
         } catch (\Throwable $e) {
             Logger::error('Failed to save page cache file', $e);
         }
         $this->finishBuffering();
+    }
+
+    /**
+     * Scrive file cache in modo sicuro con file lock
+     * 
+     * @param string $file Path del file cache
+     * @param string $buffer Contenuto da scrivere
+     * @param array $settings Impostazioni cache
+     * @return bool True se scrittura riuscita
+     */
+    private function safeCacheWrite(string $file, string $buffer, array $settings): bool
+    {
+        $lockFile = $file . '.lock';
+        $lock = fopen($lockFile, 'c+');
+        
+        if (!$lock) {
+            Logger::error('Failed to create cache lock file', ['file' => $lockFile]);
+            return false;
+        }
+        
+        // Acquire exclusive lock (non-blocking)
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            Logger::debug('Cache file locked by another process', ['file' => $file]);
+            return false; // Another process is writing
+        }
+        
+        try {
+            // Write cache file
+            $result = $this->fs->putContents($file, $buffer);
+            if ($result === false) {
+                Logger::error('Failed to write cache file', ['file' => $file]);
+                return false;
+            }
+            
+            // Write metadata file
+            $metaResult = $this->fs->putContents($file . '.meta', wp_json_encode([
+                'ttl' => $settings['ttl'],
+                'time' => time(),
+            ]));
+            
+            if ($metaResult === false) {
+                Logger::error('Failed to write cache metadata', ['file' => $file . '.meta']);
+                return false;
+            }
+            
+            return true;
+        } finally {
+            // Always release lock
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            @unlink($lockFile);
+        }
+    }
+
+    /**
+     * Legge file cache in modo sicuro con file lock
+     * 
+     * @param string $file Path del file cache
+     * @return string|false Contenuto del file o false se errore
+     */
+    private function safeCacheRead(string $file): string|false
+    {
+        $lockFile = $file . '.lock';
+        
+        // Check if file is being written (lock exists)
+        if (file_exists($lockFile)) {
+            Logger::debug('Cache file is being written, skipping read', ['file' => $file]);
+            return false;
+        }
+        
+        // Try to acquire shared lock for reading
+        $lock = fopen($file, 'r');
+        if (!$lock) {
+            Logger::error('Failed to open cache file for reading', ['file' => $file]);
+            return false;
+        }
+        
+        // Try to acquire shared lock (non-blocking)
+        if (!flock($lock, LOCK_SH | LOCK_NB)) {
+            fclose($lock);
+            Logger::debug('Cache file locked for writing, skipping read', ['file' => $file]);
+            return false;
+        }
+        
+        try {
+            $contents = file_get_contents($file);
+            return $contents;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
 
     private function isCacheableRequest(): bool

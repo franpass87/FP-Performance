@@ -117,6 +117,37 @@ class Assets extends AbstractPage
                 </div>
             <?php endif; ?>
 
+            <!-- Main Toggle for Asset Optimization -->
+            <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
+                <h2 style="margin-top: 0; color: #495057;">⚡ <?php esc_html_e('Asset Optimization Control', 'fp-performance-suite'); ?></h2>
+                <form method="post" action="?page=fp-performance-suite-assets">
+                    <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                    <input type="hidden" name="form_type" value="main_toggle" />
+                    
+                    <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                        <input type="checkbox" name="assets_enabled" value="1" <?php checked(!empty($settings['enabled'])); ?> style="transform: scale(1.2);" />
+                        <span class="info">
+                            <strong><?php esc_html_e('Enable Asset Optimization', 'fp-performance-suite'); ?></strong>
+                            <br>
+                            <small style="color: #6c757d;">
+                                <?php esc_html_e('Master switch to enable/disable all asset optimization features. When disabled, no optimization will be applied.', 'fp-performance-suite'); ?>
+                            </small>
+                        </span>
+                    </label>
+                    
+                    <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px; margin: 10px 0;">
+                        <p style="margin: 0; font-size: 14px; color: #1565c0;">
+                            <strong>ℹ️ <?php esc_html_e('Note:', 'fp-performance-suite'); ?></strong>
+                            <?php esc_html_e('This is the main control for asset optimization. Individual features in the tabs below will only work when this is enabled.', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+                    
+                    <button type="submit" class="button button-primary" style="margin-top: 10px;">
+                        <?php esc_html_e('Save Settings', 'fp-performance-suite'); ?>
+                    </button>
+                </form>
+            </div>
+
             <!-- Tab Navigation -->
             <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
                 <a href="?page=fp-performance-suite-assets&tab=javascript" 

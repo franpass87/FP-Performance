@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Mobile;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\MobileRateLimiter;
 
 /**
  * Responsive Image Manager Service
@@ -38,6 +39,12 @@ class ResponsiveImageManager
     public function optimizeImageAttributes(array $attr, \WP_Post $attachment, $size): array
     {
         if (!$this->isMobile()) {
+            return $attr;
+        }
+
+        // Rate limiting per responsive images
+        if (!MobileRateLimiter::isAllowed('responsive_images')) {
+            Logger::debug('Responsive image optimization rate limited');
             return $attr;
         }
 
@@ -312,7 +319,7 @@ class ResponsiveImageManager
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'enable_lazy_loading' => true,
             'optimize_srcset' => true,
             'add_mobile_dimensions' => true,

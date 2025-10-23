@@ -72,7 +72,7 @@ class HtaccessSecurity
                 'domain' => $this->getDomain(),
             ],
             'security_headers' => [
-                'enabled' => true,
+                'enabled' => false,
                 'hsts' => true,
                 'hsts_max_age' => 31536000,
                 'hsts_subdomains' => true,
@@ -83,7 +83,7 @@ class HtaccessSecurity
                 'permissions_policy' => 'camera=(), microphone=(), geolocation=()',
             ],
             'cache_rules' => [
-                'enabled' => true,
+                'enabled' => false,
                 'html_cache' => false, // HTML no-cache per sicurezza
                 'fonts_cache' => true,
                 'fonts_max_age' => 31536000, // 1 anno
@@ -91,12 +91,12 @@ class HtaccessSecurity
                 'css_js_max_age' => 2592000, // 1 mese
             ],
             'cors' => [
-                'enabled' => true,
+                'enabled' => false,
                 'fonts_origin' => '*',
                 'svg_origin' => '*',
             ],
             'file_protection' => [
-                'enabled' => true,
+                'enabled' => false,
                 'protect_hidden_files' => true,
                 'protect_wp_config' => true,
             ],
@@ -182,7 +182,49 @@ class HtaccessSecurity
         }
 
         $combinedRules = implode("\n\n", array_filter($rules));
-        $this->htaccess->injectRules('FP-Performance-Security', $combinedRules);
+        $this->safeHtaccessWrite($combinedRules);
+    }
+
+    /**
+     * Scrive regole .htaccess in modo sicuro con file lock
+     * 
+     * @param string $rules Regole da scrivere
+     * @return bool True se scrittura riuscita
+     */
+    private function safeHtaccessWrite(string $rules): bool
+    {
+        $lockFile = ABSPATH . '.htaccess.lock';
+        $lock = fopen($lockFile, 'c+');
+        
+        if (!$lock) {
+            Logger::error('Failed to create .htaccess lock file', ['file' => $lockFile]);
+            return false;
+        }
+        
+        // Acquire exclusive lock (non-blocking)
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            Logger::debug('.htaccess file locked by another process');
+            return false; // Another process is writing
+        }
+        
+        try {
+            // Write .htaccess rules safely
+            $result = $this->htaccess->injectRules('FP-Performance-Security', $rules);
+            
+            if (!$result) {
+                Logger::error('Failed to write .htaccess rules');
+                return false;
+            }
+            
+            Logger::debug('.htaccess rules written safely');
+            return true;
+        } finally {
+            // Always release lock
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            @unlink($lockFile);
+        }
     }
 
     /**

@@ -139,13 +139,17 @@ class PredictivePrefetching
                         entries.forEach(entry => {
                             if (entry.isIntersecting) {
                                 const link = entry.target;
-                                const url = new URL(link.href);
-                                if (url.origin === location.origin) {
-                                    prefetchUrl(link.href);
+                                if (link.href) {
+                                    const url = new URL(link.href);
+                                    if (url.origin === location.origin) {
+                                        prefetchUrl(link.href);
+                                    }
                                 }
                                 observer.unobserve(link);
                             }
                         });
+                    }, {
+                        rootMargin: '200px 0px'
                     });
 
                     document.querySelectorAll('a[href]').forEach(link => {

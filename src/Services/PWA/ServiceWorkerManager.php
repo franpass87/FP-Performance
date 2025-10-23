@@ -122,11 +122,58 @@ class ServiceWorkerManager
             $swContent = str_replace($placeholder, $value, $swContent);
         }
 
-        // Scrivi file nella root
+        // Scrivi file nella root con file lock
         $swPath = ABSPATH . self::SW_FILENAME;
-        file_put_contents($swPath, $swContent);
+        $result = $this->safeServiceWorkerWrite($swPath, $swContent);
+        
+        if ($result) {
+            Logger::info('Service Worker generated', ['path' => $swPath]);
+        } else {
+            Logger::warning('Service Worker generation failed - file locked');
+        }
+    }
 
-        Logger::info('Service Worker generated', ['path' => $swPath]);
+    /**
+     * Scrive il Service Worker in modo sicuro con file lock
+     * 
+     * @param string $filePath Path del file Service Worker
+     * @param string $content Contenuto da scrivere
+     * @return bool True se scrittura riuscita
+     */
+    private function safeServiceWorkerWrite(string $filePath, string $content): bool
+    {
+        $lockFile = $filePath . '.lock';
+        $lock = fopen($lockFile, 'c+');
+        
+        if (!$lock) {
+            Logger::error('Failed to create Service Worker lock file', ['file' => $lockFile]);
+            return false;
+        }
+        
+        // Acquire exclusive lock (non-blocking)
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            Logger::debug('Service Worker file locked by another process');
+            return false; // Another process is writing
+        }
+        
+        try {
+            // Write Service Worker file safely
+            $result = file_put_contents($filePath, $content, LOCK_EX);
+            
+            if ($result === false) {
+                Logger::error('Failed to write Service Worker file');
+                return false;
+            }
+            
+            Logger::debug('Service Worker written safely');
+            return true;
+        } finally {
+            // Always release lock
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            @unlink($lockFile);
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\ML;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\MLSemaphore;
 use FP\PerfSuite\ServiceContainer;
 
 /**
@@ -30,6 +31,28 @@ class MLPredictor
         $this->container = $container;
         $this->patternLearner = $patternLearner;
         $this->anomalyDetector = $anomalyDetector;
+    }
+
+    /**
+     * Ottiene le impostazioni del servizio
+     */
+    public function getSettings(): array
+    {
+        return get_option(self::OPTION, [
+            'enabled' => false,
+            'data_retention_days' => 30,
+            'prediction_threshold' => 0.7,
+            'anomaly_threshold' => 0.8,
+            'pattern_confidence_threshold' => 0.8
+        ]);
+    }
+
+    /**
+     * Aggiorna le impostazioni del servizio
+     */
+    public function updateSettings(array $settings): void
+    {
+        update_option(self::OPTION, $settings);
     }
 
     /**
@@ -78,12 +101,22 @@ class MLPredictor
             return;
         }
 
-        $data = $this->getStoredData();
-        $patterns = $this->patternLearner->learnPatterns($data);
-        
-        $this->updateLearnedPatterns($patterns);
-        
-        Logger::info('ML patterns analyzed', ['patterns_count' => count($patterns)]);
+        // Acquire semaphore for pattern analysis
+        if (!MLSemaphore::acquire('pattern_analysis', 60)) {
+            Logger::warning('ML pattern analysis skipped - semaphore busy');
+            return;
+        }
+
+        try {
+            $data = $this->getStoredData();
+            $patterns = $this->patternLearner->learnPatterns($data);
+            
+            $this->updateLearnedPatterns($patterns);
+            
+            Logger::info('ML patterns analyzed', ['patterns_count' => count($patterns)]);
+        } finally {
+            MLSemaphore::release('pattern_analysis');
+        }
     }
 
     /**
@@ -95,16 +128,26 @@ class MLPredictor
             return [];
         }
 
-        $patterns = $this->getLearnedPatterns();
-        $current_data = $this->getCurrentData();
-        
-        $predictions = $this->generatePredictions($patterns, $current_data);
-        
-        $this->storePredictions($predictions);
-        
-        Logger::info('ML predictions generated', ['predictions_count' => count($predictions)]);
-        
-        return $predictions;
+        // Acquire semaphore for prediction generation
+        if (!MLSemaphore::acquire('prediction_generation', 60)) {
+            Logger::warning('ML prediction generation skipped - semaphore busy');
+            return [];
+        }
+
+        try {
+            $patterns = $this->getLearnedPatterns();
+            $current_data = $this->getCurrentData();
+            
+            $predictions = $this->generatePredictions($patterns, $current_data);
+            
+            $this->storePredictions($predictions);
+            
+            Logger::info('ML predictions generated', ['predictions_count' => count($predictions)]);
+            
+            return $predictions;
+        } finally {
+            MLSemaphore::release('prediction_generation');
+        }
     }
 
     /**
@@ -116,12 +159,22 @@ class MLPredictor
             return [];
         }
 
-        $current_data = $this->getCurrentData();
-        $historical_data = $this->getHistoricalData();
-        
-        $anomalies = $this->anomalyDetector->detect($current_data, $historical_data);
-        
-        return $anomalies;
+        // Acquire semaphore for anomaly detection
+        if (!MLSemaphore::acquire('anomaly_detection', 30)) {
+            Logger::warning('ML anomaly detection skipped - semaphore busy');
+            return [];
+        }
+
+        try {
+            $current_data = $this->getCurrentData();
+            $historical_data = $this->getHistoricalData();
+            
+            $anomalies = $this->anomalyDetector->detect($current_data, $historical_data);
+            
+            return $anomalies;
+        } finally {
+            MLSemaphore::release('anomaly_detection');
+        }
     }
 
     /**
@@ -524,7 +577,7 @@ class MLPredictor
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'data_retention_days' => 30,
             'prediction_threshold' => 0.7,
             'anomaly_threshold' => 0.8,

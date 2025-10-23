@@ -187,7 +187,7 @@ class TouchOptimizer
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'disable_hover_effects' => true,
             'improve_touch_targets' => true,
             'optimize_scroll' => true,

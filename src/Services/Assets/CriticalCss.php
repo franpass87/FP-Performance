@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\AssetLockManager;
 
 /**
  * Critical CSS management service
@@ -75,7 +76,18 @@ class CriticalCss
             ];
         }
 
-        update_option(self::OPTION, $css);
+        // Use asset lock to prevent race conditions
+        $result = AssetLockManager::executeWithLock('critical_css', '', function() use ($css) {
+            update_option(self::OPTION, $css);
+            return true;
+        });
+
+        if (!$result) {
+            return [
+                'success' => false,
+                'error' => __('Critical CSS update in progress by another process', 'fp-performance-suite'),
+            ];
+        }
 
         Logger::info('Critical CSS updated', [
             'size' => strlen($css),

@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Admin;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\BackendRateLimiter;
 
 /**
  * Backend Optimizer
@@ -16,6 +17,14 @@ use FP\PerfSuite\Utils\Logger;
 class BackendOptimizer
 {
     private const OPTION_KEY = 'fp_ps_backend_optimizer';
+
+    /**
+     * Registra l'ottimizzatore (metodo standard per i servizi)
+     */
+    public function register(): void
+    {
+        add_action('init', [$this, 'init']);
+    }
 
     /**
      * Inizializza l'ottimizzatore
@@ -97,15 +106,24 @@ class BackendOptimizer
      */
     public function updateSettings(array $settings): bool
     {
-        $current = $this->getSettings();
-        $updated = wp_parse_args($settings, $current);
+        // Use rate limiting to prevent configuration overload
+        $result = BackendRateLimiter::executeWithLimit('backend_config', function() use ($settings) {
+            $current = $this->getSettings();
+            $updated = wp_parse_args($settings, $current);
 
-        $result = update_option(self::OPTION_KEY, $updated);
+            $result = update_option(self::OPTION_KEY, $updated);
+            
+            if ($result) {
+                Logger::info('Backend Optimizer settings updated', $updated);
+            }
+
+            return $result;
+        });
         
-        if ($result) {
-            Logger::info('Backend Optimizer settings updated', $updated);
+        if (!$result) {
+            Logger::debug('Backend configuration update rate limited');
         }
-
+        
         return $result;
     }
 

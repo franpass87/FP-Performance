@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Mobile;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\MobileRateLimiter;
 use FP\PerfSuite\ServiceContainer;
 
 /**
@@ -32,6 +33,28 @@ class MobileOptimizer
         $this->touchOptimizer = $touchOptimizer;
         $this->cacheManager = $cacheManager;
         $this->responsiveImageManager = $responsiveImageManager;
+    }
+
+    /**
+     * Ottiene le impostazioni del servizio
+     */
+    public function getSettings(): array
+    {
+        return get_option(self::OPTION, [
+            'enabled' => false,
+            'disable_animations' => false,
+            'remove_unnecessary_scripts' => false,
+            'optimize_touch_targets' => false,
+            'enable_responsive_images' => false
+        ]);
+    }
+
+    /**
+     * Aggiorna le impostazioni del servizio
+     */
+    public function updateSettings(array $settings): void
+    {
+        update_option(self::OPTION, $settings);
     }
 
     /**
@@ -70,6 +93,12 @@ class MobileOptimizer
     public function addMobileCSS(): void
     {
         if (!$this->isMobile()) {
+            return;
+        }
+
+        // Rate limiting per CSS mobile
+        if (!MobileRateLimiter::isAllowed('mobile_css')) {
+            Logger::debug('Mobile CSS generation rate limited');
             return;
         }
 
@@ -115,6 +144,12 @@ class MobileOptimizer
     public function addTouchOptimizations(): void
     {
         if (!$this->isMobile()) {
+            return;
+        }
+
+        // Rate limiting per touch optimizations
+        if (!MobileRateLimiter::isAllowed('touch_optimizations')) {
+            Logger::debug('Touch optimizations rate limited');
             return;
         }
 
@@ -436,7 +471,7 @@ class MobileOptimizer
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'disable_animations' => false,
             'remove_unnecessary_scripts' => true,
             'optimize_touch_targets' => true,

@@ -446,7 +446,7 @@ class ML extends AbstractPage
     private function getSettings(): array
     {
         return get_option('fp_ps_ml_predictor', [
-            'enabled' => true,
+            'enabled' => false,
             'data_retention_days' => 30,
             'prediction_threshold' => 0.7,
             'anomaly_threshold' => 0.8,

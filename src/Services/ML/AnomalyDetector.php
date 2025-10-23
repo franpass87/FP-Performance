@@ -470,7 +470,7 @@ class AnomalyDetector
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'confidence_threshold' => 0.7,
             'z_score_threshold' => 2.0,
             'min_data_points' => 10,

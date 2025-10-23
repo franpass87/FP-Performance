@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Utils\AssetLockManager;
+
 /**
  * Smart Exclusion Detector
  * 
@@ -798,18 +800,27 @@ class SmartExclusionDetector
             'applied_at' => time(),
         ];
         
-        update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+        // Use asset lock to prevent race conditions
+        $result = AssetLockManager::executeWithLock('intelligence_exclusions', $url, function() use ($trackedExclusions, $url) {
+            update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+            
+            // Aggiungi anche alla cache page (backward compatibility)
+            $settings = get_option('fp_ps_page_cache', []);
+            $currentExclusions = $settings['exclude_urls'] ?? '';
+            
+            $exclusionsList = array_filter(explode("\n", $currentExclusions));
+            
+            if (!in_array($url, $exclusionsList, true)) {
+                $exclusionsList[] = $url;
+                $settings['exclude_urls'] = implode("\n", $exclusionsList);
+                update_option('fp_ps_page_cache', $settings);
+            }
+            
+            return true;
+        });
         
-        // Aggiungi anche alla cache page (backward compatibility)
-        $settings = get_option('fp_ps_page_cache', []);
-        $currentExclusions = $settings['exclude_urls'] ?? '';
-        
-        $exclusionsList = array_filter(explode("\n", $currentExclusions));
-        
-        if (!in_array($url, $exclusionsList, true)) {
-            $exclusionsList[] = $url;
-            $settings['exclude_urls'] = implode("\n", $exclusionsList);
-            update_option('fp_ps_page_cache', $settings);
+        if (!$result) {
+            Logger::debug('Intelligence exclusion update locked by another process');
         }
         
         return true;

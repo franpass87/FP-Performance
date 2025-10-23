@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Media\WebP;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\CompressionLock;
 
 use function file_exists;
 use function filemtime;
@@ -50,19 +51,32 @@ class WebPImageConverter
             return false;
         }
 
-        // Try Imagick first (better quality)
-        if ($this->convertWithImagick($sourceFile, $targetFile, $settings)) {
-            $this->logSuccess($sourceFile);
-            return true;
+        // Acquire compression lock
+        $lock = CompressionLock::acquire('webp_convert', $sourceFile);
+        if (!$lock) {
+            Logger::warning('WebP conversion skipped - file locked', [
+                'sourceFile' => basename($sourceFile)
+            ]);
+            return false;
         }
 
-        // Fallback to GD
-        if ($this->convertWithGD($sourceFile, $targetFile, $settings)) {
-            $this->logSuccess($sourceFile);
-            return true;
-        }
+        try {
+            // Try Imagick first (better quality)
+            if ($this->convertWithImagick($sourceFile, $targetFile, $settings)) {
+                $this->logSuccess($sourceFile);
+                return true;
+            }
 
-        return false;
+            // Fallback to GD
+            if ($this->convertWithGD($sourceFile, $targetFile, $settings)) {
+                $this->logSuccess($sourceFile);
+                return true;
+            }
+
+            return false;
+        } finally {
+            CompressionLock::release($lock, 'webp_convert', $sourceFile);
+        }
     }
 
     /**

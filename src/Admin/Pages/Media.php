@@ -175,7 +175,7 @@ class Media extends AbstractPage
 
         if (!empty($_POST['reset_settings'])) {
             $settings = [
-                'enabled' => true,
+                'enabled' => false,
                 'generate_sizes' => true,
                 'js_detection' => true,
                 'min_width' => 300,

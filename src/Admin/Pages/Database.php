@@ -148,6 +148,13 @@ class Database extends AbstractPage
         $results = [];
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_db_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_db_nonce']), 'fp-ps-db')) {
+            
+            // Main Toggle for Database Optimization
+            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+                $dbSettings['enabled'] = !empty($_POST['database_enabled']);
+                update_option('fp_ps_db', $dbSettings);
+                $message = __('Database optimization settings saved successfully!', 'fp-performance-suite');
+            }
             if (isset($_POST['save_db_settings'])) {
                 $cleaner->update([
                     'schedule' => sanitize_text_field($_POST['schedule'] ?? 'manual'),
@@ -367,6 +374,37 @@ class Database extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+
+        <!-- Main Toggle for Database Optimization -->
+        <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
+            <h2 style="margin-top: 0; color: #495057;">⚡ <?php esc_html_e('Database Optimization Control', 'fp-performance-suite'); ?></h2>
+            <form method="post" action="?page=fp-performance-suite-database">
+                <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
+                <input type="hidden" name="form_type" value="main_toggle" />
+                
+                <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                    <input type="checkbox" name="database_enabled" value="1" <?php checked(!empty($dbSettings['enabled'])); ?> style="transform: scale(1.2);" />
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable Database Optimization', 'fp-performance-suite'); ?></strong>
+                        <br>
+                        <small style="color: #6c757d;">
+                            <?php esc_html_e('Master switch to enable/disable all database optimization features. When disabled, no database optimization will be applied.', 'fp-performance-suite'); ?>
+                        </small>
+                    </span>
+                </label>
+                
+                <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px; margin: 10px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #1565c0;">
+                        <strong>ℹ️ <?php esc_html_e('Note:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('This is the main control for database optimization. Individual features in the sections below will only work when this is enabled.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <button type="submit" class="button button-primary" style="margin-top: 10px;">
+                    <?php esc_html_e('Save Settings', 'fp-performance-suite'); ?>
+                </button>
+            </form>
+        </div>
         
         <!-- TAB: Operations & Cleanup -->
         <div class="fp-ps-tab-content" data-tab="operations" style="display: <?php echo $current_tab === 'operations' ? 'block' : 'none'; ?>;">
@@ -1279,6 +1317,13 @@ class Database extends AbstractPage
         $results = [];
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_db_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_db_nonce']), 'fp-ps-db')) {
+            
+            // Main Toggle for Database Optimization
+            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+                $dbSettings['enabled'] = !empty($_POST['database_enabled']);
+                update_option('fp_ps_db', $dbSettings);
+                $message = __('Database optimization settings saved successfully!', 'fp-performance-suite');
+            }
             if (isset($_POST['save_db_settings'])) {
                 $cleaner->update([
                     'schedule' => sanitize_text_field($_POST['schedule'] ?? 'manual'),

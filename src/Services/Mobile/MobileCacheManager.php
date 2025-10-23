@@ -195,7 +195,7 @@ class MobileCacheManager
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'enable_mobile_cache_headers' => true,
             'enable_resource_caching' => true,
             'cache_mobile_css' => true,

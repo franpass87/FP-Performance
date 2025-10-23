@@ -549,7 +549,7 @@ class PatternLearner
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'min_data_points' => 10,
             'confidence_threshold' => 0.7,
             'pattern_retention_days' => 30

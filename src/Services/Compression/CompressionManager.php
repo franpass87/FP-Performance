@@ -62,7 +62,7 @@ class CompressionManager
      */
     public function isDeflateEnabled(): bool
     {
-        return (bool) get_option('fp_ps_compression_deflate_enabled', true); // true di default per compatibilità
+        return (bool) get_option('fp_ps_compression_deflate_enabled', false); // false di default - tutte le opzioni devono essere disattivate al primo avvio
     }
 
     /**

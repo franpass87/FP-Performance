@@ -266,13 +266,13 @@ class ObjectCacheManager
             copy($this->dropInPath, $backupPath);
         }
         
-        // Scrivi il nuovo drop-in
-        $result = file_put_contents($this->dropInPath, $dropInContent);
+        // Scrivi il nuovo drop-in con file lock
+        $result = $this->safeDropInWrite($this->dropInPath, $dropInContent);
         
         if ($result === false) {
             return [
                 'success' => false,
-                'message' => 'Impossibile scrivere il file object-cache.php',
+                'message' => 'Impossibile scrivere il file object-cache.php (file locked)',
             ];
         }
         
@@ -283,6 +283,49 @@ class ObjectCacheManager
             'message' => sprintf('Object cache attivato con successo (%s).', strtoupper($this->availableBackend)),
             'backend' => $this->availableBackend,
         ];
+    }
+
+    /**
+     * Scrive il drop-in in modo sicuro con file lock
+     * 
+     * @param string $filePath Path del file drop-in
+     * @param string $content Contenuto da scrivere
+     * @return bool True se scrittura riuscita
+     */
+    private function safeDropInWrite(string $filePath, string $content): bool
+    {
+        $lockFile = $filePath . '.lock';
+        $lock = fopen($lockFile, 'c+');
+        
+        if (!$lock) {
+            Logger::error('Failed to create object cache lock file', ['file' => $lockFile]);
+            return false;
+        }
+        
+        // Acquire exclusive lock (non-blocking)
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            Logger::debug('Object cache drop-in locked by another process');
+            return false; // Another process is writing
+        }
+        
+        try {
+            // Write drop-in file safely
+            $result = file_put_contents($filePath, $content, LOCK_EX);
+            
+            if ($result === false) {
+                Logger::error('Failed to write object cache drop-in');
+                return false;
+            }
+            
+            Logger::debug('Object cache drop-in written safely');
+            return true;
+        } finally {
+            // Always release lock
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            @unlink($lockFile);
+        }
     }
     
     /**

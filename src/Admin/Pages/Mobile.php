@@ -196,7 +196,7 @@ class Mobile extends AbstractPage
                                     <label for="touch_enabled"><?php _e('Enable Touch Optimization', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="touch_enabled" name="touch_enabled" value="1" <?php checked($touch_settings['enabled'] ?? true); ?> />
+                                    <input type="checkbox" id="touch_enabled" name="touch_enabled" value="1" <?php checked($touch_settings['enabled'] ?? false); ?> />
                                     <p class="description"><?php _e('Optimize touch interactions for mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -263,7 +263,7 @@ class Mobile extends AbstractPage
                                     <label for="responsive_enabled"><?php _e('Enable Responsive Images', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="responsive_enabled" name="responsive_enabled" value="1" <?php checked($responsive_settings['enabled'] ?? true); ?> />
+                                    <input type="checkbox" id="responsive_enabled" name="responsive_enabled" value="1" <?php checked($responsive_settings['enabled'] ?? false); ?> />
                                     <p class="description"><?php _e('Enable responsive image optimization for mobile', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -442,7 +442,7 @@ class Mobile extends AbstractPage
     private function getSettings(): array
     {
         return get_option('fp_ps_mobile_optimizer', [
-            'enabled' => true,
+            'enabled' => false,
             'disable_animations' => false,
             'remove_unnecessary_scripts' => true,
             'optimize_touch_targets' => true,

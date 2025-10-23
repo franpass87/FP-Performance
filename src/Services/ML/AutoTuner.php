@@ -536,7 +536,7 @@ class AutoTuner
     private function settings(): array
     {
         return get_option(self::OPTION, [
-            'enabled' => true,
+            'enabled' => false,
             'tuning_frequency' => '6hourly',
             'aggressive_mode' => false,
             'auto_apply_changes' => true,

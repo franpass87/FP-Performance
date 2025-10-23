@@ -71,6 +71,13 @@ class Backend extends AbstractPage
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_backend_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_backend_nonce']), 'fp-ps-backend')) {
             
+            // Main Toggle for Backend Optimization
+            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+                $allSettings['enabled'] = !empty($_POST['backend_enabled']);
+                $backendOptimizer->updateSettings($allSettings);
+                $message = __('Backend optimization settings saved successfully!', 'fp-performance-suite');
+            }
+            
             // Admin Bar Settings
             if (isset($_POST['save_admin_bar'])) {
                 $allSettings['admin_bar'] = [
@@ -141,6 +148,37 @@ class Backend extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+
+        <!-- Main Toggle for Backend Optimization -->
+        <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
+            <h2 style="margin-top: 0; color: #495057;">⚡ <?php esc_html_e('Backend Optimization Control', 'fp-performance-suite'); ?></h2>
+            <form method="post" action="?page=fp-performance-suite-backend">
+                <?php wp_nonce_field('fp-ps-backend', 'fp_ps_backend_nonce'); ?>
+                <input type="hidden" name="form_type" value="main_toggle" />
+                
+                <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                    <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($backendSettings['enabled'])); ?> style="transform: scale(1.2);" />
+                    <span class="info">
+                        <strong><?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?></strong>
+                        <br>
+                        <small style="color: #6c757d;">
+                            <?php esc_html_e('Master switch to enable/disable all backend optimization features. When disabled, no backend optimization will be applied.', 'fp-performance-suite'); ?>
+                        </small>
+                    </span>
+                </label>
+                
+                <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 10px; margin: 10px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #1565c0;">
+                        <strong>ℹ️ <?php esc_html_e('Note:', 'fp-performance-suite'); ?></strong>
+                        <?php esc_html_e('This is the main control for backend optimization. Individual features in the sections below will only work when this is enabled.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+                
+                <button type="submit" class="button button-primary" style="margin-top: 10px;">
+                    <?php esc_html_e('Save Settings', 'fp-performance-suite'); ?>
+                </button>
+            </form>
+        </div>
 
         <!-- Admin Bar Optimization -->
         <section class="fp-ps-card">
