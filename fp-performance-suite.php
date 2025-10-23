@@ -72,6 +72,20 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
     }
 }
 
+// Carica il fix per gli errori comuni di WordPress
+$fixFile = __DIR__ . '/fix-register-meta-errors.php';
+if (file_exists($fixFile)) {
+    require_once $fixFile;
+}
+
+// Carica il debug per i problemi di inizializzazione (solo se WP_DEBUG è attivo)
+if (defined('WP_DEBUG') && WP_DEBUG) {
+    $debugFile = __DIR__ . '/debug-initialization-issues.php';
+    if (file_exists($debugFile)) {
+        require_once $debugFile;
+    }
+}
+
 // Autoload
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (is_readable($autoload)) {
@@ -145,116 +159,146 @@ if (function_exists('add_action')) {
             return;
         }
         
-        // Verifica che il file Plugin.php esista PRIMA di provare a caricarlo
-        $pluginFile = __DIR__ . '/src/Plugin.php';
-        
-        if (!file_exists($pluginFile)) {
-            fp_perf_suite_safe_log(
-                'ERRORE CRITICO: File Plugin.php non trovato in ' . $pluginFile,
-                'ERROR'
-            );
-            
-            add_action('admin_notices', static function () use ($pluginFile) {
-                if (current_user_can('manage_options')) {
-                    printf(
-                        '<div class="notice notice-error"><p><strong>FP Performance Suite - Errore Critico:</strong> File Plugin.php non trovato.<br>Percorso cercato: <code>%s</code><br>Reinstalla il plugin completamente.</p></div>',
-                        esc_html($pluginFile)
-                    );
-                }
-            });
-            
-            return;
-        }
-        
-        // Carica la classe Plugin con protezione da errori
-        try {
-            if (!class_exists('FP\\PerfSuite\\Plugin')) {
-                require_once $pluginFile;
-            }
-            
-            // Verifica che la classe sia stata caricata correttamente
-            if (!class_exists('FP\\PerfSuite\\Plugin')) {
-                throw new \RuntimeException('Classe Plugin non trovata dopo require_once. Possibile errore di sintassi nel file.');
-            }
-            
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log(
-                'Errore caricamento Plugin.php: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
-                'ERROR'
-            );
-            
-            add_action('admin_notices', static function () use ($e) {
-                if (current_user_can('manage_options')) {
-                    printf(
-                        '<div class="notice notice-error"><p><strong>FP Performance Suite - Errore di Caricamento:</strong><br>%s<br><small>File: %s:%d</small></p></div>',
-                        esc_html($e->getMessage()),
-                        esc_html($e->getFile()),
-                        $e->getLine()
-                    );
-                }
-            });
-            
-            return;
-        }
-        
-        // Verifica disponibilità database PRIMA di inizializzare
-        if (!fp_perf_suite_is_db_available()) {
-            fp_perf_suite_safe_log(
-                'Database connection not available. Plugin initialization delayed.',
-                'WARNING'
-            );
-            
-            // Riprova dopo che WordPress è completamente caricato
-            add_action('wp_loaded', static function () {
+        // Verifica che WordPress sia completamente caricato
+        if (!did_action('init')) {
+            add_action('init', static function () {
                 global $fp_perf_suite_initialized;
-                // Prevenire inizializzazioni multiple anche qui
                 if ($fp_perf_suite_initialized) {
                     return;
                 }
-                
-                if (fp_perf_suite_is_db_available()) {
-                    try {
-                        \FP\PerfSuite\Plugin::init();
-                        // Marca come inizializzato
-                        $fp_perf_suite_initialized = true;
-                    } catch (\Throwable $e) {
-                        fp_perf_suite_safe_log(
-                            'Plugin initialization failed: ' . $e->getMessage(),
-                            'ERROR'
-                        );
-                    }
-                } else {
-                    fp_perf_suite_safe_log(
-                        'Database still unavailable after wp_loaded. Plugin running in safe mode.',
-                        'ERROR'
-                    );
-                }
-            }, 999);
-            
+                $fp_perf_suite_initialized = true;
+                // Inizializza il plugin qui invece che in plugins_loaded
+                fp_perf_suite_initialize_plugin();
+            }, 1);
             return;
         }
         
-        // Database disponibile, inizializza normalmente
-        try {
-            \FP\PerfSuite\Plugin::init();
-            // Marca come inizializzato usando la variabile globale
-            $fp_perf_suite_initialized = true;
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log(
-                'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
-                'ERROR'
-            );
+        // Se siamo qui, WordPress è già inizializzato, procedi direttamente
+        fp_perf_suite_initialize_plugin();
+    });
+}
+
+/**
+ * Funzione di inizializzazione del plugin
+ */
+function fp_perf_suite_initialize_plugin(): void {
+    global $fp_perf_suite_initialized;
+    
+    // Prevenire inizializzazioni multiple
+    if ($fp_perf_suite_initialized) {
+        fp_perf_suite_safe_log('Plugin initialization prevented - already initialized', 'DEBUG');
+        return;
+    }
+    
+    // Verifica che il file Plugin.php esista PRIMA di provare a caricarlo
+    $pluginFile = __DIR__ . '/src/Plugin.php';
+    
+    if (!file_exists($pluginFile)) {
+        fp_perf_suite_safe_log(
+            'ERRORE CRITICO: File Plugin.php non trovato in ' . $pluginFile,
+            'ERROR'
+        );
+        
+        add_action('admin_notices', static function () use ($pluginFile) {
+            if (current_user_can('manage_options')) {
+                printf(
+                    '<div class="notice notice-error"><p><strong>FP Performance Suite - Errore Critico:</strong> File Plugin.php non trovato.<br>Percorso cercato: <code>%s</code><br>Reinstalla il plugin completamente.</p></div>',
+                    esc_html($pluginFile)
+                );
+            }
+        });
+        
+        return;
+    }
+    
+    // Carica la classe Plugin con protezione da errori
+    try {
+        if (!class_exists('FP\\PerfSuite\\Plugin')) {
+            require_once $pluginFile;
+        }
+        
+        // Verifica che la classe sia stata caricata correttamente
+        if (!class_exists('FP\\PerfSuite\\Plugin')) {
+            throw new \RuntimeException('Classe Plugin non trovata dopo require_once. Possibile errore di sintassi nel file.');
+        }
+        
+    } catch (\Throwable $e) {
+        fp_perf_suite_safe_log(
+            'Errore caricamento Plugin.php: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
+            'ERROR'
+        );
+        
+        add_action('admin_notices', static function () use ($e) {
+            if (current_user_can('manage_options')) {
+                printf(
+                    '<div class="notice notice-error"><p><strong>FP Performance Suite - Errore di Caricamento:</strong><br>%s<br><small>File: %s:%d</small></p></div>',
+                    esc_html($e->getMessage()),
+                    esc_html($e->getFile()),
+                    $e->getLine()
+                );
+            }
+        });
+        
+        return;
+    }
+    
+    // Verifica disponibilità database PRIMA di inizializzare
+    if (!fp_perf_suite_is_db_available()) {
+        fp_perf_suite_safe_log(
+            'Database connection not available. Plugin initialization delayed.',
+            'WARNING'
+        );
+        
+        // Riprova dopo che WordPress è completamente caricato
+        add_action('wp_loaded', static function () {
+            global $fp_perf_suite_initialized;
+            // Prevenire inizializzazioni multiple anche qui
+            if ($fp_perf_suite_initialized) {
+                return;
+            }
             
-            // Non bloccare WordPress, continua in modalità sicura
-            add_action('admin_notices', static function () use ($e) {
-                if (current_user_can('manage_options')) {
-                    printf(
-                        '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
-                        esc_html($e->getMessage())
+            if (fp_perf_suite_is_db_available()) {
+                try {
+                    \FP\PerfSuite\Plugin::init();
+                    // Marca come inizializzato
+                    $fp_perf_suite_initialized = true;
+                } catch (\Throwable $e) {
+                    fp_perf_suite_safe_log(
+                        'Plugin initialization failed: ' . $e->getMessage(),
+                        'ERROR'
                     );
                 }
-            });
-        }
-    });
+            } else {
+                fp_perf_suite_safe_log(
+                    'Database still unavailable after wp_loaded. Plugin running in safe mode.',
+                    'ERROR'
+                );
+            }
+        }, 999);
+        
+        return;
+    }
+    
+    // Database disponibile, inizializza normalmente
+    try {
+        \FP\PerfSuite\Plugin::init();
+        // Marca come inizializzato usando la variabile globale
+        $fp_perf_suite_initialized = true;
+    } catch (\Throwable $e) {
+        fp_perf_suite_safe_log(
+            'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
+            'ERROR'
+        );
+        
+        // Non bloccare WordPress, continua in modalità sicura
+        add_action('admin_notices', static function () use ($e) {
+            if (current_user_can('manage_options')) {
+                printf(
+                    '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
+                    esc_html($e->getMessage())
+                );
+            }
+        });
+    }
 }
 

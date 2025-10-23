@@ -48,6 +48,7 @@ use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
 use FP\PerfSuite\Utils\InstallationRecovery;
+use FP\PerfSuite\Utils\InitializationMonitor;
 
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -55,12 +56,19 @@ use function wp_clear_scheduled_hook;
 class Plugin
 {
     private static ?ServiceContainer $container = null;
+    private static bool $initialized = false;
 
     public static function init(): void
     {
-        if (self::$container instanceof ServiceContainer) {
+        // Usa il monitor per prevenire inizializzazioni multiple
+        if (InitializationMonitor::isInitialized() || self::$container instanceof ServiceContainer) {
+            InitializationMonitor::markAsInitialized('Plugin::init (duplicate)');
             return;
         }
+        
+        // Marca come inizializzato usando il monitor
+        InitializationMonitor::markAsInitialized('Plugin::init');
+        self::$initialized = true;
 
         $container = new ServiceContainer();
         self::register($container);
@@ -75,8 +83,12 @@ class Plugin
         AdminBar::registerActions();
         $container->get(Routes::class)->boot();
 
-        add_action('init', static function () use ($container) {
+        // Carica le traduzioni il prima possibile per evitare errori
+        add_action('plugins_loaded', static function () {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
+        }, 1);
+        
+        add_action('init', static function () use ($container) {
 
             // Core services
             $container->get(PageCache::class)->register();
