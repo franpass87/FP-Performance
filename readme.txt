@@ -3,8 +3,8 @@ Contributors: francescopasseri, franpass87
 Tags: performance, caching, optimization, webp, database
 Requires at least: 6.2
 Tested up to: 6.5
-Requires PHP: 8.0
-Stable tag: 1.4.0
+Requires PHP: 7.4
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin Homepage: https://francescopasseri.com
