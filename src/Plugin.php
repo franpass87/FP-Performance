@@ -62,10 +62,19 @@ class Plugin
     {
         global $fp_perf_suite_initialized;
         
+        Logger::debug("Plugin::init() called", [
+            'initialized' => self::$initialized,
+            'container_exists' => self::$container instanceof ServiceContainer,
+            'global_initialized' => $fp_perf_suite_initialized
+        ]);
+        
         // Prevenire inizializzazioni multiple con triplo controllo
         if (self::$initialized || self::$container instanceof ServiceContainer || $fp_perf_suite_initialized) {
+            Logger::debug("Plugin already initialized, skipping");
             return;
         }
+        
+        Logger::debug("Plugin initializing for the first time");
         
         // Marca come inizializzato immediatamente per prevenire race conditions
         self::$initialized = true;
@@ -137,19 +146,27 @@ class Plugin
             // Optimizer e WebP solo se abilitati nelle opzioni
             $assetSettings = get_option('fp_ps_assets', []);
             if (!empty($assetSettings['enabled']) || get_option('fp_ps_asset_optimization_enabled', false)) {
-                $container->get(Optimizer::class)->register();
+                self::registerServiceOnce(Optimizer::class, function() use ($container) {
+                    $container->get(Optimizer::class)->register();
+                });
             }
             if (get_option('fp_ps_webp_enabled', false)) {
-                $container->get(WebPConverter::class)->register();
+                self::registerServiceOnce(WebPConverter::class, function() use ($container) {
+                    $container->get(WebPConverter::class)->register();
+                });
             }
             if (get_option('fp_ps_avif', [])['enabled'] ?? false) {
-                $container->get(AVIFConverter::class)->register();
+                self::registerServiceOnce(AVIFConverter::class, function() use ($container) {
+                    $container->get(AVIFConverter::class)->register();
+                });
             }
             
             // Database cleaner solo se schedulato
             $dbSettings = get_option('fp_ps_db', []);
             if (isset($dbSettings['schedule']) && $dbSettings['schedule'] !== 'manual') {
-                $container->get(Cleaner::class)->register();
+                self::registerServiceOnce(Cleaner::class, function() use ($container) {
+                    $container->get(Cleaner::class)->register();
+                });
             }
             
             // Theme Compatibility (essenziale per funzionamento)
@@ -163,25 +180,35 @@ class Plugin
             // Ottimizzatori Assets Avanzati (Ripristinato 21 Ott 2025 - FASE 2)
             // Registrati solo se le loro opzioni sono abilitate
             if (get_option('fp_ps_batch_dom_updates_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\BatchDOMUpdater::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\BatchDOMUpdater::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\BatchDOMUpdater::class)->register();
+                });
             }
             if (get_option('fp_ps_css_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\CSSOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CSSOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\CSSOptimizer::class)->register();
+                });
             }
             if (get_option('fp_ps_jquery_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class)->register();
+                });
             }
             
             // Predictive Prefetching - Cache predittiva intelligente
             $prefetchSettings = get_option('fp_ps_predictive_prefetch', []);
             if (!empty($prefetchSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class)->register();
+                });
             }
             
             // Third-Party Script Management
             $thirdPartySettings = get_option('fp_ps_third_party_scripts', []);
             if (!empty($thirdPartySettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptManager::class)->register();
+                });
             }
             
             // Third-Party Script Detector (AI Auto-detect) - Sempre attivo per rilevare nuovi script
@@ -189,7 +216,7 @@ class Plugin
                 $container->get(\FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector::class)->register();
             });
             
-            // Mobile Optimization Services (v1.6.0)
+            // Mobile Optimization Services (v1.6.0) - SEMPRE protetti
             $mobileSettings = get_option('fp_ps_mobile_optimizer', []);
             if (!empty($mobileSettings['enabled'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class, function() use ($container) {
@@ -197,7 +224,7 @@ class Plugin
                 });
             }
             
-            // Touch Optimizer
+            // Touch Optimizer - SEMPRE protetto
             $touchSettings = get_option('fp_ps_touch_optimizer', []);
             if (!empty($touchSettings['enabled'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class, function() use ($container) {
@@ -205,7 +232,7 @@ class Plugin
                 });
             }
             
-            // Mobile Cache Manager
+            // Mobile Cache Manager - SEMPRE protetto
             $mobileCacheSettings = get_option('fp_ps_mobile_cache', []);
             if (!empty($mobileCacheSettings['enabled'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class, function() use ($container) {
@@ -213,7 +240,7 @@ class Plugin
                 });
             }
             
-            // Responsive Image Manager
+            // Responsive Image Manager - SEMPRE protetto
             $responsiveSettings = get_option('fp_ps_responsive_images', []);
             if (!empty($responsiveSettings['enabled'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class, function() use ($container) {
@@ -224,179 +251,295 @@ class Plugin
             // Machine Learning Services (v1.6.0)
             $mlSettings = get_option('fp_ps_ml_predictor', []);
             if (!empty($mlSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
-                $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\ML\MLPredictor::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\ML\AutoTuner::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
+                });
             }
             
             // Backend Optimization Services - FIX CRITICO
             $backendSettings = get_option('fp_ps_backend_optimizer', []);
             if (!empty($backendSettings['enabled'])) {
-                $container->get(BackendOptimizer::class)->register();
+                self::registerServiceOnce(BackendOptimizer::class, function() use ($container) {
+                    $container->get(BackendOptimizer::class)->register();
+                });
             }
             
             // Database Optimization Services - FIX CRITICO
             $dbSettings = get_option('fp_ps_db', []);
             if (!empty($dbSettings['enabled'])) {
-                $container->get(DatabaseOptimizer::class)->register();
-                $container->get(DatabaseQueryMonitor::class)->register();
-                $container->get(PluginSpecificOptimizer::class)->register();
-                $container->get(DatabaseReportService::class)->register();
-                $container->get(QueryCacheManager::class)->register();
+                self::registerServiceOnce(DatabaseOptimizer::class, function() use ($container) {
+                    $container->get(DatabaseOptimizer::class)->register();
+                });
+                self::registerServiceOnce(DatabaseQueryMonitor::class, function() use ($container) {
+                    $container->get(DatabaseQueryMonitor::class)->register();
+                });
+                self::registerServiceOnce(PluginSpecificOptimizer::class, function() use ($container) {
+                    $container->get(PluginSpecificOptimizer::class)->register();
+                });
+                self::registerServiceOnce(DatabaseReportService::class, function() use ($container) {
+                    $container->get(DatabaseReportService::class)->register();
+                });
+                self::registerServiceOnce(QueryCacheManager::class, function() use ($container) {
+                    $container->get(QueryCacheManager::class)->register();
+                });
             }
             
             // Security Services - FIX CRITICO
             $securitySettings = get_option('fp_ps_htaccess_security', []);
             if (!empty($securitySettings['enabled'])) {
-                $container->get(HtaccessSecurity::class)->register();
+                self::registerServiceOnce(HtaccessSecurity::class, function() use ($container) {
+                    $container->get(HtaccessSecurity::class)->register();
+                });
             }
             
             // Compression Services - FIX CRITICO
             if (get_option('fp_ps_compression_enabled', false) || get_option('fp_ps_compression_deflate_enabled', false) || get_option('fp_ps_compression_brotli_enabled', false)) {
-                $container->get(CompressionManager::class)->register();
+                self::registerServiceOnce(CompressionManager::class, function() use ($container) {
+                    $container->get(CompressionManager::class)->register();
+                });
             }
             
             // CDN Services - FIX CRITICO
             $cdnSettings = get_option('fp_ps_cdn', []);
             if (!empty($cdnSettings['enabled'])) {
-                $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\CDN\CdnManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\CDN\CdnManager::class)->register();
+                });
             }
             
             // Object Cache Services - FIX CRITICO
             if (get_option('fp_ps_object_cache_enabled', false)) {
-                $container->get(ObjectCacheManager::class)->register();
+                self::registerServiceOnce(ObjectCacheManager::class, function() use ($container) {
+                    $container->get(ObjectCacheManager::class)->register();
+                });
             }
             
             // Edge Cache Services - FIX CRITICO
             if (get_option('fp_ps_edge_cache_enabled', false)) {
-                $container->get(EdgeCacheManager::class)->register();
+                self::registerServiceOnce(EdgeCacheManager::class, function() use ($container) {
+                    $container->get(EdgeCacheManager::class)->register();
+                });
             }
             
             // Monitoring Services - FIX CRITICO
             if (get_option('fp_ps_monitoring_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
-                $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class)->register();
+                });
             }
             
             // Reports Services - FIX CRITICO
             if (get_option('fp_ps_reports_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Reports\ScheduledReports::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Reports\ScheduledReports::class)->register();
+                });
             }
             
             // Scoring Services - FIX CRITICO (sempre attivo per calcolo score)
-            $container->get(Scorer::class)->register();
+            self::registerServiceOnce(Scorer::class, function() use ($container) {
+                $container->get(Scorer::class)->register();
+            });
             
             // Preset Services - FIX CRITICO (sempre attivo per gestione preset)
-            $container->get(PresetManager::class)->register();
+            self::registerServiceOnce(PresetManager::class, function() use ($container) {
+                $container->get(PresetManager::class)->register();
+            });
             
             // AI Services - FIX CRITICO
             if (get_option('fp_ps_ai_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\AI\Analyzer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\AI\Analyzer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\AI\Analyzer::class)->register();
+                });
             }
             
             // Intelligence Services - FIX CRITICO (sempre attivi per rilevamento automatico)
-            $container->get(SmartExclusionDetector::class)->register();
-            $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
+            self::registerServiceOnce(SmartExclusionDetector::class, function() use ($container) {
+                $container->get(SmartExclusionDetector::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
+            });
             
             // PWA Services - FIX CRITICO
             if (get_option('fp_ps_pwa_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class)->register();
+                });
             }
             
             // HTTP/2 Services - FIX CRITICO
             if (get_option('fp_ps_http2_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\Http2ServerPush::class)->register();
+                });
             }
             
             // Advanced Assets Services - FIX CRITICO
             if (get_option('fp_ps_critical_css_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
-                $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalCss::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\CriticalCss::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\CriticalCssAutomation::class)->register();
+                });
             }
             
             if (get_option('fp_ps_smart_delivery_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class)->register();
+                });
             }
             
             // Advanced Assets Optimization Services - FIX CRITICO
             if (get_option('fp_ps_html_minification_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\HtmlMinifier::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\HtmlMinifier::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\HtmlMinifier::class)->register();
+                });
             }
             
             if (get_option('fp_ps_script_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\ScriptOptimizer::class)->register();
+                });
             }
             
             if (get_option('fp_ps_wordpress_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class)->register();
+                });
             }
             
             if (get_option('fp_ps_resource_hints_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class)->register();
+                });
             }
             
             if (get_option('fp_ps_dependency_resolution_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)->register();
+                });
             }
             
             if (get_option('fp_ps_lazy_loading_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
+                });
             }
             
             if (get_option('fp_ps_font_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\FontOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
+                });
             }
             
             if (get_option('fp_ps_image_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\ImageOptimizer::class)->register();
+                });
             }
             
             if (get_option('fp_ps_auto_font_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
+                });
             }
             
             if (get_option('fp_ps_lighthouse_font_optimization_enabled', false)) {
-                $container->get(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class)->register();
+                });
             }
             
             // WebP Services - FIX CRITICO (sempre attivi per conversione WebP)
-            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)->register();
-            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class)->register();
-            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class)->register();
-            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)->register();
-            $container->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class)->register();
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class)->register();
+            });
             
             // AVIF Services - FIX CRITICO (sempre attivi per conversione AVIF)
-            $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class)->register();
-            $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)->register();
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)->register();
+            });
             
             // Performance Analysis Services - FIX CRITICO (sempre attivi per analisi performance)
-            $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class)->register();
+            self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class)->register();
+            });
             
             // Advanced Assets Optimization Services - FIX CRITICO (sempre attivi per ottimizzazioni avanzate)
-            $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\UnusedCSSOptimizer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
-            $container->get(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class)->register();
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\ResponsiveImageAjaxHandler::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\UnusedCSSOptimizer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\UnusedCSSOptimizer::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
+            });
+            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class, function() use ($container) {
+                $container->get(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class)->register();
+            });
             
             // WebP Plugin Compatibility - FIX CRITICO (sempre attivo per compatibilità WebP)
-            $container->get(WebPPluginCompatibility::class)->register();
+            self::registerServiceOnce(WebPPluginCompatibility::class, function() use ($container) {
+                $container->get(WebPPluginCompatibility::class)->register();
+            });
             
             // Theme Services - FIX CRITICO (sempre attivi per gestione tema)
-            $container->get(ThemeAssetConfiguration::class)->register();
-            $container->get(ThemeDetector::class)->register();
+            self::registerServiceOnce(ThemeAssetConfiguration::class, function() use ($container) {
+                $container->get(ThemeAssetConfiguration::class)->register();
+            });
+            self::registerServiceOnce(ThemeDetector::class, function() use ($container) {
+                $container->get(ThemeDetector::class)->register();
+            });
         });
         
         // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
         // Registrati solo durante richieste AJAX per ottimizzare performance
         if (defined('DOING_AJAX') && DOING_AJAX) {
             add_action('init', static function () use ($container) {
-                $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\WebPAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
+                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\WebPAjax::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Http\Ajax\WebPAjax::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
+                });
             }, 5);
         }
 
@@ -799,12 +942,15 @@ class Plugin
     public static function registerServiceOnce(string $serviceClass, callable $registerCallback): bool
     {
         if (isset(self::$registeredServices[$serviceClass])) {
+            Logger::debug("Service $serviceClass already registered, skipping");
             return false; // Già registrato
         }
         
         try {
+            Logger::debug("Registering service: $serviceClass");
             $registerCallback();
             self::$registeredServices[$serviceClass] = true;
+            Logger::debug("Service $serviceClass registered successfully");
             return true;
         } catch (\Throwable $e) {
             Logger::error('Failed to register service: ' . $serviceClass, ['error' => $e->getMessage()]);
