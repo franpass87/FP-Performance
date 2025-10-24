@@ -321,21 +321,4 @@ function fp_perf_suite_initialize_plugin(): void {
     }
 }
 
-// Carica strumenti di debug
-if (file_exists(__DIR__ . '/debug-plugin-complete.php')) {
-    require_once __DIR__ . '/debug-plugin-complete.php';
-}
-
-if (file_exists(__DIR__ . '/test-plugin-features.php')) {
-    require_once __DIR__ . '/test-plugin-features.php';
-}
-
-if (file_exists(__DIR__ . '/debug-quick.php')) {
-    require_once __DIR__ . '/debug-quick.php';
-}
-
-if (file_exists(__DIR__ . '/integrate-debug-tools.php')) {
-    require_once __DIR__ . '/integrate-debug-tools.php';
-}
-
 
