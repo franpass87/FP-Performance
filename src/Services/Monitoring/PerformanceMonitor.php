@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Services\Monitoring;
 
 class PerformanceMonitor
 {
+    private static ?self $instance = null;
     private $core_web_vitals;
     private $real_user_monitoring;
     
@@ -11,6 +12,17 @@ class PerformanceMonitor
     {
         $this->core_web_vitals = $core_web_vitals;
         $this->real_user_monitoring = $real_user_monitoring;
+    }
+
+    /**
+     * Singleton pattern per ottenere l'istanza
+     */
+    public static function instance(): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
     }
     
     public function init()
@@ -137,6 +149,20 @@ class PerformanceMonitor
             'real_user_monitoring' => $this->real_user_monitoring,
             'memory_usage' => memory_get_usage(true),
             'peak_memory' => memory_get_peak_usage(true)
+        ];
+    }
+
+    /**
+     * Ottiene le statistiche di performance per un periodo specificato
+     */
+    public function getStats(int $days = 7): array
+    {
+        // Dati mock per ora - in un'implementazione reale questi verrebbero dal database
+        return [
+            'samples' => 15,
+            'avg_load_time' => 1.2,
+            'avg_queries' => 45,
+            'avg_memory' => 85.5
         ];
     }
     

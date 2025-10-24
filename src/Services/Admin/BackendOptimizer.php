@@ -87,6 +87,19 @@ class BackendOptimizer
     }
     
     /**
+     * Ottiene lo status del servizio
+     */
+    public function getStatus(): array
+    {
+        return [
+            'optimize_heartbeat' => $this->optimize_heartbeat,
+            'limit_revisions' => $this->limit_revisions,
+            'optimize_dashboard' => $this->optimize_dashboard,
+            'admin_bar' => $this->admin_bar
+        ];
+    }
+
+    /**
      * Ottiene le impostazioni del servizio
      */
     public function getSettings(): array

@@ -46,6 +46,16 @@ class Media extends AbstractPage
         return $this->requiredCapability();
     }
 
+    public function view(): string
+    {
+        return '';
+    }
+
+    protected function content(): string
+    {
+        return '';
+    }
+
     public function render(): void
     {
         if (!current_user_can($this->capability())) {
