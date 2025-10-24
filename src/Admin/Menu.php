@@ -248,6 +248,10 @@ class Menu
             error_log('[FP Performance Suite] ATTENZIONE: Capability non valida, uso manage_options come fallback');
         }
         
+        // Log per debug
+        error_log('[FP Performance Suite] Registrazione menu con capability: ' . $capability);
+        error_log('[FP Performance Suite] Utente corrente può accedere: ' . (current_user_can($capability) ? 'SI' : 'NO'));
+        
         // Se l'utente corrente è un admin ma non ha accesso, mostra un errore
         // invece di auto-riparare (per evitare privilege escalation)
         if (current_user_can('manage_options') && !current_user_can($capability)) {
@@ -278,6 +282,18 @@ class Menu
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log('[FP Performance Suite] Registrazione menu con capability: ' . $capability);
             error_log('[FP Performance Suite] Utente corrente può accedere: ' . (current_user_can($capability) ? 'SI' : 'NO'));
+        }
+        
+        // Fallback: se la capability è 'do_not_allow', usa 'manage_options' per garantire la visibilità
+        if ($capability === 'do_not_allow') {
+            $capability = 'manage_options';
+            error_log('[FP Performance Suite] FALLBACK: Uso manage_options per garantire visibilità menu');
+        }
+        
+        // Controllo finale: se l'utente è admin ma non ha accesso, forza manage_options
+        if (current_user_can('manage_options') && !current_user_can($capability)) {
+            $capability = 'manage_options';
+            error_log('[FP Performance Suite] FORCE: Admin senza accesso, uso manage_options');
         }
 
         add_menu_page(

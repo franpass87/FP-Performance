@@ -146,36 +146,24 @@ register_deactivation_hook(__FILE__, static function () {
 });
 
 if (function_exists('add_action')) {
-    // Usa una variabile globale per prevenire inizializzazioni multiple
+    // Sistema di inizializzazione semplificato e robusto
     global $fp_perf_suite_initialized;
     if (!isset($fp_perf_suite_initialized)) {
         $fp_perf_suite_initialized = false;
     }
     
-    add_action('plugins_loaded', static function () {
+    // Inizializza sempre su init per garantire che il menu sia registrato
+    add_action('init', static function () {
         global $fp_perf_suite_initialized;
-        // Prevenire inizializzazioni multiple usando la variabile globale
+        
+        // Prevenire inizializzazioni multiple
         if ($fp_perf_suite_initialized) {
             return;
         }
         
-        // Verifica che WordPress sia completamente caricato
-        if (!did_action('init')) {
-            add_action('init', static function () {
-                global $fp_perf_suite_initialized;
-                if ($fp_perf_suite_initialized) {
-                    return;
-                }
-                $fp_perf_suite_initialized = true;
-                // Inizializza il plugin qui invece che in plugins_loaded
-                fp_perf_suite_initialize_plugin();
-            }, 1);
-            return;
-        }
-        
-        // Se siamo qui, WordPress è già inizializzato, procedi direttamente
+        $fp_perf_suite_initialized = true;
         fp_perf_suite_initialize_plugin();
-    });
+    }, 1);
 }
 
 /**
@@ -242,47 +230,10 @@ function fp_perf_suite_initialize_plugin(): void {
         return;
     }
     
-    // Verifica disponibilità database PRIMA di inizializzare
-    if (!fp_perf_suite_is_db_available()) {
-        fp_perf_suite_safe_log(
-            'Database connection not available. Plugin initialization delayed.',
-            'WARNING'
-        );
-        
-        // Riprova dopo che WordPress è completamente caricato
-        add_action('wp_loaded', static function () {
-            global $fp_perf_suite_initialized;
-            // Prevenire inizializzazioni multiple anche qui
-            if ($fp_perf_suite_initialized) {
-                return;
-            }
-            
-            if (fp_perf_suite_is_db_available()) {
-                try {
-                    \FP\PerfSuite\Plugin::init();
-                    // Marca come inizializzato
-                    $fp_perf_suite_initialized = true;
-                } catch (\Throwable $e) {
-                    fp_perf_suite_safe_log(
-                        'Plugin initialization failed: ' . $e->getMessage(),
-                        'ERROR'
-                    );
-                }
-            } else {
-                fp_perf_suite_safe_log(
-                    'Database still unavailable after wp_loaded. Plugin running in safe mode.',
-                    'ERROR'
-                );
-            }
-        }, 999);
-        
-        return;
-    }
-    
-    // Database disponibile, inizializza normalmente
+    // Inizializza sempre - il plugin gestirà internamente i problemi
     try {
         \FP\PerfSuite\Plugin::init();
-        // Marca come inizializzato usando la variabile globale
+        // Marca come inizializzato
         $fp_perf_suite_initialized = true;
     } catch (\Throwable $e) {
         fp_perf_suite_safe_log(

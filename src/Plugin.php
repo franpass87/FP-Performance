@@ -68,8 +68,8 @@ class Plugin
             'global_initialized' => $fp_perf_suite_initialized
         ]);
         
-        // Prevenire inizializzazioni multiple con triplo controllo
-        if (self::$initialized || self::$container instanceof ServiceContainer || $fp_perf_suite_initialized) {
+        // Prevenire inizializzazioni multiple con controllo semplificato
+        if (self::$initialized || self::$container instanceof ServiceContainer) {
             Logger::debug("Plugin already initialized, skipping");
             return;
         }
