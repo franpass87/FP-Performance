@@ -194,6 +194,27 @@ if (function_exists('add_action')) {
         }
     });
     
+    // Forza registrazione menu principale se non è registrato
+    add_action('admin_menu', static function () {
+        // Solo se il plugin è inizializzato
+        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
+            return;
+        }
+        
+        try {
+            $container = FP\PerfSuite\Plugin::container();
+            if ($container) {
+                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                if ($menu_service) {
+                    // Forza il boot del menu service
+                    $menu_service->boot();
+                }
+            }
+        } catch (Exception $e) {
+            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
+        }
+    }, 1); // Priorità alta per essere sicuri che sia registrato
+    
 }
 
 /**
