@@ -171,61 +171,25 @@ if (function_exists('add_action')) {
         // Sarà impostato dalla funzione di inizializzazione solo se tutto va bene
         fp_perf_suite_initialize_plugin();
         
-        // Debug: verifica se il plugin è inizializzato
-        if (class_exists('FP\\PerfSuite\\Plugin') && FP\PerfSuite\Plugin::isInitialized()) {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> Plugin inizializzato correttamente</p></div>';
-            });
-        } else {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-warning"><p><strong>FP Performance Suite:</strong> Plugin non inizializzato correttamente</p></div>';
-            });
-        }
     }, 1);
     
     // Boot del menu service dopo l'inizializzazione del plugin
     add_action('init', static function () {
         // Solo se il plugin è inizializzato
-        if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Classe Plugin non trovata</p></div>';
-            });
-            return;
-        }
-        
-        if (!FP\PerfSuite\Plugin::isInitialized()) {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Plugin non inizializzato</p></div>';
-            });
+        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
             return;
         }
         
         try {
             $container = FP\PerfSuite\Plugin::container();
-            if (!$container) {
-                add_action('admin_notices', static function () {
-                    echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Container non disponibile</p></div>';
-                });
-                return;
+            if ($container) {
+                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                if ($menu_service) {
+                    $menu_service->boot();
+                }
             }
-            
-            $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
-            if (!$menu_service) {
-                add_action('admin_notices', static function () {
-                    echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Menu service non disponibile</p></div>';
-                });
-                return;
-            }
-            
-            $menu_service->boot();
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Menu registrato con successo</p></div>';
-            });
-            
         } catch (Exception $e) {
-            add_action('admin_notices', static function () use ($e) {
-                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore: ' . esc_html($e->getMessage()) . '</p></div>';
-            });
+            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
         }
     }, 2); // Priorità 2 per essere sicuri che il plugin sia inizializzato
 }
@@ -236,16 +200,10 @@ if (function_exists('add_action')) {
 function fp_perf_suite_initialize_plugin(): void {
     global $fp_perf_suite_initialized;
     
-    add_action('admin_notices', static function () {
-        echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> Inizio inizializzazione plugin</p></div>';
-    });
     
     // Prevenire inizializzazioni multiple
     if ($fp_perf_suite_initialized) {
         fp_perf_suite_safe_log('Plugin initialization prevented - already initialized', 'DEBUG');
-        add_action('admin_notices', static function () {
-            echo '<div class="notice notice-warning"><p><strong>FP Performance Suite:</strong> Inizializzazione già completata</p></div>';
-        });
         return;
     }
     
@@ -273,9 +231,6 @@ function fp_perf_suite_initialize_plugin(): void {
     // Carica la classe Plugin con protezione da errori
     try {
         if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> Caricamento classe Plugin...</p></div>';
-            });
             require_once $pluginFile;
         }
         
@@ -283,10 +238,6 @@ function fp_perf_suite_initialize_plugin(): void {
         if (!class_exists('FP\\PerfSuite\\Plugin')) {
             throw new \RuntimeException('Classe Plugin non trovata dopo require_once. Possibile errore di sintassi nel file.');
         }
-        
-        add_action('admin_notices', static function () {
-            echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Classe Plugin caricata correttamente</p></div>';
-        });
         
     } catch (\Throwable $e) {
         fp_perf_suite_safe_log(
@@ -313,17 +264,10 @@ function fp_perf_suite_initialize_plugin(): void {
         \FP\PerfSuite\Plugin::init();
         fp_perf_suite_safe_log('Plugin initialized successfully', 'DEBUG');
         
-        // Debug: verifica se è davvero inizializzato
+        // Verifica se è davvero inizializzato
         if (FP\PerfSuite\Plugin::isInitialized()) {
             // Marca come inizializzato SOLO se è davvero inizializzato
             $fp_perf_suite_initialized = true;
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Plugin::init() completato con successo</p></div>';
-            });
-        } else {
-            add_action('admin_notices', static function () {
-                echo '<div class="notice notice-warning"><p><strong>FP Performance Suite:</strong> Plugin::init() chiamato ma isInitialized() restituisce false</p></div>';
-            });
         }
         
     } catch (\Throwable $e) {

@@ -39,9 +39,9 @@ class JavaScriptOptimization extends AbstractPage
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-        $this->unusedOptimizer = new UnusedJavaScriptOptimizer();
-        $this->codeSplittingManager = new CodeSplittingManager();
-        $this->treeShaker = new JavaScriptTreeShaker();
+        $this->unusedOptimizer = $container->get(UnusedJavaScriptOptimizer::class);
+        $this->codeSplittingManager = $container->get(CodeSplittingManager::class);
+        $this->treeShaker = $container->get(JavaScriptTreeShaker::class);
     }
 
     public function slug(): string

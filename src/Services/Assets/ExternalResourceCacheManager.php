@@ -225,7 +225,7 @@ class ExternalResourceCacheManager
     /**
      * Verifica se una risorsa è esterna
      */
-    private function isExternalResource(string $url): bool
+    public function isExternalResource(string $url): bool
     {
         $homeUrl = home_url();
         $parsedUrl = wp_parse_url($url);
@@ -244,7 +244,7 @@ class ExternalResourceCacheManager
     /**
      * Verifica se una risorsa dovrebbe essere cachata
      */
-    private function shouldCacheResource(string $url, string $type): bool
+    public function shouldCacheResource(string $url, string $type): bool
     {
         $settings = $this->getSettings();
         $domain = $this->extractDomain($url);
@@ -266,7 +266,7 @@ class ExternalResourceCacheManager
     /**
      * Estrae il dominio da un URL
      */
-    private function extractDomain(string $url): string
+    public function extractDomain(string $url): string
     {
         $parsed = wp_parse_url($url);
         return $parsed['host'] ?? '';

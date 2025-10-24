@@ -121,6 +121,11 @@ class Plugin
             $container->get(ThemeAssetConfiguration::class)->register();
             $container->get(CompressionManager::class)->register();
             
+            // JavaScript Optimization Services (v1.4.0)
+            $container->get(\FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class)->register();
+            $container->get(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class)->register();
+            
             // Auto Font Optimization Services (v1.5.0) - Sistema di auto-rilevamento
             if ($container->has(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)) {
                 $container->get(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class)->register();
@@ -226,6 +231,11 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
         $container->set(\FP\PerfSuite\Services\Assets\FontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\FontOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ImageOptimizer());
+        
+        // JavaScript Optimization Services (v1.4.0)
+        $container->set(\FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class, static fn() => new \FP\PerfSuite\Services\Assets\CodeSplittingManager());
+        $container->set(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class, static fn() => new \FP\PerfSuite\Services\Assets\JavaScriptTreeShaker());
         
         // Auto Font Optimization Services (v1.5.0) - Sistema di auto-rilevamento
         $container->set(\FP\PerfSuite\Services\Assets\AutoFontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\AutoFontOptimizer());
