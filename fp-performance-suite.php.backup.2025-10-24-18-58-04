@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: FP Performance Suite (Safe Mode)
+ * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
- * Description: Versione sicura per risolvere problemi di white screen. Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.5.1-safe
+ * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
+ * Version: 1.5.1
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,7 +16,7 @@
 
 defined('ABSPATH') || exit;
 
-// Plugin principale FP Performance Suite - Modalità Sicura
+// Plugin principale FP Performance Suite
 
 /**
  * Verifica se il database WordPress è disponibile
@@ -38,6 +38,8 @@ function fp_perf_suite_is_db_available(): bool {
     
     // Per mysqli - Verifica connessione
     if (is_object($wpdb->dbh) && $wpdb->dbh instanceof \mysqli) {
+        // ping() è deprecated in PHP 8.4, verifica semplicemente che l'oggetto esista
+        // Se dbh è un oggetto mysqli valido, la connessione è disponibile
         return true;
     }
     
@@ -59,7 +61,7 @@ function fp_perf_suite_is_db_available(): bool {
 function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void {
     $timestamp = gmdate('Y-m-d H:i:s');
     $logMessage = sprintf(
-        '[%s] [FP-PerfSuite-Safe] [%s] %s',
+        '[%s] [FP-PerfSuite] [%s] %s',
         $timestamp,
         $level,
         $message
@@ -70,14 +72,13 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
     }
 }
 
-// NON caricare file di debug che potrebbero causare problemi
-// Commentati per sicurezza
-/*
+// Carica il fix per gli errori comuni di WordPress
 $fixFile = __DIR__ . '/fix-register-meta-errors.php';
 if (file_exists($fixFile)) {
     require_once $fixFile;
 }
 
+// Carica il debug per i problemi di inizializzazione (solo se WP_DEBUG è attivo)
 if (defined('WP_DEBUG') && WP_DEBUG) {
     $debugFile = __DIR__ . '/debug-initialization-issues.php';
     if (file_exists($debugFile)) {
@@ -85,57 +86,48 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
     }
 }
 
+// Carica il fix per FP_Git_Updater deprecato
 $gitUpdaterFix = __DIR__ . '/fix-fp-git-updater-deprecated.php';
 if (file_exists($gitUpdaterFix)) {
     require_once $gitUpdaterFix;
 }
-*/
 
-// Autoload con gestione errori migliorata
+// Autoload
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (is_readable($autoload)) {
-    try {
-        require_once $autoload;
-    } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore caricamento autoloader Composer: ' . $e->getMessage());
-    }
+    require_once $autoload;
 } else {
-    // Autoloader personalizzato con gestione errori
     spl_autoload_register(static function ($class) {
         if (strpos($class, 'FP\\PerfSuite\\') !== 0) {
             return;
         }
-        
-        try {
-            $path = __DIR__ . '/src/' . str_replace(['FP\\PerfSuite\\', '\\'], ['', '/'], $class) . '.php';
-            if (file_exists($path)) {
-                require_once $path;
-            }
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log('Errore autoloader per classe ' . $class . ': ' . $e->getMessage());
+        $path = __DIR__ . '/src/' . str_replace(['FP\\PerfSuite\\', '\\'], ['', '/'], $class) . '.php';
+        if (file_exists($path)) {
+            require_once $path;
         }
     });
 }
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1-safe');
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
-// Activation/Deactivation hooks con gestione errori migliorata
+// NON usare "use" statement globale - carica la classe solo quando serve!
+
+// Activation/Deactivation hooks con caricamento lazy
 register_activation_hook(__FILE__, static function () {
-    try {
-        // Carica la classe solo quando necessario
-        if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            $pluginFile = __DIR__ . '/src/Plugin.php';
-            if (!file_exists($pluginFile)) {
-                wp_die('Errore critico: File Plugin.php non trovato in ' . esc_html($pluginFile));
-            }
-            require_once $pluginFile;
+    // Carica la classe solo quando necessario
+    if (!class_exists('FP\\PerfSuite\\Plugin')) {
+        $pluginFile = __DIR__ . '/src/Plugin.php';
+        if (!file_exists($pluginFile)) {
+            wp_die('Errore critico: File Plugin.php non trovato in ' . esc_html($pluginFile));
         }
-        
+        require_once $pluginFile;
+    }
+    
+    try {
         FP\PerfSuite\Plugin::onActivate();
     } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore attivazione: ' . $e->getMessage());
         wp_die(sprintf(
             '<h1>Errore di Attivazione Plugin</h1><p><strong>Messaggio:</strong> %s</p><p><strong>File:</strong> %s:%d</p>',
             esc_html($e->getMessage()),
@@ -146,31 +138,27 @@ register_activation_hook(__FILE__, static function () {
 });
 
 register_deactivation_hook(__FILE__, static function () {
-    try {
-        // Carica la classe solo quando necessario
-        if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            $pluginFile = __DIR__ . '/src/Plugin.php';
-            if (file_exists($pluginFile)) {
-                require_once $pluginFile;
-            }
+    // Carica la classe solo quando necessario
+    if (!class_exists('FP\\PerfSuite\\Plugin')) {
+        $pluginFile = __DIR__ . '/src/Plugin.php';
+        if (file_exists($pluginFile)) {
+            require_once $pluginFile;
         }
-        
-        if (class_exists('FP\\PerfSuite\\Plugin')) {
-            FP\PerfSuite\Plugin::onDeactivate();
-        }
-    } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore disattivazione: ' . $e->getMessage());
+    }
+    
+    if (class_exists('FP\\PerfSuite\\Plugin')) {
+        FP\PerfSuite\Plugin::onDeactivate();
     }
 });
 
-// Sistema di inizializzazione ultra-sicuro
 if (function_exists('add_action')) {
+    // Sistema di inizializzazione semplificato e robusto
     global $fp_perf_suite_initialized;
     if (!isset($fp_perf_suite_initialized)) {
         $fp_perf_suite_initialized = false;
     }
     
-    // Inizializzazione con protezione massima
+    // Inizializza UNA SOLA VOLTA su init
     add_action('init', static function () {
         global $fp_perf_suite_initialized;
         
@@ -179,30 +167,39 @@ if (function_exists('add_action')) {
             return;
         }
         
-        // Inizializzazione sicura con try-catch
-        try {
-            fp_perf_suite_initialize_plugin_safe();
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log('Errore inizializzazione plugin: ' . $e->getMessage());
-            
-            // Mostra avviso in admin se possibile
-            if (is_admin() && current_user_can('manage_options')) {
-                add_action('admin_notices', static function () use ($e) {
-                    printf(
-                        '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
-                        esc_html($e->getMessage())
-                    );
-                });
-            }
-        }
+        // NON impostare $fp_perf_suite_initialized qui!
+        // Sarà impostato dalla funzione di inizializzazione solo se tutto va bene
+        fp_perf_suite_initialize_plugin();
+        
     }, 1);
+    
+    // Boot del menu service dopo l'inizializzazione del plugin
+    add_action('init', static function () {
+        // Solo se il plugin è inizializzato
+        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
+            return;
+        }
+        
+        try {
+            $container = FP\PerfSuite\Plugin::container();
+            if ($container) {
+                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                if ($menu_service) {
+                    $menu_service->boot();
+                }
+            }
+        } catch (Exception $e) {
+            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
+        }
+    }, 2); // Priorità 2 per essere sicuri che il plugin sia inizializzato
 }
 
 /**
- * Funzione di inizializzazione sicura del plugin
+ * Funzione di inizializzazione del plugin
  */
-function fp_perf_suite_initialize_plugin_safe(): void {
+function fp_perf_suite_initialize_plugin(): void {
     global $fp_perf_suite_initialized;
+    
     
     // Prevenire inizializzazioni multiple
     if ($fp_perf_suite_initialized) {
@@ -210,11 +207,14 @@ function fp_perf_suite_initialize_plugin_safe(): void {
         return;
     }
     
-    // Verifica che il file Plugin.php esista
+    // Verifica che il file Plugin.php esista PRIMA di provare a caricarlo
     $pluginFile = __DIR__ . '/src/Plugin.php';
     
     if (!file_exists($pluginFile)) {
-        fp_perf_suite_safe_log('ERRORE CRITICO: File Plugin.php non trovato in ' . $pluginFile, 'ERROR');
+        fp_perf_suite_safe_log(
+            'ERRORE CRITICO: File Plugin.php non trovato in ' . $pluginFile,
+            'ERROR'
+        );
         
         add_action('admin_notices', static function () use ($pluginFile) {
             if (current_user_can('manage_options')) {
@@ -240,7 +240,10 @@ function fp_perf_suite_initialize_plugin_safe(): void {
         }
         
     } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore caricamento Plugin.php: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'ERROR');
+        fp_perf_suite_safe_log(
+            'Errore caricamento Plugin.php: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
+            'ERROR'
+        );
         
         add_action('admin_notices', static function () use ($e) {
             if (current_user_can('manage_options')) {
@@ -256,18 +259,22 @@ function fp_perf_suite_initialize_plugin_safe(): void {
         return;
     }
     
-    // Inizializza con protezione massima
+    // Inizializza sempre - il plugin gestirà internamente i problemi
     try {
         \FP\PerfSuite\Plugin::init();
         fp_perf_suite_safe_log('Plugin initialized successfully', 'DEBUG');
         
         // Verifica se è davvero inizializzato
         if (FP\PerfSuite\Plugin::isInitialized()) {
+            // Marca come inizializzato SOLO se è davvero inizializzato
             $fp_perf_suite_initialized = true;
         }
         
     } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'ERROR');
+        fp_perf_suite_safe_log(
+            'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
+            'ERROR'
+        );
         
         // Non bloccare WordPress, continua in modalità sicura
         add_action('admin_notices', static function () use ($e) {
@@ -283,10 +290,4 @@ function fp_perf_suite_initialize_plugin_safe(): void {
     }
 }
 
-// Aggiungi avviso di modalità sicura
-add_action('admin_notices', static function () {
-    if (current_user_can('manage_options')) {
-        echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> In esecuzione in modalità sicura per prevenire problemi di white screen.</p></div>';
-    }
-});
-?>
+
