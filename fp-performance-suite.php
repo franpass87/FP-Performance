@@ -86,6 +86,12 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
     }
 }
 
+// Carica il fix per FP_Git_Updater deprecato
+$gitUpdaterFix = __DIR__ . '/fix-fp-git-updater-deprecated.php';
+if (file_exists($gitUpdaterFix)) {
+    require_once $gitUpdaterFix;
+}
+
 // Autoload
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (is_readable($autoload)) {
@@ -152,7 +158,7 @@ if (function_exists('add_action')) {
         $fp_perf_suite_initialized = false;
     }
     
-    // Inizializza sempre su init per garantire che il menu sia registrato
+    // Inizializza UNA SOLA VOLTA su init
     add_action('init', static function () {
         global $fp_perf_suite_initialized;
         
@@ -165,73 +171,7 @@ if (function_exists('add_action')) {
         fp_perf_suite_initialize_plugin();
     }, 1);
     
-    // Forza inizializzazione plugin se necessario
-    add_action('admin_init', static function () {
-        if (class_exists('FP\\PerfSuite\\Plugin') && !FP\PerfSuite\Plugin::isInitialized()) {
-            try {
-                FP\PerfSuite\Plugin::init();
-            } catch (Exception $e) {
-                error_log('[FP Performance Suite] Errore inizializzazione: ' . $e->getMessage());
-            }
-        }
-    });
-    
-    // Forza registrazione menu principale se non è registrato
-    add_action('admin_menu', static function () {
-        // Forza inizializzazione se necessario
-        if (class_exists('FP\\PerfSuite\\Plugin') && !FP\PerfSuite\Plugin::isInitialized()) {
-            try {
-                FP\PerfSuite\Plugin::init();
-            } catch (Exception $e) {
-                error_log('[FP Performance Suite] Errore inizializzazione in admin_menu: ' . $e->getMessage());
-                return;
-            }
-        }
-        
-        // Solo se il plugin è inizializzato
-        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
-            return;
-        }
-        
-        try {
-            $container = FP\PerfSuite\Plugin::container();
-            if ($container) {
-                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
-                if ($menu_service) {
-                    // Forza il boot del menu service
-                    $menu_service->boot();
-                }
-            }
-        } catch (Exception $e) {
-            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
-        }
-    }, 1); // Priorità alta per essere sicuri che sia registrato
-    
-    // Debug temporaneo per verificare il funzionamento
-    add_action('admin_notices', static function () {
-        if (current_user_can('manage_options')) {
-            $plugin_initialized = class_exists('FP\\PerfSuite\\Plugin') && FP\PerfSuite\Plugin::isInitialized();
-            $menu_registered = false;
-            
-            global $menu;
-            if (isset($menu)) {
-                foreach ($menu as $item) {
-                    if (isset($item[2]) && strpos($item[2], 'fp-performance-suite') !== false) {
-                        $menu_registered = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (!$plugin_initialized || !$menu_registered) {
-                echo '<div class="notice notice-warning"><p><strong>FP Performance Suite Debug:</strong> ';
-                echo 'Plugin inizializzato: ' . ($plugin_initialized ? 'SÌ' : 'NO') . ' | ';
-                echo 'Menu registrato: ' . ($menu_registered ? 'SÌ' : 'NO');
-                echo '</p></div>';
-            }
-        }
-    });
-    
+    // Rimuovi tutti gli altri hook di inizializzazione per evitare loop
 }
 
 /**
@@ -303,6 +243,7 @@ function fp_perf_suite_initialize_plugin(): void {
         \FP\PerfSuite\Plugin::init();
         // Marca come inizializzato
         $fp_perf_suite_initialized = true;
+        fp_perf_suite_safe_log('Plugin initialized successfully', 'DEBUG');
     } catch (\Throwable $e) {
         fp_perf_suite_safe_log(
             'Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
