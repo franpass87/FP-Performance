@@ -123,6 +123,7 @@ class Optimizer
      * Get current settings
      *
      * @return array{
+     *  enabled:bool,
      *  minify_html:bool,
      *  defer_js:bool,
      *  async_js:bool,
@@ -140,6 +141,7 @@ class Optimizer
     public function settings(): array
     {
         $defaults = [
+            'enabled' => false,
             'minify_html' => false,
             'defer_js' => true,
             'async_js' => false,
@@ -187,6 +189,7 @@ class Optimizer
     {
         $current = $this->settings();
         $new = [
+            'enabled' => $this->resolveFlag($settings, 'enabled', $current['enabled']),
             'minify_html' => $this->resolveFlag($settings, 'minify_html', $current['minify_html']),
             'defer_js' => $this->resolveFlag($settings, 'defer_js', $current['defer_js']),
             'async_js' => $this->resolveFlag($settings, 'async_js', $current['async_js']),
