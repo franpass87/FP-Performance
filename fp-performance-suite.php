@@ -190,11 +190,67 @@ if (function_exists('add_action')) {
                 'manage_options',
                 'fp-performance-suite',
                 function() {
-                    echo '<div class="wrap">';
-                    echo '<h1>FP Performance Suite</h1>';
-                    echo '<p>Benvenuto nel pannello di controllo FP Performance Suite!</p>';
-                    echo '<p>Il menu è stato registrato con successo.</p>';
-                    echo '</div>';
+                    // Prova a caricare il contenuto del plugin
+                    if (class_exists('FP\\PerfSuite\\Plugin')) {
+                        try {
+                            $container = FP\PerfSuite\Plugin::container();
+                            $menu = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                            
+                            // Crea una pagina overview semplice
+                            echo '<div class="wrap">';
+                            echo '<h1>FP Performance Suite</h1>';
+                            echo '<div class="notice notice-info">';
+                            echo '<p><strong>Plugin attivo e funzionante!</strong></p>';
+                            echo '<p>Il menu è stato registrato con successo. Ora puoi accedere a tutte le funzionalità del plugin.</p>';
+                            echo '</div>';
+                            
+                            // Aggiungi link alle sezioni principali
+                            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">';
+                            
+                            echo '<div style="border: 1px solid #ddd; padding: 20px; border-radius: 5px;">';
+                            echo '<h3>🚀 Cache</h3>';
+                            echo '<p>Gestisci la cache del sito per migliorare le performance.</p>';
+                            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite-cache') . '" class="button button-primary">Configura Cache</a>';
+                            echo '</div>';
+                            
+                            echo '<div style="border: 1px solid #ddd; padding: 20px; border-radius: 5px;">';
+                            echo '<h3>📦 Assets</h3>';
+                            echo '<p>Ottimizza CSS, JavaScript e altri asset.</p>';
+                            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite-assets') . '" class="button button-primary">Configura Assets</a>';
+                            echo '</div>';
+                            
+                            echo '<div style="border: 1px solid #ddd; padding: 20px; border-radius: 5px;">';
+                            echo '<h3>💾 Database</h3>';
+                            echo '<p>Pulisci e ottimizza il database.</p>';
+                            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite-database') . '" class="button button-primary">Configura Database</a>';
+                            echo '</div>';
+                            
+                            echo '<div style="border: 1px solid #ddd; padding: 20px; border-radius: 5px;">';
+                            echo '<h3>⚙️ Impostazioni</h3>';
+                            echo '<p>Configura le impostazioni generali del plugin.</p>';
+                            echo '<a href="' . admin_url('admin.php?page=fp-performance-suite-settings') . '" class="button button-primary">Configura Impostazioni</a>';
+                            echo '</div>';
+                            
+                            echo '</div>';
+                            echo '</div>';
+                            
+                        } catch (Exception $e) {
+                            echo '<div class="wrap">';
+                            echo '<h1>FP Performance Suite</h1>';
+                            echo '<div class="notice notice-error">';
+                            echo '<p><strong>Errore nel caricamento del contenuto:</strong> ' . esc_html($e->getMessage()) . '</p>';
+                            echo '<p>Prova a disattivare e riattivare il plugin.</p>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                    } else {
+                        echo '<div class="wrap">';
+                        echo '<h1>FP Performance Suite</h1>';
+                        echo '<div class="notice notice-warning">';
+                        echo '<p>Il plugin non è completamente inizializzato. Prova a disattivare e riattivare il plugin.</p>';
+                        echo '</div>';
+                        echo '</div>';
+                    }
                 },
                 'dashicons-performance',
                 30
