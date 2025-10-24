@@ -393,7 +393,43 @@ class PostHandler
             'preload_fonts' => !empty($_POST['preload_fonts']),
         ]);
         
+        // Re-registra i servizi per applicare immediatamente le modifiche
+        $this->reregisterFontServices();
+        
         return __('Font & Critical Path settings saved successfully!', 'fp-performance-suite');
+    }
+    
+    /**
+     * Re-registra i servizi di ottimizzazione font dopo il salvataggio
+     */
+    private function reregisterFontServices(): void
+    {
+        try {
+            $container = \FP\PerfSuite\Plugin::container();
+            
+            // Re-registra Critical Path Optimizer se abilitato
+            $criticalPathSettings = get_option('fp_ps_critical_path_optimization', []);
+            if (!empty($criticalPathSettings['enabled'])) {
+                if ($container->has(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)) {
+                    $criticalPathOptimizer = $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class);
+                    $criticalPathOptimizer->register();
+                }
+            }
+            
+            // Re-registra Font Optimizer se abilitato
+            $fontSettings = get_option('fp_ps_font_optimization', []);
+            $fontOptimizationEnabled = get_option('fp_ps_font_optimization_enabled', false);
+            
+            if (!empty($fontSettings['enabled']) || $fontOptimizationEnabled || !empty($criticalPathSettings['enabled'])) {
+                if ($container->has(\FP\PerfSuite\Services\Assets\FontOptimizer::class)) {
+                    $fontOptimizer = $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class);
+                    $fontOptimizer->register();
+                }
+            }
+            
+        } catch (Exception $e) {
+            error_log('FP Performance Suite - Errore nella re-registrazione dei servizi font: ' . $e->getMessage());
+        }
     }
 
     private function handleScriptDetectorForm(): string

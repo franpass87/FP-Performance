@@ -10,6 +10,7 @@ use FP\PerfSuite\Admin\Pages\Compression;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
+use FP\PerfSuite\Admin\Pages\ExternalCache;
 use FP\PerfSuite\Admin\Pages\Cdn;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
@@ -331,6 +332,11 @@ class Menu
         add_submenu_page('fp-performance-suite', __('CDN', 'fp-performance-suite'), __('🌐 CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-cdn', [$pages['cdn'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
+        // 🌐 EXTERNAL CACHE
+        // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('External Cache', 'fp-performance-suite'), __('🌐 External Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-external-cache', [$pages['external_cache'], 'render']);
+        
+        // ═══════════════════════════════════════════════════════════
         // 🛡️ SECURITY & INFRASTRUCTURE
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Security', 'fp-performance-suite'), __('🛡️ Security', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-security', [$pages['security'], 'render']);
@@ -433,6 +439,7 @@ class Menu
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
             'cdn' => new Cdn($this->container),
+            'external_cache' => new ExternalCache(),
             'ai_config' => new AIConfig($this->container),
             'ml' => new ML($this->container),
             'monitoring' => new MonitoringReports($this->container),

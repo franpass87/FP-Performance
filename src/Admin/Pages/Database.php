@@ -175,18 +175,7 @@ class Database extends AbstractPage
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
                 $optimizedCount = count($results['optimized'] ?? []);
-                // Ricalcola i dati del database dopo l'ottimizzazione
-                $dbAnalysis = $optimizer->analyze();
-                
-                // Crea messaggio dettagliato con i risultati aggiornati
-                $finalOverhead = $dbAnalysis['table_analysis']['total_overhead_mb'] ?? 0;
-                $finalNeedsOpt = count(array_filter($dbAnalysis['table_analysis']['tables'] ?? [], fn($t) => $t['needs_optimization'] ?? false));
-                
-                if ($finalOverhead == 0 && $finalNeedsOpt == 0) {
-                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile: 0 MB, Tabelle che necessitano ottimizzazione: 0.', 'fp-performance-suite'), $optimizedCount);
-                } else {
-                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile rimanente: %.2f MB, Tabelle che necessitano ancora ottimizzazione: %d.', 'fp-performance-suite'), $optimizedCount, $finalOverhead, $finalNeedsOpt);
-                }
+                $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate.', 'fp-performance-suite'), $optimizedCount);
             }
             if (isset($_POST['enable_object_cache'])) {
                 $settings = $objectCache->getSettings();
@@ -256,10 +245,8 @@ class Database extends AbstractPage
         ];
         // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
-        // Ricalcola i dati del database solo se non sono già stati ricalcolati dopo l'ottimizzazione
-        if (!isset($dbAnalysis)) {
-            $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
-        }
+        // Ricalcola sempre i dati del database per assicurarsi che siano aggiornati
+        $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
         
         // Object Cache - usa metodi esistenti
         $cacheSettings = $objectCache->getSettings();
@@ -1383,18 +1370,7 @@ class Database extends AbstractPage
             if (isset($_POST['optimize_all_tables']) && $optimizer) {
                 $results = $optimizer->optimizeAllTables();
                 $optimizedCount = count($results['optimized'] ?? []);
-                // Ricalcola i dati del database dopo l'ottimizzazione
-                $dbAnalysis = $optimizer->analyze();
-                
-                // Crea messaggio dettagliato con i risultati aggiornati
-                $finalOverhead = $dbAnalysis['table_analysis']['total_overhead_mb'] ?? 0;
-                $finalNeedsOpt = count(array_filter($dbAnalysis['table_analysis']['tables'] ?? [], fn($t) => $t['needs_optimization'] ?? false));
-                
-                if ($finalOverhead == 0 && $finalNeedsOpt == 0) {
-                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile: 0 MB, Tabelle che necessitano ottimizzazione: 0.', 'fp-performance-suite'), $optimizedCount);
-                } else {
-                    $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate. Overhead recuperabile rimanente: %.2f MB, Tabelle che necessitano ancora ottimizzazione: %d.', 'fp-performance-suite'), $optimizedCount, $finalOverhead, $finalNeedsOpt);
-                }
+                $message = sprintf(__('✅ Ottimizzazione completata! %d tabelle ottimizzate.', 'fp-performance-suite'), $optimizedCount);
             }
             if (isset($_POST['enable_object_cache'])) {
                 $settings = $objectCache->getSettings();
@@ -1466,10 +1442,8 @@ class Database extends AbstractPage
         
         // Ottieni dati per le sezioni
         $queryAnalysis = $queryMonitor ? $queryMonitor->getLastAnalysis() : null;
-        // Ricalcola i dati del database solo se non sono già stati ricalcolati dopo l'ottimizzazione
-        if (!isset($dbAnalysis)) {
-            $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
-        }
+        // Ricalcola sempre i dati del database per assicurarsi che siano aggiornati
+        $dbAnalysis = $optimizer ? $optimizer->analyze() : ['database_size' => ['total_mb' => 0], 'table_analysis' => ['total_tables' => 0, 'total_overhead_mb' => 0, 'tables' => []], 'recommendations' => []];
         
         // Object Cache - usa metodi esistenti
         $cacheSettings = $objectCache->getSettings();

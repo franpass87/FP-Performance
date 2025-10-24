@@ -9,15 +9,6 @@
  */
 
 /* ===========================
-   Mobile Page Layout
-   =========================== */
-
-.fp-ps-mobile-page {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-/* ===========================
    Mobile Stats Grid
    =========================== */
 
@@ -32,10 +23,11 @@
     display: flex;
     flex-direction: column;
     padding: var(--fp-spacing-lg);
-    background: var(--fp-bg);
+    background: var(--fp-card);
     border-radius: var(--fp-radius-sm);
     border-left: 4px solid var(--fp-accent);
     transition: all var(--fp-transition-base);
+    box-shadow: var(--fp-shadow-sm);
 }
 
 .fp-ps-stat-item:hover {
@@ -87,9 +79,10 @@
     padding: var(--fp-spacing-lg);
     margin: var(--fp-spacing-sm) 0;
     border-left: 4px solid #ddd;
-    background: var(--fp-bg);
+    background: var(--fp-card);
     border-radius: var(--fp-radius-sm);
     transition: all var(--fp-transition-base);
+    box-shadow: var(--fp-shadow-sm);
 }
 
 .fp-ps-issue:hover {
@@ -157,14 +150,15 @@
    Form Enhancements
    =========================== */
 
-.fp-ps-mobile-page .form-table {
+.fp-ps-card .form-table {
     background: var(--fp-card);
     border-radius: var(--fp-radius-sm);
     overflow: hidden;
     box-shadow: var(--fp-shadow-sm);
+    border: 1px solid #e5e7eb;
 }
 
-.fp-ps-mobile-page .form-table th {
+.fp-ps-card .form-table th {
     background: var(--fp-bg);
     padding: var(--fp-spacing-lg);
     font-weight: 600;
@@ -172,16 +166,16 @@
     border-bottom: 1px solid #e5e7eb;
 }
 
-.fp-ps-mobile-page .form-table td {
+.fp-ps-card .form-table td {
     padding: var(--fp-spacing-lg);
     border-bottom: 1px solid #f3f4f6;
 }
 
-.fp-ps-mobile-page .form-table tr:last-child td {
+.fp-ps-card .form-table tr:last-child td {
     border-bottom: none;
 }
 
-.fp-ps-mobile-page .description {
+.fp-ps-card .description {
     color: var(--fp-gray-700);
     font-size: var(--fp-font-size-sm);
     margin-top: var(--fp-spacing-xs);
@@ -201,12 +195,12 @@
         padding: var(--fp-spacing-md);
     }
     
-    .fp-ps-mobile-page .form-table {
+    .fp-ps-card .form-table {
         font-size: var(--fp-font-size-sm);
     }
     
-    .fp-ps-mobile-page .form-table th,
-    .fp-ps-mobile-page .form-table td {
+    .fp-ps-card .form-table th,
+    .fp-ps-card .form-table td {
         padding: var(--fp-spacing-md);
     }
     
@@ -232,19 +226,19 @@
         font-size: var(--fp-font-size-md);
     }
     
-    .fp-ps-mobile-page .form-table th,
-    .fp-ps-mobile-page .form-table td {
+    .fp-ps-card .form-table th,
+    .fp-ps-card .form-table td {
         padding: var(--fp-spacing-sm);
         display: block;
         width: 100%;
     }
     
-    .fp-ps-mobile-page .form-table th {
+    .fp-ps-card .form-table th {
         border-bottom: none;
         padding-bottom: var(--fp-spacing-xs);
     }
     
-    .fp-ps-mobile-page .form-table td {
+    .fp-ps-card .form-table td {
         padding-top: 0;
         padding-bottom: var(--fp-spacing-md);
     }
@@ -254,16 +248,16 @@
    Accessibility
    =========================== */
 
-.fp-ps-mobile-page .form-table th {
+.fp-ps-card .form-table th {
     text-align: left;
 }
 
-.fp-ps-mobile-page input[type="checkbox"] {
+.fp-ps-card input[type="checkbox"] {
     margin-right: var(--fp-spacing-xs);
 }
 
-.fp-ps-mobile-page input[type="number"],
-.fp-ps-mobile-page input[type="text"] {
+.fp-ps-card input[type="number"],
+.fp-ps-card input[type="text"] {
     width: 100%;
     max-width: 200px;
     padding: var(--fp-spacing-sm);
@@ -272,8 +266,8 @@
     font-size: var(--fp-font-size-sm);
 }
 
-.fp-ps-mobile-page input[type="number"]:focus,
-.fp-ps-mobile-page input[type="text"]:focus {
+.fp-ps-card input[type="number"]:focus,
+.fp-ps-card input[type="text"]:focus {
     outline: none;
     border-color: var(--fp-accent);
     box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.1);
@@ -283,7 +277,7 @@
    Button Enhancements
    =========================== */
 
-.fp-ps-mobile-page .button-primary {
+.fp-ps-card .button-primary {
     background: var(--fp-accent);
     border-color: var(--fp-accent);
     color: white;
@@ -293,7 +287,7 @@
     transition: all var(--fp-transition-base);
 }
 
-.fp-ps-mobile-page .button-primary:hover {
+.fp-ps-card .button-primary:hover {
     background: #1e4fd4;
     border-color: #1e4fd4;
     transform: translateY(-1px);
@@ -304,12 +298,12 @@
    Loading States
    =========================== */
 
-.fp-ps-mobile-page .loading {
+.fp-ps-card .loading {
     opacity: 0.6;
     pointer-events: none;
 }
 
-.fp-ps-mobile-page .loading::after {
+.fp-ps-card .loading::after {
     content: '';
     position: absolute;
     top: 50%;

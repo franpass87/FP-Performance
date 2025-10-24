@@ -49,6 +49,7 @@ class WebPBatchProcessor
         $remaining = $state['limit'] - $state['processed'];
 
         if ($remaining <= 0) {
+            error_log('FP Performance Suite: No remaining items to process, clearing queue');
             $this->queue->clear();
             return;
         }
@@ -56,9 +57,13 @@ class WebPBatchProcessor
         $chunk = min($remaining, self::CRON_CHUNK);
         $batchOffset = $state['offset'] + $state['processed'];
 
+        error_log("FP Performance Suite: Processing chunk of $chunk items starting at offset $batchOffset");
+
         $attachmentIds = $this->queue->getNextBatch($chunk, $batchOffset);
+        error_log('FP Performance Suite: Found attachment IDs: ' . print_r($attachmentIds, true));
 
         if (empty($attachmentIds)) {
+            error_log('FP Performance Suite: No more attachments to process, clearing queue');
             $this->queue->clear();
             return;
         }
@@ -74,6 +79,7 @@ class WebPBatchProcessor
         ]);
 
         $newState = $this->queue->getState();
+        error_log('FP Performance Suite: New state after processing: ' . print_r($newState, true));
 
         // Check if we're done
         if ($newState && ($newState['processed'] >= $newState['limit'] || $processedThisRun < $chunk)) {
@@ -82,12 +88,8 @@ class WebPBatchProcessor
             return;
         }
 
-        // Schedule next batch for polling with a small delay
-        if ($newState && $newState['processed'] < $newState['limit']) {
-            error_log('FP Performance Suite: Scheduling next batch...');
-            // Aggiungi un piccolo delay per permettere al polling di funzionare
-            wp_schedule_single_event(time() + 1, $this->queue->getCronHook());
-        }
+        // Non programmare il prossimo batch qui - lasciamo che il polling JavaScript gestisca il prossimo batch
+        error_log('FP Performance Suite: Batch processing paused, waiting for next poll');
     }
 
     /**

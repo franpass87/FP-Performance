@@ -72,9 +72,19 @@ class Overview extends AbstractPage
 
     protected function content(): string
     {
-        // Dati dal Scorer (ex-Dashboard)
-        $scorer = $this->container->get(Scorer::class);
-        $score = $scorer->calculate();
+        // Dati dal Scorer (ex-Dashboard) - con gestione errori
+        try {
+            $scorer = $this->container->get(Scorer::class);
+            $score = $scorer->calculate();
+        } catch (\Exception $e) {
+            // Fallback se il servizio non è disponibile
+            $score = [
+                'total' => 0,
+                'breakdown' => [],
+                'breakdown_detailed' => [],
+                'suggestions' => []
+            ];
+        }
         
         // Dati dal Performance Monitor (ex-Performance)
         $monitor = PerformanceMonitor::instance();
@@ -104,7 +114,7 @@ class Overview extends AbstractPage
         ?>
         
         <!-- Header con Score e Metriche Principali -->
-        <section class="fp-ps-grid two">
+        <section class="fp-ps-grid two fp-ps-mb-xl">
             <!-- Technical SEO Score -->
             <?php 
             $seoScore = (int) $score['total'];
@@ -173,8 +183,8 @@ class Overview extends AbstractPage
         
         if (!empty($quickWins)) : 
         ?>
-        <section class="fp-ps-quick-wins">
-            <div class="fp-ps-quick-wins-header">
+        <section class="fp-ps-quick-wins fp-ps-mb-xl">
+            <div class="fp-ps-quick-wins-header fp-ps-mb-lg">
                 <div class="fp-ps-quick-wins-icon">⚡</div>
                 <div class="fp-ps-quick-wins-content">
                     <h2>
@@ -216,7 +226,7 @@ class Overview extends AbstractPage
         <?php endif; ?>
 
         <!-- Metriche di Performance in Tempo Reale -->
-        <section class="fp-ps-grid three">
+        <section class="fp-ps-grid three fp-ps-mb-xl">
             <div class="fp-ps-stat-box">
                 <div class="stat-value">
                     <?php echo number_format($stats7days['avg_load_time'] * 1000, 0); ?><span class="fp-ps-text-md">ms</span>
@@ -252,7 +262,7 @@ class Overview extends AbstractPage
         </section>
 
         <!-- Metriche del Sistema Server -->
-        <section class="fp-ps-grid three">
+        <section class="fp-ps-grid three fp-ps-mb-xl">
             <div class="fp-ps-stat-box">
                 <div class="stat-value">
                     <?php echo number_format($systemStats['memory']['avg_usage_mb'], 1); ?><span class="fp-ps-text-md">MB</span>
@@ -296,7 +306,7 @@ class Overview extends AbstractPage
         </section>
 
         <!-- Dettagli Sistema Server -->
-        <section class="fp-ps-grid two">
+        <section class="fp-ps-grid two fp-ps-mb-xl">
             <div class="fp-ps-card">
                 <h2>🖥️ <?php esc_html_e('Informazioni Sistema', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-system-info">
@@ -397,7 +407,7 @@ class Overview extends AbstractPage
         </section>
 
         <!-- Score Breakdown e Ottimizzazioni Attive -->
-        <section class="fp-ps-grid two">
+        <section class="fp-ps-grid two fp-ps-mb-xl">
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Score Breakdown', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-mb-md">
@@ -448,9 +458,16 @@ class Overview extends AbstractPage
             <div class="fp-ps-card">
                 <h2><?php esc_html_e('Active Optimizations', 'fp-performance-suite'); ?></h2>
                 <ul>
-                    <?php foreach ($scorer->activeOptimizations() as $opt) : ?>
-                        <li>✓ <?php echo esc_html($opt); ?></li>
-                    <?php endforeach; ?>
+                    <?php 
+                    try {
+                        $activeOptimizations = $scorer->activeOptimizations();
+                        foreach ($activeOptimizations as $opt) : ?>
+                            <li>✓ <?php echo esc_html($opt); ?></li>
+                        <?php endforeach;
+                    } catch (\Exception $e) {
+                        echo '<li>' . esc_html__('Nessuna ottimizzazione attiva rilevata', 'fp-performance-suite') . '</li>';
+                    }
+                    ?>
                 </ul>
                 <div class="fp-ps-actions fp-ps-mt-lg">
                     <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-cache')); ?>">
@@ -464,7 +481,7 @@ class Overview extends AbstractPage
         </section>
 
         <!-- Analisi Problemi di Performance -->
-        <section class="fp-ps-card">
+        <section class="fp-ps-card fp-ps-mb-xl">
             <h2>🔍 <?php esc_html_e('Analisi Problemi e Raccomandazioni', 'fp-performance-suite'); ?></h2>
             
             <?php 
@@ -615,9 +632,9 @@ class Overview extends AbstractPage
         </section>
 
         <!-- Quick Actions -->
-        <section class="fp-ps-card">
+        <section class="fp-ps-card fp-ps-mb-xl">
             <h2>⚙️ <?php esc_html_e('Quick Actions', 'fp-performance-suite'); ?></h2>
-            <p><?php esc_html_e('Run safe optimizations and diagnostics.', 'fp-performance-suite'); ?></p>
+            <p class="fp-ps-mb-lg"><?php esc_html_e('Run safe optimizations and diagnostics.', 'fp-performance-suite'); ?></p>
             <div class="fp-ps-actions">
                 <a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-cache')); ?>">
                     <?php esc_html_e('Configure Cache', 'fp-performance-suite'); ?>
@@ -643,6 +660,12 @@ class Overview extends AbstractPage
         <!-- JavaScript per applicazione suggerimenti -->
         <script type="text/javascript">
         jQuery(document).ready(function($) {
+            // Assicurati che fpPerfSuite sia disponibile
+            if (typeof fpPerfSuite === 'undefined') {
+                console.error('fpPerfSuite non è disponibile. Assicurati che gli script siano caricati correttamente.');
+                return;
+            }
+            
             $('.fp-ps-apply-recommendation').on('click', function(e) {
                 e.preventDefault();
                 
@@ -660,7 +683,7 @@ class Overview extends AbstractPage
                 
                 // Invia richiesta AJAX
                 $.ajax({
-                    url: ajaxurl,
+                    url: fpPerfSuite.ajaxUrl,
                     type: 'POST',
                     data: {
                         action: 'fp_ps_apply_recommendation',
@@ -718,9 +741,14 @@ class Overview extends AbstractPage
 
         check_admin_referer('fp-ps-export');
 
-        $scorer = $this->container->get(Scorer::class);
-        $score = $scorer->calculate();
-        $active = $scorer->activeOptimizations();
+        try {
+            $scorer = $this->container->get(Scorer::class);
+            $score = $scorer->calculate();
+            $active = $scorer->activeOptimizations();
+        } catch (\Exception $e) {
+            $score = ['total' => 0, 'breakdown' => [], 'breakdown_detailed' => [], 'suggestions' => []];
+            $active = [];
+        }
         
         $monitor = PerformanceMonitor::instance();
         $stats7days = $monitor->getStats(7);

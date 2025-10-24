@@ -37,7 +37,14 @@ class BackendOptimizer
 
         $settings = $this->getSettings();
 
+        // Log per debug
+        Logger::debug('Backend Optimizer init called', [
+            'enabled' => $settings['enabled'] ?? false,
+            'settings' => $settings
+        ]);
+
         if (empty($settings['enabled'])) {
+            Logger::debug('Backend Optimizer disabled, skipping initialization');
             return;
         }
 
@@ -82,6 +89,15 @@ class BackendOptimizer
         }
 
         Logger::debug('Backend Optimizer initialized');
+    }
+
+    /**
+     * Forza l'inizializzazione (per debug)
+     */
+    public function forceInit(): void
+    {
+        Logger::debug('Backend Optimizer force init called');
+        $this->init();
     }
 
     /**

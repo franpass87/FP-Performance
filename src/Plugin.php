@@ -16,6 +16,7 @@ use FP\PerfSuite\Admin\AdminBar;
 use FP\PerfSuite\Health\HealthCheck;
 use FP\PerfSuite\Http\Routes;
 use FP\PerfSuite\Services\Assets\Optimizer;
+use FP\PerfSuite\Services\Assets\ExternalResourceCacheManager;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
@@ -272,11 +273,15 @@ class Plugin
             
             // Backend Optimization Services - FIX CRITICO
             $backendSettings = get_option('fp_ps_backend_optimizer', []);
-            if (!empty($backendSettings['enabled'])) {
-                self::registerServiceOnce(BackendOptimizer::class, function() use ($container) {
-                    $container->get(BackendOptimizer::class)->register();
-                });
-            }
+            // Registra sempre il servizio per evitare problemi di inizializzazione
+            self::registerServiceOnce(BackendOptimizer::class, function() use ($container) {
+                $backendOptimizer = $container->get(BackendOptimizer::class);
+                // Registra solo se abilitato nelle impostazioni
+                $settings = $backendOptimizer->getSettings();
+                if (!empty($settings['enabled'])) {
+                    $backendOptimizer->register();
+                }
+            });
             
             // Database Optimization Services - FIX CRITICO
             $dbSettings = get_option('fp_ps_db', []);
@@ -303,6 +308,14 @@ class Plugin
             if (!empty($securitySettings['enabled'])) {
                 self::registerServiceOnce(HtaccessSecurity::class, function() use ($container) {
                     $container->get(HtaccessSecurity::class)->register();
+                });
+            }
+            
+            // External Resource Cache Services - NUOVO
+            $externalCacheSettings = get_option('fp_ps_external_cache', []);
+            if (!empty($externalCacheSettings['enabled'])) {
+                self::registerServiceOnce(ExternalResourceCacheManager::class, function() use ($container) {
+                    $container->get(ExternalResourceCacheManager::class)->register();
                 });
             }
             
@@ -352,12 +365,10 @@ class Plugin
                 });
             }
             
-            // Scoring Services - Solo se abilitato esplicitamente
-            if (get_option('fp_ps_scoring_enabled', false)) {
-                self::registerServiceOnce(Scorer::class, function() use ($container) {
-                    $container->get(Scorer::class)->register();
-                });
-            }
+            // Scoring Services - Sempre attivo per calcolo score (FIX CRITICO)
+            self::registerServiceOnce(Scorer::class, function() use ($container) {
+                $container->get(Scorer::class)->register();
+            });
             
             // Preset Services - Solo se abilitato esplicitamente
             if (get_option('fp_ps_presets_enabled', false)) {
@@ -450,7 +461,12 @@ class Plugin
                 });
             }
             
-            if (get_option('fp_ps_font_optimization_enabled', false)) {
+            // Font Optimizer - Controlla sia le opzioni vecchie che nuove
+            $fontOptimizationEnabled = get_option('fp_ps_font_optimization_enabled', false);
+            $fontSettings = get_option('fp_ps_font_optimization', []);
+            $criticalPathSettings = get_option('fp_ps_critical_path_optimization', []);
+            
+            if ($fontOptimizationEnabled || !empty($fontSettings['enabled']) || !empty($criticalPathSettings['enabled'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Assets\FontOptimizer::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Services\Assets\FontOptimizer::class)->register();
                 });
@@ -520,9 +536,13 @@ class Plugin
             self::registerServiceOnce(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class, function() use ($container) {
                 $container->get(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class)->register();
             });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
-            });
+            // Critical Path Optimizer - Solo se abilitato
+            $criticalPathSettings = get_option('fp_ps_critical_path_optimization', []);
+            if (!empty($criticalPathSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
+                });
+            }
             self::registerServiceOnce(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class, function() use ($container) {
                 $container->get(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class)->register();
             });
@@ -630,6 +650,9 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\WordPressOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\WordPressOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager::class, static fn() => new \FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager());
         $container->set(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class, static fn() => new \FP\PerfSuite\Services\Assets\Combiners\DependencyResolver());
+        
+        // External Resource Cache Manager - NUOVO
+        $container->set(ExternalResourceCacheManager::class, static fn() => new ExternalResourceCacheManager());
         
         // PageSpeed optimization services
         $container->set(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Assets\LazyLoadManager());
@@ -1292,9 +1315,9 @@ class Plugin
             update_option('fp_ps_third_party_detector_enabled', false, false);
         }
         
-        // Scoring Services - DISATTIVATI di default
+        // Scoring Services - ABILITATI di default (necessari per Overview)
         if (!get_option('fp_ps_scoring_enabled')) {
-            update_option('fp_ps_scoring_enabled', false, false);
+            update_option('fp_ps_scoring_enabled', true, false);
         }
         
         // Preset Services - DISATTIVATI di default

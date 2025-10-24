@@ -1,182 +1,291 @@
-/**
- * FP Performance Suite - ML Components
- * 
- * Styles for Machine Learning page components
- * 
- * @package FP\PerfSuite
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
+/* ========================================
+   FP Performance Suite - ML Page Styles
+   ======================================== */
 
-/* ML Stats Grid */
+/* Pannello Introduttivo ML */
+.fp-ps-ml-intro {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.fp-ps-intro-title {
+    margin: 0 0 15px 0;
+    color: white;
+    font-size: 28px;
+}
+
+.fp-ps-intro-description {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    opacity: 0.95;
+}
+
+.fp-ps-intro-card {
+    background: rgba(255,255,255,0.15);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.fp-ps-intro-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.fp-ps-intro-title-small {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.fp-ps-intro-text {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+/* Tab Navigation */
+.fp-ps-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+/* Azioni Manuali */
+.fp-ps-ml-actions {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.fp-ps-action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.fp-ps-action-form {
+    display: inline-block;
+}
+
+/* Controlli Auto-Tuning */
+.fp-ps-tuning-controls {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.fp-ps-form-group {
+    margin-bottom: 20px;
+}
+
+.fp-ps-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.fp-ps-checkbox {
+    transform: scale(1.2);
+}
+
+.fp-ps-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.fp-ps-select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 200px;
+}
+
+.fp-ps-tuning-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.fp-ps-button-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+}
+
+.fp-ps-button-success {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+}
+
+/* Statistiche ML */
 .fp-ps-ml-stats,
 .fp-ps-anomaly-stats,
 .fp-ps-tuning-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
+    gap: 15px;
+    margin-bottom: 20px;
 }
 
 .fp-ps-stat-item {
     display: flex;
-    flex-direction: column;
-    padding: var(--fp-spacing-md);
-    background: var(--fp-card);
-    border-radius: var(--fp-radius-sm);
-    border: var(--fp-border-width) solid #e0e0e0;
-    box-shadow: var(--fp-shadow-sm);
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #007cba;
 }
 
 .fp-ps-stat-label {
     font-weight: 600;
-    color: #666;
-    margin-bottom: var(--fp-spacing-xs);
-    font-size: var(--fp-font-size-sm);
+    color: #555;
 }
 
 .fp-ps-stat-value {
-    font-size: var(--fp-font-size-lg);
-    font-weight: bold;
-    color: var(--fp-text);
+    font-weight: 700;
+    color: #333;
 }
 
-/* Status Colors */
 .fp-ps-status-enabled {
-    color: var(--fp-ok);
+    color: #28a745;
 }
 
 .fp-ps-status-disabled {
-    color: var(--fp-danger);
+    color: #dc3545;
 }
 
 .fp-ps-critical {
-    color: var(--fp-danger);
+    color: #dc3545;
+    font-weight: 700;
 }
 
 .fp-ps-high {
-    color: var(--fp-warn);
+    color: #fd7e14;
+    font-weight: 700;
 }
 
-/* Predictions, Anomalies, Recommendations */
+/* Predizioni e Raccomandazioni */
 .fp-ps-predictions,
-.fp-ps-anomalies-list,
 .fp-ps-recommendations {
-    margin: 1rem 0;
+    display: grid;
+    gap: 15px;
 }
 
 .fp-ps-prediction,
-.fp-ps-anomaly,
 .fp-ps-recommendation {
-    padding: var(--fp-spacing-md);
-    margin: var(--fp-spacing-xs) 0;
-    border-left: 4px solid #ddd;
-    background: var(--fp-card);
-    border-radius: var(--fp-radius-sm);
-    border: var(--fp-border-width) solid #e0e0e0;
-    box-shadow: var(--fp-shadow-sm);
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #007cba;
+    background: #f8f9fa;
 }
 
-/* Severity Colors */
-.fp-ps-prediction-high,
-.fp-ps-anomaly-critical,
-.fp-ps-recommendation-high {
-    border-left-color: var(--fp-danger);
-    background: var(--fp-danger-light);
-}
-
-.fp-ps-prediction-medium,
-.fp-ps-anomaly-high,
-.fp-ps-recommendation-medium {
-    border-left-color: var(--fp-warn);
-    background: var(--fp-warning-light);
-}
-
-.fp-ps-prediction-low,
-.fp-ps-anomaly-medium,
-.fp-ps-recommendation-low {
-    border-left-color: var(--fp-info);
-    background: var(--fp-info-light);
-}
-
-/* Headers */
 .fp-ps-prediction-header,
-.fp-ps-anomaly-header,
 .fp-ps-rec-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 10px;
 }
 
 .fp-ps-confidence,
 .fp-ps-rec-confidence {
-    font-size: var(--fp-font-size-sm);
-    color: #666;
-    background: #e0e0e0;
-    padding: 0.2rem var(--fp-spacing-xs);
-    border-radius: var(--fp-radius-sm);
-    font-weight: 500;
+    background: #007cba;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-/* Actions */
 .fp-ps-prediction-action,
-.fp-ps-anomaly-action,
 .fp-ps-rec-action {
-    margin: 0.5rem 0;
-    font-style: italic;
+    margin: 10px 0;
     color: #666;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
-/* Recommendation Meta */
 .fp-ps-rec-meta {
     display: flex;
-    gap: 1rem;
-    font-size: 0.8em;
-    color: #999;
-    margin-top: 0.5rem;
+    gap: 15px;
+    font-size: 12px;
+    color: #888;
 }
 
 .fp-ps-rec-type,
 .fp-ps-rec-priority {
-    background: #f0f0f0;
-    padding: 0.2rem 0.5rem;
+    background: #e9ecef;
+    padding: 2px 6px;
     border-radius: 3px;
-    font-weight: 500;
+}
+
+/* Anomalie */
+.fp-ps-anomalies-list {
+    display: grid;
+    gap: 15px;
+}
+
+.fp-ps-anomaly {
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 4px solid #dc3545;
+    background: #fff5f5;
+}
+
+.fp-ps-anomaly-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.fp-ps-anomaly-action {
+    margin: 10px 0;
+    color: #666;
+    line-height: 1.5;
 }
 
 /* Tuning Changes */
 .fp-ps-tuning-changes {
-    margin: 1rem 0;
+    display: grid;
+    gap: 20px;
 }
 
 .fp-ps-tuning-category {
-    margin: var(--fp-spacing-md) 0;
-    padding: var(--fp-spacing-md);
-    background: var(--fp-card);
-    border-radius: var(--fp-radius-sm);
-    border: var(--fp-border-width) solid #e0e0e0;
-    box-shadow: var(--fp-shadow-sm);
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #28a745;
 }
 
 .fp-ps-tuning-category h4 {
-    margin: 0 0 var(--fp-spacing-xs) 0;
-    color: var(--fp-text);
-    font-size: var(--fp-font-size-md);
+    margin: 0 0 15px 0;
+    color: #28a745;
 }
 
 .fp-ps-tuning-change {
-    margin: var(--fp-spacing-xs) 0;
-    padding: var(--fp-spacing-xs);
-    background: #fff;
-    border-radius: var(--fp-radius-sm);
-    border: var(--fp-border-width) solid #e0e0e0;
-    font-size: var(--fp-font-size-sm);
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 14px;
+}
+
+.fp-ps-tuning-change:last-child {
+    border-bottom: none;
 }
 
 .fp-ps-tuning-change strong {
-    color: var(--fp-text);
+    color: #333;
 }
 
 .fp-ps-tuning-change em {
@@ -186,149 +295,55 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .fp-ps-ml-stats,
-    .fp-ps-anomaly-stats,
-    .fp-ps-tuning-stats {
-        grid-template-columns: 1fr;
+    .fp-ps-ml-intro {
+        padding: 20px;
     }
     
-    .fp-ps-prediction-header,
-    .fp-ps-anomaly-header,
-    .fp-ps-rec-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+    .fp-ps-intro-title {
+        font-size: 24px;
     }
     
-    .fp-ps-rec-meta {
-        flex-direction: column;
-        gap: 0.5rem;
+    .fp-ps-intro-description {
+        font-size: 16px;
     }
-}
-
-/* Auto-Tuning Controls */
-.fp-ps-tuning-controls {
-    background: #f8f9fa;
-    border-radius: var(--fp-radius-sm);
-    padding: var(--fp-spacing-lg);
-    margin: var(--fp-spacing-md) 0;
-}
-
-.fp-ps-tuning-controls h3 {
-    margin: 0 0 var(--fp-spacing-md) 0;
-    color: var(--fp-text);
-    font-size: var(--fp-font-size-lg);
-    font-weight: 600;
-}
-
-.fp-ps-form-group {
-    margin-bottom: var(--fp-spacing-md);
-}
-
-.fp-ps-form-group label {
-    display: flex;
-    align-items: center;
-    gap: var(--fp-spacing-xs);
-    font-weight: 600;
-    color: var(--fp-text);
-    margin-bottom: var(--fp-spacing-xs);
-}
-
-.fp-ps-form-group input[type="checkbox"] {
-    transform: scale(1.2);
-    accent-color: var(--fp-primary);
-}
-
-.fp-ps-form-group select {
-    padding: var(--fp-spacing-xs) var(--fp-spacing-sm);
-    border: 1px solid #ddd;
-    border-radius: var(--fp-radius-sm);
-    background: white;
-    font-size: var(--fp-font-size-sm);
-    min-width: 200px;
-}
-
-.fp-ps-form-group .description {
-    margin-top: var(--fp-spacing-xs);
-    color: #666;
-    font-size: var(--fp-font-size-sm);
-    line-height: 1.4;
-}
-
-.fp-ps-tuning-actions {
-    display: flex;
-    gap: var(--fp-spacing-sm);
-    flex-wrap: wrap;
-    margin-top: var(--fp-spacing-md);
-    padding-top: var(--fp-spacing-md);
-    border-top: 1px solid #ddd;
-}
-
-.fp-ps-tuning-actions .button {
-    padding: var(--fp-spacing-xs) var(--fp-spacing-md);
-    border-radius: var(--fp-radius-sm);
-    font-weight: 500;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.fp-ps-tuning-actions .button-primary {
-    background: var(--fp-primary);
-    color: white;
-}
-
-.fp-ps-tuning-actions .button-primary:hover {
-    background: var(--fp-primary-dark);
-    transform: translateY(-1px);
-}
-
-.fp-ps-tuning-actions .button-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.fp-ps-tuning-actions .button-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-1px);
-}
-
-.fp-ps-tuning-actions .button[style*="background: #28a745"] {
-    background: #28a745 !important;
-    color: white !important;
-}
-
-.fp-ps-tuning-actions .button[style*="background: #28a745"]:hover {
-    background: #218838 !important;
-    transform: translateY(-1px);
-}
-
-.fp-ps-tuning-actions .button[style*="background: #dc3545"] {
-    background: #dc3545 !important;
-    color: white !important;
-}
-
-.fp-ps-tuning-actions .button[style*="background: #dc3545"]:hover {
-    background: #c82333 !important;
-    transform: translateY(-1px);
-}
-
-/* Responsive adjustments for tuning controls */
-@media (max-width: 768px) {
+    
+    .fp-ps-action-buttons {
+        flex-direction: column;
+    }
+    
+    .fp-ps-action-form {
+        width: 100%;
+    }
+    
     .fp-ps-tuning-actions {
         flex-direction: column;
     }
     
-    .fp-ps-tuning-actions .button {
+    .fp-ps-select {
         width: 100%;
-        text-align: center;
-    }
-    
-    .fp-ps-form-group select {
-        width: 100%;
-        min-width: auto;
     }
 }
 
-/* Coherent styling with plugin design system - removed dark mode auto-detection */
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .fp-ps-stat-item {
+        background: #2c2c2c;
+        color: #e0e0e0;
+    }
+    
+    .fp-ps-prediction,
+    .fp-ps-recommendation {
+        background: #2c2c2c;
+        color: #e0e0e0;
+    }
+    
+    .fp-ps-anomaly {
+        background: #2c1a1a;
+        color: #e0e0e0;
+    }
+    
+    .fp-ps-tuning-category {
+        background: #2c2c2c;
+        color: #e0e0e0;
+    }
+}

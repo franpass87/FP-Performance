@@ -67,12 +67,12 @@ class Mobile extends AbstractPage
             ];
         }
         ?>
-        <div class="wrap fp-ps-mobile-page">
+        <div class="wrap">
             <h1><?php echo esc_html($this->title()); ?></h1>
             
             <div class="fp-ps-admin-grid">
                 <!-- Settings Form -->
-                <div class="fp-ps-admin-card">
+                <div class="fp-ps-card">
                     <h2><?php _e('Mobile Optimization Settings', 'fp-performance-suite'); ?></h2>
                     
                     <form method="post" action="?page=fp-performance-suite-mobile">
@@ -135,7 +135,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Mobile Report -->
-                <div class="fp-ps-admin-card">
+                <div class="fp-ps-card">
                     <h2><?php _e('Mobile Performance Report', 'fp-performance-suite'); ?></h2>
                     
                     <div class="fp-ps-mobile-stats">
@@ -180,7 +180,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Touch Optimization Settings -->
-                <div class="fp-ps-admin-card">
+                <div class="fp-ps-card">
                     <h2><?php _e('Touch Optimization', 'fp-performance-suite'); ?></h2>
                     
                     <?php
@@ -247,7 +247,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Responsive Images Settings -->
-                <div class="fp-ps-admin-card">
+                <div class="fp-ps-card">
                     <h2><?php _e('Responsive Images', 'fp-performance-suite'); ?></h2>
                     
                     <?php

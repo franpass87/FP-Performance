@@ -164,7 +164,10 @@ class WebPConverter
      */
     public function bulkConvert(int $limit = 20, int $offset = 0): array
     {
-        return $this->queue->initializeBulkConversion($limit, $offset);
+        error_log("FP Performance Suite: Starting bulk conversion with limit=$limit, offset=$offset");
+        $result = $this->queue->initializeBulkConversion($limit, $offset);
+        error_log("FP Performance Suite: Bulk conversion result: " . print_r($result, true));
+        return $result;
     }
 
     /**

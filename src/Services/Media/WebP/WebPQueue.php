@@ -84,8 +84,8 @@ class WebPQueue
 
         update_option(self::QUEUE_OPTION, $state, false);
 
-        // Programma il primo batch immediatamente
-        $this->scheduleBatch();
+        // Non programmare il batch qui - lasciamo che il JavaScript gestisca il polling
+        // Il batch verrà processato quando il JavaScript farà la prima richiesta di stato
 
         return [
             'converted' => 0,
@@ -161,8 +161,9 @@ class WebPQueue
      */
     public function scheduleBatch(): void
     {
-        // Esegui il processing immediatamente invece di programmare un cron job
-        do_action(self::CRON_HOOK);
+        // Non programmare nulla qui - il JavaScript gestirà il polling
+        // Questo metodo è mantenuto per compatibilità ma non fa nulla
+        error_log('FP Performance Suite: scheduleBatch called but not scheduling anything');
     }
 
 
@@ -289,11 +290,16 @@ class WebPQueue
             $total = (int) $query->found_posts;
         }
 
+        // Log per debug
+        error_log("FP Performance Suite: Found $total images to convert (offset: $offset, limit: $limit)");
+
         if ($total <= $offset) {
             return 0;
         }
 
-        return min($limit, $total - $offset);
+        $result = min($limit, $total - $offset);
+        error_log("FP Performance Suite: Returning $result images for conversion");
+        return $result;
     }
 
     /**

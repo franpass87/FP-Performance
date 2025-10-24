@@ -19,6 +19,7 @@ export class BulkProcessor {
      * @param {HTMLButtonElement} config.button - Button element
      * @param {string} config.startAction - WordPress AJAX action per iniziare l'operazione
      * @param {string} config.statusAction - WordPress AJAX action per controllare lo stato
+     * @param {string} config.processAction - WordPress AJAX action per processare i batch (opzionale)
      * @param {string} config.nonce - WordPress nonce per start action
      * @param {string} config.statusNonce - WordPress nonce per status action
      * @param {Object} config.labels - Etichette personalizzate
@@ -30,6 +31,7 @@ export class BulkProcessor {
         this.button = config.button;
         this.startAction = config.startAction;
         this.statusAction = config.statusAction;
+        this.processAction = config.processAction; // Nuovo endpoint per processare i batch
         this.nonce = config.nonce;
         this.statusNonce = config.statusNonce;
         this.pollInterval = config.pollInterval || 2000;
@@ -136,6 +138,12 @@ export class BulkProcessor {
         console.log('FP Performance Suite: startPolling called');
         const checkStatus = async () => {
             console.log('FP Performance Suite: Checking status...');
+            
+            // Se abbiamo un processAction, usalo per processare i batch
+            if (this.processAction) {
+                await this.processBatch();
+            }
+            
             const formData = new FormData();
             formData.append('action', this.statusAction);
             formData.append('nonce', this.statusNonce);
@@ -185,6 +193,37 @@ export class BulkProcessor {
         
         // Poi polling regolare
         this.pollIntervalId = setInterval(checkStatus, this.pollInterval);
+    }
+    
+    /**
+     * Processa un batch di elementi
+     */
+    async processBatch() {
+        if (!this.processAction) {
+            return;
+        }
+        
+        console.log('FP Performance Suite: Processing batch...');
+        const formData = new FormData();
+        formData.append('action', this.processAction);
+        formData.append('nonce', this.statusNonce);
+        
+        try {
+            const response = await fetch(window.fpPerfSuite?.ajaxUrl || window.ajaxurl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            });
+            
+            const data = await response.json();
+            console.log('FP Performance Suite: Process batch response:', data);
+            
+            if (!data.success) {
+                console.warn('FP Performance Suite: Batch processing failed:', data.data);
+            }
+        } catch (error) {
+            console.warn('FP Performance Suite: Batch processing error:', error);
+        }
     }
     
     /**

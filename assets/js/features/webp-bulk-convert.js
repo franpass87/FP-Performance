@@ -50,9 +50,10 @@ export function initWebPBulkConvert() {
         button: btn,
         startAction: 'fp_ps_webp_bulk_convert',
         statusAction: 'fp_ps_webp_queue_status',
+        processAction: 'fp_ps_webp_process_batch', // Nuovo endpoint per processare i batch
         nonce: nonce,
         statusNonce: statusNonce,
-        pollInterval: 2000,
+        pollInterval: 3000, // Aumentiamo l'intervallo per dare tempo al processing
         labels: {
             starting: 'Avvio conversione WebP...',
             inProgress: 'Conversione in corso...',

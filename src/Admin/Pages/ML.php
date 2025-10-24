@@ -39,14 +39,15 @@ class ML extends AbstractPage
         return FP_PERF_SUITE_DIR . '/views/admin-page.php';
     }
 
-    protected function content(): string
+    protected function data(): array
     {
-        ob_start();
-        $this->render();
-        return ob_get_clean();
+        return [
+            'title' => $this->title(),
+            'breadcrumbs' => [__('AI & ML', 'fp-performance-suite'), __('Machine Learning', 'fp-performance-suite')],
+        ];
     }
 
-    public function render(): void
+    protected function content(): string
     {
         $this->handleFormSubmission();
         $settings = $this->getSettings();
@@ -68,36 +69,38 @@ class ML extends AbstractPage
         if (!in_array($current_tab, $valid_tabs, true)) {
             $current_tab = 'overview';
         }
+        
+        ob_start();
         ?>
         
         <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+        <div class="fp-ps-page-intro fp-ps-ml-intro">
+            <h2 class="fp-ps-intro-title">
                 🤖 Machine Learning Intelligence
             </h2>
-            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
+            <p class="fp-ps-intro-description">
                 <?php esc_html_e('L\'intelligenza artificiale che impara dal tuo sito per ottimizzare automaticamente le performance e prevedere problemi futuri.', 'fp-performance-suite'); ?>
             </p>
             
-            <div class="fp-ps-grid three" style="gap: 20px;">
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🧠</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Predizioni Intelligenti', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+            <div class="fp-ps-grid three">
+                <div class="fp-ps-intro-card">
+                    <div class="fp-ps-intro-icon">🧠</div>
+                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Predizioni Intelligenti', 'fp-performance-suite'); ?></strong>
+                    <p class="fp-ps-intro-text">
                         <?php esc_html_e('Analizza pattern di performance e prevede problemi prima che si verifichino', 'fp-performance-suite'); ?>
                     </p>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Rilevamento Anomalie', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                <div class="fp-ps-intro-card">
+                    <div class="fp-ps-intro-icon">🔍</div>
+                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Rilevamento Anomalie', 'fp-performance-suite'); ?></strong>
+                    <p class="fp-ps-intro-text">
                         <?php esc_html_e('Identifica automaticamente comportamenti anomali e potenziali problemi', 'fp-performance-suite'); ?>
                     </p>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">⚙️</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Auto-Tuning', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
+                <div class="fp-ps-intro-card">
+                    <div class="fp-ps-intro-icon">⚙️</div>
+                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Auto-Tuning', 'fp-performance-suite'); ?></strong>
+                    <p class="fp-ps-intro-text">
                         <?php esc_html_e('Ottimizza automaticamente le impostazioni basandosi sui dati raccolti', 'fp-performance-suite'); ?>
                     </p>
                 </div>
@@ -116,7 +119,7 @@ class ML extends AbstractPage
         </div>
         
         <!-- Navigazione Tabs -->
-        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+        <div class="nav-tab-wrapper fp-ps-tab-wrapper">
             <a href="?page=fp-performance-suite-ml&tab=overview" 
                class="nav-tab <?php echo $current_tab === 'overview' ? 'nav-tab-active' : ''; ?>">
                 📊 <?php esc_html_e('Overview', 'fp-performance-suite'); ?>
@@ -216,33 +219,35 @@ class ML extends AbstractPage
                         </div>
                         
                         <!-- Pulsanti Azione -->
-                        <div class="fp-ps-ml-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <div class="fp-ps-ml-actions">
                             <h3><?php _e('Azioni Manuali', 'fp-performance-suite'); ?></h3>
                             <p class="description"><?php _e('Esegui analisi manuali quando necessario', 'fp-performance-suite'); ?></p>
                             
-                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
-                                <?php wp_nonce_field('fp_ps_ml_manual_analysis', 'fp_ps_ml_manual_nonce'); ?>
-                                <input type="hidden" name="action" value="manual_analysis" />
-                                <?php submit_button(__('Esegui Analisi Pattern', 'fp-performance-suite'), 'secondary', 'manual_analysis', false); ?>
-                            </form>
-                            
-                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
-                                <?php wp_nonce_field('fp_ps_ml_manual_prediction', 'fp_ps_ml_manual_nonce'); ?>
-                                <input type="hidden" name="action" value="manual_prediction" />
-                                <?php submit_button(__('Genera Predizioni', 'fp-performance-suite'), 'secondary', 'manual_prediction', false); ?>
-                            </form>
-                            
-                            <form method="post" action="" style="display: inline-block; margin-right: 10px;">
-                                <?php wp_nonce_field('fp_ps_ml_manual_anomaly', 'fp_ps_ml_manual_nonce'); ?>
-                                <input type="hidden" name="action" value="manual_anomaly" />
-                                <?php submit_button(__('Rileva Anomalie', 'fp-performance-suite'), 'secondary', 'manual_anomaly', false); ?>
-                            </form>
-                            
-                            <form method="post" action="" style="display: inline-block;">
-                                <?php wp_nonce_field('fp_ps_ml_check_cron', 'fp_ps_ml_manual_nonce'); ?>
-                                <input type="hidden" name="action" value="check_cron" />
-                                <?php submit_button(__('Verifica Cron Jobs', 'fp-performance-suite'), 'secondary', 'check_cron', false); ?>
-                            </form>
+                            <div class="fp-ps-action-buttons">
+                                <form method="post" action="" class="fp-ps-action-form">
+                                    <?php wp_nonce_field('fp_ps_ml_manual_analysis', 'fp_ps_ml_manual_nonce'); ?>
+                                    <input type="hidden" name="action" value="manual_analysis" />
+                                    <?php submit_button(__('Esegui Analisi Pattern', 'fp-performance-suite'), 'secondary', 'manual_analysis', false); ?>
+                                </form>
+                                
+                                <form method="post" action="" class="fp-ps-action-form">
+                                    <?php wp_nonce_field('fp_ps_ml_manual_prediction', 'fp_ps_ml_manual_nonce'); ?>
+                                    <input type="hidden" name="action" value="manual_prediction" />
+                                    <?php submit_button(__('Genera Predizioni', 'fp-performance-suite'), 'secondary', 'manual_prediction', false); ?>
+                                </form>
+                                
+                                <form method="post" action="" class="fp-ps-action-form">
+                                    <?php wp_nonce_field('fp_ps_ml_manual_anomaly', 'fp_ps_ml_manual_nonce'); ?>
+                                    <input type="hidden" name="action" value="manual_anomaly" />
+                                    <?php submit_button(__('Rileva Anomalie', 'fp-performance-suite'), 'secondary', 'manual_anomaly', false); ?>
+                                </form>
+                                
+                                <form method="post" action="" class="fp-ps-action-form">
+                                    <?php wp_nonce_field('fp_ps_ml_check_cron', 'fp_ps_ml_manual_nonce'); ?>
+                                    <input type="hidden" name="action" value="check_cron" />
+                                    <?php submit_button(__('Verifica Cron Jobs', 'fp-performance-suite'), 'secondary', 'check_cron', false); ?>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -432,32 +437,32 @@ class ML extends AbstractPage
                         </div>
                         
                         <!-- Controlli Auto-Tuning -->
-                        <div class="fp-ps-tuning-controls" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <div class="fp-ps-tuning-controls">
                             <h3><?php _e('Auto-Tuning Controls', 'fp-performance-suite'); ?></h3>
                             
                             <form method="post" action="">
                                 <?php wp_nonce_field('fp_ps_auto_tuner_settings', 'fp_ps_auto_tuner_nonce'); ?>
                                 
-                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
-                                    <label for="auto_tuner_enabled" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                                <div class="fp-ps-form-group">
+                                    <label for="auto_tuner_enabled" class="fp-ps-checkbox-label">
                                         <input type="checkbox" 
                                                id="auto_tuner_enabled" 
                                                name="auto_tuner_enabled" 
                                                value="1" 
                                                <?php checked($tuning_report['enabled'], true); ?>
-                                               style="transform: scale(1.2);" />
+                                               class="fp-ps-checkbox" />
                                         <?php _e('Enable Auto-Tuning', 'fp-performance-suite'); ?>
                                     </label>
-                                    <p class="description" style="margin-top: 5px; color: #666;">
+                                    <p class="description">
                                         <?php _e('Automatically optimize performance settings based on machine learning analysis', 'fp-performance-suite'); ?>
                                     </p>
                                 </div>
                                 
-                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
-                                    <label for="tuning_frequency" style="display: block; margin-bottom: 5px; font-weight: 600;">
+                                <div class="fp-ps-form-group">
+                                    <label for="tuning_frequency" class="fp-ps-label">
                                         <?php _e('Tuning Frequency', 'fp-performance-suite'); ?>
                                     </label>
-                                    <select id="tuning_frequency" name="tuning_frequency" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                                    <select id="tuning_frequency" name="tuning_frequency" class="fp-ps-select">
                                         <?php 
                                         $frequencies = [
                                             'hourly' => __('Every Hour', 'fp-performance-suite'),
@@ -474,36 +479,36 @@ class ML extends AbstractPage
                                     </select>
                                 </div>
                                 
-                                <div class="fp-ps-form-group" style="margin-bottom: 20px;">
-                                    <label for="aggressive_mode" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                                <div class="fp-ps-form-group">
+                                    <label for="aggressive_mode" class="fp-ps-checkbox-label">
                                         <input type="checkbox" 
                                                id="aggressive_mode" 
                                                name="aggressive_mode" 
                                                value="1" 
                                                <?php checked(get_option('fp_ps_auto_tuner')['aggressive_mode'] ?? false, true); ?>
-                                               style="transform: scale(1.2);" />
+                                               class="fp-ps-checkbox" />
                                         <?php _e('Aggressive Mode', 'fp-performance-suite'); ?>
                                     </label>
-                                    <p class="description" style="margin-top: 5px; color: #666;">
+                                    <p class="description">
                                         <?php _e('Apply more aggressive optimizations (use with caution)', 'fp-performance-suite'); ?>
                                     </p>
                                 </div>
                                 
-                                <div class="fp-ps-tuning-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                    <button type="submit" name="save_auto_tuner_settings" class="button button-primary" style="padding: 8px 16px;">
+                                <div class="fp-ps-tuning-actions">
+                                    <button type="submit" name="save_auto_tuner_settings" class="button button-primary">
                                         <?php _e('Save Settings', 'fp-performance-suite'); ?>
                                     </button>
                                     
                                     <?php if ($tuning_report['enabled']): ?>
-                                        <button type="submit" name="run_manual_tuning" class="button button-secondary" style="padding: 8px 16px;">
+                                        <button type="submit" name="run_manual_tuning" class="button button-secondary">
                                             <?php _e('Run Manual Tuning', 'fp-performance-suite'); ?>
                                         </button>
                                         
-                                        <button type="submit" name="disable_auto_tuning" class="button" style="padding: 8px 16px; background: #dc3545; color: white; border: none;">
+                                        <button type="submit" name="disable_auto_tuning" class="button fp-ps-button-danger">
                                             <?php _e('Disable Auto-Tuning', 'fp-performance-suite'); ?>
                                         </button>
                                     <?php else: ?>
-                                        <button type="submit" name="enable_auto_tuning" class="button button-primary" style="padding: 8px 16px; background: #28a745; color: white; border: none;">
+                                        <button type="submit" name="enable_auto_tuning" class="button fp-ps-button-success">
                                             <?php _e('Enable Auto-Tuning', 'fp-performance-suite'); ?>
                                         </button>
                                     <?php endif; ?>
@@ -535,6 +540,8 @@ class ML extends AbstractPage
             <?php endif; ?>
         </div>
         <?php
+        
+        return ob_get_clean();
     }
 
     private function handleFormSubmission(): void

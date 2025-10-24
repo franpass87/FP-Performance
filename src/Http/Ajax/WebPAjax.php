@@ -24,6 +24,7 @@ class WebPAjax
     {
         add_action('wp_ajax_fp_ps_webp_queue_status', [$this, 'getQueueStatus']);
         add_action('wp_ajax_fp_ps_webp_bulk_convert', [$this, 'startBulkConversion']);
+        add_action('wp_ajax_fp_ps_webp_process_batch', [$this, 'processBatch']);
     }
     
     /**
@@ -98,6 +99,56 @@ class WebPAjax
             }
             
             wp_send_json_success($result);
+        } catch (\Exception $e) {
+            wp_send_json_error('Errore: ' . $e->getMessage(), 500);
+        }
+    }
+    
+    /**
+     * Process a batch of images via AJAX
+     */
+    public function processBatch(): void
+    {
+        check_ajax_referer('fp_ps_webp_status', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti', 403);
+            return;
+        }
+        
+        try {
+            error_log('FP Performance Suite: processBatch called');
+            $converter = $this->container->get(WebPConverter::class);
+            $settings = $converter->settings();
+            
+            // Process the batch
+            $converter->runQueue();
+            
+            // Get updated status
+            $queue = $converter->getQueue();
+            $state = $queue->getState();
+            
+            if ($state === null) {
+                wp_send_json_success([
+                    'active' => false,
+                    'processed' => 0,
+                    'total' => 0,
+                    'percent' => 100,
+                ]);
+                return;
+            }
+            
+            $percent = $state['total'] > 0 
+                ? round(($state['processed'] / $state['total']) * 100)
+                : 0;
+            
+            wp_send_json_success([
+                'active' => true,
+                'processed' => $state['processed'],
+                'converted' => $state['converted'],
+                'total' => $state['total'],
+                'percent' => $percent,
+            ]);
         } catch (\Exception $e) {
             wp_send_json_error('Errore: ' . $e->getMessage(), 500);
         }

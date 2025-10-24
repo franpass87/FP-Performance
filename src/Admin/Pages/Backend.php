@@ -68,6 +68,9 @@ class Backend extends AbstractPage
         $backendOptimizer = $this->container->get(BackendOptimizer::class);
         $allSettings = $backendOptimizer->getSettings();
         $message = '';
+        
+        // Debug: Log delle impostazioni correnti
+        error_log('Backend Optimization Settings: ' . print_r($allSettings, true));
 
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_backend_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_backend_nonce']), 'fp-ps-backend')) {
             
@@ -75,6 +78,12 @@ class Backend extends AbstractPage
             if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
                 $allSettings['enabled'] = !empty($_POST['backend_enabled']);
                 $backendOptimizer->updateSettings($allSettings);
+                
+                // Forza reinizializzazione del servizio
+                if (!empty($_POST['backend_enabled'])) {
+                    $backendOptimizer->forceInit();
+                }
+                
                 $message = __('Backend optimization settings saved successfully!', 'fp-performance-suite');
             }
             

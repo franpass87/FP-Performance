@@ -162,9 +162,10 @@ class Scorer
         
         // Object Cache (Redis/Memcached)
         if ($this->objectCache !== null) {
-            $objectCacheSettings = $this->objectCache->settings();
+            $objectCacheSettings = $this->objectCache->getSettings();
             if (!empty($objectCacheSettings['enabled'])) {
-                $driver = ucfirst($objectCacheSettings['driver']);
+                $backend = $this->objectCache->getAvailableBackend();
+                $driver = $backend ? ucfirst($backend) : 'Object Cache';
                 $active[] = sprintf(__('%s object cache active', 'fp-performance-suite'), $driver);
             }
         }

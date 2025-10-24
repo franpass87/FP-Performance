@@ -367,6 +367,61 @@ class HtaccessSecurity
 
         $rules .= "</IfModule>";
 
+        // Aggiungi regole per risorse esterne se abilitato
+        if (!empty($config['external_cache'])) {
+            $rules .= "\n" . $this->buildExternalCacheRules($config);
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Costruisce le regole per risorse esterne
+     */
+    private function buildExternalCacheRules(array $config): string
+    {
+        $rules = "# === Cache Risorse Esterne ===\n";
+        
+        // Header per risorse esterne JavaScript
+        $jsTtl = $config['external_js_ttl'] ?? 31536000;
+        $rules .= "<IfModule mod_headers.c>\n";
+        $rules .= "  # Header per JavaScript esterni\n";
+        $rules .= "  <FilesMatch \"\\.(js|mjs)$\">\n";
+        $rules .= "    Header set Cache-Control \"public, max-age={$jsTtl}, immutable\"\n";
+        $rules .= "    Header set X-External-Cache \"enabled\"\n";
+        $rules .= "  </FilesMatch>\n\n";
+        
+        // Header per CSS esterni
+        $cssTtl = $config['external_css_ttl'] ?? 31536000;
+        $rules .= "  # Header per CSS esterni\n";
+        $rules .= "  <FilesMatch \"\\.css$\">\n";
+        $rules .= "    Header set Cache-Control \"public, max-age={$cssTtl}, immutable\"\n";
+        $rules .= "    Header set X-External-Cache \"enabled\"\n";
+        $rules .= "  </FilesMatch>\n\n";
+        
+        // Header per font esterni
+        $fontTtl = $config['external_font_ttl'] ?? 31536000;
+        $rules .= "  # Header per font esterni\n";
+        $rules .= "  <FilesMatch \"\\.(woff2?|ttf|otf|eot)$\">\n";
+        $rules .= "    Header set Cache-Control \"public, max-age={$fontTtl}, immutable\"\n";
+        $rules .= "    Header set Access-Control-Allow-Origin \"*\"\n";
+        $rules .= "    Header set X-External-Cache \"enabled\"\n";
+        $rules .= "  </FilesMatch>\n";
+        
+        $rules .= "</IfModule>\n\n";
+        
+        // Regole Expires per risorse esterne
+        $rules .= "<IfModule mod_expires.c>\n";
+        $rules .= "  # Expires per risorse esterne\n";
+        $rules .= "  ExpiresByType application/javascript \"access plus {$jsTtl} seconds\"\n";
+        $rules .= "  ExpiresByType text/javascript \"access plus {$jsTtl} seconds\"\n";
+        $rules .= "  ExpiresByType text/css \"access plus {$cssTtl} seconds\"\n";
+        $rules .= "  ExpiresByType font/woff2 \"access plus {$fontTtl} seconds\"\n";
+        $rules .= "  ExpiresByType font/woff \"access plus {$fontTtl} seconds\"\n";
+        $rules .= "  ExpiresByType font/ttf \"access plus {$fontTtl} seconds\"\n";
+        $rules .= "  ExpiresByType font/otf \"access plus {$fontTtl} seconds\"\n";
+        $rules .= "</IfModule>";
+        
         return $rules;
     }
 
