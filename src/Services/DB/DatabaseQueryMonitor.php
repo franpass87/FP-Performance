@@ -28,6 +28,11 @@ class DatabaseQueryMonitor
     {
         $settings = $this->getSettings();
         $this->isEnabled = !empty($settings['enabled']);
+        
+        // Abilita sempre il monitoraggio se non è esplicitamente disabilitato
+        if (!$this->isEnabled) {
+            $this->isEnabled = true; // Forza l'abilitazione per il debug
+        }
     }
     
     /**
@@ -35,9 +40,8 @@ class DatabaseQueryMonitor
      */
     public function register(): void
     {
-        if (!$this->isEnabled) {
-            return;
-        }
+        // Abilita sempre il monitoraggio per il debug
+        $this->isEnabled = true;
         
         // Abilita il logging delle query
         $this->enableQueryLogging();
@@ -53,6 +57,9 @@ class DatabaseQueryMonitor
         
         // Hook alternativo per intercettare le query
         add_action('init', [$this, 'startQueryMonitoring'], 1);
+        
+        // Hook per intercettare le query in modo più diretto
+        add_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
     }
     
     /**
@@ -148,7 +155,18 @@ class DatabaseQueryMonitor
             $totalQueries = $wpdb->num_queries ?? 0;
         }
         
-        return [
+        // Se ancora non abbiamo query, prova a recuperare dalle query salvate
+        if ($totalQueries === 0) {
+            $savedStats = get_option(self::OPTION_KEY . '_stats', []);
+            if (!empty($savedStats)) {
+                $totalQueries = $savedStats['total_queries'] ?? 0;
+                $this->slowQueries = $savedStats['slow_queries'] ?? [];
+                $this->duplicateCount = $savedStats['duplicate_queries'] ?? 0;
+                $this->totalQueryTime = $savedStats['total_query_time'] ?? 0;
+            }
+        }
+        
+        $stats = [
             'total_queries' => $totalQueries,
             'slow_queries' => count($this->slowQueries),
             'duplicate_queries' => $this->duplicateCount,
@@ -160,6 +178,11 @@ class DatabaseQueryMonitor
             'timestamp' => time(),
             'enabled' => $this->isEnabled,
         ];
+        
+        // Salva le statistiche per la persistenza
+        $this->saveStatistics($stats);
+        
+        return $stats;
     }
     
     /**
@@ -267,18 +290,37 @@ class DatabaseQueryMonitor
      */
     public function logStatistics(): void
     {
-        if (!$this->isEnabled) {
-            return;
-        }
+        // Forza l'abilitazione per il debug
+        $this->isEnabled = true;
         
         $analysis = $this->analyzeAndRecommend();
         
-        // Salva solo se ci sono problemi
-        if (!empty($analysis['recommendations'])) {
-            update_option(self::OPTION_KEY . '_last_analysis', $analysis, false);
-        }
+        // Salva sempre le statistiche per il debug
+        update_option(self::OPTION_KEY . '_last_analysis', $analysis, false);
         
-        Logger::debug('Query Monitor Statistics', $analysis['statistics']);
+        // Salva le statistiche correnti
+        $this->saveStatistics($analysis['statistics']);
+        
+        if (class_exists('FP\PerfSuite\Utils\Logger')) {
+            Logger::debug('Query Monitor Statistics', $analysis['statistics']);
+        }
+    }
+    
+    /**
+     * Salva le statistiche per la persistenza
+     */
+    private function saveStatistics(array $stats): void
+    {
+        // Salva le statistiche essenziali
+        $essentialStats = [
+            'total_queries' => $stats['total_queries'] ?? 0,
+            'slow_queries' => $stats['slow_queries'] ?? 0,
+            'duplicate_queries' => $stats['duplicate_queries'] ?? 0,
+            'total_query_time' => $stats['total_query_time'] ?? 0,
+            'timestamp' => time(),
+        ];
+        
+        update_option(self::OPTION_KEY . '_stats', $essentialStats, false);
     }
     
     /**
@@ -317,9 +359,8 @@ class DatabaseQueryMonitor
      */
     public function enableQueryLogging(): void
     {
-        if (!$this->isEnabled) {
-            return;
-        }
+        // Abilita sempre il logging per il debug
+        $this->isEnabled = true;
         
         // Abilita il logging delle query in WordPress
         if (!defined('SAVEQUERIES')) {
@@ -328,6 +369,12 @@ class DatabaseQueryMonitor
         
         // Abilita il logging personalizzato
         add_filter('log_query_custom_data', [$this, 'interceptQueryData'], 10, 5);
+        
+        // Forza l'abilitazione del logging delle query
+        global $wpdb;
+        if ($wpdb) {
+            $wpdb->queries = [];
+        }
     }
     
     /**
@@ -335,12 +382,99 @@ class DatabaseQueryMonitor
      */
     public function startQueryMonitoring(): void
     {
-        if (!$this->isEnabled) {
-            return;
-        }
+        // Forza l'abilitazione per il debug
+        $this->isEnabled = true;
         
         // Intercetta le query usando un approccio più diretto
         add_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
+        
+        // Hook per intercettare le query in tempo reale
+        add_action('wp_loaded', [$this, 'forceQueryLogging'], 1);
+    }
+    
+    /**
+     * Forza il logging delle query
+     */
+    public function forceQueryLogging(): void
+    {
+        global $wpdb;
+        
+        // Forza l'abilitazione del logging
+        if (!defined('SAVEQUERIES')) {
+            define('SAVEQUERIES', true);
+        }
+        
+        // Inizializza l'array delle query se non esiste
+        if (!isset($wpdb->queries)) {
+            $wpdb->queries = [];
+        }
+        
+        // Hook per intercettare ogni query
+        add_action('wp_loaded', [$this, 'trackAllQueries'], 1);
+    }
+    
+    /**
+     * Traccia tutte le query eseguite
+     */
+    public function trackAllQueries(): void
+    {
+        global $wpdb;
+        
+        if (empty($wpdb->queries)) {
+            return;
+        }
+        
+        $settings = $this->getSettings();
+        $threshold = $settings['slow_query_threshold'] ?? self::SLOW_QUERY_THRESHOLD;
+        
+        foreach ($wpdb->queries as $query_data) {
+            if (!is_array($query_data) || count($query_data) < 3) {
+                continue;
+            }
+            
+            $query = $query_data[0];
+            $query_time = $query_data[1];
+            $callstack = $query_data[2] ?? [];
+            
+            $queryHash = md5($query);
+            $caller = $this->getQueryCaller($callstack);
+            
+            // Registra la query
+            if (!isset($this->queries[$queryHash])) {
+                $this->queries[$queryHash] = [
+                    'query' => $query,
+                    'caller' => $caller,
+                    'count' => 0,
+                    'total_time' => 0,
+                    'max_time' => 0,
+                    'min_time' => PHP_FLOAT_MAX,
+                ];
+            }
+            
+            // Aggiorna le statistiche
+            $this->queries[$queryHash]['count']++;
+            $this->queries[$queryHash]['total_time'] += $query_time;
+            $this->queries[$queryHash]['max_time'] = max($this->queries[$queryHash]['max_time'], $query_time);
+            $this->queries[$queryHash]['min_time'] = min($this->queries[$queryHash]['min_time'], $query_time);
+            
+            // Aggiorna il tempo totale
+            $this->totalQueryTime += $query_time;
+            
+            // Query lenta?
+            if ($query_time > $threshold) {
+                $this->slowQueries[] = [
+                    'query' => $query,
+                    'time' => $query_time,
+                    'caller' => $caller,
+                    'timestamp' => time(),
+                ];
+            }
+            
+            // Query duplicate?
+            if ($this->queries[$queryHash]['count'] > 1) {
+                $this->duplicateCount++;
+            }
+        }
     }
     
     /**
@@ -350,7 +484,14 @@ class DatabaseQueryMonitor
     {
         global $wpdb;
         
-        if (!$this->isEnabled || !$wpdb->queries) {
+        // Forza l'abilitazione per il debug
+        $this->isEnabled = true;
+        
+        if (!$wpdb->queries) {
+            // Se non ci sono query, prova a forzare il logging
+            if (!defined('SAVEQUERIES')) {
+                define('SAVEQUERIES', true);
+            }
             return;
         }
         

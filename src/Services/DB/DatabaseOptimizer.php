@@ -311,6 +311,15 @@ class DatabaseOptimizer
                 ];
             }
             
+            // Ottieni stato prima dell'ottimizzazione
+            $beforeStatus = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$tableName}'", ARRAY_A);
+            $beforeDataFree = $beforeStatus[0]['Data_free'] ?? 0;
+            
+            Logger::info('Table status before optimization', [
+                'table' => $tableName,
+                'data_free_before' => $beforeDataFree
+            ]);
+            
             // Esegui l'ottimizzazione usando query() invece di get_results()
             $result = $wpdb->query("OPTIMIZE TABLE `{$tableName}`");
             
@@ -329,23 +338,42 @@ class DatabaseOptimizer
                 ];
             }
             
+            // Forza il ricalcolo delle statistiche della tabella
+            $wpdb->query("ANALYZE TABLE `{$tableName}`");
+            
             // Verifica il risultato dell'ottimizzazione
-            $checkResult = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$tableName}'", ARRAY_A);
-            $tableStatus = $checkResult[0] ?? [];
+            $afterStatus = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$tableName}'", ARRAY_A);
+            $afterDataFree = $afterStatus[0]['Data_free'] ?? 0;
+            $tableStatus = $afterStatus[0] ?? [];
+            
+            $overheadReduction = $beforeDataFree - $afterDataFree;
             
             Logger::info('Table optimization completed', [
                 'table' => $tableName,
                 'result' => $result,
+                'data_free_before' => $beforeDataFree,
+                'data_free_after' => $afterDataFree,
+                'overhead_reduction' => $overheadReduction,
                 'status' => $tableStatus
             ]);
             
+            $message = 'Tabella ottimizzata con successo';
+            if ($overheadReduction > 0) {
+                $message .= sprintf(' (recuperati %.2f MB)', $overheadReduction / 1024 / 1024);
+            } else {
+                $message .= ' (nessun overhead recuperabile)';
+            }
+            
             return [
                 'success' => true,
-                'message' => 'Tabella ottimizzata con successo',
+                'message' => $message,
                 'table' => $tableName,
+                'overhead_reduction' => $overheadReduction,
                 'details' => [
                     'result' => $result,
-                    'status' => $tableStatus
+                    'status' => $tableStatus,
+                    'data_free_before' => $beforeDataFree,
+                    'data_free_after' => $afterDataFree
                 ],
             ];
             
@@ -387,6 +415,7 @@ class DatabaseOptimizer
             
             $results = [];
             $errors = [];
+            $totalOverheadReduction = 0;
             $startTime = microtime(true);
             
             Logger::info('Found tables to optimize', ['count' => count($tables)]);
@@ -398,7 +427,11 @@ class DatabaseOptimizer
                 
                 if ($result['success']) {
                     $results[] = $table;
-                    Logger::info('Table optimized successfully', ['table' => $table]);
+                    $totalOverheadReduction += $result['overhead_reduction'] ?? 0;
+                    Logger::info('Table optimized successfully', [
+                        'table' => $table,
+                        'overhead_reduction' => $result['overhead_reduction'] ?? 0
+                    ]);
                 } else {
                     $errors[$table] = $result['message'];
                     Logger::error('Table optimization failed', [
@@ -418,8 +451,20 @@ class DatabaseOptimizer
                 'optimized' => count($results),
                 'errors' => count($errors),
                 'total' => count($tables),
-                'execution_time' => $executionTime
+                'execution_time' => $executionTime,
+                'total_overhead_reduction' => $totalOverheadReduction
             ]);
+            
+            $message = sprintf(
+                'Ottimizzate %d tabelle su %d totali. %d errori.',
+                count($results),
+                count($tables),
+                count($errors)
+            );
+            
+            if ($totalOverheadReduction > 0) {
+                $message .= sprintf(' Recuperati %.2f MB di overhead.', $totalOverheadReduction / 1024 / 1024);
+            }
             
             return [
                 'success' => empty($errors),
@@ -427,12 +472,8 @@ class DatabaseOptimizer
                 'errors' => $errors,
                 'total' => count($tables),
                 'execution_time' => $executionTime,
-                'message' => sprintf(
-                    'Ottimizzate %d tabelle su %d totali. %d errori.',
-                    count($results),
-                    count($tables),
-                    count($errors)
-                ),
+                'total_overhead_reduction' => $totalOverheadReduction,
+                'message' => $message,
             ];
             
         } catch (\Exception $e) {
