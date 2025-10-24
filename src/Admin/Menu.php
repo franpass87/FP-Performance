@@ -439,7 +439,7 @@ class Menu
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
             'cdn' => new Cdn($this->container),
-            'external_cache' => new ExternalCache(),
+            'external_cache' => new ExternalCache($this->container),
             'ai_config' => new AIConfig($this->container),
             'ml' => new ML($this->container),
             'monitoring' => new MonitoringReports($this->container),

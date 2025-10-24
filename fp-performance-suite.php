@@ -171,7 +171,26 @@ if (function_exists('add_action')) {
         fp_perf_suite_initialize_plugin();
     }, 1);
     
-    // Rimuovi tutti gli altri hook di inizializzazione per evitare loop
+    // Registra il menu admin in modo sicuro
+    add_action('admin_menu', static function () {
+        // Solo se il plugin è inizializzato
+        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
+            return;
+        }
+        
+        try {
+            $container = FP\PerfSuite\Plugin::container();
+            if ($container) {
+                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                if ($menu_service) {
+                    // Chiama direttamente register() invece di boot() per evitare loop
+                    $menu_service->register();
+                }
+            }
+        } catch (Exception $e) {
+            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
+        }
+    }, 1);
 }
 
 /**
