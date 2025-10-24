@@ -142,7 +142,7 @@ class Assets extends AbstractPage
             <!-- Main Toggle for Asset Optimization -->
             <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
                 <h2 style="margin-top: 0; color: #495057;">⚡ <?php esc_html_e('Asset Optimization Control', 'fp-performance-suite'); ?></h2>
-                <form method="post" action="?page=fp-performance-suite-assets">
+                <form method="post">
                     <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                     <input type="hidden" name="form_type" value="main_toggle" />
                     
@@ -274,7 +274,8 @@ class Assets extends AbstractPage
             if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
                 $optimizer = $this->container->get(Optimizer::class);
                 $currentSettings = $optimizer->settings();
-                $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
+                // Corretto: gestisce sia stati checked che unchecked
+                $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
                 $optimizer->update($currentSettings);
                 $settings = $optimizer->settings();
                 return __('Asset optimization settings saved successfully!', 'fp-performance-suite');

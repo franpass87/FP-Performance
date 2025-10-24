@@ -176,6 +176,62 @@ if (function_exists('add_action')) {
         }
     });
     
+    // Forza registrazione menu principale se non è registrato
+    add_action('admin_menu', static function () {
+        // Forza inizializzazione se necessario
+        if (class_exists('FP\\PerfSuite\\Plugin') && !FP\PerfSuite\Plugin::isInitialized()) {
+            try {
+                FP\PerfSuite\Plugin::init();
+            } catch (Exception $e) {
+                error_log('[FP Performance Suite] Errore inizializzazione in admin_menu: ' . $e->getMessage());
+                return;
+            }
+        }
+        
+        // Solo se il plugin è inizializzato
+        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
+            return;
+        }
+        
+        try {
+            $container = FP\PerfSuite\Plugin::container();
+            if ($container) {
+                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                if ($menu_service) {
+                    // Forza il boot del menu service
+                    $menu_service->boot();
+                }
+            }
+        } catch (Exception $e) {
+            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
+        }
+    }, 1); // Priorità alta per essere sicuri che sia registrato
+    
+    // Debug temporaneo per verificare il funzionamento
+    add_action('admin_notices', static function () {
+        if (current_user_can('manage_options')) {
+            $plugin_initialized = class_exists('FP\\PerfSuite\\Plugin') && FP\PerfSuite\Plugin::isInitialized();
+            $menu_registered = false;
+            
+            global $menu;
+            if (isset($menu)) {
+                foreach ($menu as $item) {
+                    if (isset($item[2]) && strpos($item[2], 'fp-performance-suite') !== false) {
+                        $menu_registered = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!$plugin_initialized || !$menu_registered) {
+                echo '<div class="notice notice-warning"><p><strong>FP Performance Suite Debug:</strong> ';
+                echo 'Plugin inizializzato: ' . ($plugin_initialized ? 'SÌ' : 'NO') . ' | ';
+                echo 'Menu registrato: ' . ($menu_registered ? 'SÌ' : 'NO');
+                echo '</p></div>';
+            }
+        }
+    });
+    
 }
 
 /**

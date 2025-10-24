@@ -29,7 +29,7 @@ class JavaScriptTab
         
         <section class="fp-ps-card">
             <h2><?php esc_html_e('JavaScript Optimization', 'fp-performance-suite'); ?></h2>
-            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
+            <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="javascript" />
                 <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
@@ -254,7 +254,7 @@ class JavaScriptTab
                 <?php esc_html_e('Tecniche avanzate per ridurre il JavaScript non utilizzato e ottimizzare il caricamento degli script per migliorare le prestazioni e i Core Web Vitals.', 'fp-performance-suite'); ?>
             </p>
             
-            <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
+            <form method="post">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="advanced_js_optimization" />
                 <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />

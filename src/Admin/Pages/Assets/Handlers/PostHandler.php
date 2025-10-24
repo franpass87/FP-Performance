@@ -465,8 +465,8 @@ class PostHandler
             // Get current settings
             $currentSettings = $optimizer->settings();
             
-            // Update the main enabled flag
-            $currentSettings['enabled'] = !empty($_POST['assets_enabled']);
+            // Update the main enabled flag - ensure we handle both checked and unchecked states
+            $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
             
             // Debug: Log the settings being saved
             error_log('FP Performance Suite - Saving settings: ' . print_r($currentSettings, true));
@@ -479,6 +479,10 @@ class PostHandler
             
             // Update the settings array for the view
             $settings = $optimizer->settings();
+            
+            // Verify the setting was actually saved
+            $savedSettings = $optimizer->settings();
+            error_log('FP Performance Suite - Settings after save: ' . print_r($savedSettings['enabled'], true));
             
             // Return success message instead of redirect to avoid page issues
             return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
