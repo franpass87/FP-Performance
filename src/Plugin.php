@@ -63,7 +63,8 @@ class Plugin
         Logger::debug("Plugin::init() called", [
             'initialized' => self::$initialized,
             'container_exists' => self::$container instanceof ServiceContainer,
-            'global_initialized' => $fp_perf_suite_initialized
+            'global_initialized' => $fp_perf_suite_initialized,
+            'is_admin' => is_admin()
         ]);
         
         // Prevenire inizializzazioni multiple con controllo semplificato
@@ -101,13 +102,22 @@ class Plugin
             }
         }
 
-        // Solo admin e routes - NIENTE altro durante init
-        // I servizi verranno caricati lazy quando servono
+        // FIX CRITICO: Se siamo nell'admin, carica SOLO i servizi admin essenziali
         if (is_admin()) {
-            $container->get(Menu::class)->boot();
-            $container->get(AdminAssets::class)->boot();
-            $container->get(AdminBar::class)->boot();
-            AdminBar::registerActions();
+            try {
+                $container->get(Menu::class)->boot();
+                $container->get(AdminAssets::class)->boot();
+                $container->get(AdminBar::class)->boot();
+                AdminBar::registerActions();
+                
+                // NON caricare Routes nell'admin per evitare interferenze
+                Logger::debug("Admin mode: skipping Routes and optimization services");
+                return;
+            } catch (\Throwable $e) {
+                Logger::error("Error in admin mode: " . $e->getMessage());
+                // Se c'è un errore, non bloccare l'admin
+                return;
+            }
         }
         
         $container->get(Routes::class)->boot();
