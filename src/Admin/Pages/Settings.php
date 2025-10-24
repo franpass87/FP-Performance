@@ -7,7 +7,6 @@ use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
-use FP\PerfSuite\Services\Media\WebPConverter;
 
 use function __;
 use function array_key_exists;
@@ -92,7 +91,6 @@ class Settings extends AbstractPage
     {
         $pageCache = $this->container->get(PageCache::class);
         $headers = $this->container->get(Headers::class);
-        $webp = $this->container->get(WebPConverter::class);
         $optimizer = $this->container->get(Optimizer::class);
         $cleaner = $this->container->get(Cleaner::class);
         
@@ -125,7 +123,6 @@ class Settings extends AbstractPage
                         'fp_ps_page_cache',
                         'fp_ps_browser_cache',
                         'fp_ps_assets',
-                        'fp_ps_webp',
                         'fp_ps_db',
                     ];
                     foreach ($allowed as $option) {
@@ -153,12 +150,6 @@ class Settings extends AbstractPage
                                 $assetDefaults = $optimizer->settings();
                                 $prepared[$option] = $this->normalizeAssetSettingsImport($data[$option], $assetDefaults);
                                 break;
-                            case 'fp_ps_webp':
-                                $prepared[$option] = $this->normalizeWebpImport(
-                                    $data[$option],
-                                    $webp->settings()
-                                );
-                                break;
                             case 'fp_ps_db':
                                 $prepared[$option] = [
                                     'schedule' => sanitize_key($data[$option]['schedule'] ?? $cleaner->settings()['schedule']),
@@ -178,9 +169,6 @@ class Settings extends AbstractPage
                         if (isset($prepared['fp_ps_assets'])) {
                             $optimizer->update($prepared['fp_ps_assets']);
                         }
-                        if (isset($prepared['fp_ps_webp'])) {
-                            $webp->update($prepared['fp_ps_webp']);
-                        }
                         if (isset($prepared['fp_ps_db'])) {
                             $cleaner->update($prepared['fp_ps_db']);
                         }
@@ -199,7 +187,6 @@ class Settings extends AbstractPage
             'fp_ps_page_cache' => $pageCache->settings(),
             'fp_ps_browser_cache' => $headers->settings(),
             'fp_ps_assets' => $optimizer->settings(),
-            'fp_ps_webp' => $webp->settings(),
             'fp_ps_db' => $cleaner->settings(),
         ];
         
@@ -207,7 +194,6 @@ class Settings extends AbstractPage
         $tests = [
             __('Page cache abilitata', 'fp-performance-suite') => $pageCache->isEnabled() ? __('✅ Pass', 'fp-performance-suite') : __('❌ Disabilitata', 'fp-performance-suite'),
             __('Header browser cache', 'fp-performance-suite') => $headers->status()['enabled'] ? __('✅ Pass', 'fp-performance-suite') : __('❌ Mancanti', 'fp-performance-suite'),
-            __('Copertura WebP', 'fp-performance-suite') => sprintf('%0.2f%%', $webp->status()['coverage']),
         ];
         
         // Tab corrente
@@ -552,45 +538,6 @@ class Settings extends AbstractPage
         ];
     }
 
-    /**
-     * @param array<string, mixed> $incoming
-     * @param array<string, mixed> $defaults
-     * @return array{enabled:bool,quality:int,keep_original:bool,lossy:bool}
-     */
-    protected function normalizeWebpImport(array $incoming, array $defaults): array
-    {
-        $enabled = $this->resolveBoolean($incoming, 'enabled', !empty($defaults['enabled']));
-
-        $defaultQuality = isset($defaults['quality']) ? (int) $defaults['quality'] : 82;
-        $quality = $defaultQuality;
-        if (array_key_exists('quality', $incoming)) {
-            $parsedQuality = $this->parseInteger($incoming['quality']);
-            if ($parsedQuality !== null) {
-                $quality = max(1, min(100, $parsedQuality));
-            }
-        }
-
-        $keepOriginal = array_key_exists('keep_original', $defaults)
-            ? (bool) $defaults['keep_original']
-            : false;
-        if (array_key_exists('keep_original', $incoming)) {
-            $keepOriginal = $this->interpretBoolean($incoming['keep_original'], $keepOriginal);
-        }
-
-        $lossy = array_key_exists('lossy', $defaults)
-            ? (bool) $defaults['lossy']
-            : false;
-        if (array_key_exists('lossy', $incoming)) {
-            $lossy = $this->interpretBoolean($incoming['lossy'], $lossy);
-        }
-
-        return [
-            'enabled' => $enabled,
-            'quality' => $quality,
-            'keep_original' => $keepOriginal,
-            'lossy' => $lossy,
-        ];
-    }
 
     /**
      * @param array<string, mixed> $incoming

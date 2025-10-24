@@ -10,7 +10,6 @@ use FP\PerfSuite\Services\DB\DatabaseQueryMonitor;
 use FP\PerfSuite\Services\DB\DatabaseOptimizer;
 use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
-use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Logger;
 
@@ -508,103 +507,6 @@ class Commands
         }
     }
 
-    /**
-     * WebP conversion operations
-     *
-     * ## OPTIONS
-     *
-     * [--limit=<limit>]
-     * : Number of images to convert
-     * ---
-     * default: 20
-     * ---
-     *
-     * ## EXAMPLES
-     *
-     *     # Convert 50 images to WebP
-     *     wp fp-performance webp convert --limit=50
-     *
-     * @when after_wp_load
-     */
-    public function webp($args, $assoc_args)
-    {
-        $subcommand = $args[0] ?? 'convert';
-
-        if ($subcommand === 'convert') {
-            $this->webpConvert($assoc_args);
-        } elseif ($subcommand === 'status') {
-            $this->webpStatus();
-        } else {
-            \WP_CLI::error("Unknown webp subcommand: {$subcommand}");
-        }
-    }
-
-    /**
-     * Convert images to WebP
-     */
-    private function webpConvert(array $assoc_args): void
-    {
-        try {
-            $container = Plugin::container();
-            $converter = $container->get(WebPConverter::class);
-
-            $limit = isset($assoc_args['limit']) ? (int)$assoc_args['limit'] : 20;
-
-            \WP_CLI::log("Starting WebP conversion (limit: {$limit})...");
-
-            $result = $converter->bulkConvert($limit);
-
-            if (isset($result['error'])) {
-                \WP_CLI::error($result['error']);
-                return;
-            }
-
-            if ($result['queued']) {
-                \WP_CLI::log("Queued {$result['total']} images for conversion");
-                \WP_CLI::log('Processing in background...');
-
-                // Wait and check progress
-                $maxWait = 60; // seconds
-                $waited = 0;
-                while ($waited < $maxWait) {
-                    sleep(2);
-                    $waited += 2;
-
-                    $status = $converter->status();
-                    \WP_CLI::log("Progress: {$status['coverage']}% coverage");
-
-                    if ($status['coverage'] >= 100) {
-                        break;
-                    }
-                }
-
-                \WP_CLI::success('WebP conversion completed!');
-            } else {
-                \WP_CLI::log('No images to convert');
-            }
-        } catch (\Throwable $e) {
-            \WP_CLI::error('Failed to convert images: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Show WebP status
-     */
-    private function webpStatus(): void
-    {
-        try {
-            $container = Plugin::container();
-            $converter = $container->get(WebPConverter::class);
-            $status = $converter->status();
-
-            \WP_CLI::log('WebP Status:');
-            \WP_CLI::log('  Enabled: ' . ($status['enabled'] ? 'Yes' : 'No'));
-            \WP_CLI::log('  Quality: ' . $status['quality']);
-            \WP_CLI::log('  Coverage: ' . round($status['coverage'], 2) . '%');
-        } catch (\Throwable $e) {
-            \WP_CLI::error('Failed to get WebP status: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Calculate performance score
@@ -817,8 +719,6 @@ class Commands
         \WP_CLI::log('  object-cache disable - Disable object cache');
         \WP_CLI::log('  object-cache flush   - Flush object cache');
         \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Media Commands ===%n'));
-        \WP_CLI::log('  webp convert         - Convert images to WebP');
-        \WP_CLI::log('  webp status          - Show WebP status');
         \WP_CLI::log("\n" . \WP_CLI::colorize('%C=== Other Commands ===%n'));
         \WP_CLI::log('  score                - Calculate performance score');
         \WP_CLI::log('  info                 - Show this information');

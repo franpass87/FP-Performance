@@ -74,4 +74,12 @@ class ServiceWorkerManager
         });
         ";
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

@@ -567,5 +567,14 @@ class PluginSpecificOptimizer
         
         return $recommendations;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // PluginSpecificOptimizer non ha hook specifici da registrare
+        // È utilizzato principalmente per analisi e ottimizzazioni on-demand
+    }
 }
 

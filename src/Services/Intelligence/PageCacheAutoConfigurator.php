@@ -208,5 +208,14 @@ class PageCacheAutoConfigurator
         
         return update_option('fp_ps_cache_exclusions', $newExclusions);
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // PageCacheAutoConfigurator non ha hook specifici da registrare
+        // È utilizzato principalmente per configurazione on-demand
+    }
 }
 

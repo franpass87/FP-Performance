@@ -78,4 +78,12 @@ class PredictivePrefetching
         
         return $links;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

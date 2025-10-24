@@ -571,14 +571,6 @@ class AIConfig extends AbstractPage
                     <td><span class="fp-ps-badge green"><?php esc_html_e('Alto', 'fp-performance-suite'); ?></span></td>
                 </tr>
                 
-                <!-- WebP Quality -->
-                <?php $currentWebP = get_option('fp_ps_webp', []); ?>
-                <tr>
-                    <td><strong><?php esc_html_e('WebP Quality', 'fp-performance-suite'); ?></strong></td>
-                    <td><?php echo esc_html($currentWebP['quality'] ?? 80); ?>%</td>
-                    <td class="fp-ps-highlight-new"><?php echo esc_html($config['webp']['quality'] ?? 80); ?>%</td>
-                    <td><span class="fp-ps-badge amber"><?php esc_html_e('Medio', 'fp-performance-suite'); ?></span></td>
-                </tr>
                 
                 <!-- Heartbeat -->
                 <?php $currentHeartbeat = get_option('fp_ps_heartbeat_interval', 60); ?>
@@ -644,13 +636,6 @@ class AIConfig extends AbstractPage
             );
         }
         
-        // WebP
-        if (isset($config['webp'])) {
-            $commands[] = sprintf(
-                'wp option update fp_ps_webp \'%s\'',
-                json_encode($config['webp'])
-            );
-        }
         
         // Heartbeat
         if (isset($config['heartbeat'])) {

@@ -126,7 +126,7 @@ add_filter('wp_resource_hints', [$hintsManager, 'addPreloadHints'], 10, 2);
 - `.css` → `style`
 - `.js` → `script`
 - `.woff`, `.woff2` → `font`
-- `.jpg`, `.png`, `.webp` → `image`
+- `.jpg`, `.png`, `.gif` → `image`
 
 ### DependencyResolver
 

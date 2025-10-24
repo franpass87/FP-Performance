@@ -6,7 +6,6 @@ use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
-use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Utils\Logger;
 
 use function check_ajax_referer;

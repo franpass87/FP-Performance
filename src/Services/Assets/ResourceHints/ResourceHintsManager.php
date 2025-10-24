@@ -319,8 +319,7 @@ class ResourceHintsManager
             case 'jpeg':
             case 'png':
             case 'gif':
-            case 'webp':
-            case 'avif':
+            case 'image':
             case 'svg':
                 return 'image';
             case 'mp4':

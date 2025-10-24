@@ -113,4 +113,12 @@ class LazyLoadManager
             'iframes_enabled' => $this->iframes
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

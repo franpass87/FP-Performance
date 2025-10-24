@@ -202,7 +202,7 @@ class Cdn extends AbstractPage
                         <label for="cdn_included_extensions"><?php esc_html_e('Estensioni File da Servire', 'fp-performance-suite'); ?></label>
                     </th>
                     <td>
-                        <input type="text" name="cdn[included_extensions]" id="cdn_included_extensions" value="<?php echo esc_attr($settings['included_extensions'] ?? 'jpg,jpeg,png,gif,webp,css,js,svg,woff,woff2,ttf,eot'); ?>" class="large-text">
+                        <input type="text" name="cdn[included_extensions]" id="cdn_included_extensions" value="<?php echo esc_attr($settings['included_extensions'] ?? 'jpg,jpeg,png,gif,css,js,svg,woff,woff2,ttf,eot'); ?>" class="large-text">
                         <p class="description"><?php esc_html_e('Estensioni dei file da servire tramite CDN (separati da virgola)', 'fp-performance-suite'); ?></p>
                     </td>
                 </tr>
@@ -318,7 +318,7 @@ class Cdn extends AbstractPage
                 'enabled' => isset($_POST['cdn']['enabled']),
                 'url' => sanitize_text_field($_POST['cdn']['url'] ?? ''),
                 'provider' => sanitize_text_field($_POST['cdn']['provider'] ?? 'custom'),
-                'included_extensions' => sanitize_text_field($_POST['cdn']['included_extensions'] ?? 'jpg,jpeg,png,gif,webp,css,js,svg,woff,woff2,ttf,eot'),
+                'included_extensions' => sanitize_text_field($_POST['cdn']['included_extensions'] ?? 'jpg,jpeg,png,gif,css,js,svg,woff,woff2,ttf,eot'),
                 'excluded_paths' => sanitize_textarea_field($_POST['cdn']['excluded_paths'] ?? ''),
             ]);
             

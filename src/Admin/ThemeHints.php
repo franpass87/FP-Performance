@@ -240,7 +240,7 @@ class ThemeHints
             'object_cache' => '🗄️ Object Cache',
             'core_web_vitals' => '📊 Core Web Vitals Monitor',
             'third_party_scripts' => '🔌 Third-Party Scripts',
-            'avif_converter' => '🖼️ AVIF Converter',
+            'media_optimizer' => '🖼️ Media Optimizer',
             'service_worker' => '📱 Service Worker',
             'edge_cache' => '🌐 Edge Cache',
             'http2_push' => '⚡ HTTP/2 Push',

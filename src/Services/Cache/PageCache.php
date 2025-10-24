@@ -68,4 +68,13 @@ class PageCache
     {
         return $this->cache_dir . '/' . md5($key) . '.cache';
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // PageCache non ha hook specifici da registrare
+        // È utilizzato principalmente per operazioni di cache
+    }
 }

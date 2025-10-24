@@ -8,7 +8,6 @@ $optionKeys = [
     'fp_ps_page_cache',
     'fp_ps_browser_cache',
     'fp_ps_assets',
-    'fp_ps_webp',
     'fp_ps_db',
     'fp_ps_settings',
     'fp_ps_preset',

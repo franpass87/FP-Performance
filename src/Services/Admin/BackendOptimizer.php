@@ -85,4 +85,20 @@ class BackendOptimizer
             'admin_bar' => $this->admin_bar
         ];
     }
+    
+    /**
+     * Ottiene le impostazioni del servizio
+     */
+    public function getSettings(): array
+    {
+        return $this->getStatus();
+    }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

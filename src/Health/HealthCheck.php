@@ -5,7 +5,6 @@ namespace FP\PerfSuite\Health;
 use FP\PerfSuite\Plugin;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
-use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -37,10 +36,6 @@ class HealthCheck
             'test' => [self::class, 'testPageCache'],
         ];
 
-        $tests['direct']['fp_performance_webp'] = [
-            'label' => __('FP Performance - WebP Coverage', 'fp-performance-suite'),
-            'test' => [self::class, 'testWebPCoverage'],
-        ];
 
         $tests['direct']['fp_performance_database'] = [
             'label' => __('FP Performance - Database Health', 'fp-performance-suite'),
@@ -113,91 +108,6 @@ class HealthCheck
         }
     }
 
-    /**
-     * Test: WebP Coverage
-     */
-    public static function testWebPCoverage(): array
-    {
-        try {
-            $container = Plugin::container();
-            $webp = $container->get(WebPConverter::class);
-            $status = $webp->status();
-
-            if (!$status['enabled']) {
-                return [
-                    'label' => __('WebP conversion is not enabled', 'fp-performance-suite'),
-                    'status' => 'recommended',
-                    'badge' => [
-                        'label' => __('Performance', 'fp-performance-suite'),
-                        'color' => 'orange',
-                    ],
-                    'description' => sprintf(
-                        '<p>%s</p>',
-                        __('WebP images are typically 25-35% smaller than JPEG/PNG while maintaining quality. Enable WebP conversion to improve page load times.', 'fp-performance-suite')
-                    ),
-                    'actions' => sprintf(
-                        '<p><a href="%s">%s</a></p>',
-                        admin_url('admin.php?page=fp-performance-suite-media'),
-                        __('Enable WebP conversion', 'fp-performance-suite')
-                    ),
-                    'test' => 'fp_performance_webp',
-                ];
-            }
-
-            $coverage = $status['coverage'];
-
-            if ($coverage >= 80) {
-                return [
-                    'label' => __('WebP coverage is excellent', 'fp-performance-suite'),
-                    'status' => 'good',
-                    'badge' => [
-                        'label' => __('Performance', 'fp-performance-suite'),
-                        'color' => 'green',
-                    ],
-                    'description' => sprintf(
-                        '<p>%s</p>',
-                        sprintf(
-                            __('WebP conversion is enabled and %.1f%% of your images are converted. This helps reduce page size and improve load times.', 'fp-performance-suite'),
-                            $coverage
-                        )
-                    ),
-                    'actions' => sprintf(
-                        '<p><a href="%s">%s</a></p>',
-                        admin_url('admin.php?page=fp-performance-suite-media'),
-                        __('View WebP settings', 'fp-performance-suite')
-                    ),
-                    'test' => 'fp_performance_webp',
-                ];
-            }
-
-            if ($coverage >= 40) {
-                $status_level = 'recommended';
-                $message = __('Consider running bulk WebP conversion to improve coverage.', 'fp-performance-suite');
-            } else {
-                $status_level = 'recommended';
-                $message = __('Low WebP coverage detected. Run bulk conversion to optimize images.', 'fp-performance-suite');
-            }
-
-            return [
-                'label' => sprintf(__('WebP coverage: %.1f%%', 'fp-performance-suite'), $coverage),
-                'status' => $status_level,
-                'badge' => [
-                    'label' => __('Performance', 'fp-performance-suite'),
-                    'color' => 'orange',
-                ],
-                'description' => sprintf('<p>%s</p>', $message),
-                'actions' => sprintf(
-                    '<p><a href="%s">%s</a></p>',
-                    admin_url('admin.php?page=fp-performance-suite-media'),
-                    __('Run bulk WebP conversion', 'fp-performance-suite')
-                ),
-                'test' => 'fp_performance_webp',
-            ];
-        } catch (\Throwable $e) {
-            Logger::error('Health check failed for WebP', $e);
-            return self::errorResult('WebP Coverage', $e);
-        }
-    }
 
     /**
      * Test: Database Health
@@ -355,7 +265,6 @@ class HealthCheck
             $container = Plugin::container();
 
             $pageCache = $container->get(PageCache::class);
-            $webp = $container->get(WebPConverter::class);
             $cleaner = $container->get(Cleaner::class);
             $optimizer = $container->get(\FP\PerfSuite\Services\Assets\Optimizer::class);
 
@@ -373,14 +282,6 @@ class HealthCheck
                     'page_cache_files' => [
                         'label' => __('Cached Pages', 'fp-performance-suite'),
                         'value' => $pageCache->status()['files'],
-                    ],
-                    'webp_enabled' => [
-                        'label' => __('WebP Conversion', 'fp-performance-suite'),
-                        'value' => $webp->status()['enabled'] ? __('Enabled', 'fp-performance-suite') : __('Disabled', 'fp-performance-suite'),
-                    ],
-                    'webp_coverage' => [
-                        'label' => __('WebP Coverage', 'fp-performance-suite'),
-                        'value' => round($webp->status()['coverage'], 1) . '%',
                     ],
                     'db_overhead' => [
                         'label' => __('Database Overhead', 'fp-performance-suite'),

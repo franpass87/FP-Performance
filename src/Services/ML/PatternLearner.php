@@ -555,4 +555,13 @@ class PatternLearner
             'pattern_retention_days' => 30
         ]);
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // PatternLearner non ha hook specifici da registrare
+        // È utilizzato principalmente per apprendimento on-demand
+    }
 }

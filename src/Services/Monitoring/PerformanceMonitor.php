@@ -139,4 +139,12 @@ class PerformanceMonitor
             'peak_memory' => memory_get_peak_usage(true)
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

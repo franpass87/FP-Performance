@@ -126,19 +126,19 @@ class Analyzer
             ];
         }
 
-        // WebP Configuration
+        // Media Optimization Configuration
         $imageCount = $analysis['content']['images'];
-        $config['webp'] = [
+        $config['media_optimization'] = [
             'enabled' => $imageCount > 10,
-            'quality' => $this->suggestWebPQuality($resources, $hosting['provider']),
-            'lossy' => true,
+            'lazy_loading' => true,
+            'responsive_images' => true,
         ];
 
         if ($imageCount > 10) {
             $suggestions[] = [
                 'icon' => '🖼️',
-                'title' => 'Conversione WebP Attivata',
-                'description' => sprintf('Rilevate %d immagini. WebP ridurrà le dimensioni del 25-35%%', $imageCount),
+                'title' => 'Ottimizzazione Media Attivata',
+                'description' => sprintf('Rilevate %d immagini. L\'ottimizzazione migliorerà le performance del 15-25%%', $imageCount),
                 'impact' => 'high',
             ];
         }
@@ -501,9 +501,9 @@ class Analyzer
     }
 
     /**
-     * Suggerisce la qualità WebP
+     * Suggerisce la qualità per l'ottimizzazione media
      */
-    private function suggestWebPQuality(array $resources, string $hostingProvider): int
+    private function suggestMediaQuality(array $resources, string $hostingProvider): int
     {
         // Default 80
         $quality = 80;

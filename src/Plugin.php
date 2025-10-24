@@ -25,7 +25,6 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
-use FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
@@ -37,8 +36,6 @@ use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Services\Logs\RealtimeLog;
-use FP\PerfSuite\Services\Media\WebPConverter;
-use FP\PerfSuite\Services\Media\AVIFConverter;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Services\Admin\BackendOptimizer;
@@ -151,21 +148,11 @@ class Plugin
                 });
             }
             
-            // Optimizer e WebP solo se abilitati nelle opzioni
+            // Optimizer solo se abilitato nelle opzioni
             $assetSettings = get_option('fp_ps_assets', []);
             if (!empty($assetSettings['enabled']) || get_option('fp_ps_asset_optimization_enabled', false)) {
                 self::registerServiceOnce(Optimizer::class, function() use ($container) {
                     $container->get(Optimizer::class)->register();
-                });
-            }
-            if (get_option('fp_ps_webp_enabled', false)) {
-                self::registerServiceOnce(WebPConverter::class, function() use ($container) {
-                    $container->get(WebPConverter::class)->register();
-                });
-            }
-            if (get_option('fp_ps_avif', [])['enabled'] ?? false) {
-                self::registerServiceOnce(AVIFConverter::class, function() use ($container) {
-                    $container->get(AVIFConverter::class)->register();
                 });
             }
             
@@ -505,30 +492,6 @@ class Plugin
                 });
             }
             
-            // WebP Services - FIX CRITICO (sempre attivi per conversione WebP)
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class)->register();
-            });
-            
-            // AVIF Services - FIX CRITICO (sempre attivi per conversione AVIF)
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class)->register();
-            });
-            self::registerServiceOnce(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class, function() use ($container) {
-                $container->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)->register();
-            });
             
             // Performance Analysis Services - FIX CRITICO (sempre attivi per analisi performance)
             self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class, function() use ($container) {
@@ -562,10 +525,6 @@ class Plugin
                 $container->get(\FP\PerfSuite\Services\Assets\DOMReflowOptimizer::class)->register();
             });
             
-            // WebP Plugin Compatibility - FIX CRITICO (sempre attivo per compatibilità WebP)
-            self::registerServiceOnce(WebPPluginCompatibility::class, function() use ($container) {
-                $container->get(WebPPluginCompatibility::class)->register();
-            });
             
             // Theme Services - FIX CRITICO (sempre attivi per gestione tema)
             self::registerServiceOnce(ThemeAssetConfiguration::class, function() use ($container) {
@@ -582,9 +541,6 @@ class Plugin
             add_action('init', static function () use ($container) {
                 self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
-                });
-                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\WebPAjax::class, function() use ($container) {
-                    $container->get(\FP\PerfSuite\Http\Ajax\WebPAjax::class)->register();
                 });
                 self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
@@ -624,9 +580,6 @@ class Plugin
             'shortdesc' => 'Database cleanup operations',
         ]);
 
-        \WP_CLI::add_command('fp-performance webp', [Cli\Commands::class, 'webp'], [
-            'shortdesc' => 'WebP conversion operations',
-        ]);
 
         \WP_CLI::add_command('fp-performance score', [Cli\Commands::class, 'score'], [
             'shortdesc' => 'Calculate performance score',
@@ -679,24 +632,8 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\LighthouseFontOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\LighthouseFontOptimizer());
         
         // Compression service
-        $container->set(CompressionManager::class, static fn(ServiceContainer $c) => new CompressionManager($c->get(Htaccess::class)));
+        $container->set(CompressionManager::class, static fn() => new CompressionManager());
 
-        // WebP conversion modular components
-        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPPathHelper());
-        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class, static fn() => new \FP\PerfSuite\Services\Media\WebP\WebPImageConverter());
-        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Media\WebP\WebPQueue($c->get(RateLimiter::class)));
-        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class, static function (ServiceContainer $c) {
-            return new \FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor(
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
-            );
-        });
-        $container->set(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class, static function (ServiceContainer $c) {
-            return new \FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor(
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class)
-            );
-        });
 
         // v1.1.0 Services
         $container->set(\FP\PerfSuite\Services\Assets\CriticalCss::class, static fn() => new \FP\PerfSuite\Services\Assets\CriticalCss());
@@ -711,7 +648,6 @@ class Plugin
                 $c->get(PageCache::class),
                 $c->get(Headers::class),
                 $c->get(Optimizer::class),
-                $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
                 $c->get(\FP\PerfSuite\Services\Monitoring\PerformanceMonitor::class)
             );
@@ -735,15 +671,6 @@ class Plugin
         // Edge Cache Providers
         $container->set(EdgeCacheManager::class, static fn() => new EdgeCacheManager());
         
-        // AVIF Image Converter
-        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter());
-        $container->set(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class, static fn() => new \FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper());
-        $container->set(AVIFConverter::class, static function (ServiceContainer $c) {
-            return new AVIFConverter(
-                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFImageConverter::class),
-                $c->get(\FP\PerfSuite\Services\Media\AVIF\AVIFPathHelper::class)
-            );
-        });
         
         // HTTP/2 Server Push
         $container->set(\FP\PerfSuite\Services\Assets\Http2ServerPush::class, static fn() => new \FP\PerfSuite\Services\Assets\Http2ServerPush());
@@ -763,7 +690,7 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\SmartAssetDelivery::class, static fn() => new \FP\PerfSuite\Services\Assets\SmartAssetDelivery());
         
         // Service Worker / PWA
-        $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager($c->get(Fs::class)));
+        $container->set(\FP\PerfSuite\Services\PWA\ServiceWorkerManager::class, static fn() => new \FP\PerfSuite\Services\PWA\ServiceWorkerManager());
         
         // Core Web Vitals Monitor
         $container->set(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class, static fn() => new \FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor());
@@ -800,7 +727,6 @@ class Plugin
         
         // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
         $container->set(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\RecommendationsAjax($c));
-        $container->set(\FP\PerfSuite\Http\Ajax\WebPAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\WebPAjax($c));
         $container->set(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\CriticalCssAjax($c));
         $container->set(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\AIConfigAjax($c));
         
@@ -838,8 +764,6 @@ class Plugin
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
         
-        // WebP Plugin Compatibility
-        $container->set(WebPPluginCompatibility::class, static fn() => new WebPPluginCompatibility());
         
         // Smart Intelligence Services
         $container->set(SmartExclusionDetector::class, static fn() => new SmartExclusionDetector());
@@ -858,8 +782,8 @@ class Plugin
         // Security Services
         $container->set(HtaccessSecurity::class, static fn(ServiceContainer $c) => new HtaccessSecurity($c->get(Htaccess::class), $c->get(Env::class)));
 
-        $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache($c->get(Fs::class), $c->get(Env::class)));
-        $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers($c->get(Htaccess::class), $c->get(Env::class)));
+        $container->set(PageCache::class, static fn(ServiceContainer $c) => new PageCache());
+        $container->set(Headers::class, static fn(ServiceContainer $c) => new Headers());
         $container->set(Optimizer::class, static function (ServiceContainer $c) {
             return new Optimizer(
                 $c->get(Semaphore::class),
@@ -870,25 +794,7 @@ class Plugin
                 $c->get(\FP\PerfSuite\Services\Assets\Combiners\DependencyResolver::class)
             );
         });
-        $container->set(WebPConverter::class, static function (ServiceContainer $c) {
-            $converter = new WebPConverter(
-                $c->get(Fs::class),
-                $c->get(RateLimiter::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPImageConverter::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPQueue::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPAttachmentProcessor::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPBatchProcessor::class),
-                $c->get(\FP\PerfSuite\Services\Media\WebP\WebPPathHelper::class)
-            );
-            
-            // Inietta automaticamente il CompatibilityManager se disponibile
-            if (class_exists('FP\PerfSuite\Services\Compatibility\WebPPluginCompatibility')) {
-                $converter->setCompatibilityManager($c->get(WebPPluginCompatibility::class));
-            }
-            
-            return $converter;
-        });
-        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner($c->get(Env::class), $c->get(RateLimiter::class)));
+        $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner());
         
         // Backend Optimization Service - Registra sempre per evitare errori
         $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
@@ -906,7 +812,6 @@ class Plugin
                 $c->get(PageCache::class),
                 $c->get(Headers::class),
                 $c->get(Optimizer::class),
-                $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
                 $c->get(DebugToggler::class),
                 $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)
@@ -917,7 +822,6 @@ class Plugin
                 $c->get(PageCache::class),
                 $c->get(Headers::class),
                 $c->get(Optimizer::class),
-                $c->get(WebPConverter::class),
                 $c->get(Cleaner::class),
                 $c->get(DebugToggler::class),
                 $c->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class),
@@ -935,14 +839,7 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class, static fn() => new \FP\PerfSuite\Services\Mobile\TouchOptimizer());
         $container->set(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class, static fn() => new \FP\PerfSuite\Services\Mobile\MobileCacheManager());
         $container->set(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class, static fn() => new \FP\PerfSuite\Services\Mobile\ResponsiveImageManager());
-        $container->set(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class, static function (ServiceContainer $c) {
-            return new \FP\PerfSuite\Services\Mobile\MobileOptimizer(
-                $c,
-                $c->get(\FP\PerfSuite\Services\Mobile\TouchOptimizer::class),
-                $c->get(\FP\PerfSuite\Services\Mobile\MobileCacheManager::class),
-                $c->get(\FP\PerfSuite\Services\Mobile\ResponsiveImageManager::class)
-            );
-        });
+        $container->set(\FP\PerfSuite\Services\Mobile\MobileOptimizer::class, static fn() => new \FP\PerfSuite\Services\Mobile\MobileOptimizer());
 
         // Machine Learning Services (v1.6.0)
         $container->set(\FP\PerfSuite\Services\ML\PatternLearner::class, static fn() => new \FP\PerfSuite\Services\ML\PatternLearner());
@@ -1218,8 +1115,6 @@ class Plugin
                 'enabled' => false,
                 'generate_sizes' => false,
                 'js_detection' => false,
-                'webp_conversion' => false,
-                'avif_conversion' => false,
                 'lazy_loading' => false,
                 'quality' => 75,
                 'lossy' => true

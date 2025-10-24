@@ -643,7 +643,7 @@ class Overview extends AbstractPage
                     <?php esc_html_e('Database Cleanup', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>">
-                    <?php esc_html_e('Bulk WebP Convert', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Media Optimization', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=diagnostics')); ?>">
                     <?php esc_html_e('Run Tests', 'fp-performance-suite'); ?>

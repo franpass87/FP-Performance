@@ -524,5 +524,14 @@ class DatabaseReportService
         
         Logger::info('Health alert email sent', ['score' => $health['score']]);
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // DatabaseReportService non ha hook specifici da registrare
+        // È utilizzato principalmente per reportistica e analisi on-demand
+    }
 }
 

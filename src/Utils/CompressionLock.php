@@ -18,7 +18,7 @@ class CompressionLock
     /**
      * Acquisisce lock per operazione di compressione
      * 
-     * @param string $operation Tipo operazione (es: 'webp_convert', 'image_compress')
+     * @param string $operation Tipo operazione (es: 'image_compress', 'media_optimize')
      * @param string $filePath Path del file da processare
      * @param int $timeout Timeout in secondi (default: 60)
      * @return resource|false Lock resource o false se fallito

@@ -118,4 +118,12 @@ class MobileOptimizer
             'is_mobile' => wp_is_mobile()
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

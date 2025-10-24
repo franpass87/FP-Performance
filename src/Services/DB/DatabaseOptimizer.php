@@ -80,4 +80,12 @@ class DatabaseOptimizer
         
         return $wpdb->get_results("SHOW TABLE STATUS");
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

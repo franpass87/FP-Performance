@@ -433,5 +433,14 @@ class ThemeCompatibility
             'color' => 'warning',
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // ThemeCompatibility non ha hook specifici da registrare
+        // È utilizzato principalmente per gestione compatibilità on-demand
+    }
 }
 

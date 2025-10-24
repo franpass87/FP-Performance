@@ -108,4 +108,12 @@ Options -Indexes
             'htaccess_writable' => is_writable(ABSPATH . '.htaccess')
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

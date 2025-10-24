@@ -14,7 +14,7 @@ use FP\PerfSuite\Utils\Logger;
  * - Auto-detection of CSS display dimensions
  * - Dynamic generation of optimized image sizes
  * - Smart caching for generated sizes
- * - Integration with WebP delivery
+ * - Integration with responsive image delivery
  * - Lighthouse "Improve image delivery" optimization
  *
  * @author Francesco Passeri

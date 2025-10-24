@@ -93,4 +93,13 @@ class EdgeCacheManager
             'age' => $headers->get('age')
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // EdgeCacheManager non ha hook specifici da registrare
+        // È utilizzato principalmente per operazioni di cache on-demand
+    }
 }

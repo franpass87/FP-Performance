@@ -83,4 +83,12 @@ class FontOptimizer
             'display_swap_enabled' => $this->display_swap
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

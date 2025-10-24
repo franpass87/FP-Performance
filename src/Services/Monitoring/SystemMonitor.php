@@ -422,4 +422,13 @@ class SystemMonitor
         
         return $removed;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // SystemMonitor non ha hook specifici da registrare
+        // È utilizzato principalmente per monitoraggio on-demand
+    }
 }

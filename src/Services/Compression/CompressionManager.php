@@ -127,4 +127,12 @@ class CompressionManager
             'minify_js' => $this->minify_js
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

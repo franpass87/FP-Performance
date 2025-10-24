@@ -46,4 +46,13 @@ class Headers
             exit;
         }
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // Headers non ha hook specifici da registrare
+        // È utilizzato principalmente per gestire gli header HTTP
+    }
 }

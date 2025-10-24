@@ -415,4 +415,13 @@ class CacheAutoConfigurator
 
         return $recommendations;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // CacheAutoConfigurator non ha hook specifici da registrare
+        // È utilizzato principalmente per configurazione on-demand
+    }
 }

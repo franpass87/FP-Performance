@@ -7,7 +7,6 @@ use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
-use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Utils\Logger;
 
 use function __;
@@ -19,7 +18,6 @@ class Manager
     private PageCache $pageCache;
     private Headers $headers;
     private Optimizer $optimizer;
-    private WebPConverter $webp;
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
 
@@ -32,12 +30,11 @@ class Manager
         // È utilizzato principalmente per gestione preset on-demand
     }
 
-    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, WebPConverter $webp, Cleaner $cleaner, DebugToggler $debugToggler)
+    public function __construct(PageCache $pageCache, Headers $headers, Optimizer $optimizer, Cleaner $cleaner, DebugToggler $debugToggler)
     {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
-        $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->debugToggler = $debugToggler;
     }
@@ -54,7 +51,6 @@ class Manager
                     'page_cache' => ['enabled' => true, 'ttl' => 3600],
                     'browser_cache' => ['enabled' => true],
                     'assets' => ['minify_html' => true, 'defer_js' => true, 'combine_css' => false, 'combine_js' => false],
-                    'webp' => ['enabled' => true, 'quality' => 75, 'lossy' => true],
                     'db' => ['batch' => 200],
                     'heartbeat' => 60,
                 ],
@@ -65,7 +61,6 @@ class Manager
                     'page_cache' => ['enabled' => true, 'ttl' => 1800],
                     'browser_cache' => ['enabled' => false],
                     'assets' => ['minify_html' => true, 'defer_js' => true, 'combine_css' => false, 'combine_js' => false, 'async_js' => false],
-                    'webp' => ['enabled' => true, 'quality' => 80],
                     'db' => ['batch' => 150],
                     'heartbeat' => 80,
                 ],
@@ -76,7 +71,6 @@ class Manager
                     'page_cache' => ['enabled' => true, 'ttl' => 900],
                     'browser_cache' => ['enabled' => true],
                     'assets' => ['minify_html' => true, 'defer_js' => true, 'combine_css' => false, 'combine_js' => false, 'preload' => []],
-                    'webp' => ['enabled' => true, 'quality' => 70],
                     'db' => ['batch' => 100],
                     'heartbeat' => 90,
                 ],
@@ -105,7 +99,6 @@ class Manager
                     'page_cache' => $this->pageCache->settings(),
                     'browser_cache' => $this->headers->settings(),
                     'assets' => $this->optimizer->settings(),
-                    'webp' => $this->webp->settings(),
                     'db' => $this->cleaner->settings(),
                 ];
                 Logger::debug('Current settings retrieved successfully');
@@ -149,16 +142,6 @@ class Manager
                 throw new \RuntimeException('Failed to update asset settings: ' . $e->getMessage(), 0, $e);
             }
             
-            if (isset($config['webp'])) {
-                Logger::debug('Applying WebP settings');
-                try {
-                    $this->webp->update(array_merge($this->webp->settings(), $config['webp']));
-                    Logger::debug('WebP settings applied');
-                } catch (\Throwable $e) {
-                    Logger::error('Failed to update WebP settings', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-                    throw new \RuntimeException('Failed to update WebP settings: ' . $e->getMessage(), 0, $e);
-                }
-            }
             
             if (isset($config['db'])) {
                 Logger::debug('Applying database settings');
@@ -202,7 +185,6 @@ class Manager
         $this->pageCache->update($prev['page_cache']);
         $this->headers->update($prev['browser_cache']);
         $this->optimizer->update($prev['assets']);
-        $this->webp->update($prev['webp']);
         $this->cleaner->update($prev['db']);
         update_option(self::OPTION, ['active' => null, 'applied_at' => time(), 'previous' => []]);
         return true;

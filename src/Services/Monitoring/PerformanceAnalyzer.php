@@ -6,7 +6,6 @@ use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
-use FP\PerfSuite\Services\Media\WebPConverter;
 use FP\PerfSuite\Utils\Logger;
 
 use function __;
@@ -32,7 +31,6 @@ class PerformanceAnalyzer
     private PageCache $pageCache;
     private Headers $headers;
     private Optimizer $optimizer;
-    private WebPConverter $webp;
     private Cleaner $cleaner;
     private PerformanceMonitor $monitor;
 
@@ -40,14 +38,12 @@ class PerformanceAnalyzer
         PageCache $pageCache,
         Headers $headers,
         Optimizer $optimizer,
-        WebPConverter $webp,
         Cleaner $cleaner,
         PerformanceMonitor $monitor
     ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
-        $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->monitor = $monitor;
     }
@@ -81,7 +77,6 @@ class PerformanceAnalyzer
         $this->analyzeDatabase($issues);
 
         // Analisi immagini
-        $this->analyzeImages($issues);
 
         // Analisi configurazione server
         $this->analyzeServerConfig($issues);
@@ -228,27 +223,6 @@ class PerformanceAnalyzer
         }
     }
 
-    private function analyzeImages(array &$issues): void
-    {
-        $status = $this->webp->status();
-        $coverage = $status['coverage'];
-
-        if ($coverage < 40) {
-            $issues['warnings'][] = [
-                'issue' => sprintf(__('Bassa copertura WebP: %d%%', 'fp-performance-suite'), $coverage),
-                'impact' => __('Le immagini JPEG/PNG pesano 25-35% più delle versioni WebP. Questo aumenta i tempi di caricamento, specialmente su mobile, e consuma più banda.', 'fp-performance-suite'),
-                'solution' => __('Vai su FP Performance > Media e avvia la conversione bulk WebP. Il formato WebP riduce le dimensioni delle immagini mantenendo la qualità visiva.', 'fp-performance-suite'),
-                'priority' => 80,
-            ];
-        } elseif ($coverage < 80) {
-            $issues['recommendations'][] = [
-                'issue' => sprintf(__('Copertura WebP parziale: %d%%', 'fp-performance-suite'), $coverage),
-                'impact' => __('Alcune immagini non sono ancora in formato WebP, perdendo l\'opportunità di ridurre il peso delle pagine del 15-25%.', 'fp-performance-suite'),
-                'solution' => __('Completa la conversione WebP delle immagini rimanenti su FP Performance > Media. Considera di abilitare la conversione automatica per i nuovi upload.', 'fp-performance-suite'),
-                'priority' => 60,
-            ];
-        }
-    }
 
     private function analyzeServerConfig(array &$issues): void
     {
@@ -322,7 +296,7 @@ class PerformanceAnalyzer
             $issues['warnings'][] = [
                 'issue' => sprintf(__('Tempo di caricamento lento: %.2f secondi', 'fp-performance-suite'), $avgLoadTime),
                 'impact' => __('Tempi tra 1-2 secondi sono accettabili ma migliorabili. Gli utenti preferiscono siti che si caricano in meno di 1 secondo.', 'fp-performance-suite'),
-                'solution' => __('Implementa le ottimizzazioni raccomandate: cache, minificazione, defer JS, WebP. Verifica anche la velocità del tuo hosting.', 'fp-performance-suite'),
+                'solution' => __('Implementa le ottimizzazioni raccomandate: cache, minificazione, defer JS. Verifica anche la velocità del tuo hosting.', 'fp-performance-suite'),
                 'priority' => 75,
             ];
         }

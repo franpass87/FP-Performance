@@ -103,4 +103,12 @@ class QueryCacheManager
         wp_cache_flush_group('fp_query_cache');
         return true;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

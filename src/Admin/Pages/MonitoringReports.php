@@ -522,7 +522,7 @@ class MonitoringReports extends AbstractPage
         $availableEvents = [
             'cache_cleared' => __('Cache Pulita', 'fp-performance-suite'),
             'db_cleaned' => __('Database Pulito', 'fp-performance-suite'),
-            'webp_converted' => __('Conversione WebP', 'fp-performance-suite'),
+            'media_optimized' => __('Media Optimization', 'fp-performance-suite'),
             'preset_applied' => __('Preset Applicato', 'fp-performance-suite'),
             'budget_exceeded' => __('Performance Budget Superato', 'fp-performance-suite'),
             'optimization_error' => __('Errore Ottimizzazione', 'fp-performance-suite'),

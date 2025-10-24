@@ -471,4 +471,13 @@ class IntelligenceReporter
         
         return $csv;
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // IntelligenceReporter non ha hook specifici da registrare
+        // È utilizzato principalmente per reportistica on-demand
+    }
 }

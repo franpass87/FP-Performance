@@ -127,4 +127,12 @@ class Cleaner
             'clean_trash' => $this->clean_trash
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

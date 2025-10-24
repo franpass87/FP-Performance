@@ -15,7 +15,6 @@ use FP\PerfSuite\Services\CDN\CdnManager;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
-use FP\PerfSuite\Services\Media\WebPConverter;
 
 use function __;
 use function _n;
@@ -42,7 +41,6 @@ class Scorer
     private PageCache $pageCache;
     private Headers $headers;
     private Optimizer $optimizer;
-    private WebPConverter $webp;
     private Cleaner $cleaner;
     private DebugToggler $debugToggler;
     private LazyLoadManager $lazyLoad;
@@ -67,7 +65,6 @@ class Scorer
         PageCache $pageCache,
         Headers $headers,
         Optimizer $optimizer,
-        WebPConverter $webp,
         Cleaner $cleaner,
         DebugToggler $debugToggler,
         LazyLoadManager $lazyLoad,
@@ -82,7 +79,6 @@ class Scorer
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
-        $this->webp = $webp;
         $this->cleaner = $cleaner;
         $this->debugToggler = $debugToggler;
         $this->lazyLoad = $lazyLoad;
@@ -110,7 +106,6 @@ class Scorer
             'browserCache' => [__('Browser cache headers', 'fp-performance-suite'), 10],
             'pageCache' => [__('Page cache', 'fp-performance-suite'), 15],
             'assets' => [__('Asset optimization', 'fp-performance-suite'), 20],
-            'webp' => [__('WebP coverage', 'fp-performance-suite'), 15],
             'database' => [__('Database health', 'fp-performance-suite'), 10],
             'heartbeat' => [__('Heartbeat throttling', 'fp-performance-suite'), 5],
             'emoji' => [__('Emoji & embeds', 'fp-performance-suite'), 5],
@@ -264,11 +259,6 @@ class Scorer
             }
         }
         
-        // WebP
-        $webpStatus = $this->webp->status();
-        if (!empty($webpStatus['enabled'])) {
-            $active[] = __('WebP conversion enabled', 'fp-performance-suite');
-        }
         
         // CDN
         if ($this->cdnManager !== null) {
@@ -403,18 +393,6 @@ class Scorer
         return [$points, implode(' ', $suggestions) ?: null];
     }
 
-    private function webpScore(): array
-    {
-        $status = $this->webp->status();
-        $coverage = $status['coverage'];
-        if ($coverage >= 80) {
-            return [15, null];
-        }
-        if ($coverage >= 40) {
-            return [8, __('Run bulk WebP conversion to improve coverage.', 'fp-performance-suite')];
-        }
-        return [3, __('Enable WebP conversion to serve modern formats.', 'fp-performance-suite')];
-    }
 
     private function databaseScore(): array
     {

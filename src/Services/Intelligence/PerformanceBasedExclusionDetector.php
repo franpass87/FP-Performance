@@ -402,4 +402,13 @@ class PerformanceBasedExclusionDetector
             'page_data' => $pageData,
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // PerformanceBasedExclusionDetector non ha hook specifici da registrare
+        // È utilizzato principalmente per analisi on-demand
+    }
 }

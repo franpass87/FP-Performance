@@ -112,4 +112,12 @@ class CoreWebVitalsMonitor
             'current_vitals' => $vitals
         ];
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
+    }
 }

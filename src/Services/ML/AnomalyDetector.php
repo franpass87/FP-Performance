@@ -486,4 +486,13 @@ class AnomalyDetector
         $settings = $this->settings();
         return !empty($settings['enabled']);
     }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        // AnomalyDetector non ha hook specifici da registrare
+        // È utilizzato principalmente per analisi on-demand
+    }
 }
