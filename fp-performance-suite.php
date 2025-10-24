@@ -194,8 +194,31 @@ if (function_exists('add_action')) {
         }
     });
     
+    // Forza inizializzazione plugin se necessario
+    add_action('admin_init', static function () {
+        if (class_exists('FP\\PerfSuite\\Plugin') && !FP\PerfSuite\Plugin::isInitialized()) {
+            try {
+                FP\PerfSuite\Plugin::init();
+                error_log('[FP Performance Suite] Plugin inizializzato forzatamente');
+            } catch (Exception $e) {
+                error_log('[FP Performance Suite] Errore inizializzazione forzata: ' . $e->getMessage());
+            }
+        }
+    });
+    
     // Forza registrazione menu principale se non è registrato
     add_action('admin_menu', static function () {
+        // Forza inizializzazione se necessario
+        if (class_exists('FP\\PerfSuite\\Plugin') && !FP\PerfSuite\Plugin::isInitialized()) {
+            try {
+                FP\PerfSuite\Plugin::init();
+                error_log('[FP Performance Suite] Plugin inizializzato forzatamente in admin_menu');
+            } catch (Exception $e) {
+                error_log('[FP Performance Suite] Errore inizializzazione in admin_menu: ' . $e->getMessage());
+                return;
+            }
+        }
+        
         // Solo se il plugin è inizializzato
         if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
             return;
@@ -208,6 +231,7 @@ if (function_exists('add_action')) {
                 if ($menu_service) {
                     // Forza il boot del menu service
                     $menu_service->boot();
+                    error_log('[FP Performance Suite] Menu service bootato forzatamente');
                 }
             }
         } catch (Exception $e) {
