@@ -22,8 +22,16 @@ class HtmlMinifier
         if ($this->bufferStarted) {
             return;
         }
-        ob_start([$this, 'minify']);
-        $this->bufferStarted = true;
+        
+        // SICUREZZA: Verifica che non ci siano buffer attivi
+        if (ob_get_level() > 0) {
+            return;
+        }
+        
+        $started = @ob_start([$this, 'minify']);
+        if ($started) {
+            $this->bufferStarted = true;
+        }
     }
 
     /**
@@ -34,9 +42,12 @@ class HtmlMinifier
         if (!$this->bufferStarted) {
             return;
         }
+        
+        // SICUREZZA: Verifica che il buffer sia ancora attivo
         if (ob_get_level() > 0) {
-            ob_end_flush();
+            @ob_end_flush();
         }
+        
         $this->bufferStarted = false;
     }
 
