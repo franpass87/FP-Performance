@@ -47,6 +47,11 @@ class CompressionManager
     
     public function enableGzip()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         if (!headers_sent() && extension_loaded('zlib')) {
             ob_start('ob_gzhandler');
         }
@@ -54,6 +59,11 @@ class CompressionManager
     
     public function enableBrotli()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         if (!headers_sent() && extension_loaded('brotli')) {
             ob_start('ob_brotli_handler');
         }

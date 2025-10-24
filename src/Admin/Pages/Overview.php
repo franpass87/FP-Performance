@@ -72,19 +72,20 @@ class Overview extends AbstractPage
 
     protected function content(): string
     {
-        // Dati dal Scorer (ex-Dashboard) - con gestione errori
         try {
-            $scorer = $this->container->get(Scorer::class);
-            $score = $scorer->calculate();
-        } catch (\Exception $e) {
-            // Fallback se il servizio non è disponibile
-            $score = [
-                'total' => 0,
-                'breakdown' => [],
-                'breakdown_detailed' => [],
-                'suggestions' => []
-            ];
-        }
+            // Dati dal Scorer (ex-Dashboard) - con gestione errori
+            try {
+                $scorer = $this->container->get(Scorer::class);
+                $score = $scorer->calculate();
+            } catch (\Exception $e) {
+                // Fallback se il servizio non è disponibile
+                $score = [
+                    'total' => 0,
+                    'breakdown' => [],
+                    'breakdown_detailed' => [],
+                    'suggestions' => []
+                ];
+            }
         
         // Dati dal Performance Monitor (ex-Performance)
         $monitor = PerformanceMonitor::instance();
@@ -731,6 +732,16 @@ class Overview extends AbstractPage
         
         <?php
         return (string) ob_get_clean();
+        
+        } catch (\Throwable $e) {
+            // Log dell'errore per debug
+            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
+                error_log('FP Performance Suite - Overview Page Error: ' . $e->getMessage());
+                error_log('Stack trace: ' . $e->getTraceAsString());
+            }
+            
+            return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore nella pagina Overview:</strong> ' . esc_html($e->getMessage()) . '</p><p><small>File: ' . esc_html($e->getFile()) . ':' . $e->getLine() . '</small></p></div></div>';
+        }
     }
 
     public function exportCsv(): void

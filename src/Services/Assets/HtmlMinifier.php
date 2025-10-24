@@ -23,6 +23,11 @@ class HtmlMinifier
             return;
         }
         
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         // SICUREZZA: Verifica che non ci siano buffer attivi
         if (ob_get_level() > 0) {
             return;
