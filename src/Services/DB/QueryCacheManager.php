@@ -17,7 +17,7 @@ class QueryCacheManager
     {
         if ($this->cache_enabled) {
             add_filter('posts_pre_query', [$this, 'cacheQuery'], 10, 2);
-            add_action('wp_footer', [$this, 'addQueryCacheScript']);
+            add_action('wp_footer', [$this, 'addQueryCacheScript'], 50);
         }
     }
     

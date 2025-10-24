@@ -31,14 +31,14 @@ class DOMReflowOptimizer
             return;
         }
 
-        // Add optimization script to footer
-        add_action('wp_footer', [$this, 'injectOptimizationScript'], 1);
+        // Add optimization script to footer - PRIORITÀ MEDIA per ottimizzazioni DOM
+        add_action('wp_footer', [$this, 'injectOptimizationScript'], 10);
         
-        // Add CSS to prevent layout shifts
-        add_action('wp_head', [$this, 'injectPreventiveCSS'], 1);
+        // Add CSS to prevent layout shifts - PRIORITÀ BASSA per ottimizzazioni DOM
+        add_action('wp_head', [$this, 'injectPreventiveCSS'], 15);
         
-        // Optimize script loading
-        add_filter('script_loader_tag', [$this, 'optimizeScriptLoading'], 10, 3);
+        // Optimize script loading - PRIORITÀ BASSA per ottimizzazioni avanzate
+        add_filter('script_loader_tag', [$this, 'optimizeScriptLoading'], 20, 3);
     }
 
     /**

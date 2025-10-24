@@ -31,11 +31,11 @@ class jQueryOptimizer
             return;
         }
 
-        // Add jQuery optimization script
-        add_action('wp_footer', [$this, 'injectjQueryOptimizer'], 1);
+        // Add jQuery optimization script - PRIORITÀ MEDIA per ottimizzazioni jQuery
+        add_action('wp_footer', [$this, 'injectjQueryOptimizer'], 15);
         
-        // Optimize jQuery loading
-        add_filter('script_loader_tag', [$this, 'optimizejQueryLoading'], 10, 3);
+        // Optimize jQuery loading - PRIORITÀ BASSA per ottimizzazioni jQuery specifiche
+        add_filter('script_loader_tag', [$this, 'optimizejQueryLoading'], 25, 3);
     }
 
     /**

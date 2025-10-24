@@ -25,7 +25,7 @@ class CriticalCss
     public function register(): void
     {
         if ($this->isEnabled() && !is_admin()) {
-            add_action('wp_head', [$this, 'inlineCriticalCss'], 1);
+            add_action('wp_head', [$this, 'inlineCriticalCss'], 19);
         }
     }
 
@@ -155,8 +155,15 @@ class CriticalCss
             ];
         }
 
-        // Fetch page content
-        $response = wp_remote_get($url, ['timeout' => 30]);
+        // SICUREZZA: Aggiungiamo timeout e SSL verification per sicurezza
+        $response = wp_remote_get($url, [
+            'timeout' => 30,
+            'sslverify' => true,
+            'user-agent' => 'FP Performance Suite/1.0',
+            'headers' => [
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            ]
+        ]);
 
         if (is_wp_error($response)) {
             return [
@@ -191,8 +198,8 @@ class CriticalCss
             return false;
         }
 
-        // Check for suspicious content (PHP tags, script tags)
-        if (preg_match('/<\?(php)?|\<script/i', $css)) {
+        // SICUREZZA: Check for suspicious content con regex sicura
+        if (preg_match('/<\?(?:php)?|<script/i', $css)) {
             return false;
         }
 

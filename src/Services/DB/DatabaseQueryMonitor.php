@@ -52,7 +52,7 @@ class DatabaseQueryMonitor
         add_action('shutdown', [$this, 'logStatistics'], PHP_INT_MAX);
         
         // Hook per salvare i log
-        add_action('wp_footer', [$this, 'displayAdminBar'], PHP_INT_MAX);
+        add_action('wp_footer', [$this, 'displayAdminBar'], 52);
         add_action('admin_footer', [$this, 'displayAdminBar'], PHP_INT_MAX);
         
         // Hook alternativo per intercettare le query

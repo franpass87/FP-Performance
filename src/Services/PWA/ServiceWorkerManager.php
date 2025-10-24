@@ -17,13 +17,19 @@ class ServiceWorkerManager
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'enqueueServiceWorker']);
-        add_action('wp_footer', [$this, 'addServiceWorkerScript']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueueServiceWorker'], 990);
+        add_action('wp_footer', [$this, 'addServiceWorkerScript'], 40);
     }
     
     public function enqueueServiceWorker()
     {
-        wp_enqueue_script('fp-sw', plugin_dir_url(__FILE__) . '../../assets/js/service-worker.js', [], '1.0.0', true);
+        // SICUREZZA: Verifichiamo che il file esista prima di enqueue
+        $script_path = plugin_dir_path(__FILE__) . '../../assets/js/service-worker.js';
+        if (file_exists($script_path)) {
+            wp_enqueue_script('fp-sw', plugin_dir_url(__FILE__) . '../../assets/js/service-worker.js', [], '1.0.0', true);
+        } else {
+            error_log('FP Performance Suite: Service worker script not found');
+        }
     }
     
     public function addServiceWorkerScript()

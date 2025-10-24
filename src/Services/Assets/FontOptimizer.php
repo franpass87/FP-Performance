@@ -15,8 +15,8 @@ class FontOptimizer
     
     public function init()
     {
-        add_action('wp_head', [$this, 'addFontOptimizations'], 1);
-        add_filter('style_loader_tag', [$this, 'optimizeFontLoading'], 10, 2);
+        add_action('wp_head', [$this, 'addFontOptimizations'], 25);
+        add_filter('style_loader_tag', [$this, 'optimizeFontLoading'], 12, 2);
     }
     
     public function addFontOptimizations()

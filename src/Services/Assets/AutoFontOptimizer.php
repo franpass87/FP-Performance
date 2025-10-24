@@ -23,23 +23,23 @@ class AutoFontOptimizer
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
-            // Auto-rilevamento e ottimizzazione font
-            add_action('wp_head', [$this, 'autoDetectAndOptimizeFonts'], 1);
+            // Auto-rilevamento e ottimizzazione font - PRIORITÀ BASSA per auto-rilevamento
+            add_action('wp_head', [$this, 'autoDetectAndOptimizeFonts'], 10);
             
-            // Iniezione automatica font-display CSS
-            add_action('wp_head', [$this, 'injectAutoFontDisplayCSS'], 5);
+            // Iniezione automatica font-display CSS - PRIORITÀ BASSA
+            add_action('wp_head', [$this, 'injectAutoFontDisplayCSS'], 11);
             
-            // Preload automatico font critici
-            add_action('wp_head', [$this, 'autoPreloadCriticalFonts'], 2);
+            // Preload automatico font critici - PRIORITÀ BASSA
+            add_action('wp_head', [$this, 'autoPreloadCriticalFonts'], 12);
             
-            // Preconnect automatico provider
-            add_action('wp_head', [$this, 'autoAddFontProviderPreconnect'], 3);
+            // Preconnect automatico provider - PRIORITÀ BASSA
+            add_action('wp_head', [$this, 'autoAddFontProviderPreconnect'], 13);
             
-            // Ottimizzazione automatica Google Fonts
-            add_filter('style_loader_tag', [$this, 'autoOptimizeGoogleFonts'], 10, 4);
+            // Ottimizzazione automatica Google Fonts - PRIORITÀ BASSA
+            add_filter('style_loader_tag', [$this, 'autoOptimizeGoogleFonts'], 25, 4);
             
-            // Ottimizzazione automatica font locali
-            add_filter('style_loader_tag', [$this, 'autoOptimizeLocalFonts'], 10, 4);
+            // Ottimizzazione automatica font locali - PRIORITÀ BASSA
+            add_filter('style_loader_tag', [$this, 'autoOptimizeLocalFonts'], 26, 4);
             
             Logger::debug('AutoFontOptimizer registered');
         }

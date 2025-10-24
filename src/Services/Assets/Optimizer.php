@@ -77,14 +77,14 @@ class Optimizer
                 add_action('shutdown', [$this, 'endBuffer'], PHP_INT_MAX);
             }
 
-            // Script defer/async
+            // Script defer/async - PRIORITÀ ALTA per ottimizzazioni base
             if (!empty($settings['defer_js'])) {
-                add_filter('script_loader_tag', [$this, 'filterScriptTag'], 10, 3);
+                add_filter('script_loader_tag', [$this, 'filterScriptTag'], 5, 3);
             }
 
-            // CSS async loading
+            // CSS async loading - PRIORITÀ ALTA per ottimizzazioni base
             if (!empty($settings['async_css'])) {
-                add_filter('style_loader_tag', [$this, 'filterStyleTag'], 10, 4);
+                add_filter('style_loader_tag', [$this, 'filterStyleTag'], 5, 4);
             }
 
             // Resource hints
@@ -105,7 +105,7 @@ class Optimizer
 
             // Asset combination
             if (!empty($settings['combine_css']) || !empty($settings['combine_js'])) {
-                add_action('wp_enqueue_scripts', [$this, 'applyCombination'], PHP_INT_MAX);
+                add_action('wp_enqueue_scripts', [$this, 'applyCombination'], 992);
             }
         }
 

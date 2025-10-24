@@ -19,7 +19,7 @@ class CdnManager
     {
         add_filter('wp_get_attachment_url', [$this, 'cdnUrl'], 10, 2);
         add_filter('wp_get_attachment_image_src', [$this, 'cdnImageSrc'], 10, 4);
-        add_action('wp_enqueue_scripts', [$this, 'cdnScripts']);
+        add_action('wp_enqueue_scripts', [$this, 'cdnScripts'], 991);
     }
     
     public function cdnUrl($url, $post_id)
@@ -50,11 +50,11 @@ class CdnManager
             return;
         }
         
-        // Add CDN configuration
+        // SICUREZZA: Add CDN configuration con sanitizzazione
         wp_localize_script('jquery', 'fpCdnConfig', [
-            'provider' => $this->provider,
-            'apiKey' => $this->api_key,
-            'zoneId' => $this->zone_id
+            'provider' => sanitize_text_field($this->provider),
+            'apiKey' => sanitize_text_field($this->api_key),
+            'zoneId' => sanitize_text_field($this->zone_id)
         ]);
     }
     

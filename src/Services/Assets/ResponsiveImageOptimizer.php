@@ -41,8 +41,8 @@ class ResponsiveImageOptimizer
             // Optimize images in post content
             add_filter('the_content', [$this, 'optimizeContentImages'], 20);
             
-            // Add JavaScript for dimension detection
-            add_action('wp_footer', [$this, 'addDimensionDetectionScript'], 1);
+            // Add JavaScript for dimension detection - PRIORITÀ MEDIA per responsive images
+            add_action('wp_footer', [$this, 'addDimensionDetectionScript'], 12);
 
             Logger::debug('ResponsiveImageOptimizer registered');
         }

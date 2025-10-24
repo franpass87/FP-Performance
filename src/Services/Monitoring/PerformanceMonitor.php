@@ -28,11 +28,11 @@ class PerformanceMonitor
     public function init()
     {
         if ($this->core_web_vitals) {
-            add_action('wp_footer', [$this, 'addCoreWebVitalsScript']);
+            add_action('wp_footer', [$this, 'addCoreWebVitalsScript'], 46);
         }
         
         if ($this->real_user_monitoring) {
-            add_action('wp_footer', [$this, 'addRealUserMonitoringScript']);
+            add_action('wp_footer', [$this, 'addRealUserMonitoringScript'], 47);
         }
     }
     

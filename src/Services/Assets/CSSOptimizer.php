@@ -23,14 +23,14 @@ class CSSOptimizer
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
-            // Defer non-critical CSS
-            add_filter('style_loader_tag', [$this, 'deferNonCriticalCSS'], 10, 4);
+            // Defer non-critical CSS - PRIORITÀ MEDIA per ottimizzazioni CSS
+            add_filter('style_loader_tag', [$this, 'deferNonCriticalCSS'], 15, 4);
             
-            // Inline critical CSS
-            add_action('wp_head', [$this, 'inlineCriticalCSS'], 1);
+            // Inline critical CSS - PRIORITÀ MEDIA per CSS base
+            add_action('wp_head', [$this, 'inlineCriticalCSS'], 5);
             
-            // Optimize CSS loading order
-            add_action('wp_head', [$this, 'optimizeCSSLoading'], 2);
+            // Optimize CSS loading order - PRIORITÀ MEDIA per CSS base
+            add_action('wp_head', [$this, 'optimizeCSSLoading'], 6);
             
             Logger::debug('CSSOptimizer registered');
         }

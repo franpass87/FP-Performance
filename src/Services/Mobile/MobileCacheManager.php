@@ -27,7 +27,7 @@ class MobileCacheManager
         }
 
         add_action('template_redirect', [$this, 'applyMobileCaching']);
-        add_action('wp_head', [$this, 'addMobileCacheHeaders'], 1);
+        add_action('wp_head', [$this, 'addMobileCacheHeaders'], 21);
         
         Logger::debug('Mobile cache manager registered');
     }

@@ -13,8 +13,8 @@ class UnusedJavaScriptOptimizer
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 999);
-        add_action('wp_footer', [$this, 'addUnusedJSScript']);
+        add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 996);
+        add_action('wp_footer', [$this, 'addUnusedJSScript'], 44);
     }
     
     public function optimizeScripts()

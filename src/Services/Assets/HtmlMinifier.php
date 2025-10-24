@@ -28,9 +28,17 @@ class HtmlMinifier
             return;
         }
         
-        $started = @ob_start([$this, 'minify']);
-        if ($started) {
-            $this->bufferStarted = true;
+        // SICUREZZA: Rimuoviamo error suppression e gestiamo errori correttamente
+        try {
+            $started = ob_start([$this, 'minify']);
+            if ($started) {
+                $this->bufferStarted = true;
+            } else {
+                // Log dell'errore se necessario
+                error_log('FP Performance Suite: Failed to start output buffer for HTML minification');
+            }
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite: Exception in HTML minification: ' . $e->getMessage());
         }
     }
 
@@ -43,9 +51,13 @@ class HtmlMinifier
             return;
         }
         
-        // SICUREZZA: Verifica che il buffer sia ancora attivo
+        // SICUREZZA: Verifica che il buffer sia ancora attivo e gestisce errori
         if (ob_get_level() > 0) {
-            @ob_end_flush();
+            try {
+                ob_end_flush();
+            } catch (\Exception $e) {
+                error_log('FP Performance Suite: Exception ending output buffer: ' . $e->getMessage());
+            }
         }
         
         $this->bufferStarted = false;

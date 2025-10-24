@@ -17,9 +17,9 @@ class MobileOptimizer
     
     public function init()
     {
-        add_action('wp_head', [$this, 'addMobileOptimizations'], 1);
+        add_action('wp_head', [$this, 'addMobileOptimizations'], 17);
         add_filter('wp_get_attachment_image_attributes', [$this, 'optimizeMobileImages'], 10, 3);
-        add_action('wp_footer', [$this, 'addMobileScripts']);
+        add_action('wp_footer', [$this, 'addMobileScripts'], 45);
     }
     
     public function addMobileOptimizations()

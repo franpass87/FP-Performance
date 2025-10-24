@@ -84,36 +84,49 @@ class ThemeCompatibility
 
     /**
      * Verifica se siamo in un editor di page builder
+     * SICUREZZA: Sanitizzazione input per prevenire XSS
      */
     private function isPageBuilderEditor(): bool
     {
+        // SICUREZZA: Sanitizziamo tutti gli input GET per prevenire XSS
+        $elementor_preview = sanitize_text_field($_GET['elementor-preview'] ?? '');
+        $elementor_library = sanitize_text_field($_GET['elementor_library'] ?? '');
+        $et_fb = sanitize_text_field($_GET['et_fb'] ?? '');
+        $et_pb_preview = sanitize_text_field($_GET['et_pb_preview'] ?? '');
+        $fl_builder = sanitize_text_field($_GET['fl_builder'] ?? '');
+        $vc_editable = sanitize_text_field($_GET['vc_editable'] ?? '');
+        $vc_action = sanitize_text_field($_GET['vc_action'] ?? '');
+        $ct_builder = sanitize_text_field($_GET['ct_builder'] ?? '');
+        $oxygen_iframe = sanitize_text_field($_GET['oxygen_iframe'] ?? '');
+        $bricks = sanitize_text_field($_GET['bricks'] ?? '');
+
         // Elementor
-        if (isset($_GET['elementor-preview']) || isset($_GET['elementor_library'])) {
+        if (!empty($elementor_preview) || !empty($elementor_library)) {
             return true;
         }
 
         // Divi Builder
-        if (isset($_GET['et_fb']) || isset($_GET['et_pb_preview'])) {
+        if (!empty($et_fb) || !empty($et_pb_preview)) {
             return true;
         }
 
         // Beaver Builder
-        if (isset($_GET['fl_builder'])) {
+        if (!empty($fl_builder)) {
             return true;
         }
 
         // WPBakery
-        if (isset($_GET['vc_editable']) || isset($_GET['vc_action'])) {
+        if (!empty($vc_editable) || !empty($vc_action)) {
             return true;
         }
 
         // Oxygen
-        if (isset($_GET['ct_builder']) || isset($_GET['oxygen_iframe'])) {
+        if (!empty($ct_builder) || !empty($oxygen_iframe)) {
             return true;
         }
 
         // Bricks
-        if (isset($_GET['bricks']) && $_GET['bricks'] === 'run') {
+        if (!empty($bricks) && $bricks === 'run') {
             return true;
         }
 

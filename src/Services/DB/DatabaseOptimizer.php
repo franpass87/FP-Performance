@@ -29,14 +29,19 @@ class DatabaseOptimizer
     {
         global $wpdb;
         
+        // SICUREZZA: Query preparate per prevenire SQL injection
         $tables = $wpdb->get_results("SHOW TABLES", ARRAY_N);
         $optimized = 0;
         
         foreach ($tables as $table) {
             $table_name = $table[0];
             
-            if ($wpdb->query("OPTIMIZE TABLE `{$table_name}`")) {
-                $optimized++;
+            // SICUREZZA: Validiamo il nome della tabella
+            if (preg_match('/^[a-zA-Z0-9_]+$/', $table_name)) {
+                $result = $wpdb->query($wpdb->prepare("OPTIMIZE TABLE `%s`", $table_name));
+                if ($result !== false) {
+                    $optimized++;
+                }
             }
         }
         

@@ -24,16 +24,16 @@ class UnusedCSSOptimizer
     {
         if (!is_admin() && $this->isEnabled()) {
             // Remove unused CSS files
-            add_action('wp_enqueue_scripts', [$this, 'removeUnusedCSS'], 999);
+            add_action('wp_enqueue_scripts', [$this, 'removeUnusedCSS'], 995);
             
-            // Defer non-critical CSS
-            add_filter('style_loader_tag', [$this, 'optimizeCSSLoading'], 10, 4);
+            // Defer non-critical CSS - PRIORITÀ BASSA per ottimizzazioni CSS avanzate
+            add_filter('style_loader_tag', [$this, 'optimizeCSSLoading'], 20, 4);
             
-            // Add critical CSS inline
-            add_action('wp_head', [$this, 'inlineCriticalCSS'], 1);
+            // Add critical CSS inline - PRIORITÀ BASSA per CSS avanzato
+            add_action('wp_head', [$this, 'inlineCriticalCSS'], 14);
             
-            // Add CSS purging script
-            add_action('wp_footer', [$this, 'addCSSPurgingScript'], 1);
+            // Add CSS purging script - PRIORITÀ BASSA per CSS avanzato
+            add_action('wp_footer', [$this, 'addCSSPurgingScript'], 20);
             
             Logger::debug('UnusedCSSOptimizer registered');
         }

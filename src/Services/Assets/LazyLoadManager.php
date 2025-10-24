@@ -30,7 +30,7 @@ class LazyLoadManager
             add_filter('the_content', [$this, 'optimizeContentIframes']);
         }
         
-        add_action('wp_footer', [$this, 'addLazyLoadScript']);
+        add_action('wp_footer', [$this, 'addLazyLoadScript'], 49);
     }
     
     public function addImageLazyLoading($attr, $attachment, $size)

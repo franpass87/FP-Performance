@@ -17,13 +17,19 @@ class PredictivePrefetching
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'enqueueScripts']);
-        add_action('wp_footer', [$this, 'addPrefetchScript']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueueScripts'], 989);
+        add_action('wp_footer', [$this, 'addPrefetchScript'], 41);
     }
     
     public function enqueueScripts()
     {
-        wp_enqueue_script('fp-prefetch', plugin_dir_url(__FILE__) . '../../assets/js/predictive-prefetch.js', [], '1.0.0', true);
+        // SICUREZZA: Verifichiamo che il file esista prima di enqueue
+        $script_path = plugin_dir_path(__FILE__) . '../../assets/js/predictive-prefetch.js';
+        if (file_exists($script_path)) {
+            wp_enqueue_script('fp-prefetch', plugin_dir_url(__FILE__) . '../../assets/js/predictive-prefetch.js', [], '1.0.0', true);
+        } else {
+            error_log('FP Performance Suite: Predictive prefetch script not found');
+        }
     }
     
     public function addPrefetchScript()

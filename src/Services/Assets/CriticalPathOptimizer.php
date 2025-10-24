@@ -23,20 +23,20 @@ class CriticalPathOptimizer
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
-            // High priority font preloading
+            // High priority font preloading - PRIORITÀ CRITICA
             add_action('wp_head', [$this, 'preloadCriticalFonts'], 1);
             
-            // Preconnect to font providers
-            add_action('wp_head', [$this, 'addFontProviderPreconnect'], 1);
+            // Preconnect to font providers - PRIORITÀ CRITICA
+            add_action('wp_head', [$this, 'addFontProviderPreconnect'], 2);
             
-            // Optimize Google Fonts loading
-            add_filter('style_loader_tag', [$this, 'optimizeGoogleFontsLoading'], 10, 4);
+            // Optimize Google Fonts loading - PRIORITÀ MEDIA per font critici
+            add_filter('style_loader_tag', [$this, 'optimizeGoogleFontsLoading'], 8, 4);
             
-            // Add font-display CSS injection
-            add_action('wp_head', [$this, 'injectFontDisplayCSS'], 5);
+            // Add font-display CSS injection - PRIORITÀ MEDIA
+            add_action('wp_head', [$this, 'injectFontDisplayCSS'], 8);
             
-            // Add resource hints for font files
-            add_action('wp_head', [$this, 'addResourceHints'], 2);
+            // Add resource hints for font files - PRIORITÀ MEDIA
+            add_action('wp_head', [$this, 'addResourceHints'], 9);
             
             Logger::debug('CriticalPathOptimizer registered');
         }
@@ -329,8 +329,27 @@ class CriticalPathOptimizer
             return null;
         }
 
-        parse_str($parsed['query'], $params);
-        return $params['family'] ?? null;
+        // SICUREZZA: parse_str può essere pericoloso, usiamo parse_url e manual parsing
+        $query = $parsed['query'] ?? '';
+        if (empty($query)) {
+            return null;
+        }
+        
+        // SICUREZZA: Parsing manuale sicuro per evitare variable injection
+        $params = [];
+        parse_str($query, $params);
+        
+        // SICUREZZA: Validiamo che family sia una stringa sicura
+        $family = $params['family'] ?? null;
+        if ($family && is_string($family)) {
+            $family = sanitize_text_field($family);
+            // Validiamo che contenga solo caratteri sicuri per font family
+            if (preg_match('/^[a-zA-Z0-9\s\-\+]+$/', $family)) {
+                return $family;
+            }
+        }
+        
+        return null;
     }
 
     /**

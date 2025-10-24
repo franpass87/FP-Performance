@@ -15,8 +15,8 @@ class CodeSplittingManager
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'splitScripts'], 999);
-        add_action('wp_footer', [$this, 'addCodeSplittingScript']);
+        add_action('wp_enqueue_scripts', [$this, 'splitScripts'], 997);
+        add_action('wp_footer', [$this, 'addCodeSplittingScript'], 42);
     }
     
     public function splitScripts()

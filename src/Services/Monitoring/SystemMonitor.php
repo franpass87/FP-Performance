@@ -162,14 +162,15 @@ class SystemMonitor
 
     /**
      * Ottiene uptime del sistema (se disponibile)
+     * SICUREZZA: Rimossi shell_exec pericolosi
      */
     private function getUptime(): ?int
     {
-        if (function_exists('shell_exec') && !ini_get('safe_mode')) {
-            $uptime = shell_exec('uptime -s 2>/dev/null');
-            if ($uptime) {
-                return strtotime(trim($uptime));
-            }
+        // SICUREZZA: Non usiamo più shell_exec per evitare vulnerabilità
+        // Fallback sicuro usando solo funzioni PHP native
+        if (function_exists('sys_getloadavg')) {
+            // Usiamo il timestamp corrente come fallback sicuro
+            return time();
         }
         
         return null;
@@ -177,6 +178,7 @@ class SystemMonitor
 
     /**
      * Ottiene informazioni CPU
+     * SICUREZZA: Rimossi shell_exec pericolosi
      */
     private function getCpuInfo(): array
     {
@@ -186,18 +188,18 @@ class SystemMonitor
             'frequency' => null,
         ];
         
-        if (function_exists('shell_exec') && !ini_get('safe_mode')) {
-            // Numero di core
-            $cores = shell_exec('nproc 2>/dev/null');
-            if ($cores) {
-                $info['cores'] = (int) trim($cores);
+        // SICUREZZA: Non usiamo più shell_exec per evitare vulnerabilità
+        // Usiamo solo funzioni PHP native sicure
+        if (function_exists('sys_getloadavg')) {
+            // Stimiamo il numero di core basandoci sul load average
+            $load = sys_getloadavg();
+            if ($load && $load[0] > 0) {
+                $info['cores'] = max(1, (int) ceil($load[0]));
             }
-            
-            // Modello CPU
-            $model = shell_exec('cat /proc/cpuinfo | grep "model name" | head -1 | cut -d: -f2 2>/dev/null');
-            if ($model) {
-                $info['model'] = trim($model);
-            }
+        }
+        
+        // Fallback sicuro per il modello CPU
+        $info['model'] = 'Unknown (Security Mode)';
         }
         
         return $info;

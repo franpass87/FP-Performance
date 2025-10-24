@@ -32,10 +32,10 @@ class BatchDOMUpdater
         }
 
         // Add batch DOM update script
-        add_action('wp_footer', [$this, 'injectBatchUpdater'], 1);
+        add_action('wp_footer', [$this, 'injectBatchUpdater'], 25);
         
-        // Add CSS to prevent layout shifts
-        add_action('wp_head', [$this, 'injectBatchCSS'], 1);
+        // Add CSS to prevent layout shifts - PRIORITÀ BASSA per batch DOM
+        add_action('wp_head', [$this, 'injectBatchCSS'], 16);
     }
 
     /**
@@ -108,15 +108,15 @@ class BatchDOMUpdater
         (function() {
             'use strict';
             
-            // Configuration
+            // SICUREZZA: Configuration con escape per prevenire XSS
             var config = {
-                batchSize: <?php echo $batchSize; ?>,
-                useRAF: <?php echo $useRAF; ?>,
-                optimizeAnimations: <?php echo $optimizeAnimations; ?>,
-                batchStyleChanges: <?php echo $batchStyleChanges; ?>,
-                batchClassChanges: <?php echo $batchClassChanges; ?>,
-                batchContentChanges: <?php echo $batchContentChanges; ?>,
-                debounceTimeout: <?php echo $debounceTimeout; ?>
+                batchSize: <?php echo (int) $batchSize; ?>,
+                useRAF: <?php echo $useRAF ? 'true' : 'false'; ?>,
+                optimizeAnimations: <?php echo $optimizeAnimations ? 'true' : 'false'; ?>,
+                batchStyleChanges: <?php echo $batchStyleChanges ? 'true' : 'false'; ?>,
+                batchClassChanges: <?php echo $batchClassChanges ? 'true' : 'false'; ?>,
+                batchContentChanges: <?php echo $batchContentChanges ? 'true' : 'false'; ?>,
+                debounceTimeout: <?php echo (int) $debounceTimeout; ?>
             };
 
             // Batch DOM Updater

@@ -29,17 +29,20 @@ class CompressionManager
             add_action('init', [$this, 'enableBrotli']);
         }
         
-        if ($this->minify_html) {
-            add_action('wp_loaded', [$this, 'minifyHTML']);
-        }
+        // DISABILITATO: Conflitto con HtmlMinifier
+        // if ($this->minify_html) {
+        //     add_action('wp_loaded', [$this, 'minifyHTML']);
+        // }
         
-        if ($this->minify_css) {
-            add_action('wp_enqueue_scripts', [$this, 'minifyCSS']);
-        }
+        // DISABILITATO: Conflitto con Assets/Optimizer
+        // La minificazione CSS/JS è gestita da Assets/Optimizer
+        // if ($this->minify_css) {
+        //     add_action('wp_enqueue_scripts', [$this, 'minifyCSS']);
+        // }
         
-        if ($this->minify_js) {
-            add_action('wp_enqueue_scripts', [$this, 'minifyJS']);
-        }
+        // if ($this->minify_js) {
+        //     add_action('wp_enqueue_scripts', [$this, 'minifyJS']);
+        // }
     }
     
     public function enableGzip()
@@ -58,6 +61,10 @@ class CompressionManager
     
     public function minifyHTML()
     {
+        // DISABILITATO: Conflitto con HtmlMinifier
+        // Il minificazione HTML è gestita da Assets/Optimizer
+        return;
+        
         if (!is_admin()) {
             ob_start([$this, 'minifyHTMLCallback']);
         }
@@ -81,6 +88,10 @@ class CompressionManager
     
     public function minifyCSS()
     {
+        // DISABILITATO: Conflitto con Assets/Optimizer
+        // La minificazione CSS è gestita da Assets/Optimizer
+        return;
+        
         if ($this->minify_css) {
             add_filter('style_loader_tag', [$this, 'minifyCSSCallback'], 10, 2);
         }
@@ -100,6 +111,10 @@ class CompressionManager
     
     public function minifyJS()
     {
+        // DISABILITATO: Conflitto con Assets/Optimizer
+        // La minificazione JS è gestita da Assets/Optimizer
+        return;
+        
         if ($this->minify_js) {
             add_filter('script_loader_tag', [$this, 'minifyJSCallback'], 10, 2);
         }

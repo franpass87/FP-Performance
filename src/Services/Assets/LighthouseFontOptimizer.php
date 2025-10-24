@@ -23,17 +23,17 @@ class LighthouseFontOptimizer
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
-            // Preload dei font critici identificati in Lighthouse
-            add_action('wp_head', [$this, 'preloadLighthouseFonts'], 1);
+            // Preload dei font critici identificati in Lighthouse - PRIORITÀ BASSA per Lighthouse specifico
+            add_action('wp_head', [$this, 'preloadLighthouseFonts'], 23);
             
             // Iniezione font-display CSS per i font problematici
-            add_action('wp_head', [$this, 'injectLighthouseFontDisplayCSS'], 5);
+            add_action('wp_head', [$this, 'injectLighthouseFontDisplayCSS'], 24);
             
             // Preconnect ai provider dei font problematici
             add_action('wp_head', [$this, 'addLighthouseFontProviderPreconnect'], 2);
             
             // Ottimizzazione specifica per i font del sito
-            add_filter('style_loader_tag', [$this, 'optimizeSiteFonts'], 10, 4);
+            add_filter('style_loader_tag', [$this, 'optimizeSiteFonts'], 27, 4);
             
             Logger::debug('LighthouseFontOptimizer registered');
         }

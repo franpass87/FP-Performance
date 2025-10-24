@@ -31,12 +31,12 @@ class ExternalResourceCacheManager
         }
 
         // Intercetta le richieste per risorse esterne
-        add_action('wp_head', [$this, 'addExternalCacheHeaders'], 1);
-        add_action('wp_footer', [$this, 'addExternalCacheHeaders'], 1);
+        add_action('wp_head', [$this, 'addExternalCacheHeaders'], 18);
+        add_action('wp_footer', [$this, 'addExternalCacheHeaders'], 30);
         
         // Hook per gestire risorse specifiche
-        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], PHP_INT_MAX);
-        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedStyles'], PHP_INT_MAX);
+        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], 994);
+        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedStyles'], 993);
 
         Logger::debug('External Resource Cache Manager registered');
     }

@@ -34,7 +34,7 @@ class SmartAssetDelivery
         }
 
         // Rileva e salva info connessione
-        add_action('wp_footer', [$this, 'detectConnectionType'], 1);
+        add_action('wp_footer', [$this, 'detectConnectionType'], 35);
 
         Logger::debug('Smart Asset Delivery registered');
     }
@@ -121,15 +121,21 @@ class SmartAssetDelivery
 
     /**
      * Ottiene tipo connessione utente corrente
+     * SICUREZZA: Sanitizzazione input per prevenire XSS
      */
     private function getConnectionType(): string
     {
-        // Check cookie o header
+        // SICUREZZA: Sanitizziamo sempre gli input per prevenire XSS
         if (isset($_COOKIE['fp_connection_type'])) {
-            return sanitize_text_field($_COOKIE['fp_connection_type']);
+            $connection_type = sanitize_text_field($_COOKIE['fp_connection_type']);
+            // Validiamo che sia un valore consentito
+            $allowed_types = ['slow-2g', '2g', '3g', '4g'];
+            if (in_array($connection_type, $allowed_types, true)) {
+                return $connection_type;
+            }
         }
 
-        // Fallback
+        // Fallback sicuro
         return '4g';
     }
 

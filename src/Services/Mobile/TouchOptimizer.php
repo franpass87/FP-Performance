@@ -13,7 +13,7 @@ class TouchOptimizer
     
     public function init()
     {
-        add_action('wp_footer', [$this, 'addTouchOptimizations']);
+        add_action('wp_footer', [$this, 'addTouchOptimizations'], 51);
     }
     
     public function addTouchOptimizations()

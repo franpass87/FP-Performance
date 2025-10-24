@@ -448,16 +448,20 @@ class DatabaseReportService
      */
     public function scheduleAutomaticReports(string $frequency = 'weekly'): void
     {
-        // Rimuovi schedule esistente
+        // SICUREZZA: Rimuovi schedule esistente con validazione
         $timestamp = wp_next_scheduled('fp_ps_db_auto_report');
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'fp_ps_db_auto_report');
         }
         
-        // Schedule nuovo
-        if ($frequency !== 'manual') {
+        // SICUREZZA: Schedule nuovo con validazione frequenza
+        if ($frequency !== 'manual' && in_array($frequency, ['daily', 'weekly'], true)) {
             $interval = $frequency === 'daily' ? 'daily' : 'weekly';
-            wp_schedule_event(time() + HOUR_IN_SECONDS, $interval, 'fp_ps_db_auto_report');
+            $scheduled = wp_schedule_event(time() + HOUR_IN_SECONDS, $interval, 'fp_ps_db_auto_report');
+            
+            if ($scheduled === false) {
+                error_log('FP Performance Suite: Failed to schedule database report');
+            }
         }
         
         Logger::info('Automatic database reports scheduled', ['frequency' => $frequency]);

@@ -36,7 +36,7 @@ class CriticalCssAutomation
         }
 
         // Inline critical CSS
-        add_action('wp_head', [$this, 'inlineCriticalCss'], 1);
+        add_action('wp_head', [$this, 'inlineCriticalCss'], 22);
 
         Logger::debug('Critical CSS Automation registered');
     }
@@ -147,15 +147,26 @@ class CriticalCssAutomation
     {
         $css = '';
 
-        // Estrai CSS inline
+        // SICUREZZA: Estrai CSS inline con limite per prevenire performance bottleneck
+        $maxInlineCss = 10; // Limite per prevenire memory issues
         preg_match_all('/<style[^>]*>(.*?)<\/style>/is', $html, $matches);
+        $inlineCount = 0;
         foreach ($matches[1] as $inlineCss) {
+            if ($inlineCount >= $maxInlineCss) {
+                break; // Preveniamo memory issues
+            }
             $css .= $inlineCss . "\n";
+            $inlineCount++;
         }
 
-        // Estrai CSS da link (solo locali)
+        // SICUREZZA: Estrai CSS da link con limite per prevenire performance bottleneck
+        $maxLinks = 5; // Limite per prevenire memory issues
         preg_match_all('/<link[^>]+rel=["\']stylesheet["\'][^>]*>/i', $html, $linkMatches);
+        $linkCount = 0;
         foreach ($linkMatches[0] as $link) {
+            if ($linkCount >= $maxLinks) {
+                break; // Preveniamo memory issues
+            }
             if (preg_match('/href=["\']([^"\']+)["\']/', $link, $href)) {
                 $cssUrl = $href[1];
                 
@@ -167,6 +178,7 @@ class CriticalCssAutomation
                     }
                 }
             }
+            $linkCount++;
         }
 
         return $css;
@@ -201,12 +213,23 @@ class CriticalCssAutomation
             'button',
         ];
 
-        // Estrai regole per selettori critici
+        // SICUREZZA: Estrai regole per selettori critici con limite per prevenire memory leaks
+        $maxRules = 100; // Limite per prevenire memory leaks
+        $ruleCount = 0;
+        
         foreach ($criticalSelectors as $selector) {
+            if ($ruleCount >= $maxRules) {
+                break; // Preveniamo memory leaks
+            }
+            
             $pattern = '/' . preg_quote($selector, '/') . '\s*\{[^}]+\}/';
             if (preg_match_all($pattern, $css, $matches)) {
                 foreach ($matches[0] as $rule) {
+                    if ($ruleCount >= $maxRules) {
+                        break;
+                    }
                     $critical .= $rule . "\n";
+                    $ruleCount++;
                 }
             }
         }
@@ -390,9 +413,12 @@ class CriticalCssAutomation
     {
         global $wpdb;
 
+        // SICUREZZA: Usiamo prepare per prevenire SQL injection
         $postsWithCriticalCss = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->postmeta} 
-            WHERE meta_key = '_fp_critical_css'"
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s",
+                '_fp_critical_css'
+            )
         );
 
         $globalCriticalCss = get_option('fp_ps_critical_css', '');

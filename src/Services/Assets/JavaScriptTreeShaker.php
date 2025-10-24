@@ -13,8 +13,8 @@ class JavaScriptTreeShaker
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 999);
-        add_action('wp_footer', [$this, 'addTreeShakingScript']);
+        add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 998);
+        add_action('wp_footer', [$this, 'addTreeShakingScript'], 43);
     }
     
     public function optimizeScripts()

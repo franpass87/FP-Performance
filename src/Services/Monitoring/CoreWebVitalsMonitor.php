@@ -17,7 +17,7 @@ class CoreWebVitalsMonitor
     
     public function init()
     {
-        add_action('wp_footer', [$this, 'addCoreWebVitalsScript']);
+        add_action('wp_footer', [$this, 'addCoreWebVitalsScript'], 48);
         add_action('wp_ajax_fp_save_vitals', [$this, 'saveVitals']);
         add_action('wp_ajax_nopriv_fp_save_vitals', [$this, 'saveVitals']);
     }

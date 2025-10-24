@@ -35,11 +35,11 @@ class ThirdPartyScriptManager
             return;
         }
 
-        // Filter script tags to apply delays
-        add_filter('script_loader_tag', [$this, 'filterScriptTag'], 10, 3);
+        // Filter script tags to apply delays - PRIORITÀ MEDIA per gestione terze parti
+        add_filter('script_loader_tag', [$this, 'filterScriptTag'], 15, 3);
         
-        // Add delayed loading script
-        add_action('wp_footer', [$this, 'injectDelayedLoader'], 999);
+        // Add delayed loading script - PRIORITÀ ALTA per gestire altri script
+        add_action('wp_footer', [$this, 'injectDelayedLoader'], 5);
     }
 
     /**

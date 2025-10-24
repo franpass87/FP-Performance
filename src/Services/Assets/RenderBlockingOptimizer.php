@@ -23,20 +23,20 @@ class RenderBlockingOptimizer
     public function register(): void
     {
         if (!is_admin() && $this->isEnabled()) {
-            // Critical CSS injection for above-the-fold content
-            add_action('wp_head', [$this, 'injectCriticalCSS'], 1);
+            // Critical CSS injection for above-the-fold content - PRIORITÀ CRITICA
+            add_action('wp_head', [$this, 'injectCriticalCSS'], 3);
             
-            // Optimize font loading to prevent render blocking
-            add_action('wp_head', [$this, 'optimizeFontLoading'], 2);
+            // Optimize font loading to prevent render blocking - PRIORITÀ CRITICA
+            add_action('wp_head', [$this, 'optimizeFontLoading'], 4);
             
-            // Defer non-critical CSS
-            add_filter('style_loader_tag', [$this, 'deferNonCriticalCSS'], 10, 4);
+            // Defer non-critical CSS - PRIORITÀ MEDIA per render blocking
+            add_filter('style_loader_tag', [$this, 'deferNonCriticalCSS'], 9, 4);
             
-            // Preload critical resources
-            add_action('wp_head', [$this, 'preloadCriticalResources'], 3);
+            // Preload critical resources - PRIORITÀ MEDIA
+            add_action('wp_head', [$this, 'preloadCriticalResources'], 6);
             
-            // Add resource hints for faster loading
-            add_action('wp_head', [$this, 'addResourceHints'], 4);
+            // Add resource hints for faster loading - PRIORITÀ MEDIA
+            add_action('wp_head', [$this, 'addResourceHints'], 7);
             
             Logger::debug('RenderBlockingOptimizer registered');
         }
