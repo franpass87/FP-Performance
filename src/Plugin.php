@@ -130,6 +130,12 @@ class Plugin
                 return $schedules;
             });
 
+            // FIX CRITICO: NON registrare servizi di ottimizzazione nell'admin
+            if (is_admin()) {
+                Logger::debug("Skipping optimization services registration in admin");
+                return;
+            }
+
             // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
