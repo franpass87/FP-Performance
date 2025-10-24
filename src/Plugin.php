@@ -67,7 +67,7 @@ class Plugin
         ]);
         
         // Prevenire inizializzazioni multiple con controllo semplificato
-        if (self::$initialized || self::$container instanceof ServiceContainer) {
+        if (self::$initialized || self::$container instanceof ServiceContainer || $fp_perf_suite_initialized) {
             Logger::debug("Plugin already initialized, skipping");
             return;
         }

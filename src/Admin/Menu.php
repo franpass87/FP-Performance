@@ -41,6 +41,7 @@ use function sanitize_key;
 class Menu
 {
     private ServiceContainer $container;
+    private static bool $menuRegistered = false;
 
     public function __construct(ServiceContainer $container)
     {
@@ -240,6 +241,12 @@ class Menu
 
     public function register(): void
     {
+        // Prevenire doppia registrazione del menu
+        if (self::$menuRegistered) {
+            return;
+        }
+        self::$menuRegistered = true;
+        
         $pages = $this->pages();
         
         // Ottieni la capability richiesta con fallback sicuro
