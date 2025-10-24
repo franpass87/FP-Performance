@@ -52,6 +52,9 @@ class Menu
         add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
         add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
         
+        // Fallback: registra il menu anche se il sistema normale fallisce
+        add_action('admin_menu', [$this, 'registerFallbackMenu'], 999);
+        
         // NOTA: wp_ajax_fp_ps_apply_recommendation ora gestito da RecommendationsAjax (ripristinato 21 Ott 2025)
         // Mantenuto metodo applyRecommendation() come fallback per compatibilità
         
@@ -295,6 +298,10 @@ class Menu
             $capability = 'manage_options';
             error_log('[FP Performance Suite] FORCE: Admin senza accesso, uso manage_options');
         }
+        
+        // FORZA SEMPRE manage_options per garantire la visibilità
+        $capability = 'manage_options';
+        error_log('[FP Performance Suite] FORCE FINALE: Uso sempre manage_options per garantire visibilità');
 
         add_menu_page(
             __('FP Performance Suite', 'fp-performance-suite'),
@@ -494,6 +501,46 @@ class Menu
                     $e->getMessage()
                 ),
             ]);
+        }
+    }
+    
+    /**
+     * Metodo di fallback per registrare il menu se il sistema normale fallisce
+     */
+    public function registerFallbackMenu(): void
+    {
+        // Controlla se il menu è già stato registrato
+        global $menu;
+        $menu_already_registered = false;
+        
+        if (isset($menu)) {
+            foreach ($menu as $item) {
+                if (isset($item[2]) && strpos($item[2], 'fp-performance') !== false) {
+                    $menu_already_registered = true;
+                    break;
+                }
+            }
+        }
+        
+        // Se il menu non è stato registrato, registralo manualmente
+        if (!$menu_already_registered) {
+            error_log('[FP Performance Suite] FALLBACK: Registrazione menu manuale');
+            
+            add_menu_page(
+                'FP Performance Suite',
+                'FP Performance',
+                'manage_options',
+                'fp-performance-suite-fallback',
+                function() {
+                    echo '<div class="wrap">';
+                    echo '<h1>FP Performance Suite</h1>';
+                    echo '<p>Il plugin è in modalità di recupero. Il menu principale potrebbe non essere visibile.</p>';
+                    echo '<p>Prova a disattivare e riattivare il plugin per risolvere il problema.</p>';
+                    echo '</div>';
+                },
+                'dashicons-performance',
+                30
+            );
         }
     }
 }

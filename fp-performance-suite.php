@@ -164,6 +164,29 @@ if (function_exists('add_action')) {
         $fp_perf_suite_initialized = true;
         fp_perf_suite_initialize_plugin();
     }, 1);
+    
+    // Fallback: registra il menu manualmente se il plugin non si inizializza
+    add_action('admin_menu', static function () {
+        global $fp_perf_suite_initialized;
+        
+        // Se il plugin non è inizializzato, registra il menu manualmente
+        if (!$fp_perf_suite_initialized) {
+            add_menu_page(
+                'FP Performance Suite',
+                'FP Performance',
+                'manage_options',
+                'fp-performance-suite',
+                function() {
+                    echo '<div class="wrap">';
+                    echo '<h1>FP Performance Suite</h1>';
+                    echo '<p>Il plugin è in modalità di recupero. Prova a disattivare e riattivare il plugin.</p>';
+                    echo '</div>';
+                },
+                'dashicons-performance',
+                30
+            );
+        }
+    }, 999);
 }
 
 /**
