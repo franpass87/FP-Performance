@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: FP Performance Suite
+ * Plugin Name: FP Performance Suite (Safe Mode)
  * Plugin URI: https://francescopasseri.com
- * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.5.1
+ * Description: Versione sicura per risolvere problemi di white screen. Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
+ * Version: 1.5.1-safe
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,7 +16,7 @@
 
 defined('ABSPATH') || exit;
 
-// Plugin principale FP Performance Suite - VERSIONE FIXATA
+// Plugin principale FP Performance Suite - Modalità Sicura
 
 /**
  * Verifica se il database WordPress è disponibile
@@ -59,7 +59,7 @@ function fp_perf_suite_is_db_available(): bool {
 function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void {
     $timestamp = gmdate('Y-m-d H:i:s');
     $logMessage = sprintf(
-        '[%s] [FP-PerfSuite] [%s] %s',
+        '[%s] [FP-PerfSuite-Safe] [%s] %s',
         $timestamp,
         $level,
         $message
@@ -70,8 +70,26 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
     }
 }
 
-// NON caricare file di debug che causano white screen
-// Questi file sono stati identificati come causa del problema
+// NON caricare file di debug che potrebbero causare problemi
+// Commentati per sicurezza
+/*
+$fixFile = __DIR__ . '/fix-register-meta-errors.php';
+if (file_exists($fixFile)) {
+    require_once $fixFile;
+}
+
+if (defined('WP_DEBUG') && WP_DEBUG) {
+    $debugFile = __DIR__ . '/debug-initialization-issues.php';
+    if (file_exists($debugFile)) {
+        require_once $debugFile;
+    }
+}
+
+$gitUpdaterFix = __DIR__ . '/fix-fp-git-updater-deprecated.php';
+if (file_exists($gitUpdaterFix)) {
+    require_once $gitUpdaterFix;
+}
+*/
 
 // Autoload con gestione errori migliorata
 $autoload = __DIR__ . '/vendor/autoload.php';
@@ -99,7 +117,7 @@ if (is_readable($autoload)) {
     });
 }
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1');
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1-safe');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
@@ -163,7 +181,7 @@ if (function_exists('add_action')) {
         
         // Inizializzazione sicura con try-catch
         try {
-            fp_perf_suite_initialize_plugin_fixed();
+            fp_perf_suite_initialize_plugin_safe();
         } catch (\Throwable $e) {
             fp_perf_suite_safe_log('Errore inizializzazione plugin: ' . $e->getMessage());
             
@@ -181,9 +199,9 @@ if (function_exists('add_action')) {
 }
 
 /**
- * Funzione di inizializzazione FIXATA del plugin
+ * Funzione di inizializzazione sicura del plugin
  */
-function fp_perf_suite_initialize_plugin_fixed(): void {
+function fp_perf_suite_initialize_plugin_safe(): void {
     global $fp_perf_suite_initialized;
     
     // Prevenire inizializzazioni multiple
@@ -265,10 +283,10 @@ function fp_perf_suite_initialize_plugin_fixed(): void {
     }
 }
 
-// Aggiungi avviso di versione fixata
+// Aggiungi avviso di modalità sicura
 add_action('admin_notices', static function () {
     if (current_user_can('manage_options')) {
-        echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Versione fixata caricata - problemi di white screen risolti.</p></div>';
+        echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> In esecuzione in modalità sicura per prevenire problemi di white screen.</p></div>';
     }
 });
 ?>
