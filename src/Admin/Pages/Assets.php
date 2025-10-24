@@ -17,7 +17,6 @@ use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
-use FP\PerfSuite\Admin\Pages\Assets\Handlers\PostHandler;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\JavaScriptTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\CssTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\FontsTab;
@@ -31,13 +30,11 @@ use function sanitize_key;
 
 class Assets extends AbstractPage
 {
-    private PostHandler $postHandler;
     private array $tabs = [];
 
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
-        $this->postHandler = new PostHandler();
         $this->initializeTabs();
     }
 
@@ -98,10 +95,7 @@ class Assets extends AbstractPage
             $criticalAssets = get_transient('fp_ps_critical_assets_detected');
             
             // Handle POST requests
-            $message = $this->postHandler->handlePost($settings, $fontSettings, $thirdPartySettings);
-            
-            // Fallback: Handle direct form submissions if PostHandler fails
-            if (empty($message) && 'POST' === $_SERVER['REQUEST_METHOD']) {
+            if ('POST' === $_SERVER['REQUEST_METHOD']) {
                 $message = $this->handleDirectFormSubmission($settings, $fontSettings, $thirdPartySettings);
             }
             
@@ -269,19 +263,47 @@ class Assets extends AbstractPage
      */
     private function handleDirectFormSubmission(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
     {
-        // Check for main toggle form
-        if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
-            if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                $optimizer = $this->container->get(Optimizer::class);
-                $currentSettings = $optimizer->settings();
-                // Corretto: gestisce sia stati checked che unchecked
-                $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
-                $optimizer->update($currentSettings);
-                $settings = $optimizer->settings();
-                return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
+        try {
+            // Debug: Log POST data
+            error_log('FP Performance Suite - POST data: ' . print_r($_POST, true));
+            
+            // Check for main toggle form
+            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
+                    $optimizer = $this->container->get(Optimizer::class);
+                    $currentSettings = $optimizer->settings();
+                    
+                    // Debug: Log current settings
+                    error_log('FP Performance Suite - Current settings: ' . print_r($currentSettings, true));
+                    
+                    // Corretto: gestisce sia stati checked che unchecked
+                    $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
+                    
+                    // Debug: Log new settings
+                    error_log('FP Performance Suite - New settings: ' . print_r($currentSettings, true));
+                    
+                    $result = $optimizer->update($currentSettings);
+                    
+                    // Debug: Log result
+                    error_log('FP Performance Suite - Update result: ' . ($result ? 'success' : 'failed'));
+                    
+                    $settings = $optimizer->settings();
+                    
+                    // Debug: Log final settings
+                    error_log('FP Performance Suite - Final settings: ' . print_r($settings, true));
+                    
+                    return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
+                } else {
+                    error_log('FP Performance Suite - Nonce verification failed');
+                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
+                }
             }
+            
+            return '';
+            
+        } catch (\Exception $e) {
+            error_log('FP Performance Suite - Form submission error: ' . $e->getMessage());
+            return __('Error saving settings: ' . $e->getMessage(), 'fp-performance-suite');
         }
-        
-        return '';
     }
 }
