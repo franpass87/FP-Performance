@@ -156,10 +156,13 @@ if (function_exists('add_action')) {
     add_action('init', static function () {
         global $fp_perf_suite_initialized;
         
-        // Prevenire inizializzazioni multiple
+        // Prevenire inizializzazioni multiple - FIX CRITICO
         if ($fp_perf_suite_initialized) {
             return;
         }
+        
+        // Marca come inizializzato IMMEDIATAMENTE per prevenire race conditions
+        $fp_perf_suite_initialized = true;
         
         // Inizializzazione sicura con try-catch
         try {
@@ -186,11 +189,8 @@ if (function_exists('add_action')) {
 function fp_perf_suite_initialize_plugin_fixed(): void {
     global $fp_perf_suite_initialized;
     
-    // Prevenire inizializzazioni multiple
-    if ($fp_perf_suite_initialized) {
-        fp_perf_suite_safe_log('Plugin initialization prevented - already initialized', 'DEBUG');
-        return;
-    }
+    // La variabile globale è già stata impostata nel controllo precedente
+    // Non serve altro controllo qui
     
     // Verifica che il file Plugin.php esista
     $pluginFile = __DIR__ . '/src/Plugin.php';
@@ -243,10 +243,7 @@ function fp_perf_suite_initialize_plugin_fixed(): void {
         \FP\PerfSuite\Plugin::init();
         fp_perf_suite_safe_log('Plugin initialized successfully', 'DEBUG');
         
-        // Verifica se è davvero inizializzato
-        if (FP\PerfSuite\Plugin::isInitialized()) {
-            $fp_perf_suite_initialized = true;
-        }
+        // La variabile globale è già stata impostata, non serve ri-impostarla
         
     } catch (\Throwable $e) {
         fp_perf_suite_safe_log('Plugin initialization error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 'ERROR');
