@@ -243,6 +243,7 @@ class Menu
     {
         // Prevenire doppia registrazione del menu
         if (self::$menuRegistered) {
+            error_log('[FP Performance Suite] Menu già registrato, saltando registrazione duplicata');
             return;
         }
         self::$menuRegistered = true;

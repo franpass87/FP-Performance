@@ -158,6 +158,7 @@ if (function_exists('add_action')) {
         
         // Prevenire inizializzazioni multiple - FIX CRITICO
         if ($fp_perf_suite_initialized) {
+            fp_perf_suite_safe_log('Plugin già inizializzato, saltando inizializzazione duplicata', 'DEBUG');
             return;
         }
         
