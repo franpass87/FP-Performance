@@ -169,25 +169,62 @@ if (function_exists('add_action')) {
         
         $fp_perf_suite_initialized = true;
         fp_perf_suite_initialize_plugin();
+        
+        // Debug: verifica se il plugin è inizializzato
+        if (class_exists('FP\\PerfSuite\\Plugin') && FP\PerfSuite\Plugin::isInitialized()) {
+            add_action('admin_notices', static function () {
+                echo '<div class="notice notice-info"><p><strong>FP Performance Suite:</strong> Plugin inizializzato correttamente</p></div>';
+            });
+        } else {
+            add_action('admin_notices', static function () {
+                echo '<div class="notice notice-warning"><p><strong>FP Performance Suite:</strong> Plugin non inizializzato correttamente</p></div>';
+            });
+        }
     }, 1);
     
     // Boot del menu service dopo l'inizializzazione del plugin
     add_action('init', static function () {
         // Solo se il plugin è inizializzato
-        if (!class_exists('FP\\PerfSuite\\Plugin') || !FP\PerfSuite\Plugin::isInitialized()) {
+        if (!class_exists('FP\\PerfSuite\\Plugin')) {
+            add_action('admin_notices', static function () {
+                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Classe Plugin non trovata</p></div>';
+            });
+            return;
+        }
+        
+        if (!FP\PerfSuite\Plugin::isInitialized()) {
+            add_action('admin_notices', static function () {
+                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Plugin non inizializzato</p></div>';
+            });
             return;
         }
         
         try {
             $container = FP\PerfSuite\Plugin::container();
-            if ($container) {
-                $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
-                if ($menu_service) {
-                    $menu_service->boot();
-                }
+            if (!$container) {
+                add_action('admin_notices', static function () {
+                    echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Container non disponibile</p></div>';
+                });
+                return;
             }
+            
+            $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+            if (!$menu_service) {
+                add_action('admin_notices', static function () {
+                    echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Menu service non disponibile</p></div>';
+                });
+                return;
+            }
+            
+            $menu_service->boot();
+            add_action('admin_notices', static function () {
+                echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Menu registrato con successo</p></div>';
+            });
+            
         } catch (Exception $e) {
-            error_log('[FP Performance Suite] Errore nel boot del menu: ' . $e->getMessage());
+            add_action('admin_notices', static function () use ($e) {
+                echo '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore: ' . esc_html($e->getMessage()) . '</p></div>';
+            });
         }
     }, 2); // Priorità 2 per essere sicuri che il plugin sia inizializzato
 }
