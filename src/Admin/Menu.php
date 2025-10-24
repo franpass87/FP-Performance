@@ -10,8 +10,9 @@ use FP\PerfSuite\Admin\Pages\Compression;
 use FP\PerfSuite\Admin\Pages\Database;
 use FP\PerfSuite\Admin\Pages\Diagnostics;
 use FP\PerfSuite\Admin\Pages\Exclusions;
-use FP\PerfSuite\Admin\Pages\ExternalCache;
+use FP\PerfSuite\Admin\Pages\IntelligenceDashboard;
 use FP\PerfSuite\Admin\Pages\Cdn;
+use FP\PerfSuite\Admin\Pages\JavaScriptOptimization;
 use FP\PerfSuite\Admin\Pages\Logs;
 use FP\PerfSuite\Admin\Pages\Media;
 use FP\PerfSuite\Admin\Pages\Mobile;
@@ -320,6 +321,7 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
         add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
+        add_submenu_page('fp-performance-suite', __('JavaScript Optimization', 'fp-performance-suite'), __('⚡ JS Optimization', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
@@ -332,9 +334,9 @@ class Menu
         add_submenu_page('fp-performance-suite', __('CDN', 'fp-performance-suite'), __('🌐 CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-cdn', [$pages['cdn'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🌐 EXTERNAL CACHE
+        // 🌐 EXTERNAL CACHE - RIMOSSO (file eliminato)
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('External Cache', 'fp-performance-suite'), __('🌐 External Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-external-cache', [$pages['external_cache'], 'render']);
+        // add_submenu_page('fp-performance-suite', __('External Cache', 'fp-performance-suite'), __('🌐 External Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-external-cache', [$pages['external_cache'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 🛡️ SECURITY & INFRASTRUCTURE
@@ -344,7 +346,8 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         // 🧠 INTELLIGENCE & AUTO-DETECTION
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🧠 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Intelligence Dashboard', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🎯 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
         add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 ML', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
@@ -433,19 +436,20 @@ class Menu
             'overview' => new Overview($this->container),
             'cache' => new Cache($this->container),
             'assets' => new Assets($this->container),
+            'js_optimization' => new JavaScriptOptimization($this->container),
             'media' => new Media($this->container),
             'mobile' => new Mobile($this->container),
             'database' => new Database($this->container),
             'backend' => new Backend($this->container),
             'compression' => new Compression($this->container),
             'cdn' => new Cdn($this->container),
-            'external_cache' => new ExternalCache($this->container),
             'ai_config' => new AIConfig($this->container),
             'ml' => new ML($this->container),
             'monitoring' => new MonitoringReports($this->container),
             'logs' => new Logs($this->container),
             'settings' => new Settings($this->container),
             'security' => new Security($this->container),
+            'intelligence' => new IntelligenceDashboard($this->container),
             'exclusions' => new Exclusions($this->container),
             'diagnostics' => new Diagnostics($this->container),
         ];

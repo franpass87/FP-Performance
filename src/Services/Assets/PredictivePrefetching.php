@@ -2,184 +2,80 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
-
-/**
- * Predictive Prefetching
- * 
- * Precarica pagine basandosi sul comportamento utente
- *
- * @package FP\PerfSuite\Services\Assets
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
 class PredictivePrefetching
 {
-    private const OPTION_KEY = 'fp_ps_predictive_prefetch';
-    private static bool $registered = false;
-
-    /**
-     * Registra il servizio
-     */
-    public function register(): void
+    private $strategy;
+    private $hover_delay;
+    private $limit;
+    
+    public function __construct($strategy = 'hover', $hover_delay = 100, $limit = 5)
     {
-        // Evita registrazioni multiple
-        if (self::$registered) {
-            return;
+        $this->strategy = $strategy;
+        $this->hover_delay = $hover_delay;
+        $this->limit = $limit;
+    }
+    
+    public function init()
+    {
+        add_action('wp_enqueue_scripts', [$this, 'enqueueScripts']);
+        add_action('wp_footer', [$this, 'addPrefetchScript']);
+    }
+    
+    public function enqueueScripts()
+    {
+        wp_enqueue_script('fp-prefetch', plugin_dir_url(__FILE__) . '../../assets/js/predictive-prefetch.js', [], '1.0.0', true);
+    }
+    
+    public function addPrefetchScript()
+    {
+        $config = [
+            'strategy' => $this->strategy,
+            'hoverDelay' => $this->hover_delay,
+            'limit' => $this->limit
+        ];
+        
+        echo '<script>window.fpPrefetchConfig = ' . json_encode($config) . ';</script>';
+    }
+    
+    public function getPrefetchLinks()
+    {
+        $links = [];
+        $count = 0;
+        
+        if ($this->strategy === 'hover') {
+            $links = $this->getHoverLinks();
+        } elseif ($this->strategy === 'viewport') {
+            $links = $this->getViewportLinks();
         }
         
-        $settings = $this->getSettings();
-
-        if (empty($settings['enabled'])) {
-            return;
-        }
-
-        add_action('wp_footer', [$this, 'injectPrefetchScript'], 999);
-
-        self::$registered = true;
+        return array_slice($links, 0, $this->limit);
+    }
+    
+    private function getHoverLinks()
+    {
+        $links = [];
+        $menu_items = wp_get_nav_menu_items('primary');
         
-        Logger::debug('Predictive Prefetching registered');
-    }
-
-    /**
-     * Ottiene le impostazioni
-     */
-    public function getSettings(): array
-    {
-        $defaults = [
-            'enabled' => false,
-            'strategy' => 'hover', // hover, viewport, aggressive
-            'hover_delay' => 100, // ms
-            'prefetch_limit' => 5,
-            'ignore_patterns' => ['/wp-admin/', '/cart/', '/checkout/'],
-        ];
-
-        $options = get_option(self::OPTION_KEY, []);
-        return wp_parse_args($options, $defaults);
-    }
-
-    /**
-     * Aggiorna le impostazioni
-     */
-    public function updateSettings(array $settings): bool
-    {
-        $current = $this->getSettings();
-        $updated = wp_parse_args($settings, $current);
-
-        return update_option(self::OPTION_KEY, $updated);
-    }
-
-    /**
-     * Inietta script prefetch
-     */
-    public function injectPrefetchScript(): void
-    {
-        if (is_admin()) {
-            return;
+        if ($menu_items) {
+            foreach ($menu_items as $item) {
+                if ($count >= $this->limit) break;
+                $links[] = $item->url;
+                $count++;
+            }
         }
-
-        $settings = $this->getSettings();
-        ?>
-        <script>
-        (function() {
-            const strategy = '<?php echo esc_js($settings['strategy']); ?>';
-            const hoverDelay = <?php echo (int) $settings['hover_delay']; ?>;
-            const prefetchLimit = <?php echo (int) $settings['prefetch_limit']; ?>;
-            const ignorePatterns = <?php echo wp_json_encode($settings['ignore_patterns']); ?>;
-            
-            let prefetchedUrls = new Set();
-            let hoverTimeout;
-
-            const shouldIgnore = (url) => {
-                return ignorePatterns.some(pattern => url.includes(pattern));
-            };
-
-            const prefetchUrl = (url) => {
-                if (prefetchedUrls.has(url) || shouldIgnore(url)) {
-                    return;
-                }
-
-                if (prefetchedUrls.size >= prefetchLimit) {
-                    return;
-                }
-
-                const link = document.createElement('link');
-                link.rel = 'prefetch';
-                link.href = url;
-                link.as = 'document';
-                
-                document.head.appendChild(link);
-                prefetchedUrls.add(url);
-                
-                console.log('Prefetched:', url);
-            };
-
-            if (strategy === 'hover') {
-                document.addEventListener('mouseover', (e) => {
-                    const link = e.target.closest('a');
-                    if (!link || !link.href) return;
-
-                    const url = new URL(link.href);
-                    if (url.origin !== location.origin) return;
-
-                    clearTimeout(hoverTimeout);
-                    hoverTimeout = setTimeout(() => {
-                        prefetchUrl(link.href);
-                    }, hoverDelay);
-                });
-
-                document.addEventListener('mouseout', () => {
-                    clearTimeout(hoverTimeout);
-                });
-            }
-
-            else if (strategy === 'viewport') {
-                if ('IntersectionObserver' in window) {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                const link = entry.target;
-                                if (link.href) {
-                                    const url = new URL(link.href);
-                                    if (url.origin === location.origin) {
-                                        prefetchUrl(link.href);
-                                    }
-                                }
-                                observer.unobserve(link);
-                            }
-                        });
-                    }, {
-                        rootMargin: '200px 0px'
-                    });
-
-                    document.querySelectorAll('a[href]').forEach(link => {
-                        observer.observe(link);
-                    });
-                }
-            }
-
-            else if (strategy === 'aggressive') {
-                document.querySelectorAll('a[href]').forEach(link => {
-                    const url = new URL(link.href);
-                    if (url.origin === location.origin && !shouldIgnore(link.href)) {
-                        prefetchUrl(link.href);
-                    }
-                });
-            }
-        })();
-        </script>
-        <?php
+        
+        return $links;
     }
-
-    /**
-     * Status
-     */
-    public function status(): array
+    
+    private function getViewportLinks()
     {
-        return [
-            'enabled' => !empty($this->getSettings()['enabled']),
-            'settings' => $this->getSettings(),
-        ];
+        $links = [];
+        $posts = get_posts(['numberposts' => $this->limit]);
+        
+        foreach ($posts as $post) {
+            $links[] = get_permalink($post->ID);
+        }
+        
+        return $links;
     }
 }
-

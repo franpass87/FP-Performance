@@ -2,263 +2,105 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
-
-/**
- * Image Optimizer
- *
- * Ensures images have explicit width/height attributes to prevent
- * Cumulative Layout Shift (CLS) and improve PageSpeed scores.
- *
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
 class ImageOptimizer
 {
-    private const OPTION = 'fp_ps_image_optimization';
-
-    /**
-     * Register hooks
-     */
-    public function register(): void
+    private $lazy_loading;
+    private $webp_conversion;
+    
+    public function __construct($lazy_loading = true, $webp_conversion = true)
     {
-        if (!is_admin() && $this->isEnabled()) {
-            // Force width/height attributes on images
-            if ($this->getSetting('force_dimensions', true)) {
-                add_filter('wp_get_attachment_image_attributes', [$this, 'addImageDimensions'], 10, 3);
-                add_filter('the_content', [$this, 'addDimensionsToContentImages'], 999);
-            }
-
-            // Add aspect-ratio CSS support
-            if ($this->getSetting('add_aspect_ratio', true)) {
-                add_action('wp_head', [$this, 'addAspectRatioStyles'], 1);
-            }
-
-            Logger::debug('ImageOptimizer registered');
-        }
+        $this->lazy_loading = $lazy_loading;
+        $this->webp_conversion = $webp_conversion;
     }
-
-    /**
-     * Add width and height to attachment images
-     */
-    public function addImageDimensions(array $attr, $attachment, $size): array
+    
+    public function init()
     {
-        // Skip if already has both dimensions
-        if (isset($attr['width'], $attr['height'])) {
-            return $attr;
+        add_filter('wp_get_attachment_image_attributes', [$this, 'addLazyLoading'], 10, 3);
+        add_filter('the_content', [$this, 'optimizeContentImages']);
+        add_action('wp_head', [$this, 'addImageOptimizationScripts']);
+    }
+    
+    public function addLazyLoading($attr, $attachment, $size)
+    {
+        if ($this->lazy_loading) {
+            $attr['loading'] = 'lazy';
+            $attr['decoding'] = 'async';
         }
-
-        // Get attachment metadata
-        $metadata = wp_get_attachment_metadata($attachment->ID ?? 0);
         
-        if (!is_array($metadata)) {
-            return $attr;
-        }
-
-        // Handle different size requests
-        if (is_string($size)) {
-            // Named size (thumbnail, medium, large, etc.)
-            if (isset($metadata['sizes'][$size])) {
-                $sizeData = $metadata['sizes'][$size];
-                $attr['width'] = $sizeData['width'] ?? null;
-                $attr['height'] = $sizeData['height'] ?? null;
-            } else {
-                // Full size
-                $attr['width'] = $metadata['width'] ?? null;
-                $attr['height'] = $metadata['height'] ?? null;
-            }
-        } elseif (is_array($size) && count($size) === 2) {
-            // Custom size array [width, height]
-            $attr['width'] = $size[0];
-            $attr['height'] = $size[1];
-        } else {
-            // Fallback to full size
-            $attr['width'] = $metadata['width'] ?? null;
-            $attr['height'] = $metadata['height'] ?? null;
-        }
-
-        // Remove if we couldn't determine dimensions
-        if (empty($attr['width']) || empty($attr['height'])) {
-            unset($attr['width'], $attr['height']);
-        }
-
         return $attr;
     }
-
-    /**
-     * Add dimensions to images in post content
-     */
-    public function addDimensionsToContentImages(string $content): string
+    
+    public function optimizeContentImages($content)
     {
-        if (empty($content) || strpos($content, '<img') === false) {
-            return $content;
+        if ($this->lazy_loading) {
+            $content = preg_replace('/<img([^>]+)src=/', '<img$1loading="lazy" decoding="async" src=', $content);
         }
-
-        // Match img tags without both width and height
-        $content = preg_replace_callback(
-            '/<img([^>]+)>/i',
-            [$this, 'processSingleImage'],
-            $content
-        );
-
+        
+        if ($this->webp_conversion) {
+            $content = $this->convertToWebP($content);
+        }
+        
         return $content;
     }
-
-    /**
-     * Process single image tag
-     */
-    private function processSingleImage(array $matches): string
+    
+    public function addImageOptimizationScripts()
     {
-        $imgTag = $matches[0];
-        $attrs = $matches[1];
-
-        // Check if already has both dimensions
-        $hasWidth = preg_match('/\swidth\s*=\s*["\']?\d+["\']?/i', $attrs);
-        $hasHeight = preg_match('/\sheight\s*=\s*["\']?\d+["\']?/i', $attrs);
-
-        if ($hasWidth && $hasHeight) {
-            return $imgTag;
-        }
-
-        // Try to extract src to get attachment ID
-        if (preg_match('/\ssrc\s*=\s*["\']([^"\']+)["\']/i', $attrs, $srcMatch)) {
-            $src = $srcMatch[1];
-            $attachmentId = $this->getAttachmentIdFromUrl($src);
-
-            if ($attachmentId > 0) {
-                $metadata = wp_get_attachment_metadata($attachmentId);
-                
-                if (is_array($metadata) && isset($metadata['width'], $metadata['height'])) {
-                    $width = $metadata['width'];
-                    $height = $metadata['height'];
-
-                    // Try to match size from URL
-                    if (preg_match('/-(\d+)x(\d+)\.(jpg|jpeg|png|gif|webp)$/i', $src, $sizeMatch)) {
-                        $width = $sizeMatch[1];
-                        $height = $sizeMatch[2];
-                    }
-
-                    // Add missing attributes
-                    if (!$hasWidth) {
-                        $attrs .= sprintf(' width="%d"', $width);
-                    }
-                    if (!$hasHeight) {
-                        $attrs .= sprintf(' height="%d"', $height);
-                    }
-
-                    return '<img' . $attrs . '>';
+        if ($this->lazy_loading) {
+            echo '<script>
+                if ("IntersectionObserver" in window) {
+                    const imageObserver = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const img = entry.target;
+                                img.src = img.dataset.src;
+                                img.classList.remove("lazy");
+                                observer.unobserve(img);
+                            }
+                        });
+                    });
+                    
+                    document.querySelectorAll("img[data-src]").forEach(img => {
+                        imageObserver.observe(img);
+                    });
                 }
-            }
+            </script>';
         }
-
-        return $imgTag;
     }
-
-    /**
-     * Get attachment ID from image URL
-     */
-    private function getAttachmentIdFromUrl(string $url): int
+    
+    private function convertToWebP($content)
     {
-        global $wpdb;
-
-        // Remove size suffix for lookup
-        $url = preg_replace('/-\d+x\d+(?=\.[a-z]{3,4}$)/i', '', $url);
-
-        // Query database
-        $attachmentId = $wpdb->get_var($wpdb->prepare(
-            "SELECT post_id FROM {$wpdb->postmeta} 
-            WHERE meta_key = '_wp_attached_file' 
-            AND meta_value LIKE %s 
-            LIMIT 1",
-            '%' . $wpdb->esc_like(basename($url))
-        ));
-
-        return $attachmentId ? (int) $attachmentId : 0;
-    }
-
-    /**
-     * Add aspect-ratio CSS for better CLS prevention
-     */
-    public function addAspectRatioStyles(): void
-    {
-        ?>
-        <style id="fp-image-aspect-ratio">
-        /* FP Performance Suite - Image Aspect Ratio Support */
-        img[width][height] {
-            height: auto;
-            aspect-ratio: attr(width) / attr(height);
-        }
-        @supports not (aspect-ratio: 1 / 1) {
-            img[width][height] {
-                height: auto;
-            }
-        }
-        </style>
-        <?php
-    }
-
-    /**
-     * Check if image optimization is enabled
-     */
-    public function isEnabled(): bool
-    {
-        $settings = $this->getSettings();
-        return !empty($settings['enabled']);
-    }
-
-    /**
-     * Get all settings
-     */
-    public function getSettings(): array
-    {
-        $defaults = [
-            'enabled' => true,
-            'force_dimensions' => true,
-            'add_aspect_ratio' => true,
-        ];
-
-        $settings = get_option(self::OPTION, []);
-        return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
-    }
-
-    /**
-     * Get specific setting
-     */
-    private function getSetting(string $key, $default = null)
-    {
-        $settings = $this->getSettings();
-        return $settings[$key] ?? $default;
-    }
-
-    /**
-     * Update settings
-     */
-    public function updateSettings(array $settings): bool
-    {
-        $current = $this->getSettings();
-        $updated = array_merge($current, $settings);
-
-        $result = update_option(self::OPTION, $updated);
-
-        if ($result) {
-            Logger::info('Image optimization settings updated', $updated);
-            do_action('fp_ps_image_optimization_updated', $updated);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get status for admin display
-     */
-    public function status(): array
-    {
-        $settings = $this->getSettings();
+        // Check if browser supports WebP
+        $webp_support = $this->checkWebPSupport();
         
+        if ($webp_support) {
+            $content = preg_replace_callback('/<img([^>]+)src="([^"]+\.(jpg|jpeg|png))"([^>]*)>/i', function($matches) {
+                $webp_url = str_replace(['.jpg', '.jpeg', '.png'], '.webp', $matches[2]);
+                
+                if (file_exists(ABSPATH . $webp_url)) {
+                    return '<picture>
+                        <source srcset="' . $webp_url . '" type="image/webp">
+                        <img' . $matches[1] . 'src="' . $matches[2] . '"' . $matches[4] . '>
+                    </picture>';
+                }
+                
+                return $matches[0];
+            }, $content);
+        }
+        
+        return $content;
+    }
+    
+    private function checkWebPSupport()
+    {
+        return isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false;
+    }
+    
+    public function getImageMetrics()
+    {
         return [
-            'enabled' => $this->isEnabled(),
-            'force_dimensions' => !empty($settings['force_dimensions']),
-            'aspect_ratio' => !empty($settings['add_aspect_ratio']),
+            'lazy_loading_enabled' => $this->lazy_loading,
+            'webp_conversion_enabled' => $this->webp_conversion,
+            'webp_support' => $this->checkWebPSupport()
         ];
     }
 }

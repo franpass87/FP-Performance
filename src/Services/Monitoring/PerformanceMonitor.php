@@ -2,384 +2,141 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
-use FP\PerfSuite\Utils\Logger;
-use FP\PerfSuite\Utils\MonitoringRateLimiter;
-
-/**
- * Performance Monitoring Service
- *
- * Tracks and stores performance metrics over time
- *
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
 class PerformanceMonitor
 {
-    private const OPTION = 'fp_ps_perf_monitor';
-    private const MAX_ENTRIES = 1000;
-
-    private static ?self $instance = null;
-    private array $currentPageMetrics = [];
-    private float $pageLoadStart;
-
-    private function __construct()
+    private $core_web_vitals;
+    private $real_user_monitoring;
+    
+    public function __construct($core_web_vitals = true, $real_user_monitoring = true)
     {
-        $this->pageLoadStart = defined('WP_START_TIMESTAMP') ? WP_START_TIMESTAMP : microtime(true);
+        $this->core_web_vitals = $core_web_vitals;
+        $this->real_user_monitoring = $real_user_monitoring;
     }
-
-    /**
-     * Get singleton instance
-     */
-    public static function instance(): self
+    
+    public function init()
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
+        if ($this->core_web_vitals) {
+            add_action('wp_footer', [$this, 'addCoreWebVitalsScript']);
         }
-
-        return self::$instance;
-    }
-
-    /**
-     * Register monitoring hooks
-     */
-    public function register(): void
-    {
-        if ($this->isEnabled()) {
-            add_action('shutdown', [$this, 'recordPageLoad'], PHP_INT_MAX);
-            add_action('wp_footer', [$this, 'injectTimingScript'], PHP_INT_MAX);
-        }
-    }
-
-    /**
-     * Check if monitoring is enabled
-     */
-    public function isEnabled(): bool
-    {
-        $settings = $this->settings();
-        return !empty($settings['enabled']) && !is_admin();
-    }
-
-    /**
-     * Get monitoring settings
-     */
-    public function settings(): array
-    {
-        $defaults = [
-            'enabled' => false,
-            'sample_rate' => 10, // Percentage of requests to monitor
-            'track_queries' => true,
-            'track_memory' => true,
-            'track_timing' => true,
-        ];
-
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
-    }
-
-    /**
-     * Update monitoring settings
-     */
-    public function update(array $settings): void
-    {
-        $current = $this->settings();
-
-        $new = [
-            'enabled' => !empty($settings['enabled']),
-            'sample_rate' => max(1, min(100, (int)($settings['sample_rate'] ?? $current['sample_rate']))),
-            'track_queries' => !empty($settings['track_queries']),
-            'track_memory' => !empty($settings['track_memory']),
-            'track_timing' => !empty($settings['track_timing']),
-        ];
-
-        update_option(self::OPTION, $new);
-        Logger::info('Performance monitoring settings updated', $new);
-    }
-
-    /**
-     * Record page load metrics
-     */
-    public function recordPageLoad(): void
-    {
-        $settings = $this->settings();
-
-        // Sample based on sample_rate
-        if (rand(1, 100) > $settings['sample_rate']) {
-            return;
-        }
-
-        global $wpdb;
-
-        // SICUREZZA BUG #21: Sanitizza REQUEST_URI prima di salvarlo
-        $requestUri = isset($_SERVER['REQUEST_URI']) 
-            ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) 
-            : '/';
         
-        // Limita lunghezza per evitare bloat del database
-        if (strlen($requestUri) > 255) {
-            $requestUri = substr($requestUri, 0, 255);
-        }
-
-        $metrics = [
-            'url' => $requestUri,
-            'timestamp' => time(),
-            'load_time' => round(microtime(true) - $this->pageLoadStart, 4),
-        ];
-
-        if ($settings['track_queries']) {
-            $metrics['db_queries'] = $wpdb->num_queries;
-            $metrics['db_time'] = $wpdb->timer_stop();
-        }
-
-        if ($settings['track_memory']) {
-            $metrics['memory_usage'] = memory_get_usage(true);
-            $metrics['memory_peak'] = memory_get_peak_usage(true);
-        }
-
-        // Add custom metrics tracked during request
-        $metrics = array_merge($metrics, $this->currentPageMetrics);
-
-        $this->storeMetric($metrics);
-
-        Logger::debug('Page load recorded', [
-            'load_time' => round($metrics['load_time'] * 1000, 2) . 'ms',
-            'queries' => $metrics['db_queries'] ?? 0,
-        ]);
-    }
-
-    /**
-     * Store metric in database
-     */
-    private function storeMetric(array $metrics): void
-    {
-        // Use rate limiting to prevent database overload
-        $result = MonitoringRateLimiter::executeWithLimit('performance_metrics', function() use ($metrics) {
-            $stored = get_option(self::OPTION . '_data', []);
-
-            if (!is_array($stored)) {
-                $stored = [];
-            }
-
-            // Add new metric
-            $stored[] = $metrics;
-
-            // Keep only last MAX_ENTRIES
-            if (count($stored) > self::MAX_ENTRIES) {
-                $stored = array_slice($stored, -self::MAX_ENTRIES);
-            }
-
-            update_option(self::OPTION . '_data', $stored, false);
-            return true;
-        });
-        
-        if (!$result) {
-            Logger::debug('Performance metric storage rate limited');
+        if ($this->real_user_monitoring) {
+            add_action('wp_footer', [$this, 'addRealUserMonitoringScript']);
         }
     }
-
-    /**
-     * Track custom metric for current page
-     */
-    public function track(string $key, $value): void
+    
+    public function addCoreWebVitalsScript()
     {
-        $this->currentPageMetrics[$key] = $value;
-    }
-
-    /**
-     * Start timing an operation
-     */
-    public function startTimer(string $name): void
-    {
-        $this->currentPageMetrics["timer_{$name}_start"] = microtime(true);
-    }
-
-    /**
-     * Stop timing an operation
-     */
-    public function stopTimer(string $name): float
-    {
-        $startKey = "timer_{$name}_start";
-
-        if (!isset($this->currentPageMetrics[$startKey])) {
-            return 0.0;
-        }
-
-        $duration = microtime(true) - $this->currentPageMetrics[$startKey];
-        $this->currentPageMetrics["timer_{$name}"] = $duration;
-        unset($this->currentPageMetrics[$startKey]);
-
-        return $duration;
-    }
-
-    /**
-     * Get performance statistics
-     */
-    public function getStats(int $days = 7): array
-    {
-        $data = get_option(self::OPTION . '_data', []);
-
-        if (empty($data)) {
-            return [
-                'avg_load_time' => 0,
-                'avg_queries' => 0,
-                'avg_memory' => 0,
-                'samples' => 0,
-            ];
-        }
-
-        // Filter by date range
-        $cutoff = time() - ($days * DAY_IN_SECONDS);
-        $filtered = array_filter($data, function ($metric) use ($cutoff) {
-            return isset($metric['timestamp']) && $metric['timestamp'] >= $cutoff;
-        });
-
-        if (empty($filtered)) {
-            return [
-                'avg_load_time' => 0,
-                'avg_queries' => 0,
-                'avg_memory' => 0,
-                'samples' => 0,
-            ];
-        }
-
-        $samples = count($filtered);
-
-        // Prevent division by zero
-        if ($samples === 0) {
-            return [
-                'avg_load_time' => 0,
-                'avg_queries' => 0,
-                'avg_memory' => 0,
-                'samples' => 0,
-                'period_days' => $days,
-            ];
-        }
-
-        $totalLoadTime = array_sum(array_column($filtered, 'load_time'));
-        $totalQueries = array_sum(array_filter(array_column($filtered, 'db_queries')));
-        $totalMemory = array_sum(array_filter(array_column($filtered, 'memory_peak')));
-
-        return [
-            'avg_load_time' => round($totalLoadTime / $samples, 3),
-            'avg_queries' => round($totalQueries / $samples, 1),
-            'avg_memory' => round($totalMemory / $samples / 1024 / 1024, 2),
-            'samples' => $samples,
-            'period_days' => $days,
-        ];
-    }
-
-    /**
-     * Get recent metrics
-     */
-    public function getRecent(int $limit = 50): array
-    {
-        $data = get_option(self::OPTION . '_data', []);
-
-        if (empty($data) || !is_array($data)) {
-            return [];
-        }
-
-        return array_slice($data, -$limit);
-    }
-
-    /**
-     * Clear all stored metrics
-     */
-    public function clearMetrics(): bool
-    {
-        delete_option(self::OPTION . '_data');
-        Logger::info('Performance metrics cleared');
-        return true;
-    }
-
-    /**
-     * Inject client-side timing script
-     */
-    public function injectTimingScript(): void
-    {
-        if (!$this->settings()['track_timing']) {
-            return;
-        }
-
-        ?>
-        <script>
-        (function() {
-            if (!window.performance || !window.performance.timing) return;
-            
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    var t = window.performance.timing;
-                    var metrics = {
-                        dns: t.domainLookupEnd - t.domainLookupStart,
-                        tcp: t.connectEnd - t.connectStart,
-                        ttfb: t.responseStart - t.requestStart,
-                        download: t.responseEnd - t.responseStart,
-                        dom: t.domContentLoadedEventEnd - t.domContentLoadedEventStart,
-                        load: t.loadEventEnd - t.loadEventStart,
-                        total: t.loadEventEnd - t.navigationStart
-                    };
+        echo '<script>
+            // Core Web Vitals Monitoring
+            if ("performance" in window) {
+                const vitals = {};
+                
+                // LCP (Largest Contentful Paint)
+                if ("PerformanceObserver" in window) {
+                    const lcpObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        const lastEntry = entries[entries.length - 1];
+                        vitals.lcp = lastEntry.startTime;
+                    });
+                    lcpObserver.observe({ entryTypes: ["largest-contentful-paint"] });
+                }
+                
+                // FID (First Input Delay)
+                if ("PerformanceObserver" in window) {
+                    const fidObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        entries.forEach(entry => {
+                            vitals.fid = entry.processingStart - entry.startTime;
+                        });
+                    });
+                    fidObserver.observe({ entryTypes: ["first-input"] });
+                }
+                
+                // CLS (Cumulative Layout Shift)
+                if ("PerformanceObserver" in window) {
+                    let clsValue = 0;
+                    const clsObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        entries.forEach(entry => {
+                            if (!entry.hadRecentInput) {
+                                clsValue += entry.value;
+                            }
+                        });
+                        vitals.cls = clsValue;
+                    });
+                    clsObserver.observe({ entryTypes: ["layout-shift"] });
+                }
+                
+                // Report vitals
+                setTimeout(() => {
+                    console.log("Core Web Vitals:", vitals);
                     
-                    // Send to server via REST API or beacon
-                    if (navigator.sendBeacon && window.fpPerfSuite) {
-                        var data = new FormData();
-                        data.append('metrics', JSON.stringify(metrics));
-                        navigator.sendBeacon(window.fpPerfSuite.restUrl + 'metrics/timing', data);
+                    // Send to server
+                    if (Object.keys(vitals).length > 0) {
+                        fetch("' . admin_url('admin-ajax.php') . '", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded",
+                            },
+                            body: "action=fp_save_vitals&vitals=" + encodeURIComponent(JSON.stringify(vitals))
+                        });
                     }
-                }, 0);
-            });
-        })();
-        </script>
-        <?php
+                }, 5000);
+            }
+        </script>';
     }
-
-    /**
-     * Get performance trends
-     */
-    public function getTrends(int $days = 30): array
+    
+    public function addRealUserMonitoringScript()
     {
-        $data = get_option(self::OPTION . '_data', []);
-
-        if (empty($data)) {
-            return [];
-        }
-
-        $cutoff = time() - ($days * DAY_IN_SECONDS);
-        $filtered = array_filter($data, function ($metric) use ($cutoff) {
-            return isset($metric['timestamp']) && $metric['timestamp'] >= $cutoff;
-        });
-
-        // Group by day
-        $byDay = [];
-        foreach ($filtered as $metric) {
-            $day = date('Y-m-d', $metric['timestamp']);
-
-            if (!isset($byDay[$day])) {
-                $byDay[$day] = [
-                    'load_times' => [],
-                    'queries' => [],
-                    'memory' => [],
-                ];
+        echo '<script>
+            // Real User Monitoring
+            if ("performance" in window) {
+                const rum = {
+                    pageLoad: performance.timing.loadEventEnd - performance.timing.navigationStart,
+                    domContentLoaded: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
+                    firstPaint: 0,
+                    firstContentfulPaint: 0
+                };
+                
+                // First Paint
+                if ("PerformanceObserver" in window) {
+                    const paintObserver = new PerformanceObserver((list) => {
+                        const entries = list.getEntries();
+                        entries.forEach(entry => {
+                            if (entry.name === "first-paint") {
+                                rum.firstPaint = entry.startTime;
+                            } else if (entry.name === "first-contentful-paint") {
+                                rum.firstContentfulPaint = entry.startTime;
+                            }
+                        });
+                    });
+                    paintObserver.observe({ entryTypes: ["paint"] });
+                }
+                
+                // Report RUM data
+                setTimeout(() => {
+                    console.log("Real User Monitoring:", rum);
+                    
+                    // Send to server
+                    fetch("' . admin_url('admin-ajax.php') . '", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: "action=fp_save_rum&rum=" + encodeURIComponent(JSON.stringify(rum))
+                    });
+                }, 5000);
             }
-
-            $byDay[$day]['load_times'][] = $metric['load_time'];
-            if (isset($metric['db_queries'])) {
-                $byDay[$day]['queries'][] = $metric['db_queries'];
-            }
-            if (isset($metric['memory_peak'])) {
-                $byDay[$day]['memory'][] = $metric['memory_peak'];
-            }
-        }
-
-        // Calculate daily averages
-        $trends = [];
-        foreach ($byDay as $day => $metrics) {
-            $trends[$day] = [
-                'date' => $day,
-                'avg_load_time' => count($metrics['load_times']) > 0 ? round(array_sum($metrics['load_times']) / count($metrics['load_times']), 3) : 0,
-                'avg_queries' => count($metrics['queries']) > 0 ? round(array_sum($metrics['queries']) / count($metrics['queries']), 1) : 0,
-                'avg_memory' => count($metrics['memory']) > 0 ? round(array_sum($metrics['memory']) / count($metrics['memory']) / 1024 / 1024, 2) : 0,
-                'samples' => count($metrics['load_times']),
-            ];
-        }
-
-        return array_values($trends);
+        </script>';
+    }
+    
+    public function getPerformanceMetrics()
+    {
+        return [
+            'core_web_vitals' => $this->core_web_vitals,
+            'real_user_monitoring' => $this->real_user_monitoring,
+            'memory_usage' => memory_get_usage(true),
+            'peak_memory' => memory_get_peak_usage(true)
+        ];
     }
 }

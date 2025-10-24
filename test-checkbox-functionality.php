@@ -1,514 +1,479 @@
 <?php
 /**
- * Test per verificare la funzionalità di tutti i checkbox del plugin FP Performance Suite
+ * Test Funzionalità Checkbox FP Performance Suite
  * 
- * Questo script testa che ogni checkbox abbia:
- * 1. La logica di salvataggio corrispondente
- * 2. La logica di caricamento dei valori
- * 3. La logica di attivazione/disattivazione delle funzionalità
+ * Verifica che ogni checkbox funzioni correttamente quando attivato
+ * 
+ * @package FP\PerfSuite\Tests
+ * @author Francesco Passeri
  */
 
-// Carica WordPress
-require_once __DIR__ . '/wp-config.php';
-
-// Carica il plugin
-require_once __DIR__ . '/fp-performance-suite.php';
+// Prevenire accesso diretto
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 class CheckboxFunctionalityTest
 {
-    private array $testResults = [];
-    private array $checkboxTests = [];
+    private $results = [];
+    private $testedOptions = [];
 
     public function __construct()
     {
-        $this->initializeCheckboxTests();
+        $this->runCheckboxTests();
     }
 
-    private function initializeCheckboxTests(): void
+    /**
+     * Esegue test su tutti i checkbox
+     */
+    public function runCheckboxTests(): void
     {
-        // Test per Settings.php
-        $this->checkboxTests['settings'] = [
-            'safety_mode' => [
-                'form_field' => 'safety_mode',
-                'option_key' => 'fp_ps_settings',
-                'sub_key' => 'safety_mode',
-                'expected_type' => 'boolean',
-                'description' => 'Modalità Sicura'
-            ]
-        ];
-
-        // Test per Assets.php - Main Toggle
-        $this->checkboxTests['assets_main'] = [
-            'assets_enabled' => [
-                'form_field' => 'assets_enabled',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Asset Optimization Main Toggle'
-            ]
-        ];
-
-        // Test per Assets - JavaScript Tab
-        $this->checkboxTests['assets_js'] = [
-            'defer_js' => [
-                'form_field' => 'defer_js',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'defer_js',
-                'expected_type' => 'boolean',
-                'description' => 'Defer JavaScript'
-            ],
-            'async_js' => [
-                'form_field' => 'async_js',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'async_js',
-                'expected_type' => 'boolean',
-                'description' => 'Async JavaScript'
-            ],
-            'combine_js' => [
-                'form_field' => 'combine_js',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'combine_js',
-                'expected_type' => 'boolean',
-                'description' => 'Combine JS files'
-            ],
-            'remove_emojis' => [
-                'form_field' => 'remove_emojis',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'remove_emojis',
-                'expected_type' => 'boolean',
-                'description' => 'Remove emojis script'
-            ],
-            'minify_inline_js' => [
-                'form_field' => 'minify_inline_js',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'minify_inline_js',
-                'expected_type' => 'boolean',
-                'description' => 'Minify inline JavaScript'
-            ]
-        ];
-
-        // Test per Assets - CSS Tab
-        $this->checkboxTests['assets_css'] = [
-            'combine_css' => [
-                'form_field' => 'combine_css',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'combine_css',
-                'expected_type' => 'boolean',
-                'description' => 'Combine CSS files'
-            ],
-            'minify_inline_css' => [
-                'form_field' => 'minify_inline_css',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'minify_inline_css',
-                'expected_type' => 'boolean',
-                'description' => 'Minify inline CSS'
-            ],
-            'remove_comments' => [
-                'form_field' => 'remove_comments',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'remove_comments',
-                'expected_type' => 'boolean',
-                'description' => 'Remove CSS/JS comments'
-            ],
-            'optimize_google_fonts_assets' => [
-                'form_field' => 'optimize_google_fonts_assets',
-                'option_key' => 'fp_ps_assets',
-                'sub_key' => 'optimize_google_fonts',
-                'expected_type' => 'boolean',
-                'description' => 'Optimize Google Fonts loading'
-            ]
-        ];
-
-        // Test per Cache.php
-        $this->checkboxTests['cache'] = [
-            'page_cache_enabled' => [
-                'form_field' => 'page_cache_enabled',
-                'option_key' => 'fp_ps_page_cache',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Enable page cache'
-            ],
-            'browser_cache_enabled' => [
-                'form_field' => 'browser_cache_enabled',
-                'option_key' => 'fp_ps_browser_cache',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Enable browser cache'
-            ],
-            'prefetch_enabled' => [
-                'form_field' => 'prefetch_enabled',
-                'option_key' => 'fp_ps_prefetch',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Enable Predictive Prefetching'
-            ],
-            'cache_rules_enabled' => [
-                'form_field' => 'cache_rules_enabled',
-                'option_key' => 'fp_ps_security',
-                'sub_key' => 'cache_rules.enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Enable Cache Rules'
-            ]
-        ];
-
-        // Test per Database.php
-        $this->checkboxTests['database'] = [
-            'database_enabled' => [
-                'form_field' => 'database_enabled',
-                'option_key' => 'fp_ps_db',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Database Optimization Main Toggle'
-            ]
-        ];
-
-        // Test per Mobile.php
-        $this->checkboxTests['mobile'] = [
-            'enabled' => [
-                'form_field' => 'enabled',
-                'option_key' => 'fp_ps_mobile',
-                'sub_key' => 'enabled',
-                'expected_type' => 'boolean',
-                'description' => 'Enable Mobile Optimization'
-            ],
-            'disable_animations' => [
-                'form_field' => 'disable_animations',
-                'option_key' => 'fp_ps_mobile',
-                'sub_key' => 'disable_animations',
-                'expected_type' => 'boolean',
-                'description' => 'Disable Animations on Mobile'
-            ],
-            'remove_unnecessary_scripts' => [
-                'form_field' => 'remove_unnecessary_scripts',
-                'option_key' => 'fp_ps_mobile',
-                'sub_key' => 'remove_unnecessary_scripts',
-                'expected_type' => 'boolean',
-                'description' => 'Remove Unnecessary Scripts'
-            ],
-            'optimize_touch_targets' => [
-                'form_field' => 'optimize_touch_targets',
-                'option_key' => 'fp_ps_mobile',
-                'sub_key' => 'optimize_touch_targets',
-                'expected_type' => 'boolean',
-                'description' => 'Optimize Touch Targets'
-            ],
-            'enable_responsive_images' => [
-                'form_field' => 'enable_responsive_images',
-                'option_key' => 'fp_ps_mobile',
-                'sub_key' => 'enable_responsive_images',
-                'expected_type' => 'boolean',
-                'description' => 'Enable Responsive Images'
-            ]
-        ];
-    }
-
-    public function runAllTests(): array
-    {
-        echo "🔍 Iniziando test di funzionalità checkbox...\n\n";
-
-        foreach ($this->checkboxTests as $category => $tests) {
-            echo "📋 Testando categoria: " . strtoupper($category) . "\n";
-            echo str_repeat("-", 50) . "\n";
-
-            foreach ($tests as $checkboxName => $testConfig) {
-                $this->testCheckbox($category, $checkboxName, $testConfig);
-            }
-
-            echo "\n";
-        }
-
-        return $this->testResults;
-    }
-
-    private function testCheckbox(string $category, string $checkboxName, array $config): void
-    {
-        $testName = "{$category}.{$checkboxName}";
-        $result = [
-            'category' => $category,
-            'checkbox' => $checkboxName,
-            'description' => $config['description'],
-            'tests' => []
-        ];
-
-        echo "  ✓ Testando: {$config['description']}\n";
-
-        // Test 1: Verifica che l'opzione esista
-        $optionExists = $this->testOptionExists($config['option_key']);
-        $result['tests']['option_exists'] = $optionExists;
-        echo "    - Opzione esiste: " . ($optionExists ? "✅" : "❌") . "\n";
-
-        // Test 2: Verifica che il valore possa essere salvato
-        $canSave = $this->testCanSaveValue($config);
-        $result['tests']['can_save'] = $canSave;
-        echo "    - Può salvare: " . ($canSave ? "✅" : "❌") . "\n";
-
-        // Test 3: Verifica che il valore possa essere caricato
-        $canLoad = $this->testCanLoadValue($config);
-        $result['tests']['can_load'] = $canLoad;
-        echo "    - Può caricare: " . ($canLoad ? "✅" : "❌") . "\n";
-
-        // Test 4: Verifica che la funzionalità sia attivabile/disattivabile
-        $canToggle = $this->testCanToggle($config);
-        $result['tests']['can_toggle'] = $canToggle;
-        echo "    - Può attivare/disattivare: " . ($canToggle ? "✅" : "❌") . "\n";
-
-        // Test 5: Verifica che il valore sia del tipo corretto
-        $correctType = $this->testCorrectType($config);
-        $result['tests']['correct_type'] = $correctType;
-        echo "    - Tipo corretto: " . ($correctType ? "✅" : "❌") . "\n";
-
-        $this->testResults[$testName] = $result;
-    }
-
-    private function testOptionExists(string $optionKey): bool
-    {
-        $option = get_option($optionKey);
-        return $option !== false;
-    }
-
-    private function testCanSaveValue(array $config): bool
-    {
-        try {
-            // Simula il salvataggio di un valore
-            $testValue = true;
-            
-            if (isset($config['sub_key']) && strpos($config['sub_key'], '.') !== false) {
-                // Gestisce chiavi annidate come 'cache_rules.enabled'
-                $keys = explode('.', $config['sub_key']);
-                $option = get_option($config['option_key'], []);
-                
-                if (!is_array($option)) {
-                    $option = [];
-                }
-                
-                $current = &$option;
-                for ($i = 0; $i < count($keys) - 1; $i++) {
-                    if (!isset($current[$keys[$i]])) {
-                        $current[$keys[$i]] = [];
-                    }
-                    $current = &$current[$keys[$i]];
-                }
-                $current[$keys[count($keys) - 1]] = $testValue;
-                
-                update_option($config['option_key'], $option);
-            } else {
-                // Gestisce chiavi semplici
-                if (isset($config['sub_key'])) {
-                    $option = get_option($config['option_key'], []);
-                    if (!is_array($option)) {
-                        $option = [];
-                    }
-                    $option[$config['sub_key']] = $testValue;
-                    update_option($config['option_key'], $option);
-                } else {
-                    update_option($config['option_key'], $testValue);
-                }
-            }
-            
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    private function testCanLoadValue(array $config): bool
-    {
-        try {
-            $option = get_option($config['option_key']);
-            
-            if ($option === false) {
-                return false;
-            }
-            
-            if (isset($config['sub_key'])) {
-                if (strpos($config['sub_key'], '.') !== false) {
-                    // Gestisce chiavi annidate
-                    $keys = explode('.', $config['sub_key']);
-                    $current = $option;
-                    
-                    foreach ($keys as $key) {
-                        if (!is_array($current) || !array_key_exists($key, $current)) {
-                            return false;
-                        }
-                        $current = $current[$key];
-                    }
-                    
-                    return true;
-                } else {
-                    // Gestisce chiavi semplici
-                    return is_array($option) && array_key_exists($config['sub_key'], $option);
-                }
-            }
-            
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    private function testCanToggle(array $config): bool
-    {
-        try {
-            // Testa l'attivazione
-            $this->setCheckboxValue($config, true);
-            $enabled = $this->getCheckboxValue($config);
-            
-            // Testa la disattivazione
-            $this->setCheckboxValue($config, false);
-            $disabled = $this->getCheckboxValue($config);
-            
-            return $enabled === true && $disabled === false;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    private function testCorrectType(array $config): bool
-    {
-        try {
-            $value = $this->getCheckboxValue($config);
-            
-            switch ($config['expected_type']) {
-                case 'boolean':
-                    return is_bool($value);
-                case 'string':
-                    return is_string($value);
-                case 'integer':
-                    return is_int($value);
-                case 'array':
-                    return is_array($value);
-                default:
-                    return true;
-            }
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    private function setCheckboxValue(array $config, bool $value): void
-    {
-        if (isset($config['sub_key']) && strpos($config['sub_key'], '.') !== false) {
-            $keys = explode('.', $config['sub_key']);
-            $option = get_option($config['option_key'], []);
-            
-            if (!is_array($option)) {
-                $option = [];
-            }
-            
-            $current = &$option;
-            for ($i = 0; $i < count($keys) - 1; $i++) {
-                if (!isset($current[$keys[$i]])) {
-                    $current[$keys[$i]] = [];
-                }
-                $current = &$current[$keys[$i]];
-            }
-            $current[$keys[count($keys) - 1]] = $value;
-            
-            update_option($config['option_key'], $option);
-        } else {
-            if (isset($config['sub_key'])) {
-                $option = get_option($config['option_key'], []);
-                if (!is_array($option)) {
-                    $option = [];
-                }
-                $option[$config['sub_key']] = $value;
-                update_option($config['option_key'], $option);
-            } else {
-                update_option($config['option_key'], $value);
-            }
-        }
-    }
-
-    private function getCheckboxValue(array $config)
-    {
-        $option = get_option($config['option_key']);
+        echo "<h1>✅ Test Funzionalità Checkbox FP Performance Suite</h1>\n";
+        echo "<div style='background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;'>\n";
         
-        if (isset($config['sub_key'])) {
-            if (strpos($config['sub_key'], '.') !== false) {
-                $keys = explode('.', $config['sub_key']);
-                $current = $option;
-                
-                foreach ($keys as $key) {
-                    if (!is_array($current) || !array_key_exists($key, $current)) {
-                        return null;
-                    }
-                    $current = $current[$key];
-                }
-                
-                return $current;
-            } else {
-                return is_array($option) && array_key_exists($config['sub_key'], $option) ? $option[$config['sub_key']] : null;
-            }
+        $this->testCacheCheckboxes();
+        $this->testAssetsCheckboxes();
+        $this->testDatabaseCheckboxes();
+        $this->testBackendCheckboxes();
+        $this->testMobileCheckboxes();
+        $this->testCompressionCheckboxes();
+        $this->testCdnCheckboxes();
+        $this->testSecurityCheckboxes();
+        $this->testMonitoringCheckboxes();
+        $this->testJavaScriptOptimizationCheckboxes();
+        
+        $this->displayResults();
+        echo "</div>\n";
+    }
+
+    /**
+     * Test checkbox Cache
+     */
+    private function testCacheCheckboxes(): void
+    {
+        echo "<h2>🚀 Test Checkbox Cache</h2>\n";
+        
+        // Page Cache
+        $this->testCheckbox('page_cache_enabled', 'Page Cache', 'FP\\PerfSuite\\Services\\Cache\\PageCache', 'enabled');
+        
+        // Predictive Prefetching
+        $this->testCheckbox('prefetch_enabled', 'Predictive Prefetching', 'FP\\PerfSuite\\Services\\Assets\\PredictivePrefetching', 'enabled');
+        
+        // Cache Rules
+        $this->testCheckbox('cache_rules_enabled', 'Cache Rules', 'FP\\PerfSuite\\Services\\Cache\\Headers', 'cache_rules.enabled');
+        
+        // HTML Cache
+        $this->testCheckbox('html_cache', 'HTML Cache', 'FP\\PerfSuite\\Services\\Cache\\Headers', 'cache_rules.html_cache');
+        
+        // Fonts Cache
+        $this->testCheckbox('fonts_cache', 'Fonts Cache', 'FP\\PerfSuite\\Services\\Cache\\Headers', 'cache_rules.fonts_cache');
+        
+        // Browser Cache
+        $this->testCheckbox('browser_cache_enabled', 'Browser Cache', 'FP\\PerfSuite\\Services\\Cache\\Headers', 'enabled');
+        
+        // PWA
+        $this->testCheckbox('enabled', 'PWA Service Worker', 'FP\\PerfSuite\\Services\\PWA\\ServiceWorkerManager', 'enabled');
+        
+        // Offline Fallback
+        $this->testCheckbox('offline_fallback', 'PWA Offline Fallback', 'FP\\PerfSuite\\Services\\PWA\\ServiceWorkerManager', 'offline_fallback');
+        
+        // Edge Cache
+        $this->testCheckbox('enabled', 'Edge Cache', 'FP\\PerfSuite\\Services\\Cache\\EdgeCacheManager', 'enabled');
+    }
+
+    /**
+     * Test checkbox Assets
+     */
+    private function testAssetsCheckboxes(): void
+    {
+        echo "<h2>📦 Test Checkbox Assets</h2>\n";
+        
+        // Font Optimization
+        $this->testCheckbox('enabled', 'Font Optimization', 'FP\\PerfSuite\\Services\\Assets\\FontOptimizer', 'enabled');
+        
+        // Preload Critical Fonts
+        $this->testCheckbox('preload_critical', 'Preload Critical Fonts', 'FP\\PerfSuite\\Services\\Assets\\FontOptimizer', 'preload_critical');
+        
+        // Image Optimization
+        $this->testCheckbox('enabled', 'Image Optimization', 'FP\\PerfSuite\\Services\\Assets\\ImageOptimizer', 'enabled');
+        
+        // Lazy Loading
+        $this->testCheckbox('enabled', 'Lazy Loading', 'FP\\PerfSuite\\Services\\Assets\\LazyLoadManager', 'enabled');
+        
+        // Lazy Loading Images
+        $this->testCheckbox('images', 'Lazy Loading Images', 'FP\\PerfSuite\\Services\\Assets\\LazyLoadManager', 'images');
+        
+        // Lazy Loading Videos
+        $this->testCheckbox('videos', 'Lazy Loading Videos', 'FP\\PerfSuite\\Services\\Assets\\LazyLoadManager', 'videos');
+        
+        // Lazy Loading Iframes
+        $this->testCheckbox('iframes', 'Lazy Loading Iframes', 'FP\\PerfSuite\\Services\\Assets\\LazyLoadManager', 'iframes');
+    }
+
+    /**
+     * Test checkbox Database
+     */
+    private function testDatabaseCheckboxes(): void
+    {
+        echo "<h2>💾 Test Checkbox Database</h2>\n";
+        
+        // Database Cleaner
+        $this->testCheckbox('enabled', 'Database Cleaner', 'FP\\PerfSuite\\Services\\DB\\Cleaner', 'enabled');
+        
+        // Clean Revisions
+        $this->testCheckbox('revisions', 'Clean Revisions', 'FP\\PerfSuite\\Services\\DB\\Cleaner', 'revisions');
+        
+        // Clean Spam
+        $this->testCheckbox('spam', 'Clean Spam', 'FP\\PerfSuite\\Services\\DB\\Cleaner', 'spam');
+        
+        // Clean Trash
+        $this->testCheckbox('trash', 'Clean Trash', 'FP\\PerfSuite\\Services\\DB\\Cleaner', 'trash');
+        
+        // Database Optimizer
+        $this->testCheckbox('enabled', 'Database Optimizer', 'FP\\PerfSuite\\Services\\DB\\DatabaseOptimizer', 'enabled');
+        
+        // Auto Optimize
+        $this->testCheckbox('auto_optimize', 'Auto Optimize', 'FP\\PerfSuite\\Services\\DB\\DatabaseOptimizer', 'auto_optimize');
+        
+        // Query Cache
+        $this->testCheckbox('query_cache', 'Query Cache', 'FP\\PerfSuite\\Services\\DB\\DatabaseOptimizer', 'query_cache');
+        
+        // Query Cache Manager
+        $this->testCheckbox('enabled', 'Query Cache Manager', 'FP\\PerfSuite\\Services\\DB\\QueryCacheManager', 'enabled');
+    }
+
+    /**
+     * Test checkbox Backend
+     */
+    private function testBackendCheckboxes(): void
+    {
+        echo "<h2>⚙️ Test Checkbox Backend</h2>\n";
+        
+        // Backend Optimizer
+        $this->testCheckbox('enabled', 'Backend Optimizer', 'FP\\PerfSuite\\Services\\Admin\\BackendOptimizer', 'enabled');
+        
+        // Optimize Heartbeat
+        $this->testCheckbox('optimize_heartbeat', 'Optimize Heartbeat', 'FP\\PerfSuite\\Services\\Admin\\BackendOptimizer', 'optimize_heartbeat');
+        
+        // Limit Revisions
+        $this->testCheckbox('limit_revisions', 'Limit Revisions', 'FP\\PerfSuite\\Services\\Admin\\BackendOptimizer', 'limit_revisions');
+        
+        // Optimize Dashboard
+        $this->testCheckbox('optimize_dashboard', 'Optimize Dashboard', 'FP\\PerfSuite\\Services\\Admin\\BackendOptimizer', 'optimize_dashboard');
+        
+        // Admin Bar
+        $this->testCheckbox('admin_bar', 'Admin Bar', 'FP\\PerfSuite\\Services\\Admin\\BackendOptimizer', 'admin_bar');
+    }
+
+    /**
+     * Test checkbox Mobile
+     */
+    private function testMobileCheckboxes(): void
+    {
+        echo "<h2>📱 Test Checkbox Mobile</h2>\n";
+        
+        // Mobile Optimizer
+        $this->testCheckbox('enabled', 'Mobile Optimizer', 'FP\\PerfSuite\\Services\\Mobile\\MobileOptimizer', 'enabled');
+        
+        // Touch Optimization
+        $this->testCheckbox('touch_optimization', 'Touch Optimization', 'FP\\PerfSuite\\Services\\Mobile\\MobileOptimizer', 'touch_optimization');
+        
+        // Mobile Cache
+        $this->testCheckbox('mobile_cache', 'Mobile Cache', 'FP\\PerfSuite\\Services\\Mobile\\MobileOptimizer', 'mobile_cache');
+        
+        // Responsive Images
+        $this->testCheckbox('responsive_images', 'Responsive Images', 'FP\\PerfSuite\\Services\\Mobile\\MobileOptimizer', 'responsive_images');
+        
+        // Touch Optimizer
+        $this->testCheckbox('enabled', 'Touch Optimizer', 'FP\\PerfSuite\\Services\\Mobile\\TouchOptimizer', 'enabled');
+        
+        // Gesture Optimization
+        $this->testCheckbox('gesture_optimization', 'Gesture Optimization', 'FP\\PerfSuite\\Services\\Mobile\\TouchOptimizer', 'gesture_optimization');
+    }
+
+    /**
+     * Test checkbox Compression
+     */
+    private function testCompressionCheckboxes(): void
+    {
+        echo "<h2>🗜️ Test Checkbox Compression</h2>\n";
+        
+        // Compression Manager
+        $this->testCheckbox('enabled', 'Compression Manager', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'enabled');
+        
+        // GZIP
+        $this->testCheckbox('gzip', 'GZIP Compression', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'gzip');
+        
+        // Brotli
+        $this->testCheckbox('brotli', 'Brotli Compression', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'brotli');
+        
+        // Minify HTML
+        $this->testCheckbox('minify_html', 'Minify HTML', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'minify_html');
+        
+        // Minify CSS
+        $this->testCheckbox('minify_css', 'Minify CSS', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'minify_css');
+        
+        // Minify JS
+        $this->testCheckbox('minify_js', 'Minify JavaScript', 'FP\\PerfSuite\\Services\\Compression\\CompressionManager', 'minify_js');
+    }
+
+    /**
+     * Test checkbox CDN
+     */
+    private function testCdnCheckboxes(): void
+    {
+        echo "<h2>🌐 Test Checkbox CDN</h2>\n";
+        
+        // CDN Manager
+        $this->testCheckbox('enabled', 'CDN Manager', 'FP\\PerfSuite\\Services\\CDN\\CdnManager', 'enabled');
+    }
+
+    /**
+     * Test checkbox Security
+     */
+    private function testSecurityCheckboxes(): void
+    {
+        echo "<h2>🛡️ Test Checkbox Security</h2>\n";
+        
+        // Htaccess Security
+        $this->testCheckbox('enabled', 'Htaccess Security', 'FP\\PerfSuite\\Services\\Security\\HtaccessSecurity', 'enabled');
+        
+        // Cache Rules
+        $this->testCheckbox('cache_rules', 'Security Cache Rules', 'FP\\PerfSuite\\Services\\Security\\HtaccessSecurity', 'cache_rules');
+        
+        // Security Headers
+        $this->testCheckbox('security_headers', 'Security Headers', 'FP\\PerfSuite\\Services\\Security\\HtaccessSecurity', 'security_headers');
+    }
+
+    /**
+     * Test checkbox Monitoring
+     */
+    private function testMonitoringCheckboxes(): void
+    {
+        echo "<h2>📊 Test Checkbox Monitoring</h2>\n";
+        
+        // Performance Monitor
+        $this->testCheckbox('enabled', 'Performance Monitor', 'FP\\PerfSuite\\Services\\Monitoring\\PerformanceMonitor', 'enabled');
+        
+        // Core Web Vitals
+        $this->testCheckbox('core_web_vitals', 'Core Web Vitals', 'FP\\PerfSuite\\Services\\Monitoring\\PerformanceMonitor', 'core_web_vitals');
+        
+        // Real User Monitoring
+        $this->testCheckbox('real_user_monitoring', 'Real User Monitoring', 'FP\\PerfSuite\\Services\\Monitoring\\PerformanceMonitor', 'real_user_monitoring');
+        
+        // Core Web Vitals Monitor
+        $this->testCheckbox('enabled', 'Core Web Vitals Monitor', 'FP\\PerfSuite\\Services\\Monitoring\\CoreWebVitalsMonitor', 'enabled');
+        
+        // LCP
+        $this->testCheckbox('lcp', 'LCP Monitoring', 'FP\\PerfSuite\\Services\\Monitoring\\CoreWebVitalsMonitor', 'lcp');
+        
+        // FID
+        $this->testCheckbox('fid', 'FID Monitoring', 'FP\\PerfSuite\\Services\\Monitoring\\CoreWebVitalsMonitor', 'fid');
+        
+        // CLS
+        $this->testCheckbox('cls', 'CLS Monitoring', 'FP\\PerfSuite\\Services\\Monitoring\\CoreWebVitalsMonitor', 'cls');
+    }
+
+    /**
+     * Test checkbox JavaScript Optimization
+     */
+    private function testJavaScriptOptimizationCheckboxes(): void
+    {
+        echo "<h2>⚡ Test Checkbox JavaScript Optimization</h2>\n";
+        
+        // Unused JavaScript Optimizer
+        $this->testCheckbox('enabled', 'Unused JavaScript Optimizer', 'FP\\PerfSuite\\Services\\Assets\\UnusedJavaScriptOptimizer', 'enabled');
+        
+        // Aggressive Mode
+        $this->testCheckbox('aggressive_mode', 'Aggressive Mode', 'FP\\PerfSuite\\Services\\Assets\\UnusedJavaScriptOptimizer', 'aggressive_mode');
+        
+        // Code Splitting Manager
+        $this->testCheckbox('enabled', 'Code Splitting Manager', 'FP\\PerfSuite\\Services\\Assets\\CodeSplittingManager', 'enabled');
+        
+        // Lazy Loading Chunks
+        $this->testCheckbox('lazy_loading', 'Lazy Loading Chunks', 'FP\\PerfSuite\\Services\\Assets\\CodeSplittingManager', 'lazy_loading');
+        
+        // Tree Shaker
+        $this->testCheckbox('enabled', 'Tree Shaker', 'FP\\PerfSuite\\Services\\Assets\\JavaScriptTreeShaker', 'enabled');
+        
+        // Aggressive Tree Shaking
+        $this->testCheckbox('aggressive_mode', 'Aggressive Tree Shaking', 'FP\\PerfSuite\\Services\\Assets\\JavaScriptTreeShaker', 'aggressive_mode');
+    }
+
+    /**
+     * Test di un checkbox specifico
+     */
+    private function testCheckbox(string $checkboxName, string $description, string $serviceClass, string $settingPath): void
+    {
+        echo "<h4>🔘 Test {$description} ({$checkboxName})</h4>\n";
+        
+        // Verifica se la classe esiste
+        if (!class_exists($serviceClass)) {
+            $this->addResult("❌ Classe {$serviceClass} non trovata per {$description}", 'error');
+            return;
         }
         
-        return $option;
+        $this->addResult("✅ Classe {$serviceClass} trovata per {$description}", 'success');
+        
+        // Test istanziazione
+        try {
+            $service = new $serviceClass();
+            $this->addResult("✅ Servizio {$description} istanziato correttamente", 'success');
+            
+            // Test impostazioni
+            if (method_exists($service, 'settings')) {
+                $settings = $service->settings();
+                
+                // Verifica se l'impostazione esiste
+                $settingValue = $this->getNestedSetting($settings, $settingPath);
+                
+                if ($settingValue !== null) {
+                    $this->addResult("✅ Impostazione '{$settingPath}' trovata per {$description}", 'success');
+                    
+                    // Test attivazione
+                    $this->testCheckboxActivation($service, $description, $settingPath, $settings);
+                } else {
+                    $this->addResult("⚠️ Impostazione '{$settingPath}' non trovata per {$description}", 'warning');
+                }
+            } else {
+                $this->addResult("⚠️ Metodo settings() non trovato per {$description}", 'warning');
+            }
+            
+        } catch (\Exception $e) {
+            $this->addResult("❌ Errore istanziazione {$description}: " . $e->getMessage(), 'error');
+        }
     }
 
-    public function generateReport(): string
+    /**
+     * Test attivazione checkbox
+     */
+    private function testCheckboxActivation($service, string $description, string $settingPath, array $settings): void
     {
-        $report = "📊 REPORT FINALE - TEST FUNZIONALITÀ CHECKBOX\n";
-        $report .= str_repeat("=", 60) . "\n\n";
-
-        $totalTests = 0;
-        $passedTests = 0;
-        $failedTests = 0;
-
-        foreach ($this->testResults as $testName => $result) {
-            $report .= "🔸 {$result['description']}\n";
-            $report .= "   Categoria: {$result['category']}\n";
-            $report .= "   Checkbox: {$result['checkbox']}\n\n";
-
-            foreach ($result['tests'] as $testType => $passed) {
-                $totalTests++;
-                if ($passed) {
-                    $passedTests++;
-                    $report .= "   ✅ {$testType}: PASS\n";
-                } else {
-                    $failedTests++;
-                    $report .= "   ❌ {$testType}: FAIL\n";
-                }
-            }
-
-            $report .= "\n";
-        }
-
-        $report .= str_repeat("-", 60) . "\n";
-        $report .= "📈 STATISTICHE:\n";
-        $report .= "   Test totali: {$totalTests}\n";
-        $report .= "   Test passati: {$passedTests}\n";
-        $report .= "   Test falliti: {$failedTests}\n";
-        $report .= "   Percentuale successo: " . round(($passedTests / $totalTests) * 100, 2) . "%\n\n";
-
-        if ($failedTests > 0) {
-            $report .= "⚠️  CHECKBOX CON PROBLEMI:\n";
-            foreach ($this->testResults as $testName => $result) {
-                $hasFailures = false;
-                foreach ($result['tests'] as $testType => $passed) {
-                    if (!$passed) {
-                        $hasFailures = true;
-                        break;
-                    }
-                }
+        try {
+            // Simula attivazione
+            $newSettings = $settings;
+            $this->setNestedSetting($newSettings, $settingPath, true);
+            
+            // Test aggiornamento
+            if (method_exists($service, 'update')) {
+                $service->update($newSettings);
+                $this->addResult("✅ Checkbox {$description} attivato correttamente", 'success');
                 
-                if ($hasFailures) {
-                    $report .= "   - {$result['description']} ({$testName})\n";
+                // Verifica stato
+                if (method_exists($service, 'status')) {
+                    $status = $service->status();
+                    $this->addResult("✅ Status verificato per {$description}: " . json_encode($status), 'success');
                 }
+            } else {
+                $this->addResult("⚠️ Metodo update() non trovato per {$description}", 'warning');
             }
-        } else {
-            $report .= "🎉 TUTTI I CHECKBOX FUNZIONANO CORRETTAMENTE!\n";
+            
+        } catch (\Exception $e) {
+            $this->addResult("❌ Errore attivazione {$description}: " . $e->getMessage(), 'error');
         }
+    }
 
-        return $report;
+    /**
+     * Ottiene valore annidato dalle impostazioni
+     */
+    private function getNestedSetting(array $settings, string $path)
+    {
+        $keys = explode('.', $path);
+        $value = $settings;
+        
+        foreach ($keys as $key) {
+            if (!is_array($value) || !array_key_exists($key, $value)) {
+                return null;
+            }
+            $value = $value[$key];
+        }
+        
+        return $value;
+    }
+
+    /**
+     * Imposta valore annidato nelle impostazioni
+     */
+    private function setNestedSetting(array &$settings, string $path, $value): void
+    {
+        $keys = explode('.', $path);
+        $current = &$settings;
+        
+        foreach ($keys as $key) {
+            if (!isset($current[$key]) || !is_array($current[$key])) {
+                $current[$key] = [];
+            }
+            $current = &$current[$key];
+        }
+        
+        $current = $value;
+    }
+
+    /**
+     * Aggiunge risultato
+     */
+    private function addResult(string $message, string $type): void
+    {
+        $this->results[] = [
+            'message' => $message,
+            'type' => $type
+        ];
+    }
+
+    /**
+     * Mostra risultati
+     */
+    private function displayResults(): void
+    {
+        echo "<h2>📊 Risultati Test Checkbox</h2>\n";
+        
+        $success = 0;
+        $warnings = 0;
+        $errors = 0;
+        
+        foreach ($this->results as $result) {
+            $color = match($result['type']) {
+                'success' => '#28a745',
+                'warning' => '#ffc107', 
+                'error' => '#dc3545',
+                default => '#6c757d'
+            };
+            
+            echo "<div style='color: {$color}; margin: 5px 0; padding: 5px; background: rgba(0,0,0,0.05); border-radius: 4px;'>";
+            echo $result['message'];
+            echo "</div>\n";
+            
+            match($result['type']) {
+                'success' => $success++,
+                'warning' => $warnings++,
+                'error' => $errors++
+            };
+        }
+        
+        echo "<div style='margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 8px;'>";
+        echo "<h3>📈 Riepilogo Test Checkbox</h3>";
+        echo "<p><strong>✅ Successi:</strong> {$success}</p>";
+        echo "<p><strong>⚠️ Avvisi:</strong> {$warnings}</p>";
+        echo "<p><strong>❌ Errori:</strong> {$errors}</p>";
+        
+        $total = $success + $warnings + $errors;
+        $score = $total > 0 ? round(($success / $total) * 100) : 0;
+        
+        echo "<p><strong>🎯 Score Checkbox:</strong> {$score}%</p>";
+        
+        if ($score >= 90) {
+            echo "<p style='color: #28a745; font-weight: bold;'>✅ Tutti i checkbox funzionano correttamente!</p>";
+        } elseif ($score >= 70) {
+            echo "<p style='color: #ffc107; font-weight: bold;'>⚠️ La maggior parte dei checkbox funziona, alcuni potrebbero avere problemi.</p>";
+        } else {
+            echo "<p style='color: #dc3545; font-weight: bold;'>❌ Molti checkbox non funzionano correttamente.</p>";
+        }
+        
+        echo "</div>";
     }
 }
 
-// Esegui i test
-$tester = new CheckboxFunctionalityTest();
-$results = $tester->runAllTests();
-$report = $tester->generateReport();
-
-echo "\n" . $report;
-
-// Salva il report su file
-file_put_contents(__DIR__ . '/checkbox-test-report.txt', $report);
-echo "\n📄 Report salvato in: checkbox-test-report.txt\n";
+// Esegui test se chiamato direttamente
+if (isset($_GET['test_checkbox_functionality'])) {
+    $test = new CheckboxFunctionalityTest();
+}

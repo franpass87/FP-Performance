@@ -2,304 +2,115 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
-
-/**
- * Lazy Load Manager
- *
- * Adds native lazy loading attributes to images and iframes
- * for improved performance and PageSpeed scores.
- *
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
 class LazyLoadManager
 {
-    private const OPTION = 'fp_ps_lazy_load';
-
-    /**
-     * Register hooks
-     */
-    public function register(): void
+    private $images;
+    private $videos;
+    private $iframes;
+    
+    public function __construct($images = true, $videos = true, $iframes = true)
     {
-        if (!is_admin() && $this->isEnabled()) {
-            // CRITICAL: Skip lazy loading on checkout (payment logos must be visible!)
-            if ($this->shouldSkipPage()) {
-                return;
-            }
-
-            // Image lazy loading
-            if ($this->getSetting('images', true)) {
-                add_filter('wp_get_attachment_image_attributes', [$this, 'addLazyLoadToImage'], 10, 3);
-                add_filter('get_avatar', [$this, 'addLazyLoadToAvatar'], 10, 5);
-            }
-
-            // Iframe lazy loading
-            if ($this->getSetting('iframes', true)) {
-                add_filter('the_content', [$this, 'addLazyLoadToIframes'], 999);
-                add_filter('widget_text', [$this, 'addLazyLoadToIframes'], 999);
-            }
-
-            // Exclude above-the-fold images if configured
-            if ($this->getSetting('skip_first', 0) > 0) {
-                add_action('wp_head', [$this, 'addSkipFirstScript']);
-            }
-
-            Logger::debug('LazyLoadManager registered');
-        }
+        $this->images = $images;
+        $this->videos = $videos;
+        $this->iframes = $iframes;
     }
-
-    /**
-     * Check if lazy loading should be skipped on this page
-     *
-     * @return bool
-     */
-    private function shouldSkipPage(): bool
+    
+    public function init()
     {
-        // Skip on WooCommerce checkout (payment logos critical!)
-        if (function_exists('is_checkout') && is_checkout()) {
-            return true;
+        if ($this->images) {
+            add_filter('wp_get_attachment_image_attributes', [$this, 'addImageLazyLoading'], 10, 3);
+            add_filter('the_content', [$this, 'optimizeContentImages']);
         }
-
-        // Skip on cart (coupon images, etc)
-        if (function_exists('is_cart') && is_cart()) {
-            return true;
+        
+        if ($this->videos) {
+            add_filter('the_content', [$this, 'optimizeContentVideos']);
         }
-
-        // Check URL patterns for payment/forms
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
-            
-            $criticalPatterns = [
-                '/checkout',
-                '/payment',
-                '/stripe',
-                '/paypal',
-            ];
-
-            foreach ($criticalPatterns as $pattern) {
-                if (strpos($requestUri, $pattern) !== false) {
-                    return true;
-                }
-            }
+        
+        if ($this->iframes) {
+            add_filter('the_content', [$this, 'optimizeContentIframes']);
         }
-
-        return false;
+        
+        add_action('wp_footer', [$this, 'addLazyLoadScript']);
     }
-
-    /**
-     * Add loading="lazy" to images
-     */
-    public function addLazyLoadToImage(array $attr, $attachment, $size): array
+    
+    public function addImageLazyLoading($attr, $attachment, $size)
     {
-        // Skip if already set
-        if (isset($attr['loading'])) {
-            return $attr;
-        }
-
-        // Skip if in exclusion list
-        if ($this->shouldSkipImage($attr)) {
-            return $attr;
-        }
-
-        // Add native lazy loading
         $attr['loading'] = 'lazy';
-
-        // Add decoding hint for better performance
-        if (!isset($attr['decoding'])) {
-            $attr['decoding'] = 'async';
-        }
-
+        $attr['decoding'] = 'async';
         return $attr;
     }
-
-    /**
-     * Add lazy loading to avatar images
-     */
-    public function addLazyLoadToAvatar(string $avatar, $id_or_email, $size, $default, $alt): string
+    
+    public function optimizeContentImages($content)
     {
-        // Skip if already has loading attribute
-        if (strpos($avatar, 'loading=') !== false) {
-            return $avatar;
-        }
-
-        // Add loading="lazy" to img tag
-        $avatar = str_replace('<img ', '<img loading="lazy" decoding="async" ', $avatar);
-
-        return $avatar;
-    }
-
-    /**
-     * Add lazy loading to iframes in content
-     */
-    public function addLazyLoadToIframes(string $content): string
-    {
-        // Skip if no iframes
-        if (strpos($content, '<iframe') === false) {
-            return $content;
-        }
-
-        // Add loading="lazy" to iframes that don't have it
-        $content = preg_replace_callback(
-            '/<iframe([^>]*)>/i',
-            function ($matches) {
-                $attrs = $matches[1];
-                
-                // Skip if already has loading attribute
-                if (stripos($attrs, 'loading=') !== false) {
-                    return $matches[0];
-                }
-
-                // Skip if in exclusion list (e.g., YouTube consent forms)
-                $exclusions = $this->getSetting('iframe_exclusions', []);
-                foreach ($exclusions as $pattern) {
-                    if (!empty($pattern) && stripos($attrs, $pattern) !== false) {
-                        return $matches[0];
-                    }
-                }
-
-                // Add loading="lazy"
-                return '<iframe loading="lazy"' . $attrs . '>';
-            },
-            $content
-        );
-
+        if (!$this->images) return $content;
+        
+        $content = preg_replace('/<img([^>]+)src=/', '<img$1loading="lazy" decoding="async" src=', $content);
+        
         return $content;
     }
-
-    /**
-     * Check if image should be skipped from lazy loading
-     */
-    private function shouldSkipImage(array $attr): bool
+    
+    public function optimizeContentVideos($content)
     {
-        // Check exclusion classes
-        if (isset($attr['class'])) {
-            $excludeClasses = $this->getSetting('exclude_classes', []);
-            foreach ($excludeClasses as $class) {
-                if (!empty($class) && strpos($attr['class'], $class) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        // Check if it's a logo or icon (common exclusions)
-        if (isset($attr['class'])) {
-            $autoExclude = ['logo', 'site-logo', 'custom-logo', 'icon', 'emoji'];
-            foreach ($autoExclude as $keyword) {
-                if (strpos($attr['class'], $keyword) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        // Skip very small images (likely icons)
-        if (isset($attr['width'], $attr['height'])) {
-            $width = (int) $attr['width'];
-            $height = (int) $attr['height'];
-            $minSize = $this->getSetting('min_size', 100);
+        if (!$this->videos) return $content;
+        
+        $content = preg_replace('/<video([^>]+)src=/', '<video$1preload="none" src=', $content);
+        
+        return $content;
+    }
+    
+    public function optimizeContentIframes($content)
+    {
+        if (!$this->iframes) return $content;
+        
+        $content = preg_replace_callback('/<iframe([^>]+)src="([^"]+)"([^>]*)>/i', function($matches) {
+            $src = $matches[2];
+            $attributes = $matches[1] . $matches[3];
             
-            if ($width < $minSize || $height < $minSize) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Add script to skip first N images (above-the-fold optimization)
-     */
-    public function addSkipFirstScript(): void
-    {
-        $skipCount = (int) $this->getSetting('skip_first', 0);
+            return '<iframe' . $attributes . 'data-src="' . $src . '" loading="lazy"></iframe>';
+        }, $content);
         
-        if ($skipCount < 1) {
-            return;
-        }
-
-        ?>
-        <script>
-        /* FP Performance Suite - Skip first <?php echo $skipCount; ?> image(s) from lazy load */
-        (function() {
-            if ('loading' in HTMLImageElement.prototype) {
-                var images = document.querySelectorAll('img[loading="lazy"]');
-                for (var i = 0; i < Math.min(<?php echo $skipCount; ?>, images.length); i++) {
-                    images[i].loading = 'eager';
+        return $content;
+    }
+    
+    public function addLazyLoadScript()
+    {
+        if (!$this->images && !$this->videos && !$this->iframes) return;
+        
+        echo '<script>
+            document.addEventListener("DOMContentLoaded", function() {
+                if ("IntersectionObserver" in window) {
+                    const lazyElements = document.querySelectorAll("img[loading=\"lazy\"], iframe[data-src]");
+                    
+                    const lazyObserver = new IntersectionObserver((entries, observer) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const element = entry.target;
+                                
+                                if (element.tagName === "IMG") {
+                                    element.src = element.dataset.src || element.src;
+                                } else if (element.tagName === "IFRAME") {
+                                    element.src = element.dataset.src;
+                                }
+                                
+                                observer.unobserve(element);
+                            }
+                        });
+                    });
+                    
+                    lazyElements.forEach(element => {
+                        lazyObserver.observe(element);
+                    });
                 }
-            }
-        })();
-        </script>
-        <?php
+            });
+        </script>';
     }
-
-    /**
-     * Check if lazy loading is enabled
-     */
-    public function isEnabled(): bool
+    
+    public function getLazyLoadMetrics()
     {
-        $settings = $this->getSettings();
-        return !empty($settings['enabled']);
-    }
-
-    /**
-     * Get all settings
-     */
-    public function getSettings(): array
-    {
-        $defaults = [
-            'enabled' => true,
-            'images' => true,
-            'iframes' => true,
-            'skip_first' => 1, // Skip first image (usually hero)
-            'min_size' => 100, // Min dimension in pixels
-            'exclude_classes' => [], // CSS classes to exclude
-            'iframe_exclusions' => ['youtube.com/consent'], // Iframe patterns to skip
-        ];
-
-        $settings = get_option(self::OPTION, []);
-        return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
-    }
-
-    /**
-     * Get specific setting
-     */
-    private function getSetting(string $key, $default = null)
-    {
-        $settings = $this->getSettings();
-        return $settings[$key] ?? $default;
-    }
-
-    /**
-     * Update settings
-     */
-    public function updateSettings(array $settings): bool
-    {
-        $current = $this->getSettings();
-        $updated = array_merge($current, $settings);
-
-        $result = update_option(self::OPTION, $updated);
-
-        if ($result) {
-            Logger::info('LazyLoad settings updated', $updated);
-            do_action('fp_ps_lazy_load_updated', $updated);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get status for admin display
-     */
-    public function status(): array
-    {
-        $settings = $this->getSettings();
-        
         return [
-            'enabled' => $this->isEnabled(),
-            'images_enabled' => !empty($settings['images']),
-            'iframes_enabled' => !empty($settings['iframes']),
-            'skip_first' => $settings['skip_first'],
-            'exclusions_count' => count($settings['exclude_classes']),
+            'images_enabled' => $this->images,
+            'videos_enabled' => $this->videos,
+            'iframes_enabled' => $this->iframes
         ];
     }
 }

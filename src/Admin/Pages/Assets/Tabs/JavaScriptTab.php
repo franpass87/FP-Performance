@@ -148,15 +148,17 @@ class JavaScriptTab
                     <?php esc_html_e('Minify JavaScript code embedded in HTML <script> tags. Use with caution.', 'fp-performance-suite'); ?>
                 </p>
                 
-                <div style="background: #f0f6fc; border: 2px solid #0969da; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                    <h4 style="margin-top: 0; color: #0969da;">⚡ <?php esc_html_e('Smart JavaScript Detection', 'fp-performance-suite'); ?></h4>
-                    <p style="font-size: 13px; margin-bottom: 10px;">
-                        <?php esc_html_e('Let the AI detect JavaScript files that should not be optimized (deferred/combined) automatically.', 'fp-performance-suite'); ?>
+                <?php if (get_option('fp_ps_intelligence_enabled', false)) : ?>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                    <h4 style="margin-top: 0; color: white;">🧠 <?php esc_html_e('Intelligent JavaScript Detection', 'fp-performance-suite'); ?></h4>
+                    <p style="font-size: 13px; margin-bottom: 15px; color: rgba(255,255,255,0.9);">
+                        <?php esc_html_e('Use our AI-powered system for automatic JavaScript detection, performance-based exclusions, and smart optimization.', 'fp-performance-suite'); ?>
                     </p>
-                    <button type="submit" name="auto_detect_exclude_js" class="button button-secondary">
-                        🔍 <?php esc_html_e('Auto-Detect JS to Exclude', 'fp-performance-suite'); ?>
-                    </button>
+                    <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-intelligence'); ?>" class="button button-primary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                        🎯 <?php esc_html_e('Open Intelligence Dashboard', 'fp-performance-suite'); ?>
+                    </a>
                 </div>
+                <?php endif; ?>
                 
                 <?php if ($excludeJs) : ?>
                     <div style="background: white; border: 2px solid #059669; border-radius: 6px; padding: 15px; margin: 20px 0;">

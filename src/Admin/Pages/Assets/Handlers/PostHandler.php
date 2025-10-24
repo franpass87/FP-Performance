@@ -70,37 +70,11 @@ class PostHandler
                 }
             }
 
-            // Handle auto-detection actions
-            if (isset($_POST['auto_detect_exclude_js'])) {
-                $optimizer = new Optimizer();
-                $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->detectExcludeJs();
-                set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-                $message = __('JavaScript exclusions detected successfully!', 'fp-performance-suite');
-            }
-
-            if (isset($_POST['auto_detect_exclude_css'])) {
-                $optimizer = new Optimizer();
-                $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->detectExcludeCss();
-                set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-                $message = __('CSS exclusions detected successfully!', 'fp-performance-suite');
-            }
-
-            if (isset($_POST['apply_js_exclusions'])) {
-                $optimizer = new Optimizer();
-                $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->detectExcludeJs();
-                set_transient('fp_ps_exclude_js_detected', $result, HOUR_IN_SECONDS);
-                $message = __('JavaScript exclusions applied successfully!', 'fp-performance-suite');
-            }
-
-            if (isset($_POST['apply_css_exclusions'])) {
-                $optimizer = new Optimizer();
-                $smartDetector = new SmartExclusionDetector();
-                $result = $smartDetector->detectExcludeCss();
-                set_transient('fp_ps_exclude_css_detected', $result, HOUR_IN_SECONDS);
-                $message = __('CSS exclusions applied successfully!', 'fp-performance-suite');
+            // Handle intelligence integration redirects
+            if (isset($_POST['use_intelligence_detection'])) {
+                $redirect_url = admin_url('admin.php?page=fp-performance-suite-intelligence');
+                wp_redirect($redirect_url);
+                exit;
             }
 
             if (isset($_POST['auto_detect_critical_assets'])) {

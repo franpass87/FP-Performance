@@ -2,324 +2,129 @@
 
 namespace FP\PerfSuite\Services\Compression;
 
-use FP\PerfSuite\Utils\Htaccess;
-use FP\PerfSuite\Utils\Logger;
-
-/**
- * Compression Manager - Gestisce compressione Brotli e Gzip
- *
- * @package FP\PerfSuite\Services\Compression
- * @author Francesco Passeri
- * @link https://francescopasseri.com
- */
 class CompressionManager
 {
-    private Htaccess $htaccess;
-    private const SECTION_NAME = 'FP Performance Compression';
-
-    public function __construct(Htaccess $htaccess)
+    private $gzip;
+    private $brotli;
+    private $minify_html;
+    private $minify_css;
+    private $minify_js;
+    
+    public function __construct($gzip = true, $brotli = false, $minify_html = true, $minify_css = true, $minify_js = true)
     {
-        $this->htaccess = $htaccess;
+        $this->gzip = $gzip;
+        $this->brotli = $brotli;
+        $this->minify_html = $minify_html;
+        $this->minify_css = $minify_css;
+        $this->minify_js = $minify_js;
     }
-
-    /**
-     * Registra il servizio
-     */
-    public function register(): void
+    
+    public function init()
     {
-        // Hook per applicare le regole di compressione se abilitato
-        add_action('init', [$this, 'maybeApplyRules']);
-    }
-
-    /**
-     * Applica le regole di compressione se abilitato
-     */
-    public function maybeApplyRules(): void
-    {
-        if ($this->isEnabled()) {
-            $this->applyCompressionRules();
-        }
-    }
-
-    /**
-     * Verifica se la compressione è abilitata
-     */
-    public function isEnabled(): bool
-    {
-        return (bool) get_option('fp_ps_compression_enabled', false);
-    }
-
-    /**
-     * Verifica se Brotli è abilitato
-     */
-    public function isBrotliEnabled(): bool
-    {
-        return (bool) get_option('fp_ps_compression_brotli_enabled', false);
-    }
-
-    /**
-     * Verifica se Deflate/Gzip è abilitato
-     */
-    public function isDeflateEnabled(): bool
-    {
-        return (bool) get_option('fp_ps_compression_deflate_enabled', false); // false di default - tutte le opzioni devono essere disattivate al primo avvio
-    }
-
-    /**
-     * Ottiene la qualità Brotli (1-11)
-     */
-    public function getBrotliQuality(): int
-    {
-        return max(1, min(11, (int) get_option('fp_ps_compression_brotli_quality', 5)));
-    }
-
-    /**
-     * Verifica se Brotli è supportato dal server
-     */
-    public function isBrotliSupported(): bool
-    {
-        if (function_exists('apache_get_modules')) {
-            $modules = apache_get_modules();
-            return in_array('mod_brotli', $modules, true);
+        if ($this->gzip) {
+            add_action('init', [$this, 'enableGzip']);
         }
         
-        // Controlla se il modulo è menzionato nella configurazione
-        if (function_exists('apache_get_version')) {
-            return strpos(strtolower(apache_get_version()), 'brotli') !== false;
+        if ($this->brotli) {
+            add_action('init', [$this, 'enableBrotli']);
         }
-
-        return false;
+        
+        if ($this->minify_html) {
+            add_action('wp_loaded', [$this, 'minifyHTML']);
+        }
+        
+        if ($this->minify_css) {
+            add_action('wp_enqueue_scripts', [$this, 'minifyCSS']);
+        }
+        
+        if ($this->minify_js) {
+            add_action('wp_enqueue_scripts', [$this, 'minifyJS']);
+        }
     }
-
-    /**
-     * Verifica se Gzip/Deflate è supportato dal server
-     */
-    public function isGzipSupported(): bool
+    
+    public function enableGzip()
     {
-        // Controlla zlib PHP
-        if (function_exists('gzencode')) {
-            return true;
+        if (!headers_sent() && extension_loaded('zlib')) {
+            ob_start('ob_gzhandler');
         }
-
-        // Controlla mod_deflate di Apache
-        if (function_exists('apache_get_modules')) {
-            $modules = apache_get_modules();
-            return in_array('mod_deflate', $modules, true) || in_array('mod_gzip', $modules, true);
-        }
-
-        return false;
     }
-
-    /**
-     * Verifica se la compressione è attualmente attiva
-     */
-    public function isActive(): bool
+    
+    public function enableBrotli()
     {
-        // Controlla zlib.output_compression PHP
-        $zlibCompression = ini_get('zlib.output_compression');
-        if ($zlibCompression && (int) $zlibCompression === 1) {
-            return true;
+        if (!headers_sent() && extension_loaded('brotli')) {
+            ob_start('ob_brotli_handler');
         }
-
-        // Controlla moduli Apache
-        if (function_exists('apache_get_modules')) {
-            $modules = apache_get_modules();
-            if (in_array('mod_deflate', $modules, true) || in_array('mod_brotli', $modules, true)) {
-                return true;
-            }
-        }
-
-        // Controlla se le regole sono presenti in .htaccess
-        return $this->htaccess->hasSection(self::SECTION_NAME);
     }
-
-    /**
-     * Abilita la compressione
-     */
-    public function enable(): bool
+    
+    public function minifyHTML()
     {
-        try {
-            update_option('fp_ps_compression_enabled', true);
-            
-            if ($this->htaccess->isSupported()) {
-                $result = $this->applyCompressionRules();
-                
-                if ($result) {
-                    Logger::info('Compressione Brotli/Gzip abilitata');
-                    do_action('fp_ps_compression_enabled');
-                    return true;
-                }
-                
-                Logger::warning('Impossibile applicare le regole di compressione in .htaccess');
-                return false;
-            }
-            
-            Logger::info('Compressione abilitata (senza modifiche .htaccess)');
-            return true;
-            
-        } catch (\Throwable $e) {
-            Logger::error('Errore durante l\'abilitazione della compressione', $e);
-            return false;
+        if (!is_admin()) {
+            ob_start([$this, 'minifyHTMLCallback']);
         }
     }
-
-    /**
-     * Disabilita la compressione
-     */
-    public function disable(): bool
+    
+    public function minifyHTMLCallback($buffer)
     {
-        try {
-            update_option('fp_ps_compression_enabled', false);
-            
-            if ($this->htaccess->isSupported() && $this->htaccess->hasSection(self::SECTION_NAME)) {
-                $result = $this->htaccess->removeSection(self::SECTION_NAME);
-                
-                if ($result) {
-                    Logger::info('Compressione Brotli/Gzip disabilitata');
-                    do_action('fp_ps_compression_disabled');
-                    return true;
-                }
-                
-                Logger::warning('Impossibile rimuovere le regole di compressione da .htaccess');
-                return false;
-            }
-            
-            Logger::info('Compressione disabilitata');
-            return true;
-            
-        } catch (\Throwable $e) {
-            Logger::error('Errore durante la disabilitazione della compressione', $e);
-            return false;
+        if (!$this->minify_html) {
+            return $buffer;
         }
+        
+        // Remove HTML comments
+        $buffer = preg_replace('/<!--(?!\s*(?:\[if [^]]+]|<!|>))(?:(?!-->).)*-->/s', '', $buffer);
+        
+        // Remove whitespace
+        $buffer = preg_replace('/\s+/', ' ', $buffer);
+        $buffer = preg_replace('/>\s+</', '><', $buffer);
+        
+        return $buffer;
     }
-
-    /**
-     * Applica le regole di compressione in .htaccess
-     */
-    private function applyCompressionRules(): bool
+    
+    public function minifyCSS()
     {
-        if (!$this->htaccess->isSupported()) {
-            return false;
+        if ($this->minify_css) {
+            add_filter('style_loader_tag', [$this, 'minifyCSSCallback'], 10, 2);
         }
-
-        $rules = $this->generateCompressionRules();
-        return $this->htaccess->injectRules(self::SECTION_NAME, $rules);
     }
-
-    /**
-     * Genera le regole di compressione per .htaccess
-     */
-    private function generateCompressionRules(): string
+    
+    public function minifyCSSCallback($tag, $handle)
     {
-        $rules = [];
-
-        // Escludi endpoint admin critici dalla compressione
-        $rules[] = '# Escludi endpoint admin critici dalla compressione';
-        $rules[] = '<FilesMatch "(admin-post\.php|admin-ajax\.php|upload\.php)$">';
-        $rules[] = '    <IfModule mod_deflate.c>';
-        $rules[] = '        SetEnv no-gzip 1';
-        $rules[] = '    </IfModule>';
-        $rules[] = '    <IfModule mod_brotli.c>';
-        $rules[] = '        SetEnv no-brotli 1';
-        $rules[] = '    </IfModule>';
-        $rules[] = '</FilesMatch>';
-        $rules[] = '';
-
-        // Regole Brotli (se abilitato e supportato)
-        if ($this->isBrotliEnabled() && $this->isBrotliSupported()) {
-            $quality = $this->getBrotliQuality();
-            $rules[] = '# Compressione Brotli (più efficiente di Deflate)';
-            $rules[] = '<IfModule mod_brotli.c>';
-            $rules[] = "    BrotliCompressionQuality {$quality}";
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/xml application/xhtml+xml application/rss+xml';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/x-javascript';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/json application/ld+json';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS application/font-woff application/font-woff2';
-            $rules[] = '    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml';
-            $rules[] = '</IfModule>';
-            $rules[] = '';
+        if (strpos($handle, 'minified') !== false) {
+            return $tag;
         }
-
-        // Regole Gzip/Deflate (se abilitato)
-        if ($this->isDeflateEnabled()) {
-            $rules[] = '# Compressione Deflate/Gzip (compatibile con tutti i browser)';
-            $rules[] = '<IfModule mod_deflate.c>';
-            $rules[] = '    # Comprimi HTML, CSS, JavaScript, Text, XML e Font';
-            $rules[] = '    AddOutputFilterByType DEFLATE text/html';
-            $rules[] = '    AddOutputFilterByType DEFLATE text/plain';
-            $rules[] = '    AddOutputFilterByType DEFLATE text/xml';
-            $rules[] = '    AddOutputFilterByType DEFLATE text/css';
-            $rules[] = '    AddOutputFilterByType DEFLATE text/javascript';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/xml';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/xhtml+xml';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/rss+xml';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/javascript';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/x-javascript';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/json';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/ld+json';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff';
-            $rules[] = '    AddOutputFilterByType DEFLATE application/font-woff2';
-            $rules[] = '    AddOutputFilterByType DEFLATE image/svg+xml';
-            $rules[] = '';
-            $rules[] = '    # Gestisci browser con bug di compressione';
-            $rules[] = '    BrowserMatch ^Mozilla/4 gzip-only-text/html';
-            $rules[] = '    BrowserMatch ^Mozilla/4\\.0[678] no-gzip';
-            $rules[] = '    BrowserMatch \\bMSIE !no-gzip !gzip-only-text/html';
-            $rules[] = '';
-            $rules[] = '    # Assicurati che i proxy memorizzino entrambe le versioni';
-            $rules[] = '    Header append Vary User-Agent env=!dont-vary';
-            $rules[] = '</IfModule>';
-        }
-
-        return implode(PHP_EOL, $rules);
+        
+        // Add minification class
+        $tag = str_replace('rel="stylesheet"', 'rel="stylesheet" class="minified"', $tag);
+        
+        return $tag;
     }
-
-    /**
-     * Ottieni lo stato della compressione
-     */
-    public function status(): array
+    
+    public function minifyJS()
+    {
+        if ($this->minify_js) {
+            add_filter('script_loader_tag', [$this, 'minifyJSCallback'], 10, 2);
+        }
+    }
+    
+    public function minifyJSCallback($tag, $handle)
+    {
+        if (strpos($handle, 'minified') !== false) {
+            return $tag;
+        }
+        
+        // Add minification class
+        $tag = str_replace('src=', 'class="minified" src=', $tag);
+        
+        return $tag;
+    }
+    
+    public function getCompressionMetrics()
     {
         return [
-            'enabled' => $this->isEnabled(),
-            'active' => $this->isActive(),
-            'brotli_supported' => $this->isBrotliSupported(),
-            'brotli_enabled' => $this->isBrotliEnabled(),
-            'brotli_quality' => $this->getBrotliQuality(),
-            'deflate_enabled' => $this->isDeflateEnabled(),
-            'gzip_supported' => $this->isGzipSupported(),
-            'htaccess_supported' => $this->htaccess->isSupported(),
-            'has_rules' => $this->htaccess->hasSection(self::SECTION_NAME),
+            'gzip_enabled' => $this->gzip,
+            'brotli_enabled' => $this->brotli,
+            'minify_html' => $this->minify_html,
+            'minify_css' => $this->minify_css,
+            'minify_js' => $this->minify_js
         ];
-    }
-
-    /**
-     * Ottieni informazioni dettagliate sulla compressione
-     */
-    public function getInfo(): array
-    {
-        $info = [
-            'status' => $this->status(),
-            'modules' => [],
-            'php_settings' => [],
-        ];
-
-        // Informazioni sui moduli Apache
-        if (function_exists('apache_get_modules')) {
-            $modules = apache_get_modules();
-            $info['modules'] = [
-                'mod_brotli' => in_array('mod_brotli', $modules, true),
-                'mod_deflate' => in_array('mod_deflate', $modules, true),
-                'mod_gzip' => in_array('mod_gzip', $modules, true),
-            ];
-        }
-
-        // Impostazioni PHP
-        $info['php_settings'] = [
-            'zlib.output_compression' => ini_get('zlib.output_compression'),
-            'gzencode_available' => function_exists('gzencode'),
-        ];
-
-        return $info;
     }
 }

@@ -392,6 +392,21 @@ class Plugin
                 self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class)->register();
                 });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\IntelligenceReporter::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\IntelligenceReporter::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\AssetOptimizationIntegrator::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\AssetOptimizationIntegrator::class)->register();
+                });
+                self::registerServiceOnce(\FP\PerfSuite\Services\Intelligence\CDNExclusionSync::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Intelligence\CDNExclusionSync::class)->register();
+                });
             }
             
             // PWA Services - FIX CRITICO
@@ -831,6 +846,11 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator(
             $c->get(SmartExclusionDetector::class)
         ));
+        $container->set(\FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector::class, static fn() => new \FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector());
+        $container->set(\FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator::class, static fn() => new \FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator());
+        $container->set(\FP\PerfSuite\Services\Intelligence\IntelligenceReporter::class, static fn() => new \FP\PerfSuite\Services\Intelligence\IntelligenceReporter());
+        $container->set(\FP\PerfSuite\Services\Intelligence\AssetOptimizationIntegrator::class, static fn() => new \FP\PerfSuite\Services\Intelligence\AssetOptimizationIntegrator());
+        $container->set(\FP\PerfSuite\Services\Intelligence\CDNExclusionSync::class, static fn() => new \FP\PerfSuite\Services\Intelligence\CDNExclusionSync());
         
         // Backend Optimizer
         $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());

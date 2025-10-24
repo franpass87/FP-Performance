@@ -140,6 +140,31 @@ class Assets extends AbstractPage
                     </div>
                 <?php endif; ?>
 
+            <!-- Intelligence Integration Section -->
+            <?php if (get_option('fp_ps_intelligence_enabled', false)) : ?>
+            <div class="fp-ps-card" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h2 style="margin-top: 0; color: white;">🧠 <?php esc_html_e('Intelligent Asset Optimization', 'fp-performance-suite'); ?></h2>
+                <p style="color: rgba(255,255,255,0.9); margin-bottom: 20px;">
+                    <?php esc_html_e('Use our AI-powered system for automatic asset optimization, exclusions, and performance-based recommendations.', 'fp-performance-suite'); ?>
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <a href="<?php echo admin_url('admin.php?page=fp-performance-suite-intelligence'); ?>" class="button button-primary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                        🎯 <?php esc_html_e('Open Intelligence Dashboard', 'fp-performance-suite'); ?>
+                    </a>
+                    <form method="post" style="display: inline;">
+                        <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
+                        <button type="submit" name="use_intelligence_detection" class="button button-secondary" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                            ⚡ <?php esc_html_e('Auto-Optimize Assets', 'fp-performance-suite'); ?>
+                        </button>
+                    </form>
+                </div>
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px; font-size: 13px;">
+                    <strong>💡 <?php esc_html_e('Tip:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('The Intelligence Dashboard provides automatic detection, performance-based exclusions, and smart optimization recommendations.', 'fp-performance-suite'); ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Main Toggle for Asset Optimization -->
             <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">
                 <h2 style="margin-top: 0; color: #495057;">⚡ <?php esc_html_e('Asset Optimization Control', 'fp-performance-suite'); ?></h2>
