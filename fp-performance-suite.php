@@ -167,7 +167,8 @@ if (function_exists('add_action')) {
             return;
         }
         
-        $fp_perf_suite_initialized = true;
+        // NON impostare $fp_perf_suite_initialized qui!
+        // Sarà impostato dalla funzione di inizializzazione solo se tutto va bene
         fp_perf_suite_initialize_plugin();
         
         // Debug: verifica se il plugin è inizializzato
@@ -310,12 +311,12 @@ function fp_perf_suite_initialize_plugin(): void {
     // Inizializza sempre - il plugin gestirà internamente i problemi
     try {
         \FP\PerfSuite\Plugin::init();
-        // Marca come inizializzato
-        $fp_perf_suite_initialized = true;
         fp_perf_suite_safe_log('Plugin initialized successfully', 'DEBUG');
         
         // Debug: verifica se è davvero inizializzato
         if (FP\PerfSuite\Plugin::isInitialized()) {
+            // Marca come inizializzato SOLO se è davvero inizializzato
+            $fp_perf_suite_initialized = true;
             add_action('admin_notices', static function () {
                 echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Plugin::init() completato con successo</p></div>';
             });
