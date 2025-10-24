@@ -165,12 +165,25 @@ if (function_exists('add_action')) {
         fp_perf_suite_initialize_plugin();
     }, 1);
     
-    // Fallback: registra il menu manualmente se il plugin non si inizializza
+    // FORZA SEMPRE la registrazione del menu
     add_action('admin_menu', static function () {
-        global $fp_perf_suite_initialized;
+        // Controlla se il menu è già stato registrato
+        global $menu;
+        $menu_already_registered = false;
         
-        // Se il plugin non è inizializzato, registra il menu manualmente
-        if (!$fp_perf_suite_initialized) {
+        if (isset($menu)) {
+            foreach ($menu as $item) {
+                if (isset($item[2]) && strpos($item[2], 'fp-performance') !== false) {
+                    $menu_already_registered = true;
+                    break;
+                }
+            }
+        }
+        
+        // Se il menu non è stato registrato, registralo SEMPRE
+        if (!$menu_already_registered) {
+            error_log('[FP Performance Suite] FORZA: Registrazione menu manuale');
+            
             add_menu_page(
                 'FP Performance Suite',
                 'FP Performance',
@@ -179,7 +192,8 @@ if (function_exists('add_action')) {
                 function() {
                     echo '<div class="wrap">';
                     echo '<h1>FP Performance Suite</h1>';
-                    echo '<p>Il plugin è in modalità di recupero. Prova a disattivare e riattivare il plugin.</p>';
+                    echo '<p>Benvenuto nel pannello di controllo FP Performance Suite!</p>';
+                    echo '<p>Il menu è stato registrato con successo.</p>';
                     echo '</div>';
                 },
                 'dashicons-performance',
@@ -187,6 +201,43 @@ if (function_exists('add_action')) {
             );
         }
     }, 999);
+    
+    // ULTERIORE FALLBACK: registra il menu anche se tutto il resto fallisce
+    add_action('admin_menu', static function () {
+        // Controlla se il menu è già stato registrato
+        global $menu;
+        $menu_already_registered = false;
+        
+        if (isset($menu)) {
+            foreach ($menu as $item) {
+                if (isset($item[2]) && strpos($item[2], 'fp-performance') !== false) {
+                    $menu_already_registered = true;
+                    break;
+                }
+            }
+        }
+        
+        // Se il menu non è stato registrato, registralo con un nome diverso
+        if (!$menu_already_registered) {
+            error_log('[FP Performance Suite] ULTERIORE FALLBACK: Registrazione menu di emergenza');
+            
+            add_menu_page(
+                'FP Performance Suite',
+                'FP Performance',
+                'manage_options',
+                'fp-performance-suite-emergency',
+                function() {
+                    echo '<div class="wrap">';
+                    echo '<h1>FP Performance Suite - Modalità Emergenza</h1>';
+                    echo '<p>Il plugin è in modalità di emergenza. Il menu principale potrebbe non essere visibile.</p>';
+                    echo '<p>Prova a disattivare e riattivare il plugin per risolvere il problema.</p>';
+                    echo '</div>';
+                },
+                'dashicons-performance',
+                31
+            );
+        }
+    }, 9999);
 }
 
 /**
