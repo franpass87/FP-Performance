@@ -183,6 +183,17 @@ if (function_exists('add_action')) {
         );
     });
     
+    // Forza attivazione plugin se necessario
+    add_action('admin_init', static function () {
+        if (!is_plugin_active('fp-performance-suite/fp-performance-suite.php')) {
+            // Prova ad attivare il plugin
+            $result = activate_plugin('fp-performance-suite/fp-performance-suite.php');
+            if (is_wp_error($result)) {
+                error_log('[FP Performance Suite] Errore attivazione: ' . $result->get_error_message());
+            }
+        }
+    });
+    
 }
 
 /**
@@ -288,8 +299,20 @@ function fp_performance_debug_page(): void {
         echo '<h2>1. 🔌 Stato Plugin</h2>';
         echo '<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">';
         
-        $plugin_active = is_plugin_active('fp-performance-suite/fp-performance-suite.php');
+        // Verifica multiple per essere sicuri
+        $plugin_active_1 = is_plugin_active('fp-performance-suite/fp-performance-suite.php');
+        $plugin_active_2 = is_plugin_active('fp-performance-suite.php');
+        $plugin_active_3 = function_exists('fp_perf_suite_initialize_plugin');
+        
+        $plugin_active = $plugin_active_1 || $plugin_active_2 || $plugin_active_3;
         $debug_info['plugin_active'] = $plugin_active;
+        $debug_info['plugin_active_1'] = $plugin_active_1;
+        $debug_info['plugin_active_2'] = $plugin_active_2;
+        $debug_info['plugin_active_3'] = $plugin_active_3;
+        
+        echo 'Plugin attivo (metodo 1): ' . ($plugin_active_1 ? 'SÌ' : 'NO') . '<br>';
+        echo 'Plugin attivo (metodo 2): ' . ($plugin_active_2 ? 'SÌ' : 'NO') . '<br>';
+        echo 'Plugin attivo (metodo 3): ' . ($plugin_active_3 ? 'SÌ' : 'NO') . '<br>';
         
         if ($plugin_active) {
             echo '✅ Plugin attivo<br>';
@@ -306,6 +329,22 @@ function fp_performance_debug_page(): void {
         } else {
             echo '❌ File principale non trovato<br>';
             $errors[] = 'File principale non trovato';
+        }
+        
+        // Verifica plugin attivi
+        $active_plugins = get_option('active_plugins', []);
+        $fp_plugin_found = false;
+        foreach ($active_plugins as $plugin) {
+            if (strpos($plugin, 'fp-performance') !== false) {
+                $fp_plugin_found = true;
+                echo '✅ Plugin trovato in lista attivi: ' . $plugin . '<br>';
+                break;
+            }
+        }
+        
+        if (!$fp_plugin_found) {
+            echo '❌ Plugin non trovato in lista attivi<br>';
+            $errors[] = 'Plugin non in lista attivi';
         }
         
         echo '</div>';
@@ -352,8 +391,10 @@ function fp_performance_debug_page(): void {
             
             // Cerca callback del plugin
             $plugin_callbacks = [];
+            $all_callbacks = [];
             foreach ($admin_menu_hooks->callbacks as $priority => $callbacks) {
                 foreach ($callbacks as $callback) {
+                    $all_callbacks[] = $priority;
                     if (is_array($callback['function']) && 
                         is_object($callback['function'][0]) && 
                         get_class($callback['function'][0]) === 'FP\\PerfSuite\\Admin\\Menu') {
@@ -362,12 +403,31 @@ function fp_performance_debug_page(): void {
                 }
             }
             
+            echo 'Tutte le priorità: ' . implode(', ', array_unique($all_callbacks)) . '<br>';
+            
             if (!empty($plugin_callbacks)) {
                 echo '✅ Callback plugin trovati alle priorità: ' . implode(', ', $plugin_callbacks) . '<br>';
                 $debug_info['plugin_callbacks'] = $plugin_callbacks;
             } else {
                 echo '❌ Callback plugin non trovati<br>';
                 $errors[] = 'Callback plugin non registrati';
+                
+                // Verifica se il Menu service è registrato nel container
+                if (class_exists('FP\\PerfSuite\\Plugin')) {
+                    try {
+                        $container = FP\PerfSuite\Plugin::container();
+                        if ($container) {
+                            $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                            if ($menu_service) {
+                                echo '✅ Menu service disponibile nel container<br>';
+                                echo '⚠️ Ma non registrato negli hook admin_menu<br>';
+                                $errors[] = 'Menu service non registrato negli hook';
+                            }
+                        }
+                    } catch (Exception $e) {
+                        echo '❌ Errore nel Menu service: ' . $e->getMessage() . '<br>';
+                    }
+                }
             }
         } else {
             echo '❌ Hook admin_menu non trovato<br>';
@@ -416,6 +476,39 @@ function fp_performance_debug_page(): void {
         
         $debug_info['menu_found'] = $menu_found;
         $debug_info['menu_items'] = $menu_items;
+        
+        // Verifica se il Menu service ha il metodo boot chiamato
+        if (class_exists('FP\\PerfSuite\\Plugin')) {
+            try {
+                $container = FP\PerfSuite\Plugin::container();
+                if ($container) {
+                    $menu_service = $container->get('FP\\PerfSuite\\Admin\\Menu');
+                    if ($menu_service) {
+                        echo '✅ Menu service disponibile<br>';
+                        
+                        // Verifica se il metodo boot è stato chiamato
+                        if (method_exists($menu_service, 'boot')) {
+                            echo '✅ Metodo boot disponibile<br>';
+                            
+                            // Prova a chiamare boot manualmente per test
+                            try {
+                                $menu_service->boot();
+                                echo '✅ Metodo boot chiamato con successo<br>';
+                            } catch (Exception $e) {
+                                echo '❌ Errore nel metodo boot: ' . $e->getMessage() . '<br>';
+                                $errors[] = 'Errore nel metodo boot: ' . $e->getMessage();
+                            }
+                        } else {
+                            echo '❌ Metodo boot non disponibile<br>';
+                            $errors[] = 'Metodo boot non disponibile';
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                echo '❌ Errore nel Menu service: ' . $e->getMessage() . '<br>';
+                $errors[] = 'Errore Menu service: ' . $e->getMessage();
+            }
+        }
         
         echo '</div>';
         
