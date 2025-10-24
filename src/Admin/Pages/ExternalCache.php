@@ -2,7 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
-use FP\PerfSuite\Admin\Pages\BasePage;
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\ExternalResourceCacheManager;
 
 /**
@@ -14,40 +14,39 @@ use FP\PerfSuite\Services\Assets\ExternalResourceCacheManager;
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
-class ExternalCache extends BasePage
+class ExternalCache extends AbstractPage
 {
     private ExternalResourceCacheManager $cacheManager;
 
-    public function __construct()
+    public function __construct(ServiceContainer $container)
     {
+        parent::__construct($container);
         $this->cacheManager = new ExternalResourceCacheManager();
     }
 
-    /**
-     * Registra la pagina
-     */
-    public function register(): void
+    public function slug(): string
     {
-        add_submenu_page(
-            'fp-performance',
-            __('External Cache', 'fp-performance'),
-            __('🌐 External Cache', 'fp-performance'),
-            'manage_options',
-            'fp-external-cache',
-            [$this, 'render']
-        );
+        return 'fp-external-cache';
     }
 
-    /**
-     * Renderizza la pagina
-     */
-    public function render(): void
+    public function title(): string
+    {
+        return __('🌐 External Cache', 'fp-performance');
+    }
+
+    public function view(): string
+    {
+        return __DIR__ . '/views/external-cache.php';
+    }
+
+    protected function content(): string
     {
         $this->handleFormSubmission();
         $settings = $this->cacheManager->getSettings();
         $stats = $this->cacheManager->getCacheStats();
         $resources = $this->cacheManager->detectExternalResources();
         
+        ob_start();
         ?>
         <div class="wrap">
             <h1><?php _e('🌐 External Resource Cache', 'fp-performance'); ?></h1>
@@ -60,7 +59,9 @@ class ExternalCache extends BasePage
             <?php $this->renderSettingsForm($settings); ?>
         </div>
         <?php
+        return ob_get_clean();
     }
+
 
     /**
      * Gestisce l'invio del form
