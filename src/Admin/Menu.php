@@ -241,9 +241,8 @@ class Menu
 
     public function register(): void
     {
-        // Prevenire doppia registrazione del menu
+        // Prevenire doppia registrazione del menu - SOLO se già registrato in questa sessione
         if (self::$menuRegistered) {
-            error_log('[FP Performance Suite] Menu già registrato, saltando registrazione duplicata');
             return;
         }
         self::$menuRegistered = true;
@@ -518,3 +517,4 @@ class Menu
         }
     }
 }
+

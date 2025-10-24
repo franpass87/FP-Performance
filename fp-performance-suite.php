@@ -158,11 +158,10 @@ if (function_exists('add_action')) {
         
         // Prevenire inizializzazioni multiple - FIX CRITICO
         if ($fp_perf_suite_initialized) {
-            fp_perf_suite_safe_log('Plugin già inizializzato, saltando inizializzazione duplicata', 'DEBUG');
             return;
         }
         
-        // Marca come inizializzato IMMEDIATAMENTE per prevenire race conditions
+        // Marca come inizializzato immediatamente per prevenire race conditions
         $fp_perf_suite_initialized = true;
         
         // Inizializzazione sicura con try-catch
