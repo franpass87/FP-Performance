@@ -31,11 +31,14 @@ class BatchDOMUpdater
             return;
         }
 
-        // Add batch DOM update script
-        add_action('wp_footer', [$this, 'injectBatchUpdater'], 25);
-        
-        // Add CSS to prevent layout shifts - PRIORITÀ BASSA per batch DOM
-        add_action('wp_head', [$this, 'injectBatchCSS'], 16);
+        // Solo nel frontend
+        if (!is_admin()) {
+            // Add batch DOM update script
+            add_action('wp_footer', [$this, 'injectBatchUpdater'], 25);
+            
+            // Add CSS to prevent layout shifts - PRIORITÀ BASSA per batch DOM
+            add_action('wp_head', [$this, 'injectBatchCSS'], 16);
+        }
     }
 
     /**

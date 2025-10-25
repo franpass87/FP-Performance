@@ -28,7 +28,10 @@ class ResponsiveImageManager
 
         add_filter('wp_get_attachment_image_attributes', [$this, 'optimizeImageAttributes'], 10, 3);
         add_filter('the_content', [$this, 'optimizeContentImages'], 20);
-        add_action('wp_head', [$this, 'addResponsiveImageCSS'], 20);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_head', [$this, 'addResponsiveImageCSS'], 20);
+        }
         
         Logger::debug('Responsive image manager registered');
     }

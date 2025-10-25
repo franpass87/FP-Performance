@@ -130,9 +130,13 @@ class ThirdPartyScriptDetector
      */
     public function register(): void
     {
+        // NON attivare nell'admin di WordPress per evitare interferenze
+        if (is_admin()) {
+            return;
+        }
+        
         // Scan automatico - usa HookManager per prevenire doppia registrazione
         HookManager::addActionOnce('wp_footer', [$this, 'detectScripts'], PHP_INT_MAX);
-        HookManager::addActionOnce('admin_footer', [$this, 'detectScripts'], PHP_INT_MAX);
 
         Logger::debug('Third Party Script Detector registered');
     }

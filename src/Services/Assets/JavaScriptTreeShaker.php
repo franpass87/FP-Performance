@@ -13,6 +13,11 @@ class JavaScriptTreeShaker
     
     public function init()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 998);
         add_action('wp_footer', [$this, 'addTreeShakingScript'], 43);
     }

@@ -35,8 +35,10 @@ class CriticalCssAutomation
             add_action('switch_theme', [$this, 'regenerateAll']);
         }
 
-        // Inline critical CSS
-        add_action('wp_head', [$this, 'inlineCriticalCss'], 22);
+        // Inline critical CSS - solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_head', [$this, 'inlineCriticalCss'], 22);
+        }
 
         Logger::debug('Critical CSS Automation registered');
     }

@@ -17,8 +17,11 @@ class PredictivePrefetching
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'enqueueScripts'], 989);
-        add_action('wp_footer', [$this, 'addPrefetchScript'], 41);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_enqueue_scripts', [$this, 'enqueueScripts'], 989);
+            add_action('wp_footer', [$this, 'addPrefetchScript'], 41);
+        }
     }
     
     public function enqueueScripts()

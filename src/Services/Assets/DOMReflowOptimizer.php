@@ -31,14 +31,20 @@ class DOMReflowOptimizer
             return;
         }
 
-        // Add optimization script to footer - PRIORITÀ MEDIA per ottimizzazioni DOM
-        add_action('wp_footer', [$this, 'injectOptimizationScript'], 10);
+        // Solo nel frontend
+        if (!is_admin()) {
+            // Add optimization script to footer - PRIORITÀ MEDIA per ottimizzazioni DOM
+            add_action('wp_footer', [$this, 'injectOptimizationScript'], 10);
+            
+            // Add CSS to prevent layout shifts - PRIORITÀ BASSA per ottimizzazioni DOM
+            add_action('wp_head', [$this, 'injectPreventiveCSS'], 15);
+        }
         
-        // Add CSS to prevent layout shifts - PRIORITÀ BASSA per ottimizzazioni DOM
-        add_action('wp_head', [$this, 'injectPreventiveCSS'], 15);
-        
-        // Optimize script loading - PRIORITÀ BASSA per ottimizzazioni avanzate
-        add_filter('script_loader_tag', [$this, 'optimizeScriptLoading'], 20, 3);
+        // Solo nel frontend
+        if (!is_admin()) {
+            // Optimize script loading - PRIORITÀ BASSA per ottimizzazioni avanzate
+            add_filter('script_loader_tag', [$this, 'optimizeScriptLoading'], 20, 3);
+        }
     }
 
     /**

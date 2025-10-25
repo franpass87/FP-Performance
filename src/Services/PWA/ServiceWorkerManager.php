@@ -17,8 +17,11 @@ class ServiceWorkerManager
     
     public function init()
     {
-        add_action('wp_enqueue_scripts', [$this, 'enqueueServiceWorker'], 990);
-        add_action('wp_footer', [$this, 'addServiceWorkerScript'], 40);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_enqueue_scripts', [$this, 'enqueueServiceWorker'], 990);
+            add_action('wp_footer', [$this, 'addServiceWorkerScript'], 40);
+        }
     }
     
     public function enqueueServiceWorker()

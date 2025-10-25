@@ -26,6 +26,11 @@ class MobileCacheManager
             return;
         }
 
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+
         add_action('template_redirect', [$this, 'applyMobileCaching']);
         add_action('wp_head', [$this, 'addMobileCacheHeaders'], 21);
         

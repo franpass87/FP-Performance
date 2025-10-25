@@ -13,7 +13,10 @@ class TouchOptimizer
     
     public function init()
     {
-        add_action('wp_footer', [$this, 'addTouchOptimizations'], 51);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_footer', [$this, 'addTouchOptimizations'], 51);
+        }
     }
     
     public function addTouchOptimizations()

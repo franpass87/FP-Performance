@@ -30,9 +30,12 @@ class ExternalResourceCacheManager
             return;
         }
 
-        // Intercetta le richieste per risorse esterne
-        add_action('wp_head', [$this, 'addExternalCacheHeaders'], 18);
-        add_action('wp_footer', [$this, 'addExternalCacheHeaders'], 30);
+        // Solo nel frontend
+        if (!is_admin()) {
+            // Intercetta le richieste per risorse esterne
+            add_action('wp_head', [$this, 'addExternalCacheHeaders'], 18);
+            add_action('wp_footer', [$this, 'addExternalCacheHeaders'], 30);
+        }
         
         // Hook per gestire risorse specifiche
         add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], 994);

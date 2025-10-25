@@ -33,8 +33,10 @@ class SmartAssetDelivery
             add_filter('wp_get_attachment_image_src', [$this, 'adaptImageQuality'], 10, 4);
         }
 
-        // Rileva e salva info connessione
-        add_action('wp_footer', [$this, 'detectConnectionType'], 35);
+        // Rileva e salva info connessione - solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_footer', [$this, 'detectConnectionType'], 35);
+        }
 
         Logger::debug('Smart Asset Delivery registered');
     }

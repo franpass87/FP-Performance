@@ -27,6 +27,11 @@ class PerformanceMonitor
     
     public function init()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         if ($this->core_web_vitals) {
             add_action('wp_footer', [$this, 'addCoreWebVitalsScript'], 46);
         }

@@ -152,7 +152,7 @@ if (function_exists('add_action')) {
         $fp_perf_suite_initialized = false;
     }
     
-    // Inizializzazione con protezione massima
+    // Inizializzazione con protezione massima - MANTIENI I SERVIZI
     add_action('init', static function () {
         global $fp_perf_suite_initialized;
         

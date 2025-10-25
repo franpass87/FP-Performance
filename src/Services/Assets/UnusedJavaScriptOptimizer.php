@@ -13,6 +13,11 @@ class UnusedJavaScriptOptimizer
     
     public function init()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 996);
         add_action('wp_footer', [$this, 'addUnusedJSScript'], 44);
     }

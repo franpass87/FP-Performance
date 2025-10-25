@@ -51,9 +51,10 @@ class DatabaseQueryMonitor
         add_action('wpdb_query', [$this, 'trackQueryExecution'], 10, 2);
         add_action('shutdown', [$this, 'logStatistics'], PHP_INT_MAX);
         
-        // Hook per salvare i log
-        add_action('wp_footer', [$this, 'displayAdminBar'], 52);
-        add_action('admin_footer', [$this, 'displayAdminBar'], PHP_INT_MAX);
+        // Hook per salvare i log - solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_footer', [$this, 'displayAdminBar'], 52);
+        }
         
         // Hook alternativo per intercettare le query
         add_action('init', [$this, 'startQueryMonitoring'], 1);

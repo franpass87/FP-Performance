@@ -15,6 +15,11 @@ class CodeSplittingManager
     
     public function init()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         add_action('wp_enqueue_scripts', [$this, 'splitScripts'], 997);
         add_action('wp_footer', [$this, 'addCodeSplittingScript'], 42);
     }

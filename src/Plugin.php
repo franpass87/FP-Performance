@@ -102,21 +102,15 @@ class Plugin
             }
         }
 
-        // FIX CRITICO: Se siamo nell'admin, carica SOLO i servizi admin essenziali
+        // Carica servizi admin se siamo nell'admin
         if (is_admin()) {
             try {
                 $container->get(Menu::class)->boot();
                 $container->get(AdminAssets::class)->boot();
                 $container->get(AdminBar::class)->boot();
                 AdminBar::registerActions();
-                
-                // NON caricare Routes nell'admin per evitare interferenze
-                Logger::debug("Admin mode: skipping Routes and optimization services");
-                return;
             } catch (\Throwable $e) {
                 Logger::error("Error in admin mode: " . $e->getMessage());
-                // Se c'è un errore, non bloccare l'admin
-                return;
             }
         }
         
@@ -140,10 +134,11 @@ class Plugin
                 return $schedules;
             });
 
-            // FIX CRITICO: NON registrare servizi di ottimizzazione nell'admin
+            // FIX CRITICO: Prevenire attivazione servizi frontend nell'admin
             if (is_admin()) {
-                Logger::debug("Skipping optimization services registration in admin");
-                return;
+                // Disabilita tutti i servizi che potrebbero interferire con l'admin
+                add_filter('fp_ps_disable_frontend_services', '__return_true');
+                Logger::debug("Frontend services disabled in admin");
             }
 
             // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
@@ -935,6 +930,14 @@ class Plugin
     public static function isServiceRegistered(string $serviceClass): bool
     {
         return isset(self::$registeredServices[$serviceClass]);
+    }
+    
+    /**
+     * Verifica se i servizi frontend devono essere disabilitati
+     */
+    public static function shouldDisableFrontendServices(): bool
+    {
+        return apply_filters('fp_ps_disable_frontend_services', is_admin());
     }
 
     public static function onActivate(): void

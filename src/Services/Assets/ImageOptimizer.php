@@ -15,7 +15,10 @@ class ImageOptimizer
     {
         add_filter('wp_get_attachment_image_attributes', [$this, 'addLazyLoading'], 10, 3);
         add_filter('the_content', [$this, 'optimizeContentImages']);
-        add_action('wp_head', [$this, 'addImageOptimizationScripts'], 26);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_head', [$this, 'addImageOptimizationScripts'], 26);
+        }
     }
     
     public function addLazyLoading($attr, $attachment, $size)

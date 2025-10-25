@@ -17,9 +17,12 @@ class MobileOptimizer
     
     public function init()
     {
-        add_action('wp_head', [$this, 'addMobileOptimizations'], 17);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_head', [$this, 'addMobileOptimizations'], 17);
+            add_action('wp_footer', [$this, 'addMobileScripts'], 45);
+        }
         add_filter('wp_get_attachment_image_attributes', [$this, 'optimizeMobileImages'], 10, 3);
-        add_action('wp_footer', [$this, 'addMobileScripts'], 45);
     }
     
     public function addMobileOptimizations()

@@ -30,6 +30,11 @@ class ThirdPartyScriptManager
             return;
         }
 
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+
         // CRITICAL: Don't delay scripts on checkout, cart, payment pages!
         if ($this->isCriticalPage()) {
             return;

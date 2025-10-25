@@ -29,9 +29,8 @@ class Http2ServerPush
             return;
         }
 
-        // Hook per aggiungere header Link
+        // Hook per aggiungere header Link - solo nel frontend
         add_action('template_redirect', [$this, 'sendPushHeaders'], 1);
-        add_action('admin_init', [$this, 'sendPushHeaders'], 1);
 
         Logger::debug('HTTP/2 Server Push registered');
     }

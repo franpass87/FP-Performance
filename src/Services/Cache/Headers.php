@@ -13,6 +13,11 @@ class Headers
     
     public function setCacheHeaders($ttl = null)
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         $ttl = $ttl ?: $this->ttl;
         
         if (!headers_sent()) {
@@ -24,6 +29,11 @@ class Headers
     
     public function setNoCacheHeaders()
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         if (!headers_sent()) {
             header('Cache-Control: no-cache, no-store, must-revalidate');
             header('Pragma: no-cache');
@@ -33,6 +43,11 @@ class Headers
     
     public function setETag($content)
     {
+        // NON attivare nell'admin di WordPress
+        if (is_admin()) {
+            return;
+        }
+        
         if (!headers_sent()) {
             $etag = md5($content);
             header('ETag: "' . $etag . '"');
