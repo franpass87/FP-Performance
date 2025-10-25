@@ -3,7 +3,7 @@
  * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
  * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.5.1
+ * Version: 1.5.2
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,32 +16,30 @@
 
 defined('ABSPATH') || exit;
 
-// Plugin principale FP Performance Suite - VERSIONE FIXATA
+// Prevenzione caricamento multiplo
+if (defined('FP_PERF_SUITE_LOADED')) {
+    return;
+}
+define('FP_PERF_SUITE_LOADED', true);
 
 /**
  * Verifica se il database WordPress è disponibile
- * 
- * @return bool True se il database è disponibile
  */
 function fp_perf_suite_is_db_available(): bool {
     global $wpdb;
     
-    // Verifica che $wpdb esista
     if (!isset($wpdb) || !is_object($wpdb)) {
         return false;
     }
     
-    // Verifica che la connessione sia attiva
     if (!isset($wpdb->dbh)) {
         return false;
     }
     
-    // Per mysqli - Verifica connessione
     if (is_object($wpdb->dbh) && $wpdb->dbh instanceof \mysqli) {
         return true;
     }
     
-    // Fallback: tenta una query semplice
     try {
         $result = @$wpdb->query('SELECT 1');
         return $result !== false;
@@ -52,9 +50,6 @@ function fp_perf_suite_is_db_available(): bool {
 
 /**
  * Log sicuro senza dipendenze dal database
- * 
- * @param string $message Messaggio da loggare
- * @param string $level Livello di log
  */
 function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void {
     $timestamp = gmdate('Y-m-d H:i:s');
@@ -69,9 +64,6 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
         error_log($logMessage);
     }
 }
-
-// NON caricare file di debug che causano white screen
-// Questi file sono stati identificati come causa del problema
 
 // Autoload con gestione errori migliorata
 $autoload = __DIR__ . '/vendor/autoload.php';
@@ -99,14 +91,13 @@ if (is_readable($autoload)) {
     });
 }
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1');
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.2');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
 // Activation/Deactivation hooks con gestione errori migliorata
 register_activation_hook(__FILE__, static function () {
     try {
-        // Carica la classe solo quando necessario
         if (!class_exists('FP\\PerfSuite\\Plugin')) {
             $pluginFile = __DIR__ . '/src/Plugin.php';
             if (!file_exists($pluginFile)) {
@@ -129,7 +120,6 @@ register_activation_hook(__FILE__, static function () {
 
 register_deactivation_hook(__FILE__, static function () {
     try {
-        // Carica la classe solo quando necessario
         if (!class_exists('FP\\PerfSuite\\Plugin')) {
             $pluginFile = __DIR__ . '/src/Plugin.php';
             if (file_exists($pluginFile)) {
@@ -144,12 +134,6 @@ register_deactivation_hook(__FILE__, static function () {
         fp_perf_suite_safe_log('Errore disattivazione: ' . $e->getMessage());
     }
 });
-
-// Prevenzione caricamento multiplo
-if (defined('FP_PERF_SUITE_LOADED')) {
-    return;
-}
-define('FP_PERF_SUITE_LOADED', true);
 
 // Sistema di inizializzazione FIXATO - SOLO UNA VOLTA
 if (function_exists('add_action')) {
