@@ -103,47 +103,52 @@ defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
-// Activation/Deactivation hooks con gestione errori migliorata
-register_activation_hook(__FILE__, static function () {
-    try {
-        // Carica la classe solo quando necessario
-        if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            $pluginFile = __DIR__ . '/src/Plugin.php';
-            if (!file_exists($pluginFile)) {
-                wp_die('Errore critico: File Plugin.php non trovato in ' . esc_html($pluginFile));
-            }
-            require_once $pluginFile;
-        }
-        
-        FP\PerfSuite\Plugin::onActivate();
-    } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore attivazione: ' . $e->getMessage());
-        wp_die(sprintf(
-            '<h1>Errore di Attivazione Plugin</h1><p><strong>Messaggio:</strong> %s</p><p><strong>File:</strong> %s:%d</p>',
-            esc_html($e->getMessage()),
-            esc_html($e->getFile()),
-            $e->getLine()
-        ));
-    }
-});
-
-register_deactivation_hook(__FILE__, static function () {
-    try {
-        // Carica la classe solo quando necessario
-        if (!class_exists('FP\\PerfSuite\\Plugin')) {
-            $pluginFile = __DIR__ . '/src/Plugin.php';
-            if (file_exists($pluginFile)) {
+// Activation/Deactivation hooks con gestione errori migliorata - SOLO UNA VOLTA
+if (!function_exists('fp_perf_suite_activation_handler')) {
+    function fp_perf_suite_activation_handler() {
+        try {
+            // Carica la classe solo quando necessario
+            if (!class_exists('FP\\PerfSuite\\Plugin')) {
+                $pluginFile = __DIR__ . '/src/Plugin.php';
+                if (!file_exists($pluginFile)) {
+                    wp_die('Errore critico: File Plugin.php non trovato in ' . esc_html($pluginFile));
+                }
                 require_once $pluginFile;
             }
+            
+            FP\PerfSuite\Plugin::onActivate();
+        } catch (\Throwable $e) {
+            fp_perf_suite_safe_log('Errore attivazione: ' . $e->getMessage());
+            wp_die(sprintf(
+                '<h1>Errore di Attivazione Plugin</h1><p><strong>Messaggio:</strong> %s</p><p><strong>File:</strong> %s:%d</p>',
+                esc_html($e->getMessage()),
+                esc_html($e->getFile()),
+                $e->getLine()
+            ));
         }
-        
-        if (class_exists('FP\\PerfSuite\\Plugin')) {
-            FP\PerfSuite\Plugin::onDeactivate();
-        }
-    } catch (\Throwable $e) {
-        fp_perf_suite_safe_log('Errore disattivazione: ' . $e->getMessage());
     }
-});
+    
+    function fp_perf_suite_deactivation_handler() {
+        try {
+            // Carica la classe solo quando necessario
+            if (!class_exists('FP\\PerfSuite\\Plugin')) {
+                $pluginFile = __DIR__ . '/src/Plugin.php';
+                if (file_exists($pluginFile)) {
+                    require_once $pluginFile;
+                }
+            }
+            
+            if (class_exists('FP\\PerfSuite\\Plugin')) {
+                FP\PerfSuite\Plugin::onDeactivate();
+            }
+        } catch (\Throwable $e) {
+            fp_perf_suite_safe_log('Errore disattivazione: ' . $e->getMessage());
+        }
+    }
+    
+    register_activation_hook(__FILE__, 'fp_perf_suite_activation_handler');
+    register_deactivation_hook(__FILE__, 'fp_perf_suite_deactivation_handler');
+}
 
 // Prevenzione caricamento multiplo
 if (defined('FP_PERF_SUITE_LOADED')) {
@@ -263,10 +268,13 @@ function fp_perf_suite_initialize_plugin_fixed(): void {
     }
 }
 
-// Aggiungi avviso di versione fixata
-add_action('admin_notices', static function () {
-    if (current_user_can('manage_options')) {
-        echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Versione fixata caricata - problemi di duplicazione risolti.</p></div>';
+// Aggiungi avviso di versione fixata - SOLO UNA VOLTA
+if (!function_exists('fp_perf_suite_admin_notice')) {
+    function fp_perf_suite_admin_notice() {
+        if (current_user_can('manage_options')) {
+            echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Versione fixata caricata - problemi di duplicazione risolti.</p></div>';
+        }
     }
-});
+    add_action('admin_notices', 'fp_perf_suite_admin_notice');
+}
 ?>
