@@ -37,9 +37,11 @@ class ExternalResourceCacheManager
             add_action('wp_footer', [$this, 'addExternalCacheHeaders'], 30);
         }
         
-        // Hook per gestire risorse specifiche
-        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], 994);
-        add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedStyles'], 993);
+        // Hook per gestire risorse specifiche - solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], 994);
+            add_action('wp_enqueue_scripts', [$this, 'handleEnqueuedStyles'], 993);
+        }
 
         Logger::debug('External Resource Cache Manager registered');
     }

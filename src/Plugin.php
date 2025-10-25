@@ -60,6 +60,12 @@ class Plugin
     {
         global $fp_perf_suite_initialized;
         
+        error_log("[FP-PerfSuite] ===== Plugin::init() START =====");
+        error_log("[FP-PerfSuite] self::\$initialized: " . (self::$initialized ? 'TRUE' : 'FALSE'));
+        error_log("[FP-PerfSuite] container instanceof ServiceContainer: " . (self::$container instanceof ServiceContainer ? 'TRUE' : 'FALSE'));
+        error_log("[FP-PerfSuite] global fp_perf_suite_initialized: " . ($fp_perf_suite_initialized ? 'TRUE' : 'FALSE'));
+        error_log("[FP-PerfSuite] is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
+        
         Logger::debug("Plugin::init() called", [
             'initialized' => self::$initialized,
             'container_exists' => self::$container instanceof ServiceContainer,
@@ -104,14 +110,30 @@ class Plugin
 
         // Carica servizi admin se siamo nell'admin
         if (is_admin()) {
+            error_log("[FP-PerfSuite] Loading admin services");
             try {
+                error_log("[FP-PerfSuite] Getting Menu service");
                 $container->get(Menu::class)->boot();
+                error_log("[FP-PerfSuite] Menu service booted");
+                
+                error_log("[FP-PerfSuite] Getting AdminAssets service");
                 $container->get(AdminAssets::class)->boot();
+                error_log("[FP-PerfSuite] AdminAssets service booted");
+                
+                error_log("[FP-PerfSuite] Getting AdminBar service");
                 $container->get(AdminBar::class)->boot();
+                error_log("[FP-PerfSuite] AdminBar service booted");
+                
+                error_log("[FP-PerfSuite] Registering AdminBar actions");
                 AdminBar::registerActions();
+                error_log("[FP-PerfSuite] AdminBar actions registered");
             } catch (\Throwable $e) {
+                error_log("[FP-PerfSuite] ERROR in admin services: " . $e->getMessage());
+                error_log("[FP-PerfSuite] ERROR stack trace: " . $e->getTraceAsString());
                 Logger::error("Error in admin mode: " . $e->getMessage());
             }
+        } else {
+            error_log("[FP-PerfSuite] NOT in admin - skipping admin services");
         }
         
         $container->get(Routes::class)->boot();
@@ -134,22 +156,46 @@ class Plugin
                 return $schedules;
             });
 
+            // LOGGING AMPIO PER DEBUG - Identificare causa pagine vuote
+            Logger::debug("=== PLUGIN INIT DEBUG ===");
+            Logger::debug("REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+            Logger::debug("WP_ADMIN defined: " . (defined('WP_ADMIN') ? 'YES' : 'NO'));
+            Logger::debug("WP_ADMIN value: " . (defined('WP_ADMIN') ? (WP_ADMIN ? 'TRUE' : 'FALSE') : 'undefined'));
+            Logger::debug("is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
+            Logger::debug("is_ajax(): " . (function_exists('wp_doing_ajax') ? (wp_doing_ajax() ? 'TRUE' : 'FALSE') : 'function not exists'));
+            Logger::debug("DOING_AJAX: " . (defined('DOING_AJAX') ? (DOING_AJAX ? 'TRUE' : 'FALSE') : 'undefined'));
+            Logger::debug("SCRIPT_NAME: " . ($_SERVER['SCRIPT_NAME'] ?? 'unknown'));
+            Logger::debug("HTTP_HOST: " . ($_SERVER['HTTP_HOST'] ?? 'unknown'));
+            Logger::debug("=== END PLUGIN INIT DEBUG ===");
+            
             // FIX CRITICO: Prevenire attivazione servizi frontend nell'admin
-            if (is_admin()) {
+            $is_admin_request = (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false) || 
+                               (defined('WP_ADMIN') && WP_ADMIN) || 
+                               is_admin();
+            
+            if ($is_admin_request) {
                 // Disabilita tutti i servizi che potrebbero interferire con l'admin
                 add_filter('fp_ps_disable_frontend_services', '__return_true');
-                Logger::debug("Frontend services disabled in admin");
+                Logger::debug("Frontend services disabled in admin - REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+            } else {
+                Logger::debug("Frontend services ENABLED - NOT in admin");
             }
 
             // CARICAMENTO LAZY - Solo servizi essenziali per ridurre memory footprint
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
             // Core services - Solo se abilitati esplicitamente
+            error_log("[FP-PerfSuite] Starting core services registration");
             $pageCacheSettings = get_option('fp_ps_page_cache', []);
+            error_log("[FP-PerfSuite] Page cache settings: " . json_encode($pageCacheSettings));
             if (!empty($pageCacheSettings['enabled'])) {
+                error_log("[FP-PerfSuite] Registering PageCache service");
                 self::registerServiceOnce(PageCache::class, function() use ($container) {
                     $container->get(PageCache::class)->register();
                 });
+                error_log("[FP-PerfSuite] PageCache service registered");
+            } else {
+                error_log("[FP-PerfSuite] PageCache service NOT enabled");
             }
             
             $headersSettings = get_option('fp_ps_browser_cache', []);
@@ -907,18 +953,25 @@ class Plugin
      */
     public static function registerServiceOnce(string $serviceClass, callable $registerCallback): bool
     {
+        error_log("[FP-PerfSuite] registerServiceOnce called for: " . $serviceClass);
+        
         if (isset(self::$registeredServices[$serviceClass])) {
+            error_log("[FP-PerfSuite] Service already registered: " . $serviceClass);
             Logger::debug("Service $serviceClass already registered, skipping");
             return false; // Già registrato
         }
         
         try {
+            error_log("[FP-PerfSuite] Registering service: " . $serviceClass);
             Logger::debug("Registering service: $serviceClass");
             $registerCallback();
             self::$registeredServices[$serviceClass] = true;
+            error_log("[FP-PerfSuite] Service registered successfully: " . $serviceClass);
             Logger::debug("Service $serviceClass registered successfully");
             return true;
         } catch (\Throwable $e) {
+            error_log("[FP-PerfSuite] ERROR registering service " . $serviceClass . ": " . $e->getMessage());
+            error_log("[FP-PerfSuite] ERROR stack trace: " . $e->getTraceAsString());
             Logger::error('Failed to register service: ' . $serviceClass, ['error' => $e->getMessage()]);
             return false;
         }

@@ -56,11 +56,15 @@ class DatabaseQueryMonitor
             add_action('wp_footer', [$this, 'displayAdminBar'], 52);
         }
         
-        // Hook alternativo per intercettare le query
-        add_action('init', [$this, 'startQueryMonitoring'], 1);
+        // Hook alternativo per intercettare le query - solo nel frontend
+        if (!is_admin()) {
+            add_action('init', [$this, 'startQueryMonitoring'], 1);
+        }
         
-        // Hook per intercettare le query in modo più diretto
-        add_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
+        // Hook per intercettare le query in modo più diretto - solo nel frontend
+        if (!is_admin()) {
+            add_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
+        }
     }
     
     /**

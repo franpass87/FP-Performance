@@ -152,48 +152,72 @@ if (function_exists('add_action')) {
         $fp_perf_suite_initialized = false;
     }
     
-    // Inizializzazione con protezione massima - MANTIENI I SERVIZI
-    add_action('init', static function () {
-        global $fp_perf_suite_initialized;
+// Inizializzazione con protezione massima - MANTIENI I SERVIZI
+add_action('init', static function () {
+    global $fp_perf_suite_initialized;
+    
+    // LOGGING ESTENSIVO PER DEBUG
+    error_log("[FP-PerfSuite] ===== INIT HOOK START =====");
+    error_log("[FP-PerfSuite] REQUEST_URI: " . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
+    error_log("[FP-PerfSuite] SCRIPT_NAME: " . ($_SERVER['SCRIPT_NAME'] ?? 'unknown'));
+    error_log("[FP-PerfSuite] is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
+    error_log("[FP-PerfSuite] WP_ADMIN defined: " . (defined('WP_ADMIN') ? 'YES' : 'NO'));
+    error_log("[FP-PerfSuite] WP_ADMIN value: " . (defined('WP_ADMIN') ? (WP_ADMIN ? 'TRUE' : 'FALSE') : 'undefined'));
+    error_log("[FP-PerfSuite] fp_perf_suite_initialized: " . ($fp_perf_suite_initialized ? 'TRUE' : 'FALSE'));
+    error_log("[FP-PerfSuite] ob_get_level(): " . ob_get_level());
+    error_log("[FP-PerfSuite] headers_sent(): " . (headers_sent() ? 'TRUE' : 'FALSE'));
+    
+    // Prevenire inizializzazioni multiple - FIX CRITICO
+    if ($fp_perf_suite_initialized) {
+        error_log("[FP-PerfSuite] SKIPPING - already initialized");
+        return;
+    }
+    
+    // Marca come inizializzato immediatamente per prevenire race conditions
+    $fp_perf_suite_initialized = true;
+    error_log("[FP-PerfSuite] Marked as initialized");
+    
+    // Inizializzazione sicura con try-catch
+    try {
+        error_log("[FP-PerfSuite] Calling fp_perf_suite_initialize_plugin_fixed()");
+        fp_perf_suite_initialize_plugin_fixed();
+        error_log("[FP-PerfSuite] fp_perf_suite_initialize_plugin_fixed() completed successfully");
+    } catch (\Throwable $e) {
+        error_log("[FP-PerfSuite] ERROR in fp_perf_suite_initialize_plugin_fixed(): " . $e->getMessage());
+        error_log("[FP-PerfSuite] ERROR stack trace: " . $e->getTraceAsString());
+        fp_perf_suite_safe_log('Errore inizializzazione plugin: ' . $e->getMessage());
         
-        // Prevenire inizializzazioni multiple - FIX CRITICO
-        if ($fp_perf_suite_initialized) {
-            return;
+        // Mostra avviso in admin se possibile
+        if (is_admin() && current_user_can('manage_options')) {
+            add_action('admin_notices', static function () use ($e) {
+                printf(
+                    '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
+                    esc_html($e->getMessage())
+                );
+            });
         }
-        
-        // Marca come inizializzato immediatamente per prevenire race conditions
-        $fp_perf_suite_initialized = true;
-        
-        // Inizializzazione sicura con try-catch
-        try {
-            fp_perf_suite_initialize_plugin_fixed();
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log('Errore inizializzazione plugin: ' . $e->getMessage());
-            
-            // Mostra avviso in admin se possibile
-            if (is_admin() && current_user_can('manage_options')) {
-                add_action('admin_notices', static function () use ($e) {
-                    printf(
-                        '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
-                        esc_html($e->getMessage())
-                    );
-                });
-            }
-        }
-    }, 1);
+    }
+    
+    error_log("[FP-PerfSuite] ===== INIT HOOK END =====");
+}, 1);
 }
 
 /**
  * Funzione di inizializzazione FIXATA del plugin
  */
 function fp_perf_suite_initialize_plugin_fixed(): void {
+    error_log("[FP-PerfSuite] ===== fp_perf_suite_initialize_plugin_fixed() START =====");
+    
     global $fp_perf_suite_initialized;
+    
+    error_log("[FP-PerfSuite] fp_perf_suite_initialized: " . ($fp_perf_suite_initialized ? 'TRUE' : 'FALSE'));
     
     // La variabile globale è già stata impostata nel controllo precedente
     // Non serve altro controllo qui
     
     // Verifica che il file Plugin.php esista
     $pluginFile = __DIR__ . '/src/Plugin.php';
+    error_log("[FP-PerfSuite] Checking Plugin.php at: " . $pluginFile);
     
     if (!file_exists($pluginFile)) {
         fp_perf_suite_safe_log('ERRORE CRITICO: File Plugin.php non trovato in ' . $pluginFile, 'ERROR');

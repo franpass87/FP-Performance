@@ -23,8 +23,12 @@ class HtmlMinifier
             return;
         }
         
+        // LOGGING PER DEBUG
+        error_log("[FP-PerfSuite] HtmlMinifier::startBuffer() called - is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
+        
         // NON attivare nell'admin di WordPress
         if (is_admin()) {
+            error_log("[FP-PerfSuite] HtmlMinifier::startBuffer() SKIPPED - in admin");
             return;
         }
         

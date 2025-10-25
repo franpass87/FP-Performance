@@ -64,8 +64,10 @@ class MLPredictor
             return;
         }
 
-        // Raccoglie dati di performance
-        add_action('shutdown', [$this, 'collectPerformanceData'], PHP_INT_MAX);
+        // Raccoglie dati di performance - solo nel frontend
+        if (!is_admin()) {
+            add_action('shutdown', [$this, 'collectPerformanceData'], PHP_INT_MAX);
+        }
         
         // Analizza pattern ogni ora
         add_action('fp_ps_ml_analyze_patterns', [$this, 'analyzePatterns']);

@@ -15,8 +15,11 @@ class HtaccessSecurity
     
     public function init()
     {
-        add_action('init', [$this, 'addSecurityHeaders']);
-        add_action('wp_loaded', [$this, 'updateHtaccess']);
+        // Solo nel frontend
+        if (!is_admin()) {
+            add_action('init', [$this, 'addSecurityHeaders']);
+            add_action('wp_loaded', [$this, 'updateHtaccess']);
+        }
     }
     
     public function addSecurityHeaders()

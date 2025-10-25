@@ -47,8 +47,12 @@ class CompressionManager
     
     public function enableGzip()
     {
+        // LOGGING PER DEBUG
+        error_log("[FP-PerfSuite] CompressionManager::enableGzip() called - is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
+        
         // NON attivare nell'admin di WordPress
         if (is_admin()) {
+            error_log("[FP-PerfSuite] CompressionManager::enableGzip() SKIPPED - in admin");
             return;
         }
         
