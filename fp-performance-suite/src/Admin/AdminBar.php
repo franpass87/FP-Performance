@@ -58,9 +58,14 @@ class AdminBar
         ]);
 
         // Cache
-        $pageCache = $this->container->get(PageCache::class);
-        $cacheStatus = $pageCache->status();
-        $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
+        try {
+            $pageCache = $this->container->get(PageCache::class);
+            $cacheStatus = $pageCache->status();
+            $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
+        } catch (\Throwable $e) {
+            $cacheStatus = ['enabled' => false];
+            $cacheIcon = '✗';
+        }
         
         $wp_admin_bar->add_node([
             'parent' => 'fp-performance',
