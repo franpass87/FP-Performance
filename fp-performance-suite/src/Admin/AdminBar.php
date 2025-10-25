@@ -58,9 +58,12 @@ class AdminBar
             ],
         ]);
 
-        // Cache - FIX DEFINITIVO
+        // Cache - FIX DEFINITIVO FORZATO
         $cacheStatus = ['enabled' => false];
         $cacheIcon = '✗';
+        
+        // FORZA IL RICARICAMENTO DEL FILE - TIMESTAMP: 2025-01-27 15:30:00
+        error_log('[FP-PerfSuite] AdminBar file reloaded at ' . date('Y-m-d H:i:s'));
         
         try {
             // Verifica che il container sia inizializzato
