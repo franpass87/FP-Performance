@@ -47,6 +47,7 @@ class AdminBar
             return;
         }
 
+
         // Menu principale
         $wp_admin_bar->add_node([
             'id' => 'fp-performance',
@@ -59,10 +60,35 @@ class AdminBar
 
         // Cache
         try {
+            // Verifica che il container sia inizializzato
+            if (!$this->container) {
+                throw new \Exception('Container not initialized');
+            }
+            
+            // Verifica che la classe esista prima di usarla
+            if (!class_exists(PageCache::class)) {
+                throw new \Exception('PageCache class not found');
+            }
+            
             $pageCache = $this->container->get(PageCache::class);
+            
+            // Verifica che l'oggetto sia valido
+            if (!$pageCache) {
+                throw new \Exception('PageCache instance is null');
+            }
+            
+            // Verifica che il metodo esista
+            if (!method_exists($pageCache, 'status')) {
+                throw new \Exception('PageCache::status() method not found');
+            }
+            
             $cacheStatus = $pageCache->status();
             $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
         } catch (\Throwable $e) {
+            // Log dell'errore per debug
+            error_log('[FP-PerfSuite] AdminBar Cache Error: ' . $e->getMessage());
+            error_log('[FP-PerfSuite] AdminBar Cache Error Stack: ' . $e->getTraceAsString());
+            
             $cacheStatus = ['enabled' => false];
             $cacheIcon = '✗';
         }
