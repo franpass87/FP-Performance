@@ -173,6 +173,13 @@ add_action('init', static function () {
         return;
     }
     
+    // FIX CRITICO: Se siamo nell'admin, NON inizializzare di nuovo nel frontend
+    if (is_admin() || (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false)) {
+        error_log("[FP-PerfSuite] ADMIN REQUEST - preventing frontend initialization");
+        // Non fare nulla, l'inizializzazione admin è già stata fatta
+        return;
+    }
+    
     // Marca come inizializzato immediatamente per prevenire race conditions
     $fp_perf_suite_initialized = true;
     error_log("[FP-PerfSuite] Marked as initialized");
