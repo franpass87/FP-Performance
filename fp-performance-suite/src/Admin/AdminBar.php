@@ -58,15 +58,20 @@ class AdminBar
             ],
         ]);
 
-        // Cache
+        // Cache - FIX DEFINITIVO
+        $cacheStatus = ['enabled' => false];
+        $cacheIcon = '✗';
+        
         try {
             // Verifica che il container sia inizializzato
             if (!$this->container) {
+                error_log('[FP-PerfSuite] Container not initialized');
                 throw new \Exception('Container not initialized');
             }
             
             // Verifica che la classe esista prima di usarla
             if (!class_exists(PageCache::class)) {
+                error_log('[FP-PerfSuite] PageCache class not found');
                 throw new \Exception('PageCache class not found');
             }
             
@@ -74,21 +79,25 @@ class AdminBar
             
             // Verifica che l'oggetto sia valido
             if (!$pageCache) {
+                error_log('[FP-PerfSuite] PageCache instance is null');
                 throw new \Exception('PageCache instance is null');
             }
             
             // Verifica che il metodo esista
             if (!method_exists($pageCache, 'status')) {
+                error_log('[FP-PerfSuite] PageCache::status() method not found');
                 throw new \Exception('PageCache::status() method not found');
             }
             
             $cacheStatus = $pageCache->status();
             $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
+            
         } catch (\Throwable $e) {
             // Log dell'errore per debug
             error_log('[FP-PerfSuite] AdminBar Cache Error: ' . $e->getMessage());
             error_log('[FP-PerfSuite] AdminBar Cache Error Stack: ' . $e->getTraceAsString());
             
+            // Valori di fallback sicuri
             $cacheStatus = ['enabled' => false];
             $cacheIcon = '✗';
         }
