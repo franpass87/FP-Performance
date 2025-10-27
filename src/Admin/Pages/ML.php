@@ -74,33 +74,33 @@ class ML extends AbstractPage
         ?>
         
         <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro fp-ps-ml-intro">
-            <h2 class="fp-ps-intro-title">
-                🤖 Machine Learning Intelligence
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🤖 <?php esc_html_e('Machine Learning Intelligence', 'fp-performance-suite'); ?>
             </h2>
-            <p class="fp-ps-intro-description">
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
                 <?php esc_html_e('L\'intelligenza artificiale che impara dal tuo sito per ottimizzare automaticamente le performance e prevedere problemi futuri.', 'fp-performance-suite'); ?>
             </p>
             
-            <div class="fp-ps-grid three">
-                <div class="fp-ps-intro-card">
-                    <div class="fp-ps-intro-icon">🧠</div>
-                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Predizioni Intelligenti', 'fp-performance-suite'); ?></strong>
-                    <p class="fp-ps-intro-text">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🧠</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Predizioni Intelligenti', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
                         <?php esc_html_e('Analizza pattern di performance e prevede problemi prima che si verifichino', 'fp-performance-suite'); ?>
                     </p>
                 </div>
-                <div class="fp-ps-intro-card">
-                    <div class="fp-ps-intro-icon">🔍</div>
-                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Rilevamento Anomalie', 'fp-performance-suite'); ?></strong>
-                    <p class="fp-ps-intro-text">
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Rilevamento Anomalie', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
                         <?php esc_html_e('Identifica automaticamente comportamenti anomali e potenziali problemi', 'fp-performance-suite'); ?>
                     </p>
                 </div>
-                <div class="fp-ps-intro-card">
-                    <div class="fp-ps-intro-icon">⚙️</div>
-                    <strong class="fp-ps-intro-title-small"><?php esc_html_e('Auto-Tuning', 'fp-performance-suite'); ?></strong>
-                    <p class="fp-ps-intro-text">
+                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 32px; margin-bottom: 10px;">⚙️</div>
+                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Auto-Tuning', 'fp-performance-suite'); ?></strong>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
                         <?php esc_html_e('Ottimizza automaticamente le impostazioni basandosi sui dati raccolti', 'fp-performance-suite'); ?>
                     </p>
                 </div>
@@ -144,9 +144,9 @@ class ML extends AbstractPage
 
         <div class="wrap">
             <?php if ($current_tab === 'overview'): ?>
-                <div class="fp-ps-admin-grid">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- ML Status Overview -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Stato Sistema ML', 'fp-performance-suite'); ?></h2>
                         
                         <div class="fp-ps-ml-stats">
@@ -174,7 +174,7 @@ class ML extends AbstractPage
                         </div>
                     </div>
                     <!-- Anomaly Detection Overview -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Rilevamento Anomalie', 'fp-performance-suite'); ?></h2>
                         
                         <div class="fp-ps-anomaly-stats">
@@ -196,7 +196,7 @@ class ML extends AbstractPage
                     </div>
 
                     <!-- Auto Tuning Overview -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Auto Tuning', 'fp-performance-suite'); ?></h2>
                         
                         <div class="fp-ps-tuning-stats">
@@ -252,9 +252,9 @@ class ML extends AbstractPage
                     </div>
                 </div>
             <?php elseif ($current_tab === 'settings'): ?>
-                <div class="fp-ps-admin-grid">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- ML Settings -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Machine Learning Settings', 'fp-performance-suite'); ?></h2>
                         
                         <form method="post" action="">
@@ -317,9 +317,9 @@ class ML extends AbstractPage
                     </div>
                 </div>
             <?php elseif ($current_tab === 'predictions'): ?>
-                <div class="fp-ps-admin-grid">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- ML Predictions -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('ML Predictions', 'fp-performance-suite'); ?></h2>
                         
                         <?php if (!empty($ml_report['predictions'])): ?>
@@ -340,7 +340,7 @@ class ML extends AbstractPage
                     </div>
 
                     <!-- ML Recommendations -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('ML Recommendations', 'fp-performance-suite'); ?></h2>
                         
                         <?php
@@ -368,9 +368,9 @@ class ML extends AbstractPage
                     </div>
                 </div>
             <?php elseif ($current_tab === 'anomalies'): ?>
-                <div class="fp-ps-admin-grid">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- Anomaly Detection -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Anomaly Detection', 'fp-performance-suite'); ?></h2>
                         
                         <div class="fp-ps-anomaly-stats">
@@ -407,9 +407,9 @@ class ML extends AbstractPage
                     </div>
                 </div>
             <?php elseif ($current_tab === 'tuning'): ?>
-                <div class="fp-ps-admin-grid">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- Auto Tuning -->
-                    <div class="fp-ps-admin-card">
+                    <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php _e('Auto Tuning', 'fp-performance-suite'); ?></h2>
                         
                         <div class="fp-ps-tuning-stats">

@@ -129,6 +129,52 @@ class Cleaner
     }
     
     /**
+     * Restituisce le impostazioni del database cleaner
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        return [
+            'clean_revisions' => $this->clean_revisions,
+            'clean_spam' => $this->clean_spam,
+            'clean_trash' => $this->clean_trash,
+            'clean_transients' => $this->clean_transients ?? false,
+            'optimize_tables' => $this->optimize_tables ?? false,
+        ];
+    }
+    
+    /**
+     * Restituisce lo stato del database cleaner
+     * 
+     * @return array Array con 'enabled', 'overhead_mb' e altre informazioni
+     */
+    public function status(): array
+    {
+        global $wpdb;
+        
+        // Calcola l'overhead del database
+        $overhead = 0;
+        $tables = $wpdb->get_results('SHOW TABLE STATUS', ARRAY_A);
+        if ($tables) {
+            foreach ($tables as $table) {
+                if (isset($table['Data_free'])) {
+                    $overhead += $table['Data_free'];
+                }
+            }
+        }
+        $overhead_mb = round($overhead / 1024 / 1024, 2);
+        
+        return [
+            'enabled' => $this->clean_revisions || $this->clean_spam || $this->clean_trash,
+            'overhead_mb' => $overhead_mb,
+            'clean_revisions' => $this->clean_revisions,
+            'clean_spam' => $this->clean_spam,
+            'clean_trash' => $this->clean_trash,
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

@@ -129,6 +129,16 @@ class Security extends AbstractPage
         ob_start();
         ?>
         
+        <!-- INTRO BOX -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🔒 <?php esc_html_e('Security & .htaccess', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                <?php esc_html_e('Proteggi il tuo sito con security headers, protezione file sensibili, blocco XML-RPC e regole .htaccess ottimizzate.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
         <!-- Navigazione Tabs -->
         <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
             <a href="?page=fp-performance-suite-security&tab=security" 
@@ -433,7 +443,7 @@ class Security extends AbstractPage
                     
                     <p>
                         <label for="hotlink_allowed_domains"><?php esc_html_e('Domini permessi aggiuntivi (uno per riga)', 'fp-performance-suite'); ?></label><br>
-                        <textarea name="hotlink_allowed_domains" id="hotlink_allowed_domains" rows="3" class="large-text"><?php echo esc_textarea(implode("\n", $settings['hotlink_protection']['allowed_domains'])); ?></textarea>
+                        <textarea name="hotlink_allowed_domains" id="hotlink_allowed_domains" rows="3" class="large-text"><?php echo esc_textarea(implode("\n", $settings['hotlink_protection']['allowed_domains'] ?? [])); ?></textarea>
                         <span class="description"><?php esc_html_e('Aggiungi domini fidati che possono usare le tue immagini', 'fp-performance-suite'); ?></span>
                     </p>
                 </div>

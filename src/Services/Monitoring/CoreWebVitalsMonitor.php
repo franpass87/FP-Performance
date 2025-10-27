@@ -117,6 +117,39 @@ class CoreWebVitalsMonitor
     }
     
     /**
+     * Restituisce le impostazioni del Core Web Vitals monitor
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        return [
+            'lcp_enabled' => $this->lcp,
+            'fid_enabled' => $this->fid,
+            'cls_enabled' => $this->cls,
+        ];
+    }
+    
+    /**
+     * Restituisce lo stato del Core Web Vitals monitor
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        $vitals = $this->getCoreWebVitals();
+        
+        return [
+            'enabled' => $this->lcp || $this->fid || $this->cls,
+            'lcp_enabled' => $this->lcp,
+            'fid_enabled' => $this->fid,
+            'cls_enabled' => $this->cls,
+            'has_data' => !empty($vitals),
+            'vitals' => $vitals,
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

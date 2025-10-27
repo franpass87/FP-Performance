@@ -1,25 +1,25 @@
 /**
  * Toggle Component
- * 
+ *
  * @package FP\PerfSuite
  */
 
 .fp-ps-toggle {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--fp-spacing-sm) var(--fp-spacing-md);
-    border: 1px solid #dbe1e7;
-    border-radius: var(--fp-radius-md);
-    background: #fff;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--fp-spacing-sm) var(--fp-spacing-md);
+	border: 1px solid #dbe1e7;
+	border-radius: var(--fp-radius-md);
+	background: #fff;
 }
 
 .fp-ps-toggle .info {
-    display: flex;
-    flex-direction: column;
+	display: flex;
+	flex-direction: column;
 }
 
 .fp-ps-toggle button,
 .fp-ps-toggle input[type="checkbox"] {
-    margin-left: var(--fp-spacing-sm);
+	margin-left: var(--fp-spacing-sm);
 }

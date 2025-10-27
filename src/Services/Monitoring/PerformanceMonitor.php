@@ -158,6 +158,33 @@ class PerformanceMonitor
     }
 
     /**
+     * Verifica se il performance monitoring è abilitato
+     * 
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        $settings = get_option('fp_ps_monitoring_settings', []);
+        return isset($settings['enabled']) && $settings['enabled'];
+    }
+    
+    /**
+     * Restituisce le impostazioni del performance monitoring
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        $settings = get_option('fp_ps_monitoring_settings', []);
+        
+        return [
+            'enabled' => isset($settings['enabled']) && $settings['enabled'],
+            'core_web_vitals' => $settings['core_web_vitals'] ?? $this->core_web_vitals,
+            'real_user_monitoring' => $settings['real_user_monitoring'] ?? $this->real_user_monitoring,
+        ];
+    }
+    
+    /**
      * Ottiene le statistiche di performance per un periodo specificato
      */
     public function getStats(int $days = 7): array
@@ -168,6 +195,62 @@ class PerformanceMonitor
             'avg_load_time' => 1.2,
             'avg_queries' => 45,
             'avg_memory' => 85.5
+        ];
+    }
+    
+    /**
+     * Ottiene i dati di performance più recenti
+     * 
+     * @param int $limit Numero di campioni da restituire
+     * @return array Array con i dati recenti
+     */
+    public function getRecent(int $limit = 10): array
+    {
+        // Dati mock per ora - in un'implementazione reale questi verrebbero dal database
+        $recent = [];
+        
+        for ($i = 0; $i < $limit; $i++) {
+            $recent[] = [
+                'timestamp' => time() - ($i * 3600),
+                'load_time' => round(0.8 + (rand(0, 10) / 10), 2),
+                'queries' => rand(35, 55),
+                'memory' => round(70 + rand(0, 30), 1),
+                'url' => home_url('/'),
+            ];
+        }
+        
+        return $recent;
+    }
+    
+    /**
+     * Ottiene i trend di performance
+     * 
+     * @param int $days Numero di giorni da analizzare
+     * @return array Array con i trend
+     */
+    public function getTrends(int $days = 7): array
+    {
+        // Dati mock per ora - in un'implementazione reale questi verrebbero dal database
+        return [
+            'load_time' => [
+                'current' => 1.2,
+                'previous' => 1.5,
+                'change' => -20, // Percentuale di miglioramento
+                'trend' => 'improving',
+            ],
+            'queries' => [
+                'current' => 45,
+                'previous' => 50,
+                'change' => -10,
+                'trend' => 'improving',
+            ],
+            'memory' => [
+                'current' => 85.5,
+                'previous' => 88.2,
+                'change' => -3.1,
+                'trend' => 'improving',
+            ],
+            'overall_trend' => 'improving',
         ];
     }
     

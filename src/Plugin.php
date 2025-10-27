@@ -25,6 +25,7 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
+use FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
@@ -46,6 +47,7 @@ use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\RateLimiter;
 use FP\PerfSuite\Utils\Semaphore;
 use FP\PerfSuite\Utils\InstallationRecovery;
+use FP\PerfSuite\Utils\HostingDetector;
 
 use function get_file_data;
 use function wp_clear_scheduled_hook;
@@ -60,26 +62,10 @@ class Plugin
     {
         global $fp_perf_suite_initialized;
         
-        error_log("[FP-PerfSuite] ===== Plugin::init() START =====");
-        error_log("[FP-PerfSuite] self::\$initialized: " . (self::$initialized ? 'TRUE' : 'FALSE'));
-        error_log("[FP-PerfSuite] container instanceof ServiceContainer: " . (self::$container instanceof ServiceContainer ? 'TRUE' : 'FALSE'));
-        error_log("[FP-PerfSuite] global fp_perf_suite_initialized: " . ($fp_perf_suite_initialized ? 'TRUE' : 'FALSE'));
-        error_log("[FP-PerfSuite] is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
-        
-        Logger::debug("Plugin::init() called", [
-            'initialized' => self::$initialized,
-            'container_exists' => self::$container instanceof ServiceContainer,
-            'global_initialized' => $fp_perf_suite_initialized,
-            'is_admin' => is_admin()
-        ]);
-        
         // Prevenire inizializzazioni multiple con controllo semplificato
         if (self::$initialized || self::$container instanceof ServiceContainer) {
-            Logger::debug("Plugin already initialized, skipping");
             return;
         }
-        
-        Logger::debug("Plugin initializing for the first time");
         
         // Marca come inizializzato immediatamente per prevenire race conditions
         self::$initialized = true;
@@ -88,12 +74,17 @@ class Plugin
         $fp_perf_suite_initialized = true;
         
         // Aumenta temporaneamente i limiti per l'inizializzazione
+        // Usa limiti dinamici basati sul tipo di hosting
         $original_memory_limit = ini_get('memory_limit');
         $original_time_limit = ini_get('max_execution_time');
         
+        // Limiti raccomandati in base all'ambiente
+        $recommended_memory = HostingDetector::getRecommendedMemoryLimit();
+        $recommended_time = HostingDetector::getRecommendedTimeLimit();
+        
         try {
-            @ini_set('memory_limit', '512M');
-            @ini_set('max_execution_time', 60);
+            @ini_set('memory_limit', $recommended_memory);
+            @ini_set('max_execution_time', (string) $recommended_time);
             
             $container = new ServiceContainer();
             self::register($container);
@@ -110,33 +101,28 @@ class Plugin
 
         // Carica servizi admin se siamo nell'admin
         if (is_admin()) {
-            error_log("[FP-PerfSuite] Loading admin services");
             try {
-                error_log("[FP-PerfSuite] Getting Menu service");
                 $container->get(Menu::class)->boot();
-                error_log("[FP-PerfSuite] Menu service booted");
-                
-                error_log("[FP-PerfSuite] Getting AdminAssets service");
                 $container->get(AdminAssets::class)->boot();
-                error_log("[FP-PerfSuite] AdminAssets service booted");
-                
-                error_log("[FP-PerfSuite] Getting AdminBar service");
                 $container->get(AdminBar::class)->boot();
-                error_log("[FP-PerfSuite] AdminBar service booted");
-                
-                error_log("[FP-PerfSuite] Registering AdminBar actions");
                 AdminBar::registerActions();
-                error_log("[FP-PerfSuite] AdminBar actions registered");
             } catch (\Throwable $e) {
-                error_log("[FP-PerfSuite] ERROR in admin services: " . $e->getMessage());
-                error_log("[FP-PerfSuite] ERROR stack trace: " . $e->getTraceAsString());
+                if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                    error_log("[FP-PerfSuite] ERROR in admin services: " . $e->getMessage());
+                }
                 Logger::error("Error in admin mode: " . $e->getMessage());
             }
-        } else {
-            error_log("[FP-PerfSuite] NOT in admin - skipping admin services");
         }
         
-        $container->get(Routes::class)->boot();
+        // Routes: carica SOLO se admin o API request
+        if (is_admin() || (function_exists('wp_is_json_request') && wp_is_json_request())) {
+            $container->get(Routes::class)->boot();
+        }
+        
+        // Shortcodes: carica SOLO in frontend
+        if (!is_admin()) {
+            $container->get(Shortcodes::class)->boot();
+        }
 
         add_action('init', static function () use ($container) {
             load_plugin_textdomain('fp-performance-suite', false, dirname(plugin_basename(FP_PERF_SUITE_FILE)) . '/languages');
@@ -185,17 +171,11 @@ class Plugin
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
             // Core services - Solo se abilitati esplicitamente
-            error_log("[FP-PerfSuite] Starting core services registration");
             $pageCacheSettings = get_option('fp_ps_page_cache', []);
-            error_log("[FP-PerfSuite] Page cache settings: " . json_encode($pageCacheSettings));
             if (!empty($pageCacheSettings['enabled'])) {
-                error_log("[FP-PerfSuite] Registering PageCache service");
                 self::registerServiceOnce(PageCache::class, function() use ($container) {
                     $container->get(PageCache::class)->register();
                 });
-                error_log("[FP-PerfSuite] PageCache service registered");
-            } else {
-                error_log("[FP-PerfSuite] PageCache service NOT enabled");
             }
             
             $headersSettings = get_option('fp_ps_browser_cache', []);
@@ -228,6 +208,10 @@ class Plugin
                 });
                 self::registerServiceOnce(CompatibilityFilters::class, function() use ($container) {
                     $container->get(CompatibilityFilters::class)->register();
+                });
+                // Salient + WPBakery Optimizer - Si auto-attiva se rileva tema/builder
+                self::registerServiceOnce(SalientWPBakeryOptimizer::class, function() use ($container) {
+                    $container->get(SalientWPBakeryOptimizer::class)->register();
                 });
             }
             
@@ -305,14 +289,30 @@ class Plugin
             }
             
             // Machine Learning Services (v1.6.0)
+            // PROTEZIONE SHARED HOSTING: Disabilita ML su shared hosting
             $mlSettings = get_option('fp_ps_ml_predictor', []);
             if (!empty($mlSettings['enabled'])) {
-                self::registerServiceOnce(\FP\PerfSuite\Services\ML\MLPredictor::class, function() use ($container) {
-                    $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
-                });
-                self::registerServiceOnce(\FP\PerfSuite\Services\ML\AutoTuner::class, function() use ($container) {
-                    $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
-                });
+                // Verifica se l'ambiente può gestire ML (richiede risorse elevate)
+                if (HostingDetector::canEnableService('MLPredictor')) {
+                    self::registerServiceOnce(\FP\PerfSuite\Services\ML\MLPredictor::class, function() use ($container) {
+                        $container->get(\FP\PerfSuite\Services\ML\MLPredictor::class)->register();
+                    });
+                    self::registerServiceOnce(\FP\PerfSuite\Services\ML\AutoTuner::class, function() use ($container) {
+                        $container->get(\FP\PerfSuite\Services\ML\AutoTuner::class)->register();
+                    });
+                } else {
+                    // Log warning per shared hosting
+                    Logger::warning('ML Services disabilitati: ambiente shared hosting rilevato. Richiede VPS/Dedicated con almeno 512MB RAM.');
+                    
+                    // Mostra avviso in admin
+                    if (is_admin() && current_user_can('manage_options')) {
+                        add_action('admin_notices', function() {
+                            echo '<div class="notice notice-warning is-dismissible">
+                                <p><strong>FP Performance Suite:</strong> I servizi ML (Machine Learning) sono disabilitati automaticamente su shared hosting per evitare timeout e sovraccarichi. Per utilizzarli, passa a VPS o hosting dedicato.</p>
+                            </div>';
+                        });
+                    }
+                }
             }
             
             // Backend Optimization Services - FIX CRITICO
@@ -348,11 +348,25 @@ class Plugin
             }
             
             // Security Services - FIX CRITICO
+            // PROTEZIONE SHARED HOSTING: Verifica permessi .htaccess
             $securitySettings = get_option('fp_ps_htaccess_security', []);
             if (!empty($securitySettings['enabled'])) {
-                self::registerServiceOnce(HtaccessSecurity::class, function() use ($container) {
-                    $container->get(HtaccessSecurity::class)->register();
-                });
+                // Verifica se può modificare .htaccess
+                if (HostingDetector::canEnableService('HtaccessSecurity')) {
+                    self::registerServiceOnce(HtaccessSecurity::class, function() use ($container) {
+                        $container->get(HtaccessSecurity::class)->register();
+                    });
+                } else {
+                    Logger::warning('HtaccessSecurity disabilitato: file .htaccess non scrivibile o permessi insufficienti');
+                    
+                    if (is_admin() && current_user_can('manage_options')) {
+                        add_action('admin_notices', function() {
+                            echo '<div class="notice notice-warning is-dismissible">
+                                <p><strong>FP Performance Suite:</strong> Le regole di sicurezza .htaccess non possono essere applicate automaticamente. Verifica i permessi del file .htaccess o applicale manualmente.</p>
+                            </div>';
+                        });
+                    }
+                }
             }
             
             // External Resource Cache Services - NUOVO
@@ -725,6 +739,9 @@ class Plugin
         // Object Cache (Redis/Memcached)
         $container->set(ObjectCacheManager::class, static fn() => new ObjectCacheManager());
         
+        // Browser Cache
+        $container->set(\FP\PerfSuite\Services\Cache\BrowserCache::class, static fn() => new \FP\PerfSuite\Services\Cache\BrowserCache());
+        
         // Edge Cache Providers
         $container->set(EdgeCacheManager::class, static fn() => new EdgeCacheManager());
         
@@ -782,6 +799,15 @@ class Plugin
         $container->set(\FP\PerfSuite\Services\Assets\CSSOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\CSSOptimizer());
         $container->set(\FP\PerfSuite\Services\Assets\jQueryOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\jQueryOptimizer());
         
+        // Ottimizzatori JavaScript Avanzati
+        $container->set(\FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer());
+        $container->set(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class, static fn() => new \FP\PerfSuite\Services\Assets\CodeSplittingManager());
+        $container->set(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class, static fn() => new \FP\PerfSuite\Services\Assets\JavaScriptTreeShaker());
+        
+        // Servizi Media
+        $container->set(\FP\PerfSuite\Services\Media\LazyLoadManager::class, static fn() => new \FP\PerfSuite\Services\Media\LazyLoadManager());
+        
+        
         // Handler AJAX (Ripristinato 21 Ott 2025 - FASE 2)
         $container->set(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\RecommendationsAjax($c));
         $container->set(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\CriticalCssAjax($c));
@@ -820,6 +846,7 @@ class Plugin
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
+        $container->set(SalientWPBakeryOptimizer::class, static fn(ServiceContainer $c) => new SalientWPBakeryOptimizer($c, $c->get(ThemeDetector::class)));
         
         
         // Smart Intelligence Services
@@ -920,6 +947,7 @@ class Plugin
         $container->set(Menu::class, static fn(ServiceContainer $c) => new Menu($c));
         $container->set(AdminBar::class, static fn(ServiceContainer $c) => new AdminBar($c));
         $container->set(Routes::class, static fn(ServiceContainer $c) => new Routes($c));
+        $container->set(Shortcodes::class, static fn() => new Shortcodes());
     }
 
     public static function container(): ServiceContainer
@@ -953,25 +981,18 @@ class Plugin
      */
     public static function registerServiceOnce(string $serviceClass, callable $registerCallback): bool
     {
-        error_log("[FP-PerfSuite] registerServiceOnce called for: " . $serviceClass);
-        
         if (isset(self::$registeredServices[$serviceClass])) {
-            error_log("[FP-PerfSuite] Service already registered: " . $serviceClass);
-            Logger::debug("Service $serviceClass already registered, skipping");
             return false; // Già registrato
         }
         
         try {
-            error_log("[FP-PerfSuite] Registering service: " . $serviceClass);
-            Logger::debug("Registering service: $serviceClass");
             $registerCallback();
             self::$registeredServices[$serviceClass] = true;
-            error_log("[FP-PerfSuite] Service registered successfully: " . $serviceClass);
-            Logger::debug("Service $serviceClass registered successfully");
             return true;
         } catch (\Throwable $e) {
-            error_log("[FP-PerfSuite] ERROR registering service " . $serviceClass . ": " . $e->getMessage());
-            error_log("[FP-PerfSuite] ERROR stack trace: " . $e->getTraceAsString());
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                error_log("[FP-PerfSuite] ERROR registering service " . $serviceClass . ": " . $e->getMessage());
+            }
             Logger::error('Failed to register service: ' . $serviceClass, ['error' => $e->getMessage()]);
             return false;
         }
@@ -1533,12 +1554,6 @@ class Plugin
             
             // Se nessuna opzione mobile esiste, forza l'inizializzazione
             if (!$has_mobile_options) {
-                // Log per debug
-                if (function_exists('error_log')) {
-                    error_log('[FP Performance Suite] Forzando inizializzazione opzioni mobile per risolvere errore critico');
-                }
-                
-                // Forza l'inizializzazione chiamando ensureDefaultOptionsExist
                 self::ensureDefaultOptionsExist();
             }
             
@@ -1547,7 +1562,7 @@ class Plugin
             
             return true;
         } catch (\Exception $e) {
-            if (function_exists('error_log')) {
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
                 error_log('[FP Performance Suite] Errore durante inizializzazione opzioni mobile: ' . $e->getMessage());
             }
             return false;

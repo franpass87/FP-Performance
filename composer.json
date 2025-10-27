@@ -1,0 +1,30 @@
+{
+  "name": "francesco/fp-performance",
+  "type": "wordpress-plugin",
+  "description": "Lightweight performance suite for WordPress optimized for shared hosting",
+  "require": {},
+  "require-dev": {
+    "wp-coding-standards/wpcs": "^3.0",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "squizlabs/php_codesniffer": "^3.7"
+  },
+  "autoload": {
+    "psr-4": {
+      "FP\\PerfSuite\\": "src/"
+    }
+  },
+  "scripts": {
+    "cs": "phpcs --standard=phpcs.xml",
+    "cbf": "phpcbf --standard=phpcs.xml",
+    "install-prod": "composer install --no-dev --optimize-autoloader --classmap-authoritative",
+    "test": "echo \"(Optional) phpunit can be wired later\""
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "optimize-autoloader": true,
+    "classmap-authoritative": true,
+    "apcu-autoloader": true
+  }
+}

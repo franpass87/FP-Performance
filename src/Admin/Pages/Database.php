@@ -384,12 +384,11 @@ class Database extends AbstractPage
                 <?php wp_nonce_field('fp-ps-db', 'fp_ps_db_nonce'); ?>
                 <input type="hidden" name="form_type" value="main_toggle" />
                 
-                <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
-                    <input type="checkbox" name="database_enabled" value="1" <?php checked(!empty($dbSettings['enabled'])); ?> style="transform: scale(1.2);" />
-                    <span class="info">
-                        <strong><?php esc_html_e('Enable Database Optimization', 'fp-performance-suite'); ?></strong>
-                        <br>
-                        <small style="color: #6c757d;">
+                <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                    <input type="checkbox" name="database_enabled" value="1" <?php checked(!empty($dbSettings['enabled'])); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" />
+                    <span class="info" style="text-align: left; flex: 1;">
+                        <strong style="display: block;"><?php esc_html_e('Enable Database Optimization', 'fp-performance-suite'); ?></strong>
+                        <small style="color: #6c757d; display: block; margin-top: 4px;">
                             <?php esc_html_e('Master switch to enable/disable all database optimization features. When disabled, no database optimization will be applied.', 'fp-performance-suite'); ?>
                         </small>
                     </span>
@@ -606,10 +605,11 @@ class Database extends AbstractPage
                 
                 <div>
                     <h3><?php esc_html_e('Tabelle', 'fp-performance-suite'); ?></h3>
-                    <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'])); ?></p>
+                    <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'] ?? 0)); ?></p>
                     <p><strong><?php esc_html_e('Necessitano ottimizzazione:', 'fp-performance-suite'); ?></strong> 
                         <?php 
-                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization'] ?? false);
+                        $tables = $dbAnalysis['table_analysis']['tables'] ?? [];
+                        $needsOpt = is_array($tables) ? array_filter($tables, fn($t) => $t['needs_optimization'] ?? false) : [];
                         echo esc_html(number_format_i18n(count($needsOpt))); 
                         ?>
                     </p>
@@ -1285,6 +1285,23 @@ class Database extends AbstractPage
                 });
             }
         }
+        
+        // Enable SAVEQUERIES for admin form submission
+        if (isset($_POST['action']) && $_POST['action'] === 'enable_savequeries_admin' && 
+            isset($_POST['fp_ps_enable_savequeries_nonce']) && 
+            wp_verify_nonce(wp_unslash($_POST['fp_ps_enable_savequeries_nonce']), 'fp_ps_enable_savequeries')) {
+            
+            // Salva l'impostazione per abilitare SAVEQUERIES solo per admin
+            $result = update_option('fp_ps_savequeries_admin_only', true, false);
+            
+            if ($result) {
+                add_action('admin_notices', function() {
+                    echo '<div class="notice notice-success is-dismissible"><p>' . 
+                         esc_html__('✅ Query logging abilitato per gli amministratori! Ricarica la pagina per vedere le statistiche.', 'fp-performance-suite') . 
+                         '</p></div>';
+                });
+            }
+        }
     }
 
     private function renderTabsNavigation(string $activeTab): void
@@ -1692,10 +1709,11 @@ class Database extends AbstractPage
                 
                 <div>
                     <h3><?php esc_html_e('Tabelle', 'fp-performance-suite'); ?></h3>
-                    <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'])); ?></p>
+                    <p><strong><?php esc_html_e('Totale:', 'fp-performance-suite'); ?></strong> <?php echo esc_html(number_format_i18n($dbAnalysis['table_analysis']['total_tables'] ?? 0)); ?></p>
                     <p><strong><?php esc_html_e('Necessitano ottimizzazione:', 'fp-performance-suite'); ?></strong> 
                         <?php 
-                        $needsOpt = array_filter($dbAnalysis['table_analysis']['tables'], fn($t) => $t['needs_optimization'] ?? false);
+                        $tables = $dbAnalysis['table_analysis']['tables'] ?? [];
+                        $needsOpt = is_array($tables) ? array_filter($tables, fn($t) => $t['needs_optimization'] ?? false) : [];
                         echo esc_html(number_format_i18n(count($needsOpt))); 
                         ?>
                     </p>
@@ -1843,9 +1861,58 @@ class Database extends AbstractPage
         </section>
 
         <!-- Query Statistics -->
-        <?php if ($queryMonitor && !empty($statistics)): ?>
+        <?php if ($queryMonitor): ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('📈 Statistiche Query', 'fp-performance-suite'); ?></h2>
+            
+            <?php 
+            $hasStatistics = !empty($statistics) && ($statistics['total_queries'] ?? 0) > 0;
+            $savequeriesDefined = defined('SAVEQUERIES') && SAVEQUERIES;
+            $saveQueriesAdminOnly = get_option('fp_ps_savequeries_admin_only', false);
+            ?>
+            
+            <?php if (!$savequeriesDefined && !$saveQueriesAdminOnly): ?>
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: #856404;">
+                    ⚠️ <?php esc_html_e('Query logging non abilitato', 'fp-performance-suite'); ?>
+                </p>
+                <p style="margin: 0 0 10px 0; color: #856404;">
+                    <?php esc_html_e('Il Query Monitor funziona meglio con SAVEQUERIES abilitato. Puoi:', 'fp-performance-suite'); ?>
+                </p>
+                <ul style="margin: 10px 0 10px 20px; color: #856404;">
+                    <li style="margin-bottom: 8px;">
+                        <strong><?php esc_html_e('Opzione 1:', 'fp-performance-suite'); ?></strong> 
+                        <?php esc_html_e('Attiva automaticamente solo per gli amministratori (consigliato)', 'fp-performance-suite'); ?>
+                        <form method="post" style="display: inline-block; margin-left: 10px;">
+                            <?php wp_nonce_field('fp_ps_enable_savequeries', 'fp_ps_enable_savequeries_nonce'); ?>
+                            <input type="hidden" name="action" value="enable_savequeries_admin">
+                            <button type="submit" class="button button-primary button-small">
+                                <?php esc_html_e('Abilita per Admin', 'fp-performance-suite'); ?>
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <strong><?php esc_html_e('Opzione 2:', 'fp-performance-suite'); ?></strong> 
+                        <?php esc_html_e('Aggiungi manualmente al file wp-config.php (prima di "Buon blogging!"):', 'fp-performance-suite'); ?>
+                        <code style="display: block; background: #f8f9fa; padding: 10px; border-radius: 4px; color: #d63384; font-family: monospace; margin-top: 5px;">
+                            define('SAVEQUERIES', true);
+                        </code>
+                    </li>
+                </ul>
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #856404;">
+                    ⚡ <?php esc_html_e('Nota: L\'opzione 1 attiva il logging solo quando un amministratore è loggato, minimizzando l\'impatto sulle performance.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+            <?php elseif ($saveQueriesAdminOnly && !$savequeriesDefined): ?>
+            <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: #0c5460;">
+                    ✅ <?php esc_html_e('Query logging abilitato per gli amministratori', 'fp-performance-suite'); ?>
+                </p>
+                <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                    <?php esc_html_e('Il logging delle query è attivo. Le statistiche verranno raccolte durante la navigazione.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+            <?php endif; ?>
             
             <div class="fp-ps-grid four" style="margin-top: 20px;">
                 <div class="fp-ps-stat-box" style="border-left: 4px solid #667eea;">
@@ -2011,9 +2078,29 @@ class Database extends AbstractPage
         </section>
 
         <!-- Query Cache Statistics -->
-        <?php if ($queryCache && !empty($cacheStats)): ?>
+        <?php if ($queryCache): ?>
         <section class="fp-ps-card">
             <h2><?php esc_html_e('📊 Statistiche Query Cache', 'fp-performance-suite'); ?></h2>
+            
+            <?php 
+            $hasData = !empty($cacheStats) && (($cacheStats['hits'] ?? 0) + ($cacheStats['misses'] ?? 0)) > 0;
+            $cacheEnabled = !empty($cacheSettings['enabled']);
+            ?>
+            
+            <?php if (!$hasData): ?>
+            <div style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: #0d47a1;">
+                    ℹ️ <?php esc_html_e('Nessun dato disponibile', 'fp-performance-suite'); ?>
+                </p>
+                <p style="margin: 0; color: #1565c0; font-size: 14px;">
+                    <?php if (!$cacheEnabled): ?>
+                        <?php esc_html_e('La Query Cache non è attualmente abilitata. Attivala per iniziare a tracciare le statistiche.', 'fp-performance-suite'); ?>
+                    <?php else: ?>
+                        <?php esc_html_e('Le statistiche verranno raccolte automaticamente durante la navigazione del sito. Visita alcune pagine del frontend per vedere i dati.', 'fp-performance-suite'); ?>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <?php endif; ?>
             
             <div style="margin-bottom: 20px;">
                 <form method="post" action="" style="display: inline-block;">

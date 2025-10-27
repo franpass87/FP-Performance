@@ -123,6 +123,61 @@ class MobileOptimizer
     }
     
     /**
+     * Genera un report completo delle ottimizzazioni mobile
+     * 
+     * @return array Report con stato, impostazioni, issues e raccomandazioni
+     */
+    public function generateMobileReport(): array
+    {
+        $settings = get_option('fp_ps_mobile_optimizer', [
+            'enabled' => false,
+            'disable_animations' => false,
+            'remove_unnecessary_scripts' => false,
+            'optimize_touch_targets' => false,
+            'enable_responsive_images' => false
+        ]);
+        
+        $issues = [];
+        $recommendations = [];
+        $critical_issues = 0;
+        
+        // Verifica se le ottimizzazioni sono abilitate
+        if (!$settings['enabled']) {
+            $issues[] = [
+                'type' => 'warning',
+                'message' => __('Mobile optimization is disabled', 'fp-performance-suite'),
+            ];
+            $recommendations[] = __('Enable mobile optimization to improve mobile performance', 'fp-performance-suite');
+        }
+        
+        // Verifica responsive images
+        if (!$settings['enable_responsive_images']) {
+            $issues[] = [
+                'type' => 'info',
+                'message' => __('Responsive images optimization is disabled', 'fp-performance-suite'),
+            ];
+        }
+        
+        // Verifica touch targets
+        if (!$settings['optimize_touch_targets']) {
+            $issues[] = [
+                'type' => 'info',
+                'message' => __('Touch targets optimization is disabled', 'fp-performance-suite'),
+            ];
+        }
+        
+        return [
+            'enabled' => $settings['enabled'],
+            'settings' => $settings,
+            'issues' => $issues,
+            'issues_count' => count($issues),
+            'critical_issues' => $critical_issues,
+            'recommendations' => $recommendations,
+            'is_mobile_device' => wp_is_mobile(),
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

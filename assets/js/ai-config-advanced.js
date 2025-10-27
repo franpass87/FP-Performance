@@ -77,9 +77,6 @@
                 
                 // Step 7: Generazione suggerimenti
                 await this.analyzeStep('💡 Generazione suggerimenti AI...', 7, 7, 2000);
-
-                // Completa con confetti!
-                this.showConfetti();
                 
                 // Redirect alla pagina con risultati
                 setTimeout(() => {
@@ -109,17 +106,19 @@
                 $('.fp-ps-analysis-fill').css('width', percentage + '%');
                 $('.fp-ps-analysis-percentage').text(percentage + '%');
                 
-                // Aggiungi effetto "typing" al messaggio
-                this.typeWriter(message, '.fp-ps-analysis-text', 30);
-                
-                setTimeout(resolve, duration);
+                // Ridotto timeout per performance
+                setTimeout(resolve, duration / 2);
             });
         },
 
         /**
-         * Effetto typing
+         * Effetto typing (rimosso per performance)
          */
         typeWriter(text, selector, speed) {
+            // Overhead inutile - ora mostra immediatamente
+            $(selector).text(text);
+            return;
+            
             let i = 0;
             const $element = $(selector);
             $element.text('');
@@ -200,29 +199,6 @@
         },
 
         /**
-         * Mostra confetti di successo
-         */
-        showConfetti() {
-            const colors = ['#667eea', '#764ba2', '#10b981', '#f59e0b', '#ef4444'];
-            const confettiCount = 50;
-            
-            for (let i = 0; i < confettiCount; i++) {
-                const $confetti = $('<div>', {
-                    class: 'fp-ps-confetti',
-                    css: {
-                        left: Math.random() * 100 + '%',
-                        backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-                        animationDelay: Math.random() * 0.5 + 's',
-                        animationDuration: (2 + Math.random()) + 's'
-                    }
-                });
-                $('body').append($confetti);
-                
-                setTimeout(() => $confetti.remove(), 3000);
-            }
-        },
-
-        /**
          * Applica configurazione
          */
         async applyConfiguration(e) {
@@ -292,7 +268,6 @@
                 // Successo!
                 this.hideProgressOverlay();
                 this.showSuccessMessage();
-                this.showConfetti();
 
                 // Redirect
                 setTimeout(() => {
@@ -791,22 +766,6 @@
                     100% {
                         bottom: 100%;
                         opacity: 0;
-                    }
-                }
-
-                .fp-ps-confetti {
-                    position: fixed;
-                    width: 10px;
-                    height: 10px;
-                    top: -10px;
-                    z-index: 9999999;
-                    animation: fp-ps-confetti-fall linear forwards;
-                }
-
-                @keyframes fp-ps-confetti-fall {
-                    to {
-                        top: 100vh;
-                        transform: translateX(100px) rotate(360deg);
                     }
                 }
 

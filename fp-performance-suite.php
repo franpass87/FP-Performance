@@ -3,7 +3,7 @@
  * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
  * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.5.1
+ * Version: 1.6.0
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,7 +16,18 @@
 
 defined('ABSPATH') || exit;
 
-// Plugin principale FP Performance Suite - VERSIONE FIXATA
+// Last modified: 2025-10-25 - v1.6.0 Shared Hosting Optimization
+// Plugin principale FP Performance Suite - OTTIMIZZATO PER SHARED HOSTING
+
+// Abilita SAVEQUERIES per admin se configurato (attivato dopo che WordPress è pronto)
+add_action('plugins_loaded', function() {
+    if (!defined('SAVEQUERIES')) {
+        $saveQueriesAdminOnly = get_option('fp_ps_savequeries_admin_only', false);
+        if ($saveQueriesAdminOnly && function_exists('is_user_logged_in') && is_user_logged_in() && current_user_can('manage_options')) {
+            define('SAVEQUERIES', true);
+        }
+    }
+}, 1);
 
 /**
  * Verifica se il database WordPress è disponibile
@@ -73,7 +84,7 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
 // NON caricare file di debug che causano white screen
 // Questi file sono stati identificati come causa del problema
 
-// Autoload con gestione errori migliorata
+// Autoload Composer con gestione errori
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (is_readable($autoload)) {
     try {
@@ -81,25 +92,35 @@ if (is_readable($autoload)) {
     } catch (\Throwable $e) {
         fp_perf_suite_safe_log('Errore caricamento autoloader Composer: ' . $e->getMessage());
     }
-} else {
-    // Autoloader personalizzato con gestione errori
-    spl_autoload_register(static function ($class) {
-        if (strpos($class, 'FP\\PerfSuite\\') !== 0) {
-            return;
-        }
-        
-        try {
-            $path = __DIR__ . '/src/' . str_replace(['FP\\PerfSuite\\', '\\'], ['', '/'], $class) . '.php';
-            if (file_exists($path)) {
-                require_once $path;
-            }
-        } catch (\Throwable $e) {
-            fp_perf_suite_safe_log('Errore autoloader per classe ' . $class . ': ' . $e->getMessage());
-        }
-    });
 }
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.5.1');
+// Autoloader PSR-4 per FP\PerfSuite\ (sempre attivo) - FIXED
+spl_autoload_register(static function ($class) {
+    // Verifica che la classe appartenga al namespace FP\PerfSuite
+    if (strpos($class, 'FP\\PerfSuite\\') !== 0) {
+        return;
+    }
+    
+    try {
+        // Rimuovi il prefisso namespace base
+        $relativePath = substr($class, strlen('FP\\PerfSuite\\'));
+        
+        // Converti i namespace separator in directory separator
+        $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $relativePath);
+        
+        // Costruisci il path completo
+        $path = __DIR__ . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . $relativePath . '.php';
+        
+        // Carica il file se esiste
+        if (is_readable($path)) {
+            require_once $path;
+        }
+    } catch (\Throwable $e) {
+        fp_perf_suite_safe_log('Errore autoloader per classe ' . $class . ': ' . $e->getMessage());
+    }
+});
+
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.6.0');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
@@ -268,13 +289,4 @@ function fp_perf_suite_initialize_plugin_fixed(): void {
     }
 }
 
-// Aggiungi avviso di versione fixata - SOLO UNA VOLTA
-if (!function_exists('fp_perf_suite_admin_notice')) {
-    function fp_perf_suite_admin_notice() {
-        if (current_user_can('manage_options')) {
-            echo '<div class="notice notice-success"><p><strong>FP Performance Suite:</strong> Versione fixata caricata - problemi di duplicazione risolti.</p></div>';
-        }
-    }
-    add_action('admin_notices', 'fp_perf_suite_admin_notice');
-}
 ?>

@@ -360,7 +360,8 @@ class MLPredictor
     {
         // Logica semplificata per predizione carico
         $recent_loads = array_column(array_slice($this->getStoredData(), -10), 'server_load');
-        $avg_load = array_sum($recent_loads) / count($recent_loads);
+        $recentLoadsCount = count($recent_loads);
+        $avg_load = $recentLoadsCount > 0 ? array_sum($recent_loads) / $recentLoadsCount : 0;
         
         return $avg_load > 0.8 && $current_data['server_load'] > 0.7;
     }
@@ -371,7 +372,8 @@ class MLPredictor
     private function predictMemoryIssues(array $patterns, array $current_data): bool
     {
         $recent_memory = array_column(array_slice($this->getStoredData(), -10), 'memory_usage');
-        $avg_memory = array_sum($recent_memory) / count($recent_memory);
+        $recentMemoryCount = count($recent_memory);
+        $avg_memory = $recentMemoryCount > 0 ? array_sum($recent_memory) / $recentMemoryCount : 0;
         
         return $current_data['memory_usage'] > $avg_memory * 1.2;
     }
@@ -382,7 +384,8 @@ class MLPredictor
     private function predictErrors(array $patterns, array $current_data): bool
     {
         $recent_errors = array_column(array_slice($this->getStoredData(), -10), 'error_count');
-        $avg_errors = array_sum($recent_errors) / count($recent_errors);
+        $recentErrorsCount = count($recent_errors);
+        $avg_errors = $recentErrorsCount > 0 ? array_sum($recent_errors) / $recentErrorsCount : 0;
         
         return $current_data['error_count'] > $avg_errors * 1.5;
     }
@@ -574,25 +577,11 @@ class MLPredictor
     }
 
     /**
-     * Ottiene le impostazioni
-     */
-    private function settings(): array
-    {
-        return get_option(self::OPTION, [
-            'enabled' => false,
-            'data_retention_days' => 30,
-            'prediction_threshold' => 0.7,
-            'anomaly_threshold' => 0.8,
-            'pattern_confidence_threshold' => 0.8
-        ]);
-    }
-
-    /**
      * Controlla se il servizio è abilitato
      */
     private function isEnabled(): bool
     {
-        $settings = $this->settings();
+        $settings = $this->getSettings();
         return !empty($settings['enabled']);
     }
 }

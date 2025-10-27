@@ -1,219 +1,219 @@
 /**
  * Focus States Utilities
- * 
+ *
  * @package FP\PerfSuite
  */
 
 /* ===========================
-   Focus States
-   =========================== */
+	Focus States
+	=========================== */
 
 .fp-ps-focus-ring {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-focus-ring:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-focus-ring:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-focus-ring:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for buttons */
 .fp-ps-button:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-button:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-button:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for form elements */
 .fp-ps-input:focus,
 .fp-ps-textarea:focus,
 .fp-ps-select:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
-    border-color: var(--fp-accent);
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
+	border-color: var(--fp-accent);
 }
 
 .fp-ps-input:focus:not(:focus-visible),
 .fp-ps-textarea:focus:not(:focus-visible),
 .fp-ps-select:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-input:focus-visible,
 .fp-ps-textarea:focus-visible,
 .fp-ps-select:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
-    border-color: var(--fp-accent);
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
+	border-color: var(--fp-accent);
 }
 
 /* Focus states for links */
 .fp-ps-link:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-link:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-link:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for cards and interactive elements */
 .fp-ps-card:focus,
 .fp-ps-card:focus-within {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-card:focus:not(:focus-visible),
 .fp-ps-card:focus-within:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-card:focus-visible,
 .fp-ps-card:focus-within:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for status indicators */
 .fp-ps-status-indicator:focus,
 .fp-ps-status-badge:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-status-indicator:focus:not(:focus-visible),
 .fp-ps-status-badge:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-status-indicator:focus-visible,
 .fp-ps-status-badge:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for toggles */
 .fp-ps-toggle:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-toggle:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-toggle:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for table elements */
 .fp-ps-table th:focus,
 .fp-ps-table td:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-table th:focus:not(:focus-visible),
 .fp-ps-table td:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-table th:focus-visible,
 .fp-ps-table td:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* Focus states for modal elements */
 .fp-ps-modal__confirm:focus,
 .fp-ps-modal__cancel:focus {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 .fp-ps-modal__confirm:focus:not(:focus-visible),
 .fp-ps-modal__cancel:focus:not(:focus-visible) {
-    outline: none;
+	outline: none;
 }
 
 .fp-ps-modal__confirm:focus-visible,
 .fp-ps-modal__cancel:focus-visible {
-    outline: 2px solid var(--fp-accent);
-    outline-offset: 2px;
+	outline: 2px solid var(--fp-accent);
+	outline-offset: 2px;
 }
 
 /* ===========================
-   High Contrast Mode Support
-   =========================== */
+	High Contrast Mode Support
+	=========================== */
 
 @media (prefers-contrast: high) {
-    .fp-ps-focus-ring:focus,
-    .fp-ps-button:focus,
-    .fp-ps-input:focus,
-    .fp-ps-textarea:focus,
-    .fp-ps-select:focus,
-    .fp-ps-link:focus,
-    .fp-ps-card:focus,
-    .fp-ps-card:focus-within,
-    .fp-ps-status-indicator:focus,
-    .fp-ps-status-badge:focus,
-    .fp-ps-toggle:focus,
-    .fp-ps-table th:focus,
-    .fp-ps-table td:focus,
-    .fp-ps-modal__confirm:focus,
-    .fp-ps-modal__cancel:focus {
-        outline: 3px solid currentColor;
-        outline-offset: 1px;
-    }
+	.fp-ps-focus-ring:focus,
+	.fp-ps-button:focus,
+	.fp-ps-input:focus,
+	.fp-ps-textarea:focus,
+	.fp-ps-select:focus,
+	.fp-ps-link:focus,
+	.fp-ps-card:focus,
+	.fp-ps-card:focus-within,
+	.fp-ps-status-indicator:focus,
+	.fp-ps-status-badge:focus,
+	.fp-ps-toggle:focus,
+	.fp-ps-table th:focus,
+	.fp-ps-table td:focus,
+	.fp-ps-modal__confirm:focus,
+	.fp-ps-modal__cancel:focus {
+		outline: 3px solid currentColor;
+		outline-offset: 1px;
+	}
 }
 
 /* ===========================
-   Reduced Motion Support
-   =========================== */
+	Reduced Motion Support
+	=========================== */
 
 @media (prefers-reduced-motion: reduce) {
-    .fp-ps-focus-ring:focus,
-    .fp-ps-button:focus,
-    .fp-ps-input:focus,
-    .fp-ps-textarea:focus,
-    .fp-ps-select:focus,
-    .fp-ps-link:focus,
-    .fp-ps-card:focus,
-    .fp-ps-card:focus-within,
-    .fp-ps-status-indicator:focus,
-    .fp-ps-status-badge:focus,
-    .fp-ps-toggle:focus,
-    .fp-ps-table th:focus,
-    .fp-ps-table td:focus,
-    .fp-ps-modal__confirm:focus,
-    .fp-ps-modal__cancel:focus {
-        transition: none;
-    }
+	.fp-ps-focus-ring:focus,
+	.fp-ps-button:focus,
+	.fp-ps-input:focus,
+	.fp-ps-textarea:focus,
+	.fp-ps-select:focus,
+	.fp-ps-link:focus,
+	.fp-ps-card:focus,
+	.fp-ps-card:focus-within,
+	.fp-ps-status-indicator:focus,
+	.fp-ps-status-badge:focus,
+	.fp-ps-toggle:focus,
+	.fp-ps-table th:focus,
+	.fp-ps-table td:focus,
+	.fp-ps-modal__confirm:focus,
+	.fp-ps-modal__cancel:focus {
+		transition: none;
+	}
 <<<<<<< HEAD
 }
 =======

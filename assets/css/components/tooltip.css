@@ -1,45 +1,45 @@
 /**
  * Tooltip Component
- * 
+ *
  * @package FP\PerfSuite
  */
 
 .fp-ps-tooltip {
-    position: relative;
-    cursor: help;
+	position: relative;
+	cursor: help;
 }
 
 .fp-ps-tooltip span {
-    visibility: hidden;
-    position: absolute;
-    background: var(--fp-text);
-    color: #fff;
-    padding: var(--fp-spacing-xs) var(--fp-spacing-sm);
-    border-radius: var(--fp-radius-sm);
-    font-size: var(--fp-font-size-sm);
-    width: 240px;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: opacity var(--fp-transition-fast);
-    z-index: 999999;
-    white-space: normal;
+	visibility: hidden;
+	position: absolute;
+	background: var(--fp-text);
+	color: #fff;
+	padding: var(--fp-spacing-xs) var(--fp-spacing-sm);
+	border-radius: var(--fp-radius-sm);
+	font-size: var(--fp-font-size-sm);
+	width: 240px;
+	left: calc(100% + 10px);
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0;
+	transition: opacity var(--fp-transition-fast);
+	z-index: 999999;
+	white-space: normal;
 }
 
 /* Freccia del tooltip a sinistra */
 .fp-ps-tooltip span::before {
-    content: '';
-    position: absolute;
-    right: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    border: 6px solid transparent;
-    border-right-color: var(--fp-text);
+	content: '';
+	position: absolute;
+	right: 100%;
+	top: 50%;
+	transform: translateY(-50%);
+	border: 6px solid transparent;
+	border-right-color: var(--fp-text);
 }
 
 .fp-ps-tooltip:focus-within span,
 .fp-ps-tooltip:hover span {
-    visibility: visible;
-    opacity: 1;
+	visibility: visible;
+	opacity: 1;
 }

@@ -1,346 +1,345 @@
 /**
  * Status Indicator Component Styles
- * 
+ *
  * Sistema unificato di indicatori di stato a semaforo
  * utilizzato in tutte le pagine admin del plugin.
- * 
+ *
  * Stati: success, warning, error, info, inactive
- * 
+ *
  * @package FP\PerfSuite
  * @author Francesco Passeri
  */
 
 /* ============================================
-   Inline Status Indicators
-   ============================================ */
+	Inline Status Indicators
+	============================================ */
 
 .fp-ps-status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--fp-spacing-xs);
-    font-weight: 500;
-    font-size: var(--fp-font-size-sm);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--fp-spacing-xs);
+	font-weight: 500;
+	font-size: var(--fp-font-size-sm);
 }
 
 /* Dot style */
 .fp-ps-status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	display: inline-block;
 }
 
 .fp-ps-status-label {
-    margin-left: 4px;
+	margin-left: 4px;
 }
 
 /* ============================================
-   Status Badge
-   ============================================ */
+	Status Badge
+	============================================ */
 
 .fp-ps-status-badge {
-    display: inline-block;
-    padding: 3px var(--fp-spacing-xs);
-    border-radius: var(--fp-radius-sm);
-    font-size: var(--fp-font-size-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+	display: inline-block;
+	padding: 3px var(--fp-spacing-xs);
+	border-radius: var(--fp-radius-sm);
+	font-size: var(--fp-font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 }
 
 .fp-ps-status-badge.fp-ps-status-success {
-    background: var(--fp-ok);
-    color: white;
+	background: var(--fp-ok);
+	color: white;
 }
 
 .fp-ps-status-badge.fp-ps-status-warning {
-    background: var(--fp-warn);
-    color: white;
+	background: var(--fp-warn);
+	color: white;
 }
 
 .fp-ps-status-badge.fp-ps-status-error {
-    background: var(--fp-danger);
-    color: white;
+	background: var(--fp-danger);
+	color: white;
 }
 
 .fp-ps-status-badge.fp-ps-status-info {
-    background: var(--fp-accent);
-    color: white;
+	background: var(--fp-accent);
+	color: white;
 }
 
 .fp-ps-status-badge.fp-ps-status-inactive {
-    background: #6b7280;
-    color: white;
+	background: #6b7280;
+	color: white;
 }
 
 /* ============================================
-   Status Card
-   ============================================ */
+	Status Card
+	============================================ */
 
 .fp-ps-status-card {
-    padding: var(--fp-spacing-md);
-    border-radius: var(--fp-radius-sm);
-    margin-bottom: var(--fp-spacing-md);
-    box-shadow: var(--fp-shadow-sm);
-    transition: all var(--fp-transition-base);
+	padding: var(--fp-spacing-md);
+	border-radius: var(--fp-radius-sm);
+	margin-bottom: var(--fp-spacing-md);
+	box-shadow: var(--fp-shadow-sm);
+	transition: all var(--fp-transition-base);
 }
 
 .fp-ps-status-card:hover {
-    box-shadow: var(--fp-shadow-md);
+	box-shadow: var(--fp-shadow-md);
 }
 
 .fp-ps-status-card-header {
-    display: flex;
-    align-items: center;
-    gap: var(--fp-spacing-sm);
-    margin-bottom: var(--fp-spacing-xs);
+	display: flex;
+	align-items: center;
+	gap: var(--fp-spacing-sm);
+	margin-bottom: var(--fp-spacing-xs);
 }
 
 .fp-ps-status-icon {
-    font-size: var(--fp-font-size-xl);
-    line-height: 1;
+	font-size: var(--fp-font-size-xl);
+	line-height: 1;
 }
 
 .fp-ps-status-card-title {
-    margin: 0;
-    font-size: var(--fp-font-size-md);
-    font-weight: 600;
+	margin: 0;
+	font-size: var(--fp-font-size-md);
+	font-weight: 600;
 }
 
 .fp-ps-status-card-value {
-    font-size: var(--fp-font-size-xxl);
-    font-weight: 700;
-    line-height: 1.2;
-    margin: var(--fp-spacing-xs) 0;
+	font-size: var(--fp-font-size-xxl);
+	font-weight: 700;
+	line-height: 1.2;
+	margin: var(--fp-spacing-xs) 0;
 }
 
 .fp-ps-status-card-description {
-    color: #4b5563;
-    font-size: var(--fp-font-size-sm);
-    margin-top: var(--fp-spacing-xs);
+	color: #4b5563;
+	font-size: var(--fp-font-size-sm);
+	margin-top: var(--fp-spacing-xs);
 }
 
 /* Card variants */
 .fp-ps-status-card.fp-ps-status-success {
-    background: #d1fae5;
-    border-left: 4px solid var(--fp-ok);
+	background: #d1fae5;
+	border-left: 4px solid var(--fp-ok);
 }
 
 .fp-ps-status-card.fp-ps-status-warning {
-    background: #fef3c7;
-    border-left: 4px solid var(--fp-warn);
+	background: #fef3c7;
+	border-left: 4px solid var(--fp-warn);
 }
 
 .fp-ps-status-card.fp-ps-status-error {
-    background: #fee2e2;
-    border-left: 4px solid var(--fp-danger);
+	background: #fee2e2;
+	border-left: 4px solid var(--fp-danger);
 }
 
 .fp-ps-status-card.fp-ps-status-info {
-    background: #dbeafe;
-    border-left: 4px solid var(--fp-accent);
+	background: #dbeafe;
+	border-left: 4px solid var(--fp-accent);
 }
 
 .fp-ps-status-card.fp-ps-status-inactive {
-    background: #f3f4f6;
-    border-left: 4px solid #9ca3af;
+	background: #f3f4f6;
+	border-left: 4px solid #9ca3af;
 }
 
 /* ============================================
-   Progress Bar
-   ============================================ */
+	Progress Bar
+	============================================ */
 
 .fp-ps-progress-wrapper {
-    margin: var(--fp-spacing-sm) 0;
+	margin: var(--fp-spacing-sm) 0;
 }
 
 .fp-ps-progress-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--fp-spacing-xs);
-    font-size: var(--fp-font-size-base);
-    color: #374151;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--fp-spacing-xs);
+	font-size: var(--fp-font-size-base);
+	color: #374151;
 }
 
 .fp-ps-progress-percentage {
-    font-weight: 600;
+	font-weight: 600;
 }
 
 .fp-ps-progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: var(--fp-radius-sm);
-    overflow: hidden;
-    position: relative;
+	width: 100%;
+	height: 8px;
+	background: #e5e7eb;
+	border-radius: var(--fp-radius-sm);
+	overflow: hidden;
+	position: relative;
 }
 
 .fp-ps-progress-fill {
-    height: 100%;
-    transition: width var(--fp-transition-base);
-    border-radius: var(--fp-radius-sm);
+	height: 100%;
+	transition: width var(--fp-transition-base);
+	border-radius: var(--fp-radius-sm);
 }
 
 .fp-ps-progress-fill.fp-ps-status-success {
-    background: var(--fp-ok);
+	background: var(--fp-ok);
 }
 
 .fp-ps-progress-fill.fp-ps-status-warning {
-    background: var(--fp-warn);
+	background: var(--fp-warn);
 }
 
 .fp-ps-progress-fill.fp-ps-status-error {
-    background: var(--fp-danger);
+	background: var(--fp-danger);
 }
 
 .fp-ps-progress-fill.fp-ps-status-info {
-    background: var(--fp-accent);
+	background: var(--fp-accent);
 }
 
 .fp-ps-progress-fill.fp-ps-status-inactive {
-    background: #6b7280;
+	background: #6b7280;
 }
 
 /* ============================================
-   Status List
-   ============================================ */
+	Status List
+	============================================ */
 
 .fp-ps-status-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+	list-style: none;
+	padding: 0;
+	margin: 0;
 }
 
 .fp-ps-status-list-item {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--fp-spacing-xs);
-    padding: var(--fp-spacing-xs) 0;
-    border-bottom: 1px solid #e5e7eb;
+	display: flex;
+	align-items: flex-start;
+	gap: var(--fp-spacing-xs);
+	padding: var(--fp-spacing-xs) 0;
+	border-bottom: 1px solid #e5e7eb;
 }
 
 .fp-ps-status-list-item:last-child {
-    border-bottom: none;
+	border-bottom: none;
 }
 
 .fp-ps-status-list-label {
-    font-weight: 500;
-    color: var(--fp-text);
+	font-weight: 500;
+	color: var(--fp-text);
 }
 
 .fp-ps-status-list-description {
-    color: #6b7280;
-    font-size: var(--fp-font-size-base);
-    margin-left: auto;
+	color: #6b7280;
+	font-size: var(--fp-font-size-base);
+	margin-left: auto;
 }
 
 /* ============================================
-   Comparison Indicator
-   ============================================ */
+	Comparison Indicator
+	============================================ */
 
 .fp-ps-comparison-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--fp-spacing-xs);
-    font-weight: 600;
-    font-size: var(--fp-font-size-base);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--fp-spacing-xs);
+	font-weight: 600;
+	font-size: var(--fp-font-size-base);
 }
 
 /* ============================================
-   Status Overview Grid
-   ============================================ */
+	Status Overview Grid
+	============================================ */
 
 .fp-ps-status-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--fp-spacing-md);
-    margin: var(--fp-spacing-lg) 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--fp-spacing-md);
+	margin: var(--fp-spacing-lg) 0;
 }
 
 /* ============================================
-   Status Table
-   ============================================ */
+	Status Table
+	============================================ */
 
 .fp-ps-status-table {
-    width: 100%;
-    border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .fp-ps-status-table th,
 .fp-ps-status-table td {
-    padding: var(--fp-spacing-sm);
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
+	padding: var(--fp-spacing-sm);
+	text-align: left;
+	border-bottom: 1px solid #e5e7eb;
 }
 
 .fp-ps-status-table th {
-    background: #f9fafb;
-    font-weight: 600;
-    color: #374151;
+	background: #f9fafb;
+	font-weight: 600;
+	color: #374151;
 }
 
 .fp-ps-status-table tr:hover {
-    background: #f9fafb;
+	background: #f9fafb;
 }
 
 /* ============================================
-   Responsive Design
-   ============================================ */
+	Responsive Design
+	============================================ */
 
 @media (max-width: 768px) {
-    .fp-ps-status-overview {
-        grid-template-columns: 1fr;
-    }
-    
-    .fp-ps-status-card-value {
-        font-size: 24px;
-    }
-    
-    .fp-ps-status-list-item {
-        flex-direction: column;
-        gap: 4px;
-    }
-    
-    .fp-ps-status-list-description {
-        margin-left: 0;
-    }
+	.fp-ps-status-overview {
+		grid-template-columns: 1fr;
+	}
+
+	.fp-ps-status-card-value {
+		font-size: 24px;
+	}
+
+	.fp-ps-status-list-item {
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.fp-ps-status-list-description {
+		margin-left: 0;
+	}
 }
 
 /* ============================================
-   Accessibility
-   ============================================ */
+	Accessibility
+	============================================ */
 
 /* Focus states moved to utilities/focus.css */
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-    .fp-ps-status-card {
-        border: 2px solid currentColor;
-    }
-    
-    .fp-ps-progress-bar {
-        border: 1px solid currentColor;
-    }
+	.fp-ps-status-card {
+		border: 2px solid currentColor;
+	}
+
+	.fp-ps-progress-bar {
+		border: 1px solid currentColor;
+	}
 }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    .fp-ps-status-card,
-    .fp-ps-progress-fill {
-        transition: none;
-    }
+	.fp-ps-status-card,
+	.fp-ps-progress-fill {
+		transition: none;
+	}
 }
 
 /* Dark mode support (se necessario in futuro) */
 @media (prefers-color-scheme: dark) {
-    .fp-ps-status-card-description,
-    .fp-ps-status-list-label {
-        color: #d1d5db;
-    }
-    
-    .fp-ps-status-list-description {
-        color: #9ca3af;
-    }
-}
+	.fp-ps-status-card-description,
+	.fp-ps-status-list-label {
+		color: #d1d5db;
+	}
 
+	.fp-ps-status-list-description {
+		color: #9ca3af;
+	}
+}

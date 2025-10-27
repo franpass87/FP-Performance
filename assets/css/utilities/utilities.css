@@ -1,12 +1,12 @@
 /**
  * Utility Classes
- * 
+ *
  * @package FP\PerfSuite
  */
 
 /* ===========================
-   Spacing Utilities
-   =========================== */
+	Spacing Utilities
+	=========================== */
 
 /* Margin */
 .fp-ps-m-0 { margin: 0 !important; }
@@ -121,8 +121,8 @@
 .fp-ps-py-xl { padding-top: var(--fp-spacing-xl) !important; padding-bottom: var(--fp-spacing-xl) !important; }
 
 /* ===========================
-   Typography Utilities
-   =========================== */
+	Typography Utilities
+	=========================== */
 
 .fp-ps-text-xs { font-size: var(--fp-font-size-xs) !important; }
 .fp-ps-text-sm { font-size: var(--fp-font-size-sm) !important; }
@@ -148,8 +148,8 @@
 .fp-ps-text-danger { color: var(--fp-danger) !important; }
 
 /* ===========================
-   Display Utilities
-   =========================== */
+	Display Utilities
+	=========================== */
 
 .fp-ps-block { display: block !important; }
 .fp-ps-inline { display: inline !important; }
@@ -160,8 +160,8 @@
 .fp-ps-hidden { display: none !important; }
 
 /* ===========================
-   Flexbox Utilities
-   =========================== */
+	Flexbox Utilities
+	=========================== */
 
 .fp-ps-flex-row { flex-direction: row !important; }
 .fp-ps-flex-col { flex-direction: column !important; }
@@ -181,8 +181,8 @@
 .fp-ps-items-stretch { align-items: stretch !important; }
 
 /* ===========================
-   Border Radius Utilities
-   =========================== */
+	Border Radius Utilities
+	=========================== */
 
 .fp-ps-rounded-none { border-radius: 0 !important; }
 .fp-ps-rounded-sm { border-radius: var(--fp-radius-sm) !important; }
@@ -192,16 +192,16 @@
 .fp-ps-rounded-full { border-radius: 50% !important; }
 
 /* ===========================
-   Shadow Utilities
-   =========================== */
+	Shadow Utilities
+	=========================== */
 
 .fp-ps-shadow-none { box-shadow: none !important; }
 .fp-ps-shadow-sm { box-shadow: var(--fp-shadow-sm) !important; }
 .fp-ps-shadow-md { box-shadow: var(--fp-shadow-md) !important; }
 
 /* ===========================
-   Position Utilities
-   =========================== */
+	Position Utilities
+	=========================== */
 
 .fp-ps-relative { position: relative !important; }
 .fp-ps-absolute { position: absolute !important; }
@@ -209,24 +209,24 @@
 .fp-ps-sticky { position: sticky !important; }
 
 /* ===========================
-   Width Utilities
-   =========================== */
+	Width Utilities
+	=========================== */
 
 .fp-ps-w-auto { width: auto !important; }
 .fp-ps-w-full { width: 100% !important; }
 .fp-ps-w-screen { width: 100vw !important; }
 
 /* ===========================
-   Height Utilities
-   =========================== */
+	Height Utilities
+	=========================== */
 
 .fp-ps-h-auto { height: auto !important; }
 .fp-ps-h-full { height: 100% !important; }
 .fp-ps-h-screen { height: 100vh !important; }
 
 /* ===========================
-   Opacity Utilities
-   =========================== */
+	Opacity Utilities
+	=========================== */
 
 .fp-ps-opacity-0 { opacity: 0 !important; }
 .fp-ps-opacity-25 { opacity: 0.25 !important; }
@@ -235,32 +235,32 @@
 .fp-ps-opacity-100 { opacity: 1 !important; }
 
 /* ===========================
-   Responsive Utilities
-   =========================== */
+	Responsive Utilities
+	=========================== */
 
 /* Mobile First - Hidden on mobile, visible on larger screens */
 .fp-ps-hidden-mobile { display: none !important; }
 @media (min-width: 769px) {
-    .fp-ps-hidden-mobile { display: block !important; }
-    .fp-ps-hidden-mobile.fp-ps-flex { display: flex !important; }
-    .fp-ps-hidden-mobile.fp-ps-inline-flex { display: inline-flex !important; }
-    .fp-ps-hidden-mobile.fp-ps-grid { display: grid !important; }
+	.fp-ps-hidden-mobile { display: block !important; }
+	.fp-ps-hidden-mobile.fp-ps-flex { display: flex !important; }
+	.fp-ps-hidden-mobile.fp-ps-inline-flex { display: inline-flex !important; }
+	.fp-ps-hidden-mobile.fp-ps-grid { display: grid !important; }
 }
 
 /* Desktop First - Visible on mobile, hidden on larger screens */
 .fp-ps-hidden-desktop { display: block !important; }
 @media (min-width: 769px) {
-    .fp-ps-hidden-desktop { display: none !important; }
+	.fp-ps-hidden-desktop { display: none !important; }
 }
 
 /* Tablet specific */
 @media (min-width: 769px) and (max-width: 1024px) {
-    .fp-ps-tablet-only { display: block !important; }
-    .fp-ps-tablet-only.fp-ps-flex { display: flex !important; }
-    .fp-ps-tablet-only.fp-ps-inline-flex { display: inline-flex !important; }
-    .fp-ps-tablet-only.fp-ps-grid { display: grid !important; }
+	.fp-ps-tablet-only { display: block !important; }
+	.fp-ps-tablet-only.fp-ps-flex { display: flex !important; }
+	.fp-ps-tablet-only.fp-ps-inline-flex { display: inline-flex !important; }
+	.fp-ps-tablet-only.fp-ps-grid { display: grid !important; }
 }
 
 @media (max-width: 768px), (min-width: 1025px) {
-    .fp-ps-tablet-only { display: none !important; }
+	.fp-ps-tablet-only { display: none !important; }
 }

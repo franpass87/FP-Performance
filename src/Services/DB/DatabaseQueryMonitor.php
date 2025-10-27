@@ -40,11 +40,18 @@ class DatabaseQueryMonitor
      */
     public function register(): void
     {
-        // Abilita sempre il monitoraggio per il debug
+        // Disabilita monitoring in production se non WP_DEBUG
+        if (!defined('WP_DEBUG') || !WP_DEBUG) {
+            $this->isEnabled = false;
+            return;
+        }
+        
         $this->isEnabled = true;
         
-        // Abilita il logging delle query
-        $this->enableQueryLogging();
+        // Abilita il logging delle query solo se SAVEQUERIES è definito
+        if (defined('SAVEQUERIES') && SAVEQUERIES) {
+            $this->enableQueryLogging();
+        }
         
         // Hook per intercettare le query usando il metodo corretto di WordPress
         add_filter('log_query_custom_data', [$this, 'interceptQueryData'], 10, 5);
@@ -149,6 +156,14 @@ class DatabaseQueryMonitor
     {
         global $wpdb;
         
+        // Forza l'abilitazione di SAVEQUERIES se non è già attivo
+        if (!defined('SAVEQUERIES') || !SAVEQUERIES) {
+            // Analizza le query già eseguite da $wpdb
+            if (isset($wpdb->queries) && is_array($wpdb->queries) && !empty($wpdb->queries)) {
+                $this->analyzeWpdbQueries();
+            }
+        }
+        
         // Calcola il numero totale di query eseguite
         $totalQueries = 0;
         foreach ($this->queries as $queryData) {
@@ -158,16 +173,28 @@ class DatabaseQueryMonitor
         // Se non abbiamo query registrate, usa il contatore di WordPress
         if ($totalQueries === 0) {
             $totalQueries = $wpdb->num_queries ?? 0;
+            
+            // Analizza anche $wpdb->queries se disponibile
+            if (isset($wpdb->queries) && is_array($wpdb->queries)) {
+                $this->analyzeWpdbQueries();
+                // Ricalcola dopo l'analisi
+                $totalQueries = 0;
+                foreach ($this->queries as $queryData) {
+                    $totalQueries += $queryData['count'];
+                }
+            }
         }
         
         // Se ancora non abbiamo query, prova a recuperare dalle query salvate
         if ($totalQueries === 0) {
             $savedStats = get_option(self::OPTION_KEY . '_stats', []);
             if (!empty($savedStats)) {
-                $totalQueries = $savedStats['total_queries'] ?? 0;
-                $this->slowQueries = $savedStats['slow_queries'] ?? [];
-                $this->duplicateCount = $savedStats['duplicate_queries'] ?? 0;
-                $this->totalQueryTime = $savedStats['total_query_time'] ?? 0;
+                return [
+                    'total_queries' => $savedStats['total_queries'] ?? 0,
+                    'slow_queries' => $savedStats['slow_queries'] ?? 0,
+                    'duplicate_queries' => $savedStats['duplicate_queries'] ?? 0,
+                    'total_query_time' => $savedStats['total_query_time'] ?? 0,
+                ];
             }
         }
         
@@ -443,6 +470,80 @@ class DatabaseQueryMonitor
             
             $queryHash = md5($query);
             $caller = $this->getQueryCaller($callstack);
+            
+            // Registra la query
+            if (!isset($this->queries[$queryHash])) {
+                $this->queries[$queryHash] = [
+                    'query' => $query,
+                    'caller' => $caller,
+                    'count' => 0,
+                    'total_time' => 0,
+                    'max_time' => 0,
+                    'min_time' => PHP_FLOAT_MAX,
+                ];
+            }
+            
+            // Aggiorna le statistiche
+            $this->queries[$queryHash]['count']++;
+            $this->queries[$queryHash]['total_time'] += $query_time;
+            $this->queries[$queryHash]['max_time'] = max($this->queries[$queryHash]['max_time'], $query_time);
+            $this->queries[$queryHash]['min_time'] = min($this->queries[$queryHash]['min_time'], $query_time);
+            
+            // Aggiorna il tempo totale
+            $this->totalQueryTime += $query_time;
+            
+            // Query lenta?
+            if ($query_time > $threshold) {
+                $this->slowQueries[] = [
+                    'query' => $query,
+                    'time' => $query_time,
+                    'caller' => $caller,
+                    'timestamp' => time(),
+                ];
+            }
+            
+            // Query duplicate?
+            if ($this->queries[$queryHash]['count'] > 1) {
+                $this->duplicateCount++;
+            }
+        }
+    }
+    
+    /**
+     * Analizza le query già eseguite da $wpdb
+     * Esegue SOLO se SAVEQUERIES è definito per ridurre overhead
+     */
+    private function analyzeWpdbQueries(): void
+    {
+        // Esegui SOLO se SAVEQUERIES è definito (come richiesto per production)
+        if (!defined('SAVEQUERIES') || !SAVEQUERIES) {
+            return;
+        }
+        
+        global $wpdb;
+        
+        if (!isset($wpdb->queries) || !is_array($wpdb->queries)) {
+            return;
+        }
+        
+        $settings = $this->getSettings();
+        $threshold = $settings['slow_query_threshold'] ?? self::SLOW_QUERY_THRESHOLD;
+        
+        foreach ($wpdb->queries as $query_data) {
+            if (!is_array($query_data) || count($query_data) < 2) {
+                continue;
+            }
+            
+            $query = $query_data[0] ?? '';
+            $query_time = (float) ($query_data[1] ?? 0);
+            $callstack = $query_data[2] ?? '';
+            
+            if (empty($query)) {
+                continue;
+            }
+            
+            $queryHash = md5($query);
+            $caller = is_string($callstack) ? $callstack : $this->getQueryCaller(is_array($callstack) ? $callstack : []);
             
             // Registra la query
             if (!isset($this->queries[$queryHash])) {

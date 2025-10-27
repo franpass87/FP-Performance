@@ -468,7 +468,8 @@ class AutoTuner
         }
         
         $queries = array_column($data, 'db_queries');
-        return array_sum($queries) / count($queries);
+        $queriesCount = count($queries);
+        return $queriesCount > 0 ? array_sum($queries) / $queriesCount : 0;
     }
 
     /**
@@ -482,7 +483,8 @@ class AutoTuner
         }
         
         $memory = array_column($data, 'memory_usage');
-        return array_sum($memory) / count($memory);
+        $memoryCount = count($memory);
+        return $memoryCount > 0 ? array_sum($memory) / $memoryCount : 0;
     }
 
     /**
@@ -496,7 +498,8 @@ class AutoTuner
         }
         
         $load_times = array_column($data, 'load_time');
-        return array_sum($load_times) / count($load_times);
+        $loadTimesCount = count($load_times);
+        return $loadTimesCount > 0 ? array_sum($load_times) / $loadTimesCount : 0;
     }
 
     /**
@@ -510,7 +513,8 @@ class AutoTuner
         }
         
         $loads = array_column($data, 'server_load');
-        return array_sum($loads) / count($loads);
+        $loadsCount = count($loads);
+        return $loadsCount > 0 ? array_sum($loads) / $loadsCount : 0;
     }
 
     /**
@@ -533,7 +537,7 @@ class AutoTuner
     /**
      * Ottiene le impostazioni
      */
-    private function settings(): array
+    public function getSettings(): array
     {
         return get_option(self::OPTION, [
             'enabled' => false,
@@ -549,7 +553,15 @@ class AutoTuner
      */
     private function isEnabled(): bool
     {
-        $settings = $this->settings();
+        $settings = $this->getSettings();
         return !empty($settings['enabled']);
+    }
+    
+    /**
+     * Alias di getSettings() per compatibilità
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
     }
 }

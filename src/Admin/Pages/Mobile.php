@@ -68,11 +68,19 @@ class Mobile extends AbstractPage
         }
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html($this->title()); ?></h1>
+            <!-- INTRO BOX -->
+            <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                    📱 <?php esc_html_e('Mobile Optimization', 'fp-performance-suite'); ?>
+                </h2>
+                <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                    <?php esc_html_e('Ottimizza l\'esperienza mobile del tuo sito: animazioni, touch targets, responsive images e cache dedicata per dispositivi mobili.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
             
-            <div class="fp-ps-admin-grid">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                 <!-- Settings Form -->
-                <div class="fp-ps-card">
+                <div class="fp-ps-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2><?php _e('Mobile Optimization Settings', 'fp-performance-suite'); ?></h2>
                     
                     <form method="post" action="?page=fp-performance-suite-mobile">
@@ -135,7 +143,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Mobile Report -->
-                <div class="fp-ps-card">
+                <div class="fp-ps-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2><?php _e('Mobile Performance Report', 'fp-performance-suite'); ?></h2>
                     
                     <div class="fp-ps-mobile-stats">
@@ -180,7 +188,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Touch Optimization Settings -->
-                <div class="fp-ps-card">
+                <div class="fp-ps-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2><?php _e('Touch Optimization', 'fp-performance-suite'); ?></h2>
                     
                     <?php
@@ -247,7 +255,7 @@ class Mobile extends AbstractPage
                 </div>
                 
                 <!-- Responsive Images Settings -->
-                <div class="fp-ps-card">
+                <div class="fp-ps-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2><?php _e('Responsive Images', 'fp-performance-suite'); ?></h2>
                     
                     <?php

@@ -1,17 +1,17 @@
 /**
  * Table Component
- * 
+ *
  * @package FP\PerfSuite
  */
 
 .fp-ps-table {
-    width: 100%;
-    border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .fp-ps-table th,
 .fp-ps-table td {
-    padding: var(--fp-spacing-sm);
-    border-bottom: 1px solid #e5e8ee;
-    text-align: left;
+	padding: var(--fp-spacing-sm);
+	border-bottom: 1px solid #e5e8ee;
+	text-align: left;
 }

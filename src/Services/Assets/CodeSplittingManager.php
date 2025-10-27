@@ -20,12 +20,24 @@ class CodeSplittingManager
             return;
         }
         
+        // Controlla se il servizio è abilitato
+        $settings = $this->settings();
+        if (!$settings['enabled']) {
+            return;
+        }
+        
         add_action('wp_enqueue_scripts', [$this, 'splitScripts'], 997);
         add_action('wp_footer', [$this, 'addCodeSplittingScript'], 42);
     }
     
     public function splitScripts()
     {
+        // Controlla se il servizio è abilitato
+        $settings = $this->settings();
+        if (!$settings['enabled']) {
+            return;
+        }
+        
         global $wp_scripts;
         
         if (!$wp_scripts) return;
@@ -109,5 +121,59 @@ class CodeSplittingManager
             'chunk_size' => $this->chunk_size,
             'lazy_loading_enabled' => $this->lazy_loading
         ];
+    }
+    
+    /**
+     * Restituisce le impostazioni
+     * 
+     * @return array
+     */
+    public function settings(): array
+    {
+        $savedSettings = get_option('fp_ps_code_splitting_manager', []);
+        return [
+            'enabled' => $savedSettings['enabled'] ?? false,
+            'chunk_size' => $savedSettings['chunk_size'] ?? $this->chunk_size,
+            'lazy_loading' => $savedSettings['lazy_loading'] ?? $this->lazy_loading,
+        ];
+    }
+    
+    /**
+     * Alias di settings() per compatibilità
+     */
+    public function getSettings(): array
+    {
+        return $this->settings();
+    }
+    
+    /**
+     * Aggiorna le impostazioni del servizio
+     */
+    public function updateSettings(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_code_splitting_manager', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        $newSettings['enabled'] = (bool) ($newSettings['enabled'] ?? false);
+        $newSettings['chunk_size'] = max(50000, (int) ($newSettings['chunk_size'] ?? 100000));
+        $newSettings['lazy_loading'] = (bool) ($newSettings['lazy_loading'] ?? true);
+        
+        $result = update_option('fp_ps_code_splitting_manager', $newSettings, false);
+        
+        if ($result) {
+            $this->chunk_size = $newSettings['chunk_size'];
+            $this->lazy_loading = $newSettings['lazy_loading'];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
     }
 }

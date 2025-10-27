@@ -88,6 +88,40 @@ class FontOptimizer
     }
     
     /**
+     * Restituisce lo stato dell'ottimizzazione font
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        return [
+            'enabled' => $this->preload_critical || $this->display_swap,
+            'preload_critical' => $this->preload_critical,
+            'display_swap' => $this->display_swap,
+        ];
+    }
+    
+    /**
+     * Restituisce le impostazioni dell'ottimizzazione font
+     * 
+     * @return array Array con tutte le impostazioni
+     */
+    public function getSettings(): array
+    {
+        $settings = get_option('fp_ps_font_optimizer', [
+            'enabled' => false,
+            'preload_critical' => true,
+            'display_swap' => true,
+            'optimize_google_fonts' => true,
+            'self_host_google_fonts' => false,
+            'subset_fonts' => true,
+            'remove_unused_fonts' => false,
+        ]);
+        
+        return $settings;
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

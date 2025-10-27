@@ -1,72 +1,60 @@
-# 🛠️ Dev Scripts
+# 🛠️ Dev Scripts - FP Performance Suite
 
-Questa cartella contiene script di sviluppo, test e debug utilizzati durante lo sviluppo del plugin FP Performance Suite.
-
-## 📋 Contenuto
-
-### Script PHP
-File PHP utilizzati per diagnostica, test e fix durante lo sviluppo:
-- `diagnose-*.php` - Script di diagnostica
-- `fix-*.php` - Script di fix automatici
-- `verifica-*.php` - Script di verifica
-- `check-*.php` - Script di controllo
-- `cerca-*.php` - Script di ricerca
-- `lista-*.php` - Script di listing
-- `crea-*.php` - Script di creazione
-
-### Script PowerShell (`.ps1`)
-Script PowerShell per automazione su Windows:
-- `cleanup-*.ps1` - Script di pulizia
-- `finalize-*.ps1` - Script di finalizzazione
-- `ripristino-*.ps1` - Script di ripristino
-- `verifica-*.ps1` - Script di verifica
-
-### Script Shell (`.sh`)
-Script bash per automazione su Linux/Mac:
-- `cleanup-*.sh` - Script di pulizia
-- `fix-*.sh` - Script di fix
-- `update-*.sh` - Script di aggiornamento
-- `GIT_*.sh` - Script Git
-
-### File Temporanei
-- `*-temp.txt` - File temporanei di output
-
-## ⚠️ Attenzione
-
-Questi script sono utilizzati **solo in ambiente di sviluppo**. Non eseguirli in produzione senza aver prima:
-1. Letto attentamente il codice
-2. Fatto un backup completo
-3. Testato in staging
-
-## 📚 Documentazione
-
-Per la documentazione ufficiale del plugin, consultare:
-- [README.md principale](../README.md)
-- [Documentazione completa](../docs/INDEX.md)
-
-## 🔧 Utilizzo
-
-La maggior parte degli script sono pensati per essere eseguiti dalla root del progetto:
-
-```bash
-# Esempio PHP
-php dev-scripts/diagnose-plugin-activation.php
-
-# Esempio PowerShell
-.\dev-scripts\cleanup-auto.ps1
-
-# Esempio Shell
-bash dev-scripts/update-zip.sh
-```
-
-## 📝 Note
-
-- Questi script non sono inclusi nella distribuzione del plugin
-- Sono mantenuti per riferimento futuro e debug
-- Alcuni potrebbero essere obsoleti o non più funzionanti
-- Verificare sempre il codice prima dell'esecuzione
+Questa cartella contiene **script di utilità per sviluppo e deployment**.
 
 ---
 
-[◀ Torna alla root del progetto](../)
+## ⚠️ ATTENZIONE
+
+**Questi script sono SOLO per sviluppo/debug!**
+
+- ❌ NON includere in produzione
+- ❌ NON eseguire su siti live
+- ✅ Usa solo in ambiente development
+
+---
+
+## 📂 Script Disponibili
+
+### Deployment
+- `cleanup-*.ps1/sh` - Script pulizia automatica
+- `update-zip.sh` - Crea ZIP per distribuzione
+- `crea-pacchetto-aggiornamento.php` - Pacchetto update
+
+### Verifica
+- `check-redis.php` - Verifica configurazione Redis
+- `check-activation-status.php` - Verifica stato attivazione
+- `lista-zip.php` - Lista contenuti ZIP
+
+### Git
+- `GIT_COMMIT_*.sh` - Script commit automatici
+- `DEPLOY_RAPIDO_FIX.sh` - Deploy rapido fix
+- `fix-plugin-sync.sh` - Sincronizzazione plugin
+
+---
+
+## 🧹 Pulizia Recente
+
+**Data:** 2025-01-25
+
+Rimossi dalla cartella:
+- 15+ file `test-*.php`
+- 10+ file `diagnose-*.php`
+- 12+ file `verifica-*.php`
+- 8+ file `fix-*.php`
+- File `.txt` e `.md` temporanei
+
+**Mantenuti solo script essenziali per deployment.**
+
+---
+
+## 📝 Note
+
+- Gli script possono richiedere configurazione specifica
+- Controlla sempre lo script prima di eseguirlo
+- Fai backup prima di eseguire script di modifica
+
+---
+
+**Per documentazione completa, vedi [../docs/02-developer/](../docs/02-developer/)**
 

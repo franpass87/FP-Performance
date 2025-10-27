@@ -18,12 +18,24 @@ class JavaScriptTreeShaker
             return;
         }
         
+        // Controlla se il servizio è abilitato
+        $settings = $this->settings();
+        if (!$settings['enabled']) {
+            return;
+        }
+        
         add_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 998);
         add_action('wp_footer', [$this, 'addTreeShakingScript'], 43);
     }
     
     public function optimizeScripts()
     {
+        // Controlla se il servizio è abilitato
+        $settings = $this->settings();
+        if (!$settings['enabled']) {
+            return;
+        }
+        
         global $wp_scripts;
         
         if (!$wp_scripts) return;
@@ -104,5 +116,56 @@ class JavaScriptTreeShaker
             'aggressive_mode' => $this->aggressive_mode,
             'optimization_enabled' => true
         ];
+    }
+    
+    /**
+     * Restituisce le impostazioni
+     * 
+     * @return array
+     */
+    public function settings(): array
+    {
+        $savedSettings = get_option('fp_ps_js_tree_shaker', []);
+        return [
+            'enabled' => $savedSettings['enabled'] ?? false,
+            'aggressive_mode' => $savedSettings['aggressive_mode'] ?? $this->aggressive_mode,
+        ];
+    }
+    
+    /**
+     * Alias di settings() per compatibilità
+     */
+    public function getSettings(): array
+    {
+        return $this->settings();
+    }
+    
+    /**
+     * Aggiorna le impostazioni del servizio
+     */
+    public function updateSettings(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_js_tree_shaker', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        $newSettings['enabled'] = (bool) ($newSettings['enabled'] ?? false);
+        $newSettings['aggressive_mode'] = (bool) ($newSettings['aggressive_mode'] ?? false);
+        
+        $result = update_option('fp_ps_js_tree_shaker', $newSettings, false);
+        
+        if ($result) {
+            $this->aggressive_mode = $newSettings['aggressive_mode'];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Registra il servizio
+     */
+    public function register(): void
+    {
+        $this->init();
     }
 }

@@ -103,7 +103,15 @@ class Media extends AbstractPage
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Media Optimization', 'fp-performance-suite'); ?></h1>
+            <!-- INTRO BOX -->
+            <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                    🖼️ <?php esc_html_e('Media Optimization', 'fp-performance-suite'); ?>
+                </h2>
+                <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                    <?php esc_html_e('Ottimizza immagini e media: conversione WebP, compressione, lazy loading e responsive images per ridurre il peso delle pagine.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
             
             <?php if (isset($_GET['updated'])): ?>
                 <div class="notice notice-success is-dismissible">
@@ -111,9 +119,9 @@ class Media extends AbstractPage
                 </div>
             <?php endif; ?>
 
-            <div class="fp-ps-admin-container">
-                <div class="fp-ps-main-content">
-                    <div class="fp-ps-card">
+            <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-top: 30px;">
+                <div>
+                    <div class="fp-ps-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h2><?php esc_html_e('Responsive Images', 'fp-performance-suite'); ?></h2>
                         <p><?php esc_html_e('Optimize images for different screen sizes and devices.', 'fp-performance-suite'); ?></p>
                         
@@ -177,8 +185,8 @@ class Media extends AbstractPage
                     </div>
                 </div>
                 
-                <div class="fp-ps-sidebar">
-                    <div class="fp-ps-card">
+                <div>
+                    <div class="fp-ps-card" style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         <h3><?php esc_html_e('Media Optimization Status', 'fp-performance-suite'); ?></h3>
                         <div class="fp-ps-status-list">
                             <div class="fp-ps-status-item">
@@ -209,28 +217,6 @@ class Media extends AbstractPage
         </div>
         
         <style>
-        .fp-ps-admin-container {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .fp-ps-main-content {
-            flex: 2;
-        }
-        
-        .fp-ps-sidebar {
-            flex: 1;
-        }
-        
-        .fp-ps-card {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
         .fp-ps-card h2 {
             margin-top: 0;
             color: #23282d;
@@ -269,6 +255,12 @@ class Media extends AbstractPage
         .fp-ps-status-disabled {
             color: #d63638;
             font-weight: 500;
+        }
+        
+        @media (max-width: 1024px) {
+            .wrap > div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+            }
         }
         </style>
         <?php

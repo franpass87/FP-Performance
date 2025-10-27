@@ -16,6 +16,7 @@ use FP\PerfSuite\Utils\InstallationRecovery;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Fs;
+use FP\PerfSuite\Utils\ServiceDiagnostics;
 
 use function __;
 use function _e;
@@ -94,6 +95,43 @@ class Diagnostics extends AbstractPage
         ?>
         
         <?php echo $noticesHtml; ?>
+        
+        <!-- Service Status Section -->
+        <section class="fp-ps-card">
+            <h2>⚙️ <?php _e('Stato Servizi Plugin', 'fp-performance-suite'); ?></h2>
+            <p class="description">
+                <?php _e('Verifica rapidamente quali servizi del plugin sono attivi e funzionanti.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <?php
+            $serviceStatus = ServiceDiagnostics::checkAllServices();
+            $totalServices = 0;
+            $activeServices = 0;
+            
+            foreach ($serviceStatus as $category => $services) {
+                foreach ($services as $service) {
+                    $totalServices++;
+                    if (!empty($service['enabled'])) {
+                        $activeServices++;
+                    }
+                }
+            }
+            ?>
+            
+            <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin: 15px 0; border-radius: 4px;">
+                <strong>📊 Riepilogo:</strong>
+                <?php printf(__('%d servizi attivi su %d totali', 'fp-performance-suite'), $activeServices, $totalServices); ?>
+            </div>
+            
+            <details style="margin-top: 20px;">
+                <summary style="cursor: pointer; padding: 10px; background: #f0f0f1; border-radius: 4px; font-weight: 600;">
+                    🔍 <?php _e('Mostra Dettagli Servizi', 'fp-performance-suite'); ?>
+                </summary>
+                <div style="margin-top: 15px; padding: 15px; background: white; border: 1px solid #ddd; border-radius: 4px;">
+                    <?php echo ServiceDiagnostics::generateHtmlReport(); ?>
+                </div>
+            </details>
+        </section>
         
         <!-- Diagnostic Section -->
         <section class="fp-ps-card">

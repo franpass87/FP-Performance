@@ -61,7 +61,7 @@ class Cache extends AbstractPage
     {
         // Determina la tab attiva
         $activeTab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'page';
-        $validTabs = ['page', 'browser', 'pwa', 'edge', 'auto', 'external'];
+        $validTabs = ['page', 'browser', 'pwa', 'edge', 'auto', 'external', 'intelligence', 'exclusions'];
         if (!in_array($activeTab, $validTabs, true)) {
             $activeTab = 'page';
         }
@@ -70,7 +70,19 @@ class Cache extends AbstractPage
         $message = $this->handleFormSubmissions($activeTab);
         
         ob_start();
+        ?>
         
+        <!-- INTRO BOX -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🚀 <?php esc_html_e('Cache Management', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                <?php esc_html_e('Gestisci la cache del sito per migliorare drasticamente le prestazioni. Configura page cache, browser cache, PWA e Edge cache.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
+        <?php
         // Render tabs navigation
         $this->renderTabsNavigation($activeTab);
         
@@ -90,6 +102,12 @@ class Cache extends AbstractPage
                 break;
             case 'external':
                 echo $this->renderExternalCacheTab($message);
+                break;
+            case 'intelligence':
+                echo $this->renderIntelligenceTab();
+                break;
+            case 'exclusions':
+                echo $this->renderExclusionsTab();
                 break;
             default:
                 echo $this->renderPageCacheTab();
@@ -303,6 +321,14 @@ class Cache extends AbstractPage
                class="nav-tab <?php echo $activeTab === 'external' ? 'nav-tab-active' : ''; ?>">
                 🌐 <?php esc_html_e('External Cache', 'fp-performance-suite'); ?>
             </a>
+            <a href="<?php echo esc_url($baseUrl . '&tab=intelligence'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'intelligence' ? 'nav-tab-active' : ''; ?>">
+                🧠 <?php esc_html_e('Intelligence', 'fp-performance-suite'); ?>
+            </a>
+            <a href="<?php echo esc_url($baseUrl . '&tab=exclusions'); ?>" 
+               class="nav-tab <?php echo $activeTab === 'exclusions' ? 'nav-tab-active' : ''; ?>">
+                🎯 <?php esc_html_e('Smart Exclusions', 'fp-performance-suite'); ?>
+            </a>
         </div>
         <?php
     }
@@ -447,7 +473,7 @@ class Cache extends AbstractPage
                         <strong><?php esc_html_e('Enable Predictive Prefetching', 'fp-performance-suite'); ?></strong>
                         <span class="description"><?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled']); ?> data-risk="green" />
+                    <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled'] ?? false); ?> data-risk="green" />
                 </label>
 
                 <table class="form-table" style="margin-top: 20px;">
@@ -457,13 +483,13 @@ class Cache extends AbstractPage
                         </th>
                         <td>
                             <select name="prefetch_strategy" id="prefetch_strategy" class="regular-text">
-                                <option value="hover" <?php selected($prefetchSettings['strategy'], 'hover'); ?>>
+                                <option value="hover" <?php selected($prefetchSettings['strategy'] ?? 'hover', 'hover'); ?>>
                                     <?php esc_html_e('Hover - Precarica al passaggio del mouse (Consigliato)', 'fp-performance-suite'); ?>
                                 </option>
-                                <option value="viewport" <?php selected($prefetchSettings['strategy'], 'viewport'); ?>>
+                                <option value="viewport" <?php selected($prefetchSettings['strategy'] ?? 'hover', 'viewport'); ?>>
                                     <?php esc_html_e('Viewport - Precarica link visibili', 'fp-performance-suite'); ?>
                                 </option>
-                                <option value="aggressive" <?php selected($prefetchSettings['strategy'], 'aggressive'); ?>>
+                                <option value="aggressive" <?php selected($prefetchSettings['strategy'] ?? 'hover', 'aggressive'); ?>>
                                     <?php esc_html_e('Aggressive - Precarica tutti i link (Alto uso banda)', 'fp-performance-suite'); ?>
                                 </option>
                             </select>
@@ -477,7 +503,7 @@ class Cache extends AbstractPage
                             <label for="prefetch_delay"><?php esc_html_e('Delay (ms)', 'fp-performance-suite'); ?></label>
                         </th>
                         <td>
-                            <input type="number" name="prefetch_delay" id="prefetch_delay" value="<?php echo esc_attr((string) $prefetchSettings['hover_delay']); ?>" min="0" max="2000" step="50" class="small-text" />
+                            <input type="number" name="prefetch_delay" id="prefetch_delay" value="<?php echo esc_attr((string) ($prefetchSettings['hover_delay'] ?? 100)); ?>" min="0" max="2000" step="50" class="small-text" />
                             <span>ms</span>
                             <p class="description">
                                 <?php esc_html_e('Ritardo prima del prefetch quando il mouse è su un link (default: 100ms). Previene prefetch accidentali.', 'fp-performance-suite'); ?>
@@ -489,7 +515,7 @@ class Cache extends AbstractPage
                             <label for="prefetch_limit"><?php esc_html_e('Limite prefetch', 'fp-performance-suite'); ?></label>
                         </th>
                         <td>
-                            <input type="number" name="prefetch_limit" id="prefetch_limit" value="<?php echo esc_attr((string) $prefetchSettings['prefetch_limit']); ?>" min="1" max="20" class="small-text" />
+                            <input type="number" name="prefetch_limit" id="prefetch_limit" value="<?php echo esc_attr((string) ($prefetchSettings['prefetch_limit'] ?? 5)); ?>" min="1" max="20" class="small-text" />
                             <p class="description">
                                 <?php esc_html_e('Numero massimo di pagine da precaricare simultaneamente (consigliato: 5). Previene sovraccarico.', 'fp-performance-suite'); ?>
                             </p>
@@ -500,7 +526,7 @@ class Cache extends AbstractPage
                             <label for="prefetch_ignore_patterns"><?php esc_html_e('Pattern da ignorare', 'fp-performance-suite'); ?></label>
                         </th>
                         <td>
-                            <textarea name="prefetch_ignore_patterns" id="prefetch_ignore_patterns" rows="5" class="large-text code"><?php echo esc_textarea(implode("\n", $prefetchSettings['ignore_patterns'])); ?></textarea>
+                            <textarea name="prefetch_ignore_patterns" id="prefetch_ignore_patterns" rows="5" class="large-text code"><?php echo esc_textarea(implode("\n", $prefetchSettings['ignore_patterns'] ?? [])); ?></textarea>
                             <p class="description">
                                 <?php esc_html_e('URL o pattern da escludere dal prefetch (uno per riga). Esempio: /wp-admin/, /cart/, /checkout/', 'fp-performance-suite'); ?>
                             </p>
@@ -1350,5 +1376,61 @@ class Cache extends AbstractPage
     private function truncateUrl(string $url, int $length): string
     {
         return strlen($url) > $length ? substr($url, 0, $length) . '...' : $url;
+    }
+    
+    /**
+     * Render Intelligence tab
+     */
+    private function renderIntelligenceTab(): string
+    {
+        ob_start();
+        
+        // Include Intelligence Dashboard content
+        try {
+            $intelligencePage = $this->container->get(\FP\PerfSuite\Admin\Pages\IntelligenceDashboard::class);
+            // Estrae solo il contenuto senza il wrapper della pagina
+            $content = $intelligencePage->content();
+            
+            // Rimuove l'intro box se presente (perché abbiamo già quello della pagina Cache)
+            $content = preg_replace('/<div class="fp-ps-page-intro".*?<\/div>/s', '', $content);
+            
+            echo $content;
+        } catch (\Exception $e) {
+            ?>
+            <div class="notice notice-error">
+                <p><?php echo esc_html(sprintf(__('Errore nel caricamento di Intelligence: %s', 'fp-performance-suite'), $e->getMessage())); ?></p>
+            </div>
+            <?php
+        }
+        
+        return (string) ob_get_clean();
+    }
+    
+    /**
+     * Render Smart Exclusions tab
+     */
+    private function renderExclusionsTab(): string
+    {
+        ob_start();
+        
+        // Include Smart Exclusions content
+        try {
+            $exclusionsPage = $this->container->get(\FP\PerfSuite\Admin\Pages\Exclusions::class);
+            // Estrae solo il contenuto senza il wrapper della pagina
+            $content = $exclusionsPage->content();
+            
+            // Rimuove l'intro box se presente
+            $content = preg_replace('/<div class="fp-ps-page-intro".*?<\/div>/s', '', $content);
+            
+            echo $content;
+        } catch (\Exception $e) {
+            ?>
+            <div class="notice notice-error">
+                <p><?php echo esc_html(sprintf(__('Errore nel caricamento di Smart Exclusions: %s', 'fp-performance-suite'), $e->getMessage())); ?></p>
+            </div>
+            <?php
+        }
+        
+        return (string) ob_get_clean();
     }
 }

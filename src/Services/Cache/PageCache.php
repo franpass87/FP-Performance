@@ -153,6 +153,98 @@ class PageCache
     }
     
     /**
+     * Verifica se la page cache è abilitata
+     * 
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        $settings = get_option('fp_ps_page_cache_settings', []);
+        return isset($settings['enabled']) && $settings['enabled'];
+    }
+    
+    /**
+     * Restituisce le impostazioni della page cache
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        $settings = get_option('fp_ps_page_cache_settings', []);
+        
+        return [
+            'enabled' => isset($settings['enabled']) && $settings['enabled'],
+            'ttl' => $settings['ttl'] ?? $this->ttl,
+            'cache_dir' => $this->cache_dir,
+            'exclude_urls' => $settings['exclude_urls'] ?? [],
+            'exclude_cookies' => $settings['exclude_cookies'] ?? [],
+            'exclude_query_strings' => $settings['exclude_query_strings'] ?? [],
+        ];
+    }
+    
+    /**
+     * Aggiorna le impostazioni della cache
+     * 
+     * @param array $settings Nuove impostazioni
+     * @return bool True se salvato con successo
+     */
+    public function update(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_page_cache_settings', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['enabled'])) {
+            $newSettings['enabled'] = (bool) $newSettings['enabled'];
+        }
+        
+        if (isset($newSettings['ttl'])) {
+            $newSettings['ttl'] = max(0, (int) $newSettings['ttl']);
+            // Se TTL è 0, disabilita la cache
+            if ($newSettings['ttl'] === 0) {
+                $newSettings['enabled'] = false;
+            }
+        }
+        
+        // Valida array di esclusioni
+        if (isset($newSettings['exclude_urls']) && !is_array($newSettings['exclude_urls'])) {
+            $newSettings['exclude_urls'] = [];
+        }
+        if (isset($newSettings['exclude_cookies']) && !is_array($newSettings['exclude_cookies'])) {
+            $newSettings['exclude_cookies'] = [];
+        }
+        if (isset($newSettings['exclude_query_strings']) && !is_array($newSettings['exclude_query_strings'])) {
+            $newSettings['exclude_query_strings'] = [];
+        }
+        
+        $result = update_option('fp_ps_page_cache_settings', $newSettings, false);
+        
+        if ($result && isset($newSettings['ttl'])) {
+            $this->ttl = $newSettings['ttl'];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Restituisce lo stato della cache
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        $enabled = $this->isEnabled();
+        
+        return [
+            'enabled' => $enabled,
+            'ttl' => $this->ttl,
+            'cache_dir' => $this->cache_dir,
+            'dir_exists' => file_exists($this->cache_dir),
+            'dir_writable' => is_writable($this->cache_dir),
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

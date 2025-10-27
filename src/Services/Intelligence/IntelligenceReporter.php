@@ -138,7 +138,8 @@ class IntelligenceReporter
 
         // Calcola ratio di confidence alta
         $highConfidence = array_filter($exclusions, fn($e) => ($e['confidence'] ?? 0) >= 0.8);
-        $effectiveness['high_confidence_ratio'] = count($highConfidence) / count($exclusions);
+        $exclusionsCount = count($exclusions);
+        $effectiveness['high_confidence_ratio'] = $exclusionsCount > 0 ? count($highConfidence) / $exclusionsCount : 0;
 
         // Calcola score di copertura
         $sensitivePatterns = ['/checkout', '/cart', '/login', '/account', '/payment'];
@@ -153,7 +154,8 @@ class IntelligenceReporter
             }
         }
         
-        $effectiveness['coverage_score'] = $coveredPatterns / count($sensitivePatterns);
+        $sensitivePatternsCount = count($sensitivePatterns);
+        $effectiveness['coverage_score'] = $sensitivePatternsCount > 0 ? $coveredPatterns / $sensitivePatternsCount : 0;
 
         // Calcola score complessivo
         $effectiveness['score'] = round(
@@ -231,10 +233,21 @@ class IntelligenceReporter
         $recent = array_slice($trends, -7); // Ultimi 7 giorni
         $older = array_slice($trends, -14, 7); // 7 giorni precedenti
 
-        $recentAvg = array_sum(array_column($recent, 'avg_load_time')) / count($recent);
-        $olderAvg = array_sum(array_column($older, 'avg_load_time')) / count($older);
+        // Protezione divisione per zero
+        $recentCount = count($recent);
+        $olderCount = count($older);
+        
+        $recentAvg = $recentCount > 0 ? array_sum(array_column($recent, 'avg_load_time')) / $recentCount : 0;
+        $olderAvg = $olderCount > 0 ? array_sum(array_column($older, 'avg_load_time')) / $olderCount : 0;
 
-        $improvement = (($olderAvg - $recentAvg) / $olderAvg) * 100;
+        // Calcola miglioramento solo se olderAvg > 0
+        $improvement = 0;
+        if ($olderAvg > 0) {
+            $improvement = (($olderAvg - $recentAvg) / $olderAvg) * 100;
+        } elseif ($recentAvg > 0 && $olderAvg === 0) {
+            // Se c'erano zero dati prima e ora ci sono, è un peggioramento
+            $improvement = -100;
+        }
 
         return [
             'status' => $improvement > 5 ? 'improving' : ($improvement < -5 ? 'declining' : 'stable'),
@@ -331,7 +344,7 @@ class IntelligenceReporter
             'total_recent' => count($recentExclusions),
             'automatic_recent' => count(array_filter($recentExclusions, fn($e) => $e['type'] === 'automatic')),
             'manual_recent' => count(array_filter($recentExclusions, fn($e) => $e['type'] === 'manual')),
-            'trend' => count($recentExclusions) > ($days / 2) ? 'increasing' : 'stable',
+            'trend' => $days > 0 && count($recentExclusions) > ($days / 2) ? 'increasing' : 'stable',
         ];
     }
 
@@ -390,8 +403,9 @@ class IntelligenceReporter
             $scores[] = $report['cache_optimization']['configuration_score'];
         }
 
-        if (!empty($scores)) {
-            $summary['overall_score'] = round(array_sum($scores) / count($scores), 1);
+        $scoresCount = count($scores);
+        if ($scoresCount > 0) {
+            $summary['overall_score'] = round(array_sum($scores) / $scoresCount, 1);
         }
 
         // Determina status

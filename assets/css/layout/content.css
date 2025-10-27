@@ -1,13 +1,13 @@
 /**
  * Content Layout Styles
- * 
+ *
  * @package FP\PerfSuite
  */
 
 .fp-ps-content {
-    background: var(--fp-bg);
-    padding: var(--fp-spacing-xl);
-    min-height: 400px;
+	background: var(--fp-bg);
+	padding: var(--fp-spacing-xl);
+	min-height: 400px;
 }
 
 .fp-ps-content h1,
@@ -16,92 +16,92 @@
 .fp-ps-content h4,
 .fp-ps-content h5,
 .fp-ps-content h6 {
-    color: var(--fp-text);
-    margin-top: 0;
+	color: var(--fp-text);
+	margin-top: 0;
 }
 
 .fp-ps-content p {
-    color: var(--fp-text);
-    line-height: 1.6;
-    margin-bottom: var(--fp-spacing-md);
+	color: var(--fp-text);
+	line-height: 1.6;
+	margin-bottom: var(--fp-spacing-md);
 }
 
 .fp-ps-content .form-table {
-    background: var(--fp-card);
-    border-radius: var(--fp-radius-sm);
-    padding: var(--fp-spacing-lg);
-    box-shadow: var(--fp-shadow-sm);
+	background: var(--fp-card);
+	border-radius: var(--fp-radius-sm);
+	padding: var(--fp-spacing-lg);
+	box-shadow: var(--fp-shadow-sm);
 }
 
 .fp-ps-content .form-table th {
-    padding: var(--fp-spacing-md);
-    font-weight: 600;
-    color: var(--fp-text);
+	padding: var(--fp-spacing-md);
+	font-weight: 600;
+	color: var(--fp-text);
 }
 
 .fp-ps-content .form-table td {
-    padding: var(--fp-spacing-md);
+	padding: var(--fp-spacing-md);
 }
 
 .fp-ps-content .button {
-    margin-right: var(--fp-spacing-sm);
-    margin-bottom: var(--fp-spacing-sm);
+	margin-right: var(--fp-spacing-sm);
+	margin-bottom: var(--fp-spacing-sm);
 }
 
 .fp-ps-content .notice {
-    margin: var(--fp-spacing-md) 0;
-    padding: var(--fp-spacing-md);
-    border-radius: var(--fp-radius-sm);
+	margin: var(--fp-spacing-md) 0;
+	padding: var(--fp-spacing-md);
+	border-radius: var(--fp-radius-sm);
 }
 
 .fp-ps-content .notice.notice-success {
-    background: var(--fp-success-light);
-    border-left: 4px solid var(--fp-success);
-    color: var(--fp-success);
+	background: var(--fp-success-light);
+	border-left: 4px solid var(--fp-success);
+	color: var(--fp-success);
 }
 
 .fp-ps-content .notice.notice-error {
-    background: var(--fp-danger-light);
-    border-left: 4px solid var(--fp-danger);
-    color: var(--fp-danger);
+	background: var(--fp-danger-light);
+	border-left: 4px solid var(--fp-danger);
+	color: var(--fp-danger);
 }
 
 .fp-ps-content .notice.notice-warning {
-    background: var(--fp-warning-light);
-    border-left: 4px solid var(--fp-warning-border);
-    color: var(--fp-warning-dark);
+	background: var(--fp-warning-light);
+	border-left: 4px solid var(--fp-warning-border);
+	color: var(--fp-warning-dark);
 }
 
 .fp-ps-content .notice.notice-info {
-    background: var(--fp-info-light);
-    border-left: 4px solid var(--fp-info-border);
-    color: var(--fp-info-dark);
+	background: var(--fp-info-light);
+	border-left: 4px solid var(--fp-info-border);
+	color: var(--fp-info-dark);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .fp-ps-content {
-        padding: var(--fp-spacing-md);
-    }
-    
-    .fp-ps-content .form-table {
-        padding: var(--fp-spacing-md);
-    }
-    
-    .fp-ps-content .form-table th,
-    .fp-ps-content .form-table td {
-        padding: var(--fp-spacing-sm);
-        display: block;
-        width: 100%;
-    }
-    
-    .fp-ps-content .form-table th {
-        border-bottom: none;
-        padding-bottom: var(--fp-spacing-xs);
-    }
-    
-    .fp-ps-content .form-table td {
-        padding-top: var(--fp-spacing-xs);
-        padding-bottom: var(--fp-spacing-md);
-    }
+	.fp-ps-content {
+		padding: var(--fp-spacing-md);
+	}
+
+	.fp-ps-content .form-table {
+		padding: var(--fp-spacing-md);
+	}
+
+	.fp-ps-content .form-table th,
+	.fp-ps-content .form-table td {
+		padding: var(--fp-spacing-sm);
+		display: block;
+		width: 100%;
+	}
+
+	.fp-ps-content .form-table th {
+		border-bottom: none;
+		padding-bottom: var(--fp-spacing-xs);
+	}
+
+	.fp-ps-content .form-table td {
+		padding-top: var(--fp-spacing-xs);
+		padding-bottom: var(--fp-spacing-md);
+	}
 }

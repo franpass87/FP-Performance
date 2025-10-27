@@ -73,6 +73,40 @@ class ImageOptimizer
     }
     
     /**
+     * Restituisce lo stato dell'ottimizzazione immagini
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        return [
+            'enabled' => $this->lazy_loading,
+            'lazy_loading' => $this->lazy_loading,
+        ];
+    }
+    
+    /**
+     * Restituisce le impostazioni dell'ottimizzazione immagini
+     * 
+     * @return array Array con tutte le impostazioni
+     */
+    public function getSettings(): array
+    {
+        $settings = get_option('fp_ps_image_optimizer', [
+            'enabled' => false,
+            'lazy_loading' => true,
+            'webp_conversion' => true,
+            'compression_quality' => 85,
+            'max_width' => 2048,
+            'max_height' => 2048,
+            'strip_metadata' => true,
+            'responsive_images' => true,
+        ]);
+        
+        return $settings;
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

@@ -21,6 +21,8 @@ use FP\PerfSuite\Admin\Pages\MonitoringReports;
 use FP\PerfSuite\Admin\Pages\Overview;
 use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Settings;
+use FP\PerfSuite\Admin\Pages\Status;
+use FP\PerfSuite\Admin\Pages\ThemeOptimization;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
 
@@ -55,6 +57,8 @@ class Menu
         add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
         add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
         
+        // Nascondi i notice di altri plugin nelle pagine del plugin
+        add_action('admin_enqueue_scripts', [$this, 'hideThirdPartyNotices']);
         
         // NOTA: wp_ajax_fp_ps_apply_recommendation ora gestito da RecommendationsAjax (ripristinato 21 Ott 2025)
         // Mantenuto metodo applyRecommendation() come fallback per compatibilità
@@ -328,7 +332,8 @@ class Menu
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
         add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
-        add_submenu_page('fp-performance-suite', __('JavaScript Optimization', 'fp-performance-suite'), __('⚡ JS Optimization', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
+        // JS Optimization è ora una tab dentro Assets
+        // add_submenu_page('fp-performance-suite', __('JavaScript Optimization', 'fp-performance-suite'), __('⚡ JS Optimization', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
         add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
@@ -351,23 +356,37 @@ class Menu
         add_submenu_page('fp-performance-suite', __('Security', 'fp-performance-suite'), __('🛡️ Security', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-security', [$pages['security'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
+        // 🎨 THEME & COMPATIBILITY
+        // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Theme Optimization', 'fp-performance-suite'), __('🎨 Theme', 'fp-performance-suite'), $capability, 'fp-performance-suite-theme-optimization', [$pages['theme_optimization'], 'render']);
+        
+        // ═══════════════════════════════════════════════════════════
         // 🧠 INTELLIGENCE & AUTO-DETECTION
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Intelligence Dashboard', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🎯 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        // Intelligence e Smart Exclusions sono ora tab dentro Cache
+        // add_submenu_page('fp-performance-suite', __('Intelligence Dashboard', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
+        // add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🎯 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
         add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 ML', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
         // 📊 MONITORING & DIAGNOSTICS
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('📊 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Logs', 'fp-performance-suite'), __('📝 Logs', 'fp-performance-suite'), $capability, 'fp-performance-suite-logs', [$pages['logs'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Diagnostics', 'fp-performance-suite'), __('🔍 Diagnostics', 'fp-performance-suite'), $capability, 'fp-performance-suite-diagnostics', [$pages['diagnostics'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🔧 CONFIGURATION
+        // 🔧 CONFIGURATION (Logs e Diagnostics sono ora tab dentro Settings)
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
+        
+        // Add Status page under WordPress Settings menu
+        add_submenu_page(
+            'options-general.php',
+            __('FP Performance', 'fp-performance-suite'),
+            __('FP Performance', 'fp-performance-suite'),
+            'manage_options',
+            'fp-performance-status',
+            [$pages['status'], 'render']
+        );
     }
 
     /**
@@ -459,6 +478,8 @@ class Menu
             'intelligence' => new IntelligenceDashboard($this->container),
             'exclusions' => new Exclusions($this->container),
             'diagnostics' => new Diagnostics($this->container),
+            'status' => new Status($this->container),
+            'theme_optimization' => new ThemeOptimization($this->container),
         ];
     }
 
@@ -515,6 +536,63 @@ class Menu
                 ),
             ]);
         }
+    }
+    
+    /**
+     * Nasconde i notice di altri plugin nelle pagine del plugin FP Performance
+     */
+    public function hideThirdPartyNotices(): void
+    {
+        // Controlla se siamo su una pagina del plugin
+        $screen = get_current_screen();
+        if (!$screen || strpos($screen->id, 'fp-performance-suite') === false) {
+            return;
+        }
+        
+        // Inietta CSS e JavaScript per nascondere i notice di altri plugin
+        ?>
+        <style type="text/css">
+            /* Stile per i notice del plugin FP Performance */
+            .fp-ps-admin-notice {
+                margin: 15px 0;
+            }
+        </style>
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                // Rimuovi i notice di altri plugin nelle pagine FP Performance
+                var fpNoticeKeywords = [
+                    'fp-performance',
+                    'fp-ps',
+                    'performance suite',
+                    'francesco passeri'
+                ];
+                
+                // Cerca tutti i notice nella pagina
+                var notices = $('#wpbody-content .notice, #wpbody-content .error, #wpbody-content .updated');
+                
+                notices.each(function() {
+                    var noticeText = $(this).text().toLowerCase();
+                    var isFpNotice = false;
+                    
+                    // Controlla se il notice appartiene al plugin FP Performance
+                    for (var i = 0; i < fpNoticeKeywords.length; i++) {
+                        if (noticeText.indexOf(fpNoticeKeywords[i]) !== -1) {
+                            isFpNotice = true;
+                            break;
+                        }
+                    }
+                    
+                    // Rimuovi il notice se non appartiene al plugin
+                    if (!isFpNotice) {
+                        $(this).remove();
+                    } else {
+                        // Aggiungi classe identificativa ai notice del plugin
+                        $(this).addClass('fp-ps-admin-notice');
+                    }
+                });
+            });
+        </script>
+        <?php
     }
 }
 

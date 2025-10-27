@@ -200,7 +200,6 @@ class SystemMonitor
         
         // Fallback sicuro per il modello CPU
         $info['model'] = 'Unknown (Security Mode)';
-        }
         
         return $info;
     }
@@ -319,15 +318,18 @@ class SystemMonitor
         $diskUsage = array_column($data, 'disk_usage');
         $loadAverage = array_column($data, 'load_average');
         
+        $memoryUsageCount = count($memoryUsage);
+        $loadAverageCount = count($loadAverage);
+        
         return [
             'samples' => count($data),
             'memory' => [
-                'avg_usage_mb' => round(array_sum(array_column($memoryUsage, 'current_mb')) / count($memoryUsage), 2),
-                'max_usage_mb' => max(array_column($memoryUsage, 'current_mb')),
-                'avg_peak_mb' => round(array_sum(array_column($memoryUsage, 'peak_mb')) / count($memoryUsage), 2),
-                'max_peak_mb' => max(array_column($memoryUsage, 'peak_mb')),
-                'avg_usage_percent' => round(array_sum(array_column($memoryUsage, 'usage_percent')) / count($memoryUsage), 2),
-                'max_usage_percent' => max(array_column($memoryUsage, 'usage_percent')),
+                'avg_usage_mb' => $memoryUsageCount > 0 ? round(array_sum(array_column($memoryUsage, 'current_mb')) / $memoryUsageCount, 2) : 0,
+                'max_usage_mb' => $memoryUsageCount > 0 ? max(array_column($memoryUsage, 'current_mb')) : 0,
+                'avg_peak_mb' => $memoryUsageCount > 0 ? round(array_sum(array_column($memoryUsage, 'peak_mb')) / $memoryUsageCount, 2) : 0,
+                'max_peak_mb' => $memoryUsageCount > 0 ? max(array_column($memoryUsage, 'peak_mb')) : 0,
+                'avg_usage_percent' => $memoryUsageCount > 0 ? round(array_sum(array_column($memoryUsage, 'usage_percent')) / $memoryUsageCount, 2) : 0,
+                'max_usage_percent' => $memoryUsageCount > 0 ? max(array_column($memoryUsage, 'usage_percent')) : 0,
             ],
             'disk' => [
                 'total_gb' => $diskUsage[0]['total_gb'] ?? 0,
@@ -336,12 +338,12 @@ class SystemMonitor
                 'usage_percent' => $diskUsage[0]['usage_percent'] ?? 0,
             ],
             'load' => [
-                'avg_1min' => round(array_sum(array_column($loadAverage, '1min')) / count($loadAverage), 2),
-                'avg_5min' => round(array_sum(array_column($loadAverage, '5min')) / count($loadAverage), 2),
-                'avg_15min' => round(array_sum(array_column($loadAverage, '15min')) / count($loadAverage), 2),
-                'max_1min' => max(array_column($loadAverage, '1min')),
-                'max_5min' => max(array_column($loadAverage, '5min')),
-                'max_15min' => max(array_column($loadAverage, '15min')),
+                'avg_1min' => $loadAverageCount > 0 ? round(array_sum(array_column($loadAverage, '1min')) / $loadAverageCount, 2) : 0,
+                'avg_5min' => $loadAverageCount > 0 ? round(array_sum(array_column($loadAverage, '5min')) / $loadAverageCount, 2) : 0,
+                'avg_15min' => $loadAverageCount > 0 ? round(array_sum(array_column($loadAverage, '15min')) / $loadAverageCount, 2) : 0,
+                'max_1min' => $loadAverageCount > 0 ? max(array_column($loadAverage, '1min')) : 0,
+                'max_5min' => $loadAverageCount > 0 ? max(array_column($loadAverage, '5min')) : 0,
+                'max_15min' => $loadAverageCount > 0 ? max(array_column($loadAverage, '15min')) : 0,
             ],
             'database' => [
                 'size_mb' => $data[0]['database_size']['size_mb'] ?? 0,

@@ -1,119 +1,119 @@
 /**
  * Analysis Section Styles
- * 
+ *
  * @package FP\PerfSuite
  */
 
 .fp-ps-analysis-summary {
-    padding: var(--fp-spacing-md);
-    border-radius: var(--fp-radius-sm);
-    margin-bottom: var(--fp-spacing-lg);
+	padding: var(--fp-spacing-md);
+	border-radius: var(--fp-radius-sm);
+	margin-bottom: var(--fp-spacing-lg);
 }
 
 .fp-ps-analysis-summary.excellent {
-    background: #d1fae5;
-    border-left: 4px solid var(--fp-ok);
-    color: #065f46;
+	background: #d1fae5;
+	border-left: 4px solid var(--fp-ok);
+	color: #065f46;
 }
 
 .fp-ps-analysis-summary.good {
-    background: #fef3c7;
-    border-left: 4px solid var(--fp-warn);
-    color: #92400e;
+	background: #fef3c7;
+	border-left: 4px solid var(--fp-warn);
+	color: #92400e;
 }
 
 .fp-ps-analysis-summary.poor {
-    background: #fee2e2;
-    border-left: 4px solid var(--fp-danger);
-    color: #991b1b;
+	background: #fee2e2;
+	border-left: 4px solid var(--fp-danger);
+	color: #991b1b;
 }
 
 .fp-ps-issue-section-header {
-    display: flex;
-    align-items: center;
-    gap: var(--fp-spacing-xs);
-    margin-bottom: var(--fp-spacing-md);
-    font-size: var(--fp-font-size-lg);
-    font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: var(--fp-spacing-xs);
+	margin-bottom: var(--fp-spacing-md);
+	font-size: var(--fp-font-size-lg);
+	font-weight: 600;
 }
 
 .fp-ps-issue-section-header.critical {
-    color: var(--fp-danger);
+	color: var(--fp-danger);
 }
 
 .fp-ps-issue-section-header.warning {
-    color: var(--fp-warn);
+	color: var(--fp-warn);
 }
 
 .fp-ps-issue-section-header.info {
-    color: var(--fp-accent);
+	color: var(--fp-accent);
 }
 
 .fp-ps-issue-box {
-    padding: var(--fp-spacing-md);
-    border-radius: var(--fp-radius-sm);
-    margin-bottom: var(--fp-spacing-md);
-    border-left: 4px solid;
+	padding: var(--fp-spacing-md);
+	border-radius: var(--fp-radius-sm);
+	margin-bottom: var(--fp-spacing-md);
+	border-left: 4px solid;
 }
 
 .fp-ps-issue-box.critical {
-    background: #fee2e2;
-    border-left-color: var(--fp-danger);
+	background: #fee2e2;
+	border-left-color: var(--fp-danger);
 }
 
 .fp-ps-issue-box.warning {
-    background: #fef3c7;
-    border-left-color: var(--fp-warn);
+	background: #fef3c7;
+	border-left-color: var(--fp-warn);
 }
 
 .fp-ps-issue-box.recommendation {
-    background: #e0f2fe;
-    border-left-color: var(--fp-accent);
+	background: #e0f2fe;
+	border-left-color: var(--fp-accent);
 }
 
 .fp-ps-issue-box h4 {
-    margin: 0 0 var(--fp-spacing-sm) 0;
-    font-size: var(--fp-font-size-md);
-    font-weight: 600;
+	margin: 0 0 var(--fp-spacing-sm) 0;
+	font-size: var(--fp-font-size-md);
+	font-weight: 600;
 }
 
 .fp-ps-issue-box p {
-    margin: 0 0 var(--fp-spacing-sm) 0;
-    font-size: var(--fp-font-size-base);
-    line-height: 1.5;
+	margin: 0 0 var(--fp-spacing-sm) 0;
+	font-size: var(--fp-font-size-base);
+	line-height: 1.5;
 }
 
 .fp-ps-issue-solution {
-    margin: var(--fp-spacing-sm) 0;
-    padding: var(--fp-spacing-sm);
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: var(--fp-radius-sm);
-    font-size: var(--fp-font-size-sm);
+	margin: var(--fp-spacing-sm) 0;
+	padding: var(--fp-spacing-sm);
+	background: rgba(255, 255, 255, 0.7);
+	border-radius: var(--fp-radius-sm);
+	font-size: var(--fp-font-size-sm);
 }
 
 .fp-ps-issue-actions {
-    margin-top: var(--fp-spacing-md);
+	margin-top: var(--fp-spacing-md);
 }
 
 .fp-ps-issue-actions .button {
-    margin-right: var(--fp-spacing-xs);
+	margin-right: var(--fp-spacing-xs);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .fp-ps-issue-section-header {
-        font-size: var(--fp-font-size-md);
-    }
-    
-    .fp-ps-issue-box {
-        padding: var(--fp-spacing-sm);
-    }
-    
-    .fp-ps-issue-actions .button {
-        width: 100%;
-        margin-right: 0;
-        margin-bottom: var(--fp-spacing-xs);
-    }
+	.fp-ps-issue-section-header {
+		font-size: var(--fp-font-size-md);
+	}
+
+	.fp-ps-issue-box {
+		padding: var(--fp-spacing-sm);
+	}
+
+	.fp-ps-issue-actions .button {
+		width: 100%;
+		margin-right: 0;
+		margin-bottom: var(--fp-spacing-xs);
+	}
 <<<<<<< HEAD
 }
 =======

@@ -95,6 +95,21 @@ class EdgeCacheManager
     }
     
     /**
+     * Restituisce le impostazioni
+     * 
+     * @return array
+     */
+    public function getSettings(): array
+    {
+        return [
+            'enabled' => !empty($this->provider) && !empty($this->api_key),
+            'provider' => $this->provider,
+            'zone_id' => $this->zone_id,
+            'api_key_configured' => !empty($this->api_key),
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

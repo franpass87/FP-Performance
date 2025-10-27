@@ -143,10 +143,10 @@ class Optimizer
         $defaults = [
             'enabled' => false,
             'minify_html' => false,
-            'defer_js' => true,
+            'defer_js' => false,
             'async_js' => false,
             'async_css' => false,
-            'remove_emojis' => true,
+            'remove_emojis' => false,
             'dns_prefetch' => [],
             'preload' => [],
             'preconnect' => [],

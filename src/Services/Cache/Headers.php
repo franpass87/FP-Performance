@@ -68,6 +68,37 @@ class Headers
     }
     
     /**
+     * Restituisce le impostazioni degli headers di cache
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        $settings = get_option('fp_ps_cache_headers_settings', []);
+        
+        return [
+            'enabled' => isset($settings['enabled']) && $settings['enabled'],
+            'ttl' => $settings['ttl'] ?? $this->ttl,
+        ];
+    }
+    
+    /**
+     * Restituisce lo stato degli headers di cache
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        $settings = get_option('fp_ps_cache_headers_settings', []);
+        $enabled = isset($settings['enabled']) && $settings['enabled'];
+        
+        return [
+            'enabled' => $enabled,
+            'ttl' => $this->ttl,
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

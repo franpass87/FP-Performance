@@ -148,13 +148,16 @@ class PerformanceBasedExclusionDetector
 
         // Calcola medie
         if (!empty($metrics['load_times'])) {
-            $analysis['avg_load_time'] = round(array_sum($metrics['load_times']) / count($metrics['load_times']), 3);
+            $loadTimesCount = count($metrics['load_times']);
+            $analysis['avg_load_time'] = $loadTimesCount > 0 ? round(array_sum($metrics['load_times']) / $loadTimesCount, 3) : 0;
         }
         if (!empty($metrics['queries'])) {
-            $analysis['avg_queries'] = round(array_sum($metrics['queries']) / count($metrics['queries']), 1);
+            $queriesCount = count($metrics['queries']);
+            $analysis['avg_queries'] = $queriesCount > 0 ? round(array_sum($metrics['queries']) / $queriesCount, 1) : 0;
         }
         if (!empty($metrics['memory'])) {
-            $analysis['avg_memory'] = round(array_sum($metrics['memory']) / count($metrics['memory']), 2);
+            $memoryCount = count($metrics['memory']);
+            $analysis['avg_memory'] = $memoryCount > 0 ? round(array_sum($metrics['memory']) / $memoryCount, 2) : 0;
         }
         if ($metrics['total_requests'] > 0) {
             $analysis['error_rate'] = round($metrics['errors'] / $metrics['total_requests'], 3);

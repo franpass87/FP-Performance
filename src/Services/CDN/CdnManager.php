@@ -158,6 +158,38 @@ class CdnManager
     }
     
     /**
+     * Restituisce le impostazioni del CDN
+     * 
+     * @return array Array con le impostazioni
+     */
+    public function settings(): array
+    {
+        return [
+            'enabled' => $this->enabled,
+            'cdn_url' => $this->cdn_url,
+            'provider' => $this->provider,
+            'api_key' => !empty($this->api_key) ? '***' : '', // Nascondi API key
+            'zone_id' => $this->zone_id,
+        ];
+    }
+    
+    /**
+     * Restituisce lo stato del CDN
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        return [
+            'enabled' => $this->enabled && !empty($this->cdn_url),
+            'cdn_url' => $this->cdn_url,
+            'provider' => $this->provider,
+            'api_key_configured' => !empty($this->api_key),
+            'zone_id_configured' => !empty($this->zone_id),
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

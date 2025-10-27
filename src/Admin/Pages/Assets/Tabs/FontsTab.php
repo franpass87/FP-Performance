@@ -31,11 +31,11 @@ class FontsTab
         <div class="fp-ps-tab-content <?php echo $current_tab === 'fonts' ? 'active' : ''; ?>" data-tab="fonts">
         
         <!-- Intro Panel -->
-        <div class="fp-ps-intro-panel">
-            <h2 class="fp-ps-intro-title">
+        <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 10px 0; color: white; font-size: 24px;">
                 ⚡ <?php esc_html_e('Font Optimization & Critical Path', 'fp-performance-suite'); ?>
             </h2>
-            <p class="fp-ps-intro-description">
+            <p style="margin: 0; font-size: 15px; line-height: 1.6; opacity: 0.95; color: white;">
                 <?php esc_html_e('Ottimizza il caricamento dei font e risolvi il problema del Maximum critical path latency (6,414ms) causato dai font che bloccano il rendering.', 'fp-performance-suite'); ?>
             </p>
         </div>

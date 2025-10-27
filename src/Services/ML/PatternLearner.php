@@ -59,9 +59,10 @@ class PatternLearner
         
         // Calcola statistiche di carico
         $loads = array_column($data, 'server_load');
-        $avg_load = array_sum($loads) / count($loads);
-        $max_load = max($loads);
-        $min_load = min($loads);
+        $loadsCount = count($loads);
+        $avg_load = $loadsCount > 0 ? array_sum($loads) / $loadsCount : 0;
+        $max_load = $loadsCount > 0 ? max($loads) : 0;
+        $min_load = $loadsCount > 0 ? min($loads) : 0;
         
         // Pattern: carico elevato in orari specifici
         $high_load_times = $this->findHighLoadTimes($data);
@@ -99,8 +100,9 @@ class PatternLearner
         
         // Calcola statistiche di memoria
         $memory_usage = array_column($data, 'memory_usage');
-        $avg_memory = array_sum($memory_usage) / count($memory_usage);
-        $max_memory = max($memory_usage);
+        $memoryCount = count($memory_usage);
+        $avg_memory = $memoryCount > 0 ? array_sum($memory_usage) / $memoryCount : 0;
+        $max_memory = $memoryCount > 0 ? max($memory_usage) : 0;
         
         // Pattern: crescita memoria nel tempo
         $memory_growth = $this->detectMemoryGrowth($data);
@@ -139,7 +141,8 @@ class PatternLearner
         // Calcola statistiche di errori
         $errors = array_column($data, 'error_count');
         $total_errors = array_sum($errors);
-        $avg_errors = $total_errors / count($errors);
+        $errorsCount = count($errors);
+        $avg_errors = $errorsCount > 0 ? $total_errors / $errorsCount : 0;
         
         if ($avg_errors > 0) {
             // Pattern: errori ricorrenti
@@ -266,8 +269,9 @@ class PatternLearner
         
         // Calcola correlazione
         foreach ($plugin_groups as $plugin_count => $loads) {
-            if (count($loads) >= 5) { // Almeno 5 punti dati
-                $avg_load = array_sum($loads) / count($loads);
+            $loadsGroupCount = count($loads);
+            if ($loadsGroupCount >= 5) { // Almeno 5 punti dati
+                $avg_load = array_sum($loads) / $loadsGroupCount;
                 $correlations[$plugin_count] = $avg_load;
             }
         }
@@ -300,7 +304,8 @@ class PatternLearner
     private function detectMemorySpikes(array $data): array
     {
         $memory_usage = array_column($data, 'memory_usage');
-        $avg_memory = array_sum($memory_usage) / count($memory_usage);
+        $memUsageCount = count($memory_usage);
+        $avg_memory = $memUsageCount > 0 ? array_sum($memory_usage) / $memUsageCount : 0;
         $std_dev = $this->calculateStandardDeviation($memory_usage);
         
         $spikes = [];
@@ -365,10 +370,11 @@ class PatternLearner
         
         $patterns = [];
         foreach ($daily_performance as $day => $times) {
-            if (count($times) >= 3) {
+            $timesCount = count($times);
+            if ($timesCount >= 3) {
                 $patterns[$day] = [
-                    'avg_load_time' => array_sum($times) / count($times),
-                    'samples' => count($times)
+                    'avg_load_time' => array_sum($times) / $timesCount,
+                    'samples' => $timesCount
                 ];
             }
         }
@@ -390,10 +396,11 @@ class PatternLearner
         
         $patterns = [];
         foreach ($hourly_performance as $hour => $times) {
-            if (count($times) >= 5) {
+            $timesCount = count($times);
+            if ($timesCount >= 5) {
                 $patterns[$hour] = [
-                    'avg_load_time' => array_sum($times) / count($times),
-                    'samples' => count($times)
+                    'avg_load_time' => array_sum($times) / $timesCount,
+                    'samples' => $timesCount
                 ];
             }
         }
@@ -409,8 +416,11 @@ class PatternLearner
         $mobile_load_times = array_column($mobile_data, 'load_time');
         $desktop_load_times = array_column($desktop_data, 'load_time');
         
-        $mobile_avg = array_sum($mobile_load_times) / count($mobile_load_times);
-        $desktop_avg = array_sum($desktop_load_times) / count($desktop_load_times);
+        $mobileCount = count($mobile_load_times);
+        $desktopCount = count($desktop_load_times);
+        
+        $mobile_avg = $mobileCount > 0 ? array_sum($mobile_load_times) / $mobileCount : 0;
+        $desktop_avg = $desktopCount > 0 ? array_sum($desktop_load_times) / $desktopCount : 0;
         
         $difference = abs($mobile_avg - $desktop_avg);
         $threshold = max($mobile_avg, $desktop_avg) * 0.2; // 20% di differenza
@@ -546,7 +556,7 @@ class PatternLearner
     /**
      * Ottiene le impostazioni
      */
-    private function settings(): array
+    public function getSettings(): array
     {
         return get_option(self::OPTION, [
             'enabled' => false,
@@ -554,6 +564,14 @@ class PatternLearner
             'confidence_threshold' => 0.7,
             'pattern_retention_days' => 30
         ]);
+    }
+    
+    /**
+     * Alias di getSettings() per compatibilità
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
     }
     
     /**

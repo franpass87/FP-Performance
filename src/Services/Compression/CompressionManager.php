@@ -158,6 +158,41 @@ class CompressionManager
     }
     
     /**
+     * Restituisce lo stato della compressione
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        return [
+            'enabled' => $this->gzip || $this->minify_html || $this->minify_css || $this->minify_js,
+            'gzip_enabled' => $this->gzip,
+            'brotli_enabled' => $this->brotli,
+            'minify_html' => $this->minify_html,
+            'minify_css' => $this->minify_css,
+            'minify_js' => $this->minify_js,
+        ];
+    }
+    
+    /**
+     * Restituisce informazioni dettagliate sulla compressione
+     * 
+     * @return array Array con informazioni dettagliate
+     */
+    public function getInfo(): array
+    {
+        return [
+            'gzip_supported' => function_exists('gzencode'),
+            'brotli_supported' => function_exists('brotli_compress'),
+            'gzip_enabled' => $this->gzip,
+            'brotli_enabled' => $this->brotli,
+            'minify_html' => $this->minify_html,
+            'minify_css' => $this->minify_css,
+            'minify_js' => $this->minify_js,
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

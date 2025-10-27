@@ -1,15 +1,15 @@
 /**
  * FP Performance Suite - Admin Scripts (Modular)
- * 
+ *
  * This is the main entry point for all admin JavaScript.
  * Scripts are organized into ES6 modules for better maintainability.
- * 
+ *
  * @package FP\PerfSuite
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
 
-console.log('FP Performance Suite: Main script loaded');
+console.log( 'FP Performance Suite: Main script loaded' );
 
 // Components
 import { showNotice } from './components/notice.js';
@@ -31,46 +31,49 @@ import { confirm, alert, deleteConfirm, initConfirmModals } from './components/m
 /**
  * Initialize all features on DOM ready
  */
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('FP Performance Suite: DOM ready, initializing features');
-    
-    // Initialize tooltips (early to prevent positioning issues)
-    initTooltips();
-    
-    // Initialize risky action confirmations
-    initRiskyToggles();
-    
-    // Initialize log viewer
-    initLogViewer();
-    
-    // Initialize preset buttons
-    initPresets();
-    
-    // Initialize bulk actions
-    initBulkActions();
-    
-    // Initialize WebP bulk conversion with progress tracking
-    console.log('FP Performance Suite: Initializing WebP bulk convert');
-    initWebPBulkConvert();
-    
-    // Initialize accessibility features (ARIA, keyboard navigation)
-    initAccessibility();
-    
-    // Initialize custom modal dialogs (sostituisce confirm() nativi)
-    initConfirmModals();
-});
+document.addEventListener(
+	'DOMContentLoaded',
+	function () {
+		console.log( 'FP Performance Suite: DOM ready, initializing features' );
+
+		// Initialize tooltips (early to prevent positioning issues)
+		initTooltips();
+
+		// Initialize risky action confirmations
+		initRiskyToggles();
+
+		// Initialize log viewer
+		initLogViewer();
+
+		// Initialize preset buttons
+		initPresets();
+
+		// Initialize bulk actions
+		initBulkActions();
+
+		// Initialize WebP bulk conversion with progress tracking
+		console.log( 'FP Performance Suite: Initializing WebP bulk convert' );
+		initWebPBulkConvert();
+
+		// Initialize accessibility features (ARIA, keyboard navigation)
+		initAccessibility();
+
+		// Initialize custom modal dialogs (sostituisce confirm() nativi)
+		initConfirmModals();
+	}
+);
 
 /**
  * Expose utilities globally for custom scripts
  * This maintains backwards compatibility with external code
  */
 window.fpPerfSuiteUtils = {
-    showNotice,
-    showProgress,
-    updateProgress,
-    removeProgress,
-    BulkProcessor,
-    confirm,
-    alert,
-    deleteConfirm
+	showNotice,
+	showProgress,
+	updateProgress,
+	removeProgress,
+	BulkProcessor,
+	confirm,
+	alert,
+	deleteConfirm
 };

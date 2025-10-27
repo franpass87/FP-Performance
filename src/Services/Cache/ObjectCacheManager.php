@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Services\Cache;
 
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\HostingDetector;
 
 /**
  * Object Cache Manager
@@ -569,15 +570,61 @@ PHP;
             return;
         }
         
-        // Suggerisci l'attivazione se disponibile ma non attivo
+        // Mostra notice solo una volta a settimana per non essere invasivi
+        $notice_key = 'fp_ps_object_cache_notice_shown';
+        if (get_transient($notice_key)) {
+            return;
+        }
+        
+        $isShared = HostingDetector::isSharedHosting();
+        
+        // Caso 1: Object cache disponibile ma non attivo
         if ($this->isAvailable() && !$this->isEnabled()) {
             $backendName = strtoupper($this->availableBackend);
             
             printf(
-                '<div class="notice notice-info is-dismissible"><p><strong>FP Performance Suite:</strong> %s è disponibile sul tuo server! <a href="%s">Attiva Object Caching</a> per ridurre drasticamente le query database.</p></div>',
+                '<div class="notice notice-success is-dismissible">
+                    <p><strong>FP Performance Suite - Ottima Notizia!</strong></p>
+                    <p>✅ <strong>%s</strong> è disponibile sul tuo server e può accelerare drasticamente il sito riducendo le query database.</p>
+                    <p><a href="%s" class="button button-primary">Attiva Object Caching</a> <a href="https://developer.wordpress.org/reference/classes/wp_object_cache/" target="_blank" class="button">Scopri di più</a></p>
+                </div>',
                 esc_html($backendName),
                 esc_url(admin_url('admin.php?page=fp-performance-suite&tab=database'))
             );
+            
+            set_transient($notice_key, true, WEEK_IN_SECONDS);
+            
+        } 
+        // Caso 2: Object cache NON disponibile su shared hosting (normale)
+        elseif (!$this->isAvailable() && $isShared) {
+            printf(
+                '<div class="notice notice-info is-dismissible">
+                    <p><strong>FP Performance Suite - Info Hosting:</strong></p>
+                    <p>ℹ️ Object Cache (Redis/Memcached/APCu) non disponibile su questo shared hosting.</p>
+                    <p>Questo è <strong>normale</strong> per hosting condiviso. Il plugin utilizzerà ottimizzazioni alternative per massimizzare le performance.</p>
+                    <p><small>💡 Per object caching considera un upgrade a VPS o hosting dedicato.</small></p>
+                </div>'
+            );
+            
+            set_transient($notice_key, true, WEEK_IN_SECONDS);
+        }
+        // Caso 3: Object cache NON disponibile su VPS/Dedicated (problema)
+        elseif (!$this->isAvailable() && !$isShared) {
+            printf(
+                '<div class="notice notice-warning is-dismissible">
+                    <p><strong>FP Performance Suite - Raccomandazione:</strong></p>
+                    <p>⚠️ Object Cache non rilevato ma il tuo hosting sembra supportarlo (VPS/Dedicated).</p>
+                    <p>Installa Redis, Memcached o APCu per prestazioni ottimali:</p>
+                    <ul style="list-style: disc; margin-left: 20px;">
+                        <li><strong>Redis</strong> (raccomandato): <code>sudo apt install redis php-redis</code></li>
+                        <li><strong>Memcached</strong>: <code>sudo apt install memcached php-memcached</code></li>
+                        <li><strong>APCu</strong>: <code>sudo apt install php-apcu</code></li>
+                    </ul>
+                    <p><a href="https://developer.wordpress.org/advanced-administration/performance/cache/" target="_blank" class="button">Guida Installazione</a></p>
+                </div>'
+            );
+            
+            set_transient($notice_key, true, WEEK_IN_SECONDS);
         }
     }
     

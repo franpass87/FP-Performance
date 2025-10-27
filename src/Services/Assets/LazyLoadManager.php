@@ -118,6 +118,41 @@ class LazyLoadManager
     }
     
     /**
+     * Restituisce lo stato del lazy loading
+     * 
+     * @return array Array con 'enabled' e altre informazioni
+     */
+    public function status(): array
+    {
+        return [
+            'enabled' => $this->images || $this->videos || $this->iframes,
+            'images' => $this->images,
+            'videos' => $this->videos,
+            'iframes' => $this->iframes,
+        ];
+    }
+    
+    /**
+     * Restituisce le impostazioni del lazy loading
+     * 
+     * @return array Array con tutte le impostazioni
+     */
+    public function getSettings(): array
+    {
+        $settings = get_option('fp_ps_lazy_load', [
+            'enabled' => false,
+            'lazy_load_images' => true,
+            'lazy_load_videos' => true,
+            'lazy_load_iframes' => true,
+            'threshold' => 300,
+            'placeholder_type' => 'blur',
+            'exclude_first_images' => 2,
+        ]);
+        
+        return $settings;
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

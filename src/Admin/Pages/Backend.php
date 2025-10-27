@@ -98,7 +98,7 @@ class Backend extends AbstractPage
                     'disable_customize' => !empty($_POST['disable_customize']),
                 ];
                 $backendOptimizer->updateSettings($allSettings);
-                $message = __('Admin Bar settings saved.', 'fp-performance-suite');
+                $message = __('✅ Admin Bar settings saved! Ricarica la pagina o naviga su un\'altra sezione per vedere le modifiche applicate.', 'fp-performance-suite');
             }
 
             // Dashboard Widgets Settings
@@ -154,6 +154,16 @@ class Backend extends AbstractPage
         ob_start();
         ?>
         
+        <!-- INTRO BOX -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                ⚙️ <?php esc_html_e('Backend Optimization', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                <?php esc_html_e('Ottimizza l\'area amministrativa WordPress: disabilita funzionalità inutilizzate, riduci script e migliora le prestazioni del backend.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
@@ -165,12 +175,11 @@ class Backend extends AbstractPage
                 <?php wp_nonce_field('fp-ps-backend', 'fp_ps_backend_nonce'); ?>
                 <input type="hidden" name="form_type" value="main_toggle" />
                 
-                <label class="fp-ps-toggle" style="display: flex; align-items: center; gap: 10px; font-size: 16px; margin-bottom: 15px;">
-                    <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($allSettings['enabled'])); ?> style="transform: scale(1.2);" />
-                    <span class="info">
-                        <strong><?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?></strong>
-                        <br>
-                        <small style="color: #6c757d;">
+                <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                    <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($allSettings['enabled'])); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" />
+                    <span class="info" style="text-align: left; flex: 1;">
+                        <strong style="display: block;"><?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?></strong>
+                        <small style="color: #6c757d; display: block; margin-top: 4px;">
                             <?php esc_html_e('Master switch to enable/disable all backend optimization features. When disabled, no backend optimization will be applied.', 'fp-performance-suite'); ?>
                         </small>
                     </span>

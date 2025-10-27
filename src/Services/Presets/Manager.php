@@ -45,6 +45,42 @@ class Manager
     public function presets(): array
     {
         return [
+            'shared-hosting' => [
+                'label' => __('Shared Hosting (Sicuro)', 'fp-performance-suite'),
+                'config' => [
+                    'page_cache' => ['enabled' => true, 'ttl' => 1800],
+                    'browser_cache' => ['enabled' => true],
+                    'assets' => [
+                        'minify_html' => true,
+                        'minify_css' => true,
+                        'minify_js' => false, // Evitare su shared
+                        'defer_js' => true,
+                        'combine_css' => false, // Troppo pesante
+                        'combine_js' => false,  // Troppo pesante
+                        'async_js' => false,
+                        'lazy_load_images' => true,
+                        'preload' => [],
+                    ],
+                    'db' => [
+                        'batch' => 50, // Batch piccoli per evitare timeout
+                        'enabled' => true,
+                        'cleanup_revisions' => true,
+                        'cleanup_drafts' => false,
+                        'cleanup_spam' => true,
+                        'cleanup_trash' => true,
+                    ],
+                    'heartbeat' => 90, // Riduce carico server
+                    'disabled_services' => [
+                        'HtaccessSecurity', // Permessi spesso insufficienti
+                        'ObjectCacheManager', // Raramente disponibile
+                        'MLPredictor', // Troppo pesante
+                        'AutoTuner', // Troppo pesante
+                        'CriticalCssAutomation', // Troppo pesante
+                        'ImageOptimizer', // Può causare timeout
+                        'JavaScriptTreeShaker', // CPU intensive
+                    ],
+                ],
+            ],
             'generale' => [
                 'label' => __('Generale', 'fp-performance-suite'),
                 'config' => [
@@ -53,6 +89,43 @@ class Manager
                     'assets' => ['minify_html' => true, 'defer_js' => true, 'combine_css' => false, 'combine_js' => false],
                     'db' => ['batch' => 200],
                     'heartbeat' => 60,
+                ],
+            ],
+            'balanced' => [
+                'label' => __('Bilanciato (Raccomandato)', 'fp-performance-suite'),
+                'config' => [
+                    'page_cache' => ['enabled' => true, 'ttl' => 3600],
+                    'browser_cache' => ['enabled' => true],
+                    'assets' => [
+                        'minify_html' => true,
+                        'minify_css' => true,
+                        'minify_js' => true,
+                        'defer_js' => true,
+                        'combine_css' => false,
+                        'combine_js' => false,
+                        'lazy_load_images' => true,
+                    ],
+                    'db' => ['batch' => 200],
+                    'heartbeat' => 60,
+                ],
+            ],
+            'aggressive' => [
+                'label' => __('Aggressivo (VPS/Dedicato)', 'fp-performance-suite'),
+                'config' => [
+                    'page_cache' => ['enabled' => true, 'ttl' => 7200],
+                    'browser_cache' => ['enabled' => true],
+                    'assets' => [
+                        'minify_html' => true,
+                        'minify_css' => true,
+                        'minify_js' => true,
+                        'defer_js' => true,
+                        'combine_css' => true,
+                        'combine_js' => true,
+                        'lazy_load_images' => true,
+                        'critical_css' => true,
+                    ],
+                    'db' => ['batch' => 500],
+                    'heartbeat' => 30,
                 ],
             ],
             'ionos' => [

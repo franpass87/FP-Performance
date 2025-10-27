@@ -105,6 +105,36 @@ class IntelligenceDashboard extends AbstractPage
         ob_start();
         ?>
         
+        <style>
+            /* Fix per bottoni con testi lunghi nella pagina Intelligence */
+            .fp-ps-actions button.button-secondary {
+                white-space: normal !important;
+                height: auto !important;
+                min-height: 36px;
+                padding: 8px 16px !important;
+                line-height: 1.4 !important;
+                font-size: 13px !important;
+                word-wrap: break-word;
+                text-align: center;
+                display: inline-block;
+                max-width: 100%;
+            }
+            
+            .fp-ps-actions {
+                margin: 15px 0;
+            }
+        </style>
+        
+        <!-- INTRO BOX -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🧠 <?php esc_html_e('Intelligence Dashboard', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                <?php esc_html_e('Dashboard intelligente con auto-detection, esclusioni automatiche basate sulle performance e raccomandazioni smart.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
         <?php if ($message) : ?>
             <div class="notice notice-<?php echo esc_attr($messageType); ?>">
                 <p><?php echo esc_html($message); ?></p>

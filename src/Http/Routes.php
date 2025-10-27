@@ -182,6 +182,13 @@ class Routes
             'callback' => [$this, 'progress'],
             'permission_callback' => [$this, 'permissionCheck'],
         ]);
+
+        // Public status endpoint
+        register_rest_route('fp-performance/v1', '/status', [
+            'methods' => 'GET',
+            'callback' => [$this, 'getStatus'],
+            'permission_callback' => '__return_true',
+        ]);
     }
 
     public function permissionCheck(WP_REST_Request $request): bool
@@ -392,5 +399,33 @@ class Routes
         $scope = array_map('sanitize_key', $scope);
         $scope = array_values(array_unique($scope));
         return array_values(array_intersect($scope, $allowed));
+    }
+
+    /**
+     * Public status endpoint handler.
+     * Returns plugin operational status, current time, and version.
+     *
+     * @return WP_REST_Response
+     */
+    public function getStatus(): WP_REST_Response
+    {
+        global $wpdb;
+
+        $version = defined('FP_PERF_SUITE_VERSION') ? FP_PERF_SUITE_VERSION : 'unknown';
+        
+        // Get current MySQL time safely
+        $time = 'unavailable';
+        if (isset($wpdb) && is_object($wpdb)) {
+            $result = $wpdb->get_var('SELECT NOW()');
+            if ($result) {
+                $time = sanitize_text_field($result);
+            }
+        }
+
+        return rest_ensure_response([
+            'ok' => true,
+            'time' => $time,
+            'version' => $version,
+        ]);
     }
 }

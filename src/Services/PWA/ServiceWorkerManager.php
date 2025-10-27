@@ -85,6 +85,21 @@ class ServiceWorkerManager
     }
     
     /**
+     * Restituisce le impostazioni
+     * 
+     * @return array
+     */
+    public function getSettings(): array
+    {
+        return [
+            'enabled' => true,
+            'cache_strategy' => $this->cache_strategy,
+            'cache_duration' => $this->cache_duration,
+            'offline_fallback' => $this->offline_fallback,
+        ];
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void
