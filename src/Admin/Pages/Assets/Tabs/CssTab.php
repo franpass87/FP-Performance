@@ -4,6 +4,8 @@ namespace FP\PerfSuite\Admin\Pages\Assets\Tabs;
 
 use FP\PerfSuite\Services\Assets\UnusedCSSOptimizer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function checked;

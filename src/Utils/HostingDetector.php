@@ -203,10 +203,17 @@ class HostingDetector
             return self::$capabilitiesCache;
         }
         
+        // FIX: Calcola prima i valori base per evitare ricorsione infinita
+        $memoryMb = self::parseMemoryLimit(ini_get('memory_limit'));
+        $maxExecutionTime = (int) ini_get('max_execution_time');
+        
+        // Calcola can_handle_heavy_ops direttamente qui per evitare ricorsione
+        $canHandleHeavyOps = ($memoryMb >= 512 && $maxExecutionTime >= 60);
+        
         $caps = [
             'is_shared' => self::isSharedHosting(),
-            'memory_mb' => self::parseMemoryLimit(ini_get('memory_limit')),
-            'max_execution_time' => (int) ini_get('max_execution_time'),
+            'memory_mb' => $memoryMb,
+            'max_execution_time' => $maxExecutionTime,
             'upload_max_mb' => self::parseMemoryLimit(ini_get('upload_max_filesize')),
             'post_max_mb' => self::parseMemoryLimit(ini_get('post_max_size')),
             'has_object_cache' => self::hasObjectCache(),
@@ -215,7 +222,7 @@ class HostingDetector
             'wp_content_writable' => is_writable(WP_CONTENT_DIR),
             'disabled_functions' => array_map('trim', explode(',', ini_get('disable_functions'))),
             'recommended_preset' => self::getRecommendedPreset(),
-            'can_handle_heavy_ops' => self::canHandleHeavyOperations(),
+            'can_handle_heavy_ops' => $canHandleHeavyOps, // FIX: Usa valore calcolato localmente
         ];
         
         self::$capabilitiesCache = $caps;

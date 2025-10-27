@@ -5,6 +5,8 @@ namespace FP\PerfSuite\Admin\Pages\Assets\Tabs;
 use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
 use FP\PerfSuite\Services\Assets\CodeSplittingManager;
 use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function checked;
@@ -26,6 +28,11 @@ class JavaScriptTab
         ?>
         <!-- TAB: JavaScript -->
         <div class="fp-ps-tab-content <?php echo $current_tab === 'javascript' ? 'active' : ''; ?>" data-tab="javascript">
+        
+        <?php
+        // Mostra legenda rischi (senza warning, le opzioni JS sono moderate)
+        echo RiskLegend::renderLegend();
+        ?>
         
         <section class="fp-ps-card">
             <h2><?php esc_html_e('JavaScript Optimization', 'fp-performance-suite'); ?></h2>
@@ -141,12 +148,11 @@ class JavaScriptTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Minify inline JavaScript', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('minify_inline_js'); ?>
+                        <small><?php esc_html_e('Minify JavaScript code embedded in HTML <script> tags', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="minify_inline_js" value="1" <?php checked($settings['minify_inline_js'] ?? false); ?> />
+                    <input type="checkbox" name="minify_inline_js" value="1" <?php checked($settings['minify_inline_js'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('minify_inline_js')); ?>" />
                 </label>
-                <p class="description" style="margin-left: 30px;">
-                    <?php esc_html_e('Minify JavaScript code embedded in HTML <script> tags. Use with caution.', 'fp-performance-suite'); ?>
-                </p>
                 
                 <?php if (get_option('fp_ps_intelligence_enabled', false)) : ?>
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; padding: 15px; margin: 20px 0;">
