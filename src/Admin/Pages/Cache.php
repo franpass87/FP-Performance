@@ -11,6 +11,8 @@ use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
 use FP\PerfSuite\Services\Cache\EdgeCacheManager;
 use FP\PerfSuite\Services\Intelligence\PageCacheAutoConfigurator;
 use FP\PerfSuite\Services\Assets\ExternalResourceCacheManager;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function checked;
@@ -662,10 +664,14 @@ class Cache extends AbstractPage
                     <tr>
                         <th scope="row"><?php esc_html_e('Abilita Browser Cache', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Abilita cache browser', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('browser_cache_enabled'); ?>
+                                </span>
                                 <input type="checkbox" name="browser_cache_enabled" value="1" 
-                                       <?php checked(!empty($headerSettings['enabled'])); ?>>
-                                <?php esc_html_e('Abilita cache browser', 'fp-performance-suite'); ?>
+                                       <?php checked(!empty($headerSettings['enabled'])); ?>
+                                       data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('browser_cache_enabled')); ?>" />
                             </label>
                             <p class="description">
                                 <?php esc_html_e('Imposta header HTTP per il caching dei file statici.', 'fp-performance-suite'); ?>

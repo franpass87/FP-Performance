@@ -66,32 +66,29 @@ class CssTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Minify inline CSS', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('minify_inline_css'); ?>
+                        <small><?php esc_html_e('Minify CSS code embedded directly in HTML <style> tags', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="minify_inline_css" value="1" <?php checked($settings['minify_inline_css'] ?? false); ?> />
+                    <input type="checkbox" name="minify_inline_css" value="1" <?php checked($settings['minify_inline_css'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('minify_inline_css')); ?>" />
                 </label>
-                <p class="description" style="margin-left: 30px;">
-                    <?php esc_html_e('Minify CSS code embedded directly in HTML <style> tags. Reduces HTML size.', 'fp-performance-suite'); ?>
-                </p>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Remove CSS/JS comments', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('remove_comments'); ?>
+                        <small><?php esc_html_e('Strip all comments from CSS and JavaScript files', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="remove_comments" value="1" <?php checked($settings['remove_comments'] ?? false); ?> />
+                    <input type="checkbox" name="remove_comments" value="1" <?php checked($settings['remove_comments'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('remove_comments')); ?>" />
                 </label>
-                <p class="description" style="margin-left: 30px;">
-                    <?php esc_html_e('Strip all comments from CSS and JavaScript files during optimization.', 'fp-performance-suite'); ?>
-                </p>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Optimize Google Fonts loading', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('optimize_google_fonts'); ?>
+                        <small><?php esc_html_e('Add display=swap and preconnect hints for Google Fonts', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="optimize_google_fonts_assets" value="1" <?php checked($settings['optimize_google_fonts'] ?? false); ?> />
+                    <input type="checkbox" name="optimize_google_fonts_assets" value="1" <?php checked($settings['optimize_google_fonts'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('optimize_google_fonts')); ?>" />
                 </label>
-                <p class="description" style="margin-left: 30px;">
-                    <?php esc_html_e('Add display=swap and preconnect hints for Google Fonts. Improves FCP score.', 'fp-performance-suite'); ?>
-                </p>
                 
                 <?php if (get_option('fp_ps_intelligence_enabled', false)) : ?>
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; padding: 15px; margin: 20px 0;">

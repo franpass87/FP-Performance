@@ -528,6 +528,30 @@ class Assets extends AbstractPage
                 }
             }
             
+            // Check for Critical Path Fonts form
+            if (isset($_POST['form_type']) && $_POST['form_type'] === 'critical_path_fonts') {
+                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
+                    $criticalPathOptimizer = new \FP\PerfSuite\Services\Assets\CriticalPathOptimizer();
+                    $criticalPathOptimizer->updateSettings([
+                        'enabled' => !empty($_POST['critical_path_enabled']),
+                        'preload_critical_fonts' => !empty($_POST['preload_critical_fonts']),
+                        'optimize_google_fonts' => !empty($_POST['optimize_google_fonts']),
+                        'preconnect_providers' => !empty($_POST['preconnect_providers']),
+                        'inject_font_display' => !empty($_POST['inject_font_display']),
+                        'add_resource_hints' => !empty($_POST['add_resource_hints']),
+                    ]);
+                    
+                    $fontOptimizer = new \FP\PerfSuite\Services\Assets\FontOptimizer();
+                    $fontOptimizer->updateSettings([
+                        'preload_fonts' => !empty($_POST['preload_fonts']),
+                    ]);
+                    
+                    return __('Font & Critical Path settings saved successfully!', 'fp-performance-suite');
+                } else {
+                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
+                }
+            }
+            
             // Check for Advanced JS Optimization form
             if (isset($_POST['form_type']) && $_POST['form_type'] === 'advanced_js_optimization') {
                 if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {

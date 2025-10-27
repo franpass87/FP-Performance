@@ -46,11 +46,12 @@ class HtaccessSecurity
             return;
         }
         
-        // FIX TEMPORANEO: Disabilita temporaneamente per evitare crash
-        Logger::warning('updateHtaccess() temporaneamente disabilitato per evitare crash');
-        return;
+        // FIX: Aumenta memory limit temporaneamente per questa operazione
+        $original_memory = ini_get('memory_limit');
+        @ini_set('memory_limit', '512M');
         
-        $htaccess_file = ABSPATH . '.htaccess';
+        try {
+            $htaccess_file = ABSPATH . '.htaccess';
         
         // PROTEZIONE SHARED HOSTING: Verifica permessi e backup
         
@@ -105,8 +106,7 @@ class HtaccessSecurity
             Logger::warning('Impossibile creare backup .htaccess - procedo comunque con cautela');
         }
         
-        // 6. Aggiungi regole sicurezza
-        try {
+            // 6. Aggiungi regole sicurezza
             $new_rules = $this->getSecurityRules();
             $updated_content = $htaccess_content . "\n" . $new_rules;
             
@@ -134,6 +134,11 @@ class HtaccessSecurity
             if ($backup_success && file_exists($backup_file)) {
                 @copy($backup_file, $htaccess_file);
                 Logger::info('Backup .htaccess ripristinato dopo eccezione');
+            }
+        } finally {
+            // FIX: Ripristina memory limit originale
+            if ($original_memory) {
+                @ini_set('memory_limit', $original_memory);
             }
         }
     }
