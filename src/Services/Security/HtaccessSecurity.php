@@ -46,6 +46,10 @@ class HtaccessSecurity
             return;
         }
         
+        // FIX TEMPORANEO: Disabilita temporaneamente per evitare crash
+        Logger::warning('updateHtaccess() temporaneamente disabilitato per evitare crash');
+        return;
+        
         $htaccess_file = ABSPATH . '.htaccess';
         
         // PROTEZIONE SHARED HOSTING: Verifica permessi e backup
