@@ -224,10 +224,26 @@ class ThemeCompatibility
 
     /**
      * Fix per Salient
+     * 
+     * NOTA: Da v1.7.0, le ottimizzazioni avanzate sono gestite da SalientWPBakeryOptimizer.
+     * Questo metodo mantiene solo fix base per retrocompatibilità.
      */
     private function fixSalient(): void
     {
-        // Salient ha animazioni complesse
+        // Verifica se SalientWPBakeryOptimizer è disponibile e attivo
+        try {
+            $salientOptimizer = $this->container->get(\FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer::class);
+            if ($salientOptimizer && $salientOptimizer->getConfig()['enabled'] ?? false) {
+                // SalientWPBakeryOptimizer gestisce tutto, non aggiungere filtri duplicati
+                Logger::debug('ThemeCompatibility: delegating Salient fixes to SalientWPBakeryOptimizer');
+                return;
+            }
+        } catch (\Exception $e) {
+            // SalientWPBakeryOptimizer non disponibile, usa fix base
+            Logger::debug('ThemeCompatibility: using basic Salient fixes (optimizer not available)');
+        }
+
+        // Fix base per Salient (se optimizer non disponibile o disabilitato)
         add_filter('fp_ps_defer_js_exclusions', function ($exclusions) {
             $exclusions[] = 'salient-';
             $exclusions[] = 'nectar-';
@@ -333,9 +349,26 @@ class ThemeCompatibility
 
     /**
      * Fix per WPBakery
+     * 
+     * NOTA: Da v1.7.0, se WPBakery è usato con Salient, le ottimizzazioni 
+     * sono gestite da SalientWPBakeryOptimizer.
      */
     private function fixWPBakery(): void
     {
+        // Se Salient + WPBakery, delega a SalientWPBakeryOptimizer
+        if ($this->detector->isTheme('salient')) {
+            try {
+                $salientOptimizer = $this->container->get(\FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer::class);
+                if ($salientOptimizer && ($salientOptimizer->getConfig()['enabled'] ?? false)) {
+                    Logger::debug('ThemeCompatibility: delegating WPBakery fixes to SalientWPBakeryOptimizer (Salient detected)');
+                    return;
+                }
+            } catch (\Exception $e) {
+                // Fallback a fix base
+            }
+        }
+
+        // Fix base per WPBakery (senza Salient o optimizer disabilitato)
         add_filter('fp_ps_defer_js_exclusions', function ($exclusions) {
             $exclusions[] = 'wpb_composer';
             $exclusions[] = 'vc_';
@@ -445,15 +478,6 @@ class ThemeCompatibility
             'message' => __('Compatibilità base. Test le ottimizzazioni una per una.', 'fp-performance-suite'),
             'color' => 'warning',
         ];
-    }
-    
-    /**
-     * Registra il servizio
-     */
-    public function register(): void
-    {
-        // ThemeCompatibility non ha hook specifici da registrare
-        // È utilizzato principalmente per gestione compatibilità on-demand
     }
 }
 

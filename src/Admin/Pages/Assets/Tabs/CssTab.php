@@ -191,6 +191,11 @@ class CssTab
                 <?php esc_html_e('Rimuovi o differisci il CSS non utilizzato identificato da Lighthouse per migliorare LCP e FCP.', 'fp-performance-suite'); ?>
             </p>
             
+            <?php
+            // Mostra la legenda dei rischi con warning per questa sezione
+            echo \FP\PerfSuite\Admin\Components\RiskLegend::renderWarning();
+            ?>
+            
             <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="unusedcss" />
@@ -218,26 +223,72 @@ class CssTab
                     <tr>
                         <th scope="row"><?php esc_html_e('Remove Unused CSS', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="unusedcss_remove_unused_css" value="1" <?php checked($unusedCssSettings['remove_unused_css']); ?>>
-                                <?php esc_html_e('Remove unused CSS files completely', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Remove unused CSS files completely', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator red">
+                                        <div class="fp-ps-risk-tooltip red">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">🔴</span>
+                                                <?php esc_html_e('Rischio MOLTO Alto', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove completamente i file CSS che Lighthouse considera "inutilizzati".', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ LOGO SCOMPARE\n❌ MENU NON FUNZIONA\n❌ FOOTER ROTTO\n❌ Pulsanti senza stile\n❌ Layout completamente distrutto', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Lighthouse analizza solo la homepage. Il CSS per menu, hover, mobile, altre pagine viene considerato "inutilizzato" e rimosso.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ SCONSIGLIATO: NON attivare a meno che tu non abbia configurato TUTTE le esclusioni per header, footer, menu e layout base.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                </span>
+                                <input type="checkbox" name="unusedcss_remove_unused_css" value="1" <?php checked($unusedCssSettings['remove_unused_css']); ?> data-risk="red" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Removes CSS files identified as unused by Lighthouse.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Defer Non-Critical CSS', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="unusedcss_defer_non_critical" value="1" <?php checked($unusedCssSettings['defer_non_critical']); ?>>
-                                <?php esc_html_e('Defer non-critical CSS loading', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Defer non-critical CSS loading', 'fp-performance-suite'); ?></strong>
+                                    <span class="fp-ps-risk-indicator red">
+                                        <div class="fp-ps-risk-tooltip red">
+                                            <div class="fp-ps-risk-tooltip-title">
+                                                <span class="icon">🔴</span>
+                                                <?php esc_html_e('Rischio Alto', 'fp-performance-suite'); ?>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Ritarda il caricamento del CSS considerato "non critico" per migliorare LCP.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ FLASH di contenuto non stilizzato (FOUC)\n❌ LOGO appare dopo 1-2 secondi\n❌ MENU "salta" durante il caricamento\n❌ Footer si materializza dopo\n⚠️ Esperienza utente MOLTO negativa', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Il sistema classifica ERRONEAMENTE come "non critici" gli stili di header, menu, footer. La pagina carica PRIMA senza questi stili, poi "salta" quando arrivano.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                            <div class="fp-ps-risk-tooltip-section">
+                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ SCONSIGLIATO: Il guadagno in LCP non vale la pessima esperienza utente. Meglio usare Critical CSS inline.', 'fp-performance-suite'); ?></div>
+                                            </div>
+                                        </div>
+                                    </span>
+                                </span>
+                                <input type="checkbox" name="unusedcss_defer_non_critical" value="1" <?php checked($unusedCssSettings['defer_non_critical']); ?> data-risk="red" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Loads non-critical CSS after page load to improve LCP.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                 </table>

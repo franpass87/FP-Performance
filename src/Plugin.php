@@ -844,7 +844,7 @@ class Plugin
         
         // Theme Compatibility
         $container->set(ThemeDetector::class, static fn() => new ThemeDetector());
-        $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c->get(ThemeDetector::class)));
+        $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c, $c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
         $container->set(SalientWPBakeryOptimizer::class, static fn(ServiceContainer $c) => new SalientWPBakeryOptimizer($c, $c->get(ThemeDetector::class)));
         

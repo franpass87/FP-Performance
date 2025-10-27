@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Compatibility;
 
+use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\HookManager;
 
@@ -16,11 +17,13 @@ use FP\PerfSuite\Utils\HookManager;
  */
 class CompatibilityFilters
 {
+    private ServiceContainer $container;
     private ThemeDetector $detector;
     private static bool $registered = false;
 
-    public function __construct(ThemeDetector $detector)
+    public function __construct(ServiceContainer $container, ThemeDetector $detector)
     {
+        $this->container = $container;
         $this->detector = $detector;
     }
 
@@ -229,9 +232,26 @@ class CompatibilityFilters
 
     /**
      * Filtri per Salient
+     * 
+     * NOTA: Da v1.7.0, le ottimizzazioni avanzate sono gestite da SalientWPBakeryOptimizer.
+     * Questo metodo è deprecato in favore del nuovo optimizer.
      */
     private function registerSalientFilters(): void
     {
+        // Verifica se SalientWPBakeryOptimizer è disponibile e attivo
+        try {
+            $salientOptimizer = $this->container->get(\FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer::class);
+            if ($salientOptimizer && ($salientOptimizer->getConfig()['enabled'] ?? false)) {
+                // SalientWPBakeryOptimizer gestisce tutto, non aggiungere filtri duplicati
+                Logger::debug('CompatibilityFilters: delegating Salient filters to SalientWPBakeryOptimizer');
+                return;
+            }
+        } catch (\Exception $e) {
+            // SalientWPBakeryOptimizer non disponibile, usa filtri base
+            Logger::debug('CompatibilityFilters: using basic Salient filters (optimizer not available)');
+        }
+
+        // Filtri base per Salient (se optimizer non disponibile o disabilitato)
         add_filter('fp_ps_defer_js_exclusions', function ($exclusions) {
             $exclusions[] = 'salient';
             $exclusions[] = 'nectar';
@@ -343,9 +363,26 @@ class CompatibilityFilters
 
     /**
      * Filtri per WPBakery
+     * 
+     * NOTA: Da v1.7.0, se WPBakery è usato con Salient, le ottimizzazioni 
+     * sono gestite da SalientWPBakeryOptimizer.
      */
     private function registerWPBakeryFilters(): void
     {
+        // Se Salient + WPBakery, delega a SalientWPBakeryOptimizer
+        if ($this->detector->isTheme('salient')) {
+            try {
+                $salientOptimizer = $this->container->get(\FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer::class);
+                if ($salientOptimizer && ($salientOptimizer->getConfig()['enabled'] ?? false)) {
+                    Logger::debug('CompatibilityFilters: delegating WPBakery filters to SalientWPBakeryOptimizer (Salient detected)');
+                    return;
+                }
+            } catch (\Exception $e) {
+                // Fallback a filtri base
+            }
+        }
+
+        // Filtri base per WPBakery (senza Salient o optimizer disabilitato)
         add_filter('fp_ps_defer_js_exclusions', function ($exclusions) {
             $exclusions[] = 'wpb_composer';
             $exclusions[] = 'vc_';

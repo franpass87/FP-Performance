@@ -54,6 +54,14 @@ class IntelligenceDashboard extends AbstractPage
             'breadcrumbs' => [__('Intelligenza AI', 'fp-performance-suite'), __('Dashboard', 'fp-performance-suite')],
         ];
     }
+    
+    /**
+     * Metodo pubblico per ottenere il contenuto (usato quando la pagina viene inclusa in altre pagine)
+     */
+    public function getContent(): string
+    {
+        return $this->content();
+    }
 
     protected function content(): string
     {

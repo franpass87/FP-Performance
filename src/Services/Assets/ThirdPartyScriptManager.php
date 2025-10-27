@@ -364,6 +364,18 @@ class ThirdPartyScriptManager
 
         update_option(self::OPTION, $new);
     }
+    
+    /**
+     * Alias di update() per compatibilità con altre classi
+     * 
+     * @param array $settings Array con le nuove impostazioni
+     * @return bool True se salvato con successo (per compatibilità)
+     */
+    public function updateSettings(array $settings): bool
+    {
+        $this->update($settings);
+        return true;
+    }
 
     /**
      * Filter script tag to add delay attributes

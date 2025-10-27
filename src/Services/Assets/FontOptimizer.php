@@ -122,6 +122,69 @@ class FontOptimizer
     }
     
     /**
+     * Aggiorna le impostazioni dell'ottimizzazione font
+     * 
+     * @param array $settings Array con le nuove impostazioni
+     * @return bool True se salvato con successo, false altrimenti
+     */
+    public function updateSettings(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_font_optimizer', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['enabled'])) {
+            $newSettings['enabled'] = (bool) $newSettings['enabled'];
+        }
+        
+        if (isset($newSettings['preload_critical'])) {
+            $newSettings['preload_critical'] = (bool) $newSettings['preload_critical'];
+        }
+        
+        if (isset($newSettings['display_swap'])) {
+            $newSettings['display_swap'] = (bool) $newSettings['display_swap'];
+        }
+        
+        if (isset($newSettings['optimize_google_fonts'])) {
+            $newSettings['optimize_google_fonts'] = (bool) $newSettings['optimize_google_fonts'];
+        }
+        
+        if (isset($newSettings['self_host_google_fonts'])) {
+            $newSettings['self_host_google_fonts'] = (bool) $newSettings['self_host_google_fonts'];
+        }
+        
+        if (isset($newSettings['subset_fonts'])) {
+            $newSettings['subset_fonts'] = (bool) $newSettings['subset_fonts'];
+        }
+        
+        if (isset($newSettings['remove_unused_fonts'])) {
+            $newSettings['remove_unused_fonts'] = (bool) $newSettings['remove_unused_fonts'];
+        }
+        
+        // Sanitizza critical_fonts se presente
+        if (isset($newSettings['critical_fonts'])) {
+            $newSettings['critical_fonts'] = sanitize_textarea_field($newSettings['critical_fonts']);
+        }
+        
+        // Sanitizza subset_critical se presente
+        if (isset($newSettings['subset_critical'])) {
+            $newSettings['subset_critical'] = (bool) $newSettings['subset_critical'];
+        }
+        
+        $result = update_option('fp_ps_font_optimizer', $newSettings, false);
+        
+        // Aggiorna proprietà interne se presente
+        if (isset($newSettings['preload_critical'])) {
+            $this->preload_critical = $newSettings['preload_critical'];
+        }
+        if (isset($newSettings['display_swap'])) {
+            $this->display_swap = $newSettings['display_swap'];
+        }
+        
+        return $result;
+    }
+    
+    /**
      * Registra il servizio
      */
     public function register(): void

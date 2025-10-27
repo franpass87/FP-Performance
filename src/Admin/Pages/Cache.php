@@ -1387,9 +1387,9 @@ class Cache extends AbstractPage
         
         // Include Intelligence Dashboard content
         try {
-            $intelligencePage = $this->container->get(\FP\PerfSuite\Admin\Pages\IntelligenceDashboard::class);
+            $intelligencePage = new \FP\PerfSuite\Admin\Pages\IntelligenceDashboard($this->container);
             // Estrae solo il contenuto senza il wrapper della pagina
-            $content = $intelligencePage->content();
+            $content = $intelligencePage->getContent();
             
             // Rimuove l'intro box se presente (perché abbiamo già quello della pagina Cache)
             $content = preg_replace('/<div class="fp-ps-page-intro".*?<\/div>/s', '', $content);
@@ -1415,9 +1415,9 @@ class Cache extends AbstractPage
         
         // Include Smart Exclusions content
         try {
-            $exclusionsPage = $this->container->get(\FP\PerfSuite\Admin\Pages\Exclusions::class);
+            $exclusionsPage = new \FP\PerfSuite\Admin\Pages\Exclusions($this->container);
             // Estrae solo il contenuto senza il wrapper della pagina
-            $content = $exclusionsPage->content();
+            $content = $exclusionsPage->getContent();
             
             // Rimuove l'intro box se presente
             $content = preg_replace('/<div class="fp-ps-page-intro".*?<\/div>/s', '', $content);

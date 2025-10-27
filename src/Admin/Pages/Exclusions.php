@@ -52,6 +52,14 @@ class Exclusions extends AbstractPage
         ];
     }
 
+    /**
+     * Metodo pubblico per ottenere il contenuto (usato quando la pagina viene inclusa in altre pagine)
+     */
+    public function getContent(): string
+    {
+        return $this->content();
+    }
+    
     protected function content(): string
     {
         // Smart Exclusions Detector

@@ -531,15 +531,29 @@ class Assets extends AbstractPage
             // Check for Advanced JS Optimization form
             if (isset($_POST['form_type']) && $_POST['form_type'] === 'advanced_js_optimization') {
                 if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $unusedJsOptimizer = new UnusedJavaScriptOptimizer();
-                    $unusedJsOptimizer->updateSettings([
-                        'enabled' => !empty($_POST['advanced_js_enabled']),
-                        'code_splitting' => !empty($_POST['advanced_js_code_splitting']),
-                        'dynamic_imports' => !empty($_POST['advanced_js_dynamic_imports']),
-                        'conditional_loading' => !empty($_POST['advanced_js_conditional_loading']),
-                        'tree_shaking' => !empty($_POST['advanced_js_tree_shaking']),
-                        'lazy_loading' => !empty($_POST['advanced_js_lazy_loading']),
-                    ]);
+                    // Unused JavaScript Optimizer
+                    if (isset($_POST['unused_optimization'])) {
+                        $unusedJsOptimizer = new UnusedJavaScriptOptimizer();
+                        $unusedJsOptimizer->updateSettings([
+                            'enabled' => !empty($_POST['unused_optimization']['enabled']),
+                        ]);
+                    }
+                    
+                    // Code Splitting Manager
+                    if (isset($_POST['code_splitting'])) {
+                        $codeSplittingManager = new \FP\PerfSuite\Services\Assets\CodeSplittingManager();
+                        $codeSplittingManager->updateSettings([
+                            'enabled' => !empty($_POST['code_splitting']['enabled']),
+                        ]);
+                    }
+                    
+                    // Tree Shaking
+                    if (isset($_POST['tree_shaking'])) {
+                        $treeShaker = new \FP\PerfSuite\Services\Assets\JavaScriptTreeShaker();
+                        $treeShaker->updateSettings([
+                            'enabled' => !empty($_POST['tree_shaking']['enabled']),
+                        ]);
+                    }
                     
                     return __('Advanced JS Optimization settings saved successfully!', 'fp-performance-suite');
                 } else {
