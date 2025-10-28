@@ -1,5 +1,0 @@
-/vendor/
-/build/*.zip
-
-# Ignora directory fp-performance-suite locale (usata per build)
-/fp-performance-suite/
