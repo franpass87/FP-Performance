@@ -1,0 +1,504 @@
+/**
+ * FP Performance Suite - Status Indicators CSS
+ * 
+ * Stili per gli indicatori di stato (semafori) utilizzati in tutto il plugin.
+ * Questi indicatori mostrano visivamente lo stato di ogni funzionalità:
+ * - Verde: Abilitato/Attivo
+ * - Grigio: Disabilitato/Inattivo
+ * - Giallo: Warning/Attenzione
+ * - Rosso: Errore/Critico
+ * 
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ * @link https://francescopasseri.com
+ */
+
+/* === VARIABILI CSS PER CONSISTENZA === */
+:root {
+    /* Colori semaforo */
+    --fp-status-success: #1f9d55;
+    --fp-status-success-light: #d1fae5;
+    --fp-status-success-border: #1f9d55;
+    
+    --fp-status-warning: #f1b814;
+    --fp-status-warning-light: #fef3c7;
+    --fp-status-warning-border: #f1b814;
+    
+    --fp-status-error: #d94452;
+    --fp-status-error-light: #fee2e2;
+    --fp-status-error-border: #d94452;
+    
+    --fp-status-info: #2d6cdf;
+    --fp-status-info-light: #dbeafe;
+    --fp-status-info-border: #2d6cdf;
+    
+    --fp-status-inactive: #6b7280;
+    --fp-status-inactive-light: #f3f4f6;
+    --fp-status-inactive-border: #9ca3af;
+}
+
+/* === STATUS INDICATORS BASE === */
+.fp-ps-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.fp-ps-status-indicator.fp-ps-status-success {
+    color: var(--fp-status-success);
+}
+
+.fp-ps-status-indicator.fp-ps-status-warning {
+    color: var(--fp-status-warning);
+}
+
+.fp-ps-status-indicator.fp-ps-status-error {
+    color: var(--fp-status-error);
+}
+
+.fp-ps-status-indicator.fp-ps-status-info {
+    color: var(--fp-status-info);
+}
+
+.fp-ps-status-indicator.fp-ps-status-inactive {
+    color: var(--fp-status-inactive);
+}
+
+/* === STATUS DOT (Pallino piccolo) === */
+.fp-ps-status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fp-ps-status-success .fp-ps-status-dot {
+    background: var(--fp-status-success);
+}
+
+.fp-ps-status-warning .fp-ps-status-dot {
+    background: var(--fp-status-warning);
+}
+
+.fp-ps-status-error .fp-ps-status-dot {
+    background: var(--fp-status-error);
+}
+
+.fp-ps-status-info .fp-ps-status-dot {
+    background: var(--fp-status-info);
+}
+
+.fp-ps-status-inactive .fp-ps-status-dot {
+    background: var(--fp-status-inactive);
+}
+
+/* === STATUS BADGE (Badge rettangolare) === */
+.fp-ps-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.fp-ps-status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.fp-ps-status-badge.fp-ps-status-success {
+    background: var(--fp-status-success);
+}
+
+.fp-ps-status-badge.fp-ps-status-warning {
+    background: var(--fp-status-warning);
+}
+
+.fp-ps-status-badge.fp-ps-status-error {
+    background: var(--fp-status-error);
+}
+
+.fp-ps-status-badge.fp-ps-status-info {
+    background: var(--fp-status-info);
+}
+
+.fp-ps-status-badge.fp-ps-status-inactive {
+    background: var(--fp-status-inactive);
+}
+
+/* === SEMAFORO (Stile semaforo completo) === */
+.fp-ps-semaforo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 2px solid;
+    transition: all 0.2s ease;
+}
+
+.fp-ps-semaforo:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fp-ps-semaforo-success {
+    background: var(--fp-status-success-light);
+    border-color: var(--fp-status-success-border);
+}
+
+.fp-ps-semaforo-warning {
+    background: var(--fp-status-warning-light);
+    border-color: var(--fp-status-warning-border);
+}
+
+.fp-ps-semaforo-error {
+    background: var(--fp-status-error-light);
+    border-color: var(--fp-status-error-border);
+}
+
+.fp-ps-semaforo-info {
+    background: var(--fp-status-info-light);
+    border-color: var(--fp-status-info-border);
+}
+
+.fp-ps-semaforo-inactive {
+    background: var(--fp-status-inactive-light);
+    border-color: var(--fp-status-inactive-border);
+}
+
+.fp-ps-semaforo span:first-child {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.fp-ps-semaforo-success span:first-child {
+    background: var(--fp-status-success);
+    box-shadow: 0 0 8px var(--fp-status-success);
+}
+
+.fp-ps-semaforo-warning span:first-child {
+    background: var(--fp-status-warning);
+    box-shadow: 0 0 8px var(--fp-status-warning);
+}
+
+.fp-ps-semaforo-error span:first-child {
+    background: var(--fp-status-error);
+    box-shadow: 0 0 8px var(--fp-status-error);
+}
+
+.fp-ps-semaforo-info span:first-child {
+    background: var(--fp-status-info);
+    box-shadow: 0 0 8px var(--fp-status-info);
+}
+
+.fp-ps-semaforo-inactive span:first-child {
+    background: var(--fp-status-inactive);
+    box-shadow: none;
+}
+
+.fp-ps-semaforo span:last-child {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.fp-ps-semaforo-success span:last-child {
+    color: var(--fp-status-success);
+}
+
+.fp-ps-semaforo-warning span:last-child {
+    color: var(--fp-status-warning);
+}
+
+.fp-ps-semaforo-error span:last-child {
+    color: var(--fp-status-error);
+}
+
+.fp-ps-semaforo-info span:last-child {
+    color: var(--fp-status-info);
+}
+
+.fp-ps-semaforo-inactive span:last-child {
+    color: var(--fp-status-inactive);
+}
+
+/* === INLINE STATUS (Pallino piccolo inline) === */
+.fp-ps-inline-status {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid;
+    margin-left: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.fp-ps-inline-status:hover {
+    transform: scale(1.2);
+}
+
+/* === STATUS CARD (Card con stato) === */
+.fp-ps-status-card {
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    margin: 15px 0;
+    transition: all 0.2s ease;
+}
+
+.fp-ps-status-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fp-ps-status-card.fp-ps-status-success {
+    background: var(--fp-status-success-light);
+    border-left-color: var(--fp-status-success);
+}
+
+.fp-ps-status-card.fp-ps-status-warning {
+    background: var(--fp-status-warning-light);
+    border-left-color: var(--fp-status-warning);
+}
+
+.fp-ps-status-card.fp-ps-status-error {
+    background: var(--fp-status-error-light);
+    border-left-color: var(--fp-status-error);
+}
+
+.fp-ps-status-card.fp-ps-status-info {
+    background: var(--fp-status-info-light);
+    border-left-color: var(--fp-status-info);
+}
+
+.fp-ps-status-card.fp-ps-status-inactive {
+    background: var(--fp-status-inactive-light);
+    border-left-color: var(--fp-status-inactive);
+}
+
+.fp-ps-status-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.fp-ps-status-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.fp-ps-status-card-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.fp-ps-status-card-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.fp-ps-status-card-description {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* === PROGRESS BAR === */
+.fp-ps-progress-wrapper {
+    margin: 15px 0;
+}
+
+.fp-ps-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.fp-ps-progress-percentage {
+    font-weight: 700;
+}
+
+.fp-ps-progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fp-ps-progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease, background 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fp-ps-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* === STATUS LIST === */
+.fp-ps-status-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.fp-ps-status-list-item:last-child {
+    border-bottom: none;
+}
+
+.fp-ps-status-list-label {
+    font-weight: 500;
+}
+
+.fp-ps-status-list-description {
+    color: #6b7280;
+    font-size: 13px;
+    margin-left: 25px;
+}
+
+/* === COMPARISON INDICATOR === */
+.fp-ps-comparison-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 782px) {
+    .fp-ps-semaforo {
+        padding: 4px 10px;
+        gap: 6px;
+    }
+    
+    .fp-ps-semaforo span:first-child {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .fp-ps-semaforo span:last-child {
+        font-size: 12px;
+    }
+    
+    .fp-ps-status-badge {
+        padding: 3px 10px;
+        font-size: 11px;
+    }
+    
+    .fp-ps-status-card-title {
+        font-size: 16px;
+    }
+    
+    .fp-ps-status-card-value {
+        font-size: 24px;
+    }
+}
+
+/* === DARK MODE SUPPORT === */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --fp-status-inactive-light: #374151;
+        --fp-status-inactive-border: #6b7280;
+    }
+    
+    .fp-ps-status-card-description {
+        color: #9ca3af;
+    }
+    
+    .fp-ps-status-list-description {
+        color: #9ca3af;
+    }
+    
+    .fp-ps-progress-bar {
+        background: #374151;
+    }
+}
+
+/* === ANIMATIONS === */
+@keyframes pulse-green {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(31, 157, 85, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(31, 157, 85, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(217, 68, 82, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(217, 68, 82, 0);
+    }
+}
+
+.fp-ps-semaforo-success span:first-child {
+    animation: pulse-green 2s infinite;
+}
+
+.fp-ps-semaforo-error span:first-child {
+    animation: pulse-red 2s infinite;
+}
+
+/* === ACCESSIBILITY === */
+.fp-ps-status-indicator:focus-visible,
+.fp-ps-status-badge:focus-visible,
+.fp-ps-semaforo:focus-visible {
+    outline: 2px solid #2d6cdf;
+    outline-offset: 2px;
+}
+
+/* Assicura che gli screen reader possano leggere lo stato */
+.fp-ps-status-indicator[aria-label],
+.fp-ps-status-badge[aria-label],
+.fp-ps-semaforo[aria-label] {
+    position: relative;
+}
+

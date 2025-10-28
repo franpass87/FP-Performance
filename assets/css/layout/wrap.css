@@ -1,0 +1,10 @@
+/**
+ * Main Wrapper Layout
+ *
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-wrap {
+	background: var(--fp-bg);
+	padding: var(--fp-spacing-xl);
+}

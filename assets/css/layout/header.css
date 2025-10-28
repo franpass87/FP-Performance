@@ -1,0 +1,21 @@
+/**
+ * Header and Breadcrumbs Layout
+ *
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-header h1 {
+	margin: 0 0 var(--fp-spacing-md);
+	color: var(--fp-text);
+	font-size: var(--fp-font-size-xl);
+}
+
+.fp-ps-breadcrumbs ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	gap: var(--fp-spacing-xs);
+	font-size: var(--fp-font-size-base);
+	color: #5a5f66;
+}

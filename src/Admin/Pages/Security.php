@@ -1,0 +1,500 @@
+<?php
+
+namespace FP\PerfSuite\Admin\Pages;
+
+use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Services\Security\HtaccessSecurity;
+
+use function __;
+use function esc_attr;
+use function esc_attr_e;
+use function esc_html;
+use function esc_html_e;
+use function esc_url;
+use function esc_textarea;
+use function get_option;
+use function sanitize_text_field;
+use function selected;
+use function checked;
+use function update_option;
+use function wp_nonce_field;
+use function wp_unslash;
+use function wp_verify_nonce;
+use function array_map;
+use function admin_url;
+
+class Security extends AbstractPage
+{
+    public function __construct(ServiceContainer $container)
+    {
+        parent::__construct($container);
+    }
+
+    public function slug(): string
+    {
+        return 'fp-performance-suite-security';
+    }
+
+    public function title(): string
+    {
+        return __('Security & .htaccess', 'fp-performance-suite');
+    }
+
+    public function capability(): string
+    {
+        return 'manage_options';
+    }
+
+    public function view(): string
+    {
+        return FP_PERF_SUITE_DIR . '/views/admin-page.php';
+    }
+
+    protected function data(): array
+    {
+        return [
+            'title' => $this->title(),
+            'breadcrumbs' => [__('Security', 'fp-performance-suite')],
+        ];
+    }
+
+    protected function content(): string
+    {
+        /** @var HtaccessSecurity $securityService */
+        $securityService = $this->container->get(HtaccessSecurity::class);
+        $settings = $securityService->settings();
+        $status = $securityService->status();
+        
+        $message = '';
+        
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_security_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_security_nonce']), 'fp-ps-security')) {
+            
+            $newSettings = [
+                'enabled' => !empty($_POST['enabled']),
+                'canonical_redirect' => [
+                    'enabled' => !empty($_POST['canonical_redirect_enabled']),
+                    'force_https' => !empty($_POST['force_https']),
+                    'force_www' => !empty($_POST['force_www']),
+                    'domain' => sanitize_text_field(wp_unslash($_POST['domain'] ?? '')),
+                ],
+                'security_headers' => [
+                    'enabled' => !empty($_POST['security_headers_enabled']),
+                    'hsts' => !empty($_POST['hsts']),
+                    'hsts_max_age' => max(0, (int)($_POST['hsts_max_age'] ?? 31536000)),
+                    'hsts_subdomains' => !empty($_POST['hsts_subdomains']),
+                    'hsts_preload' => !empty($_POST['hsts_preload']),
+                    'x_content_type_options' => !empty($_POST['x_content_type_options']),
+                    'x_frame_options' => sanitize_text_field($_POST['x_frame_options'] ?? 'SAMEORIGIN'),
+                    'referrer_policy' => sanitize_text_field($_POST['referrer_policy'] ?? 'strict-origin-when-cross-origin'),
+                    'permissions_policy' => sanitize_text_field(wp_unslash($_POST['permissions_policy'] ?? '')),
+                ],
+                // cache_rules spostate nella pagina Cache
+                'cors' => [
+                    'enabled' => !empty($_POST['cors_enabled']),
+                    'fonts_origin' => sanitize_text_field($_POST['fonts_origin'] ?? '*'),
+                    'svg_origin' => sanitize_text_field($_POST['svg_origin'] ?? '*'),
+                ],
+                'file_protection' => [
+                    'enabled' => !empty($_POST['file_protection_enabled']),
+                    'protect_hidden_files' => !empty($_POST['protect_hidden_files']),
+                    'protect_wp_config' => !empty($_POST['protect_wp_config']),
+                ],
+                'xmlrpc_disabled' => !empty($_POST['xmlrpc_disabled']),
+                'hotlink_protection' => [
+                    'enabled' => !empty($_POST['hotlink_protection_enabled']),
+                    'allowed_domains' => array_map('sanitize_text_field', array_filter(array_map('trim', explode("\n", wp_unslash($_POST['hotlink_allowed_domains'] ?? ''))))),
+                    'allow_google' => !empty($_POST['hotlink_allow_google']),
+                ],
+            ];
+            
+            $securityService->update($newSettings);
+            $settings = $securityService->settings();
+            $status = $securityService->status();
+            
+            $message = __('Security settings saved successfully!', 'fp-performance-suite');
+        }
+        
+        // Tab corrente
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'security';
+        $valid_tabs = ['security', 'performance'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'security';
+        }
+        
+        // Mantieni il tab dopo il POST
+        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
+            $current_tab = sanitize_key($_POST['current_tab']);
+        }
+
+        ob_start();
+        ?>
+        
+        <!-- INTRO BOX -->
+        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
+                🔒 <?php esc_html_e('Security & .htaccess', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
+                <?php esc_html_e('Proteggi il tuo sito con security headers, protezione file sensibili, blocco XML-RPC e regole .htaccess ottimizzate.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-security&tab=security" 
+               class="nav-tab <?php echo $current_tab === 'security' ? 'nav-tab-active' : ''; ?>">
+                🛡️ <?php esc_html_e('Security & Protection', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-security&tab=performance" 
+               class="nav-tab <?php echo $current_tab === 'performance' ? 'nav-tab-active' : ''; ?>">
+                ⚡ <?php esc_html_e('.htaccess Performance', 'fp-performance-suite'); ?>
+            </a>
+        </div>
+
+        <!-- Tab Description -->
+        <?php if ($current_tab === 'security') : ?>
+            <div class="fp-ps-tab-description danger">
+                <p>
+                    <strong>🛡️ Security & Protection:</strong> 
+                    <?php esc_html_e('Headers di sicurezza, protezione file sensibili, blocco XML-RPC e anti-hotlink per proteggere il tuo sito da attacchi.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php elseif ($current_tab === 'performance') : ?>
+            <div class="fp-ps-tab-description success">
+                <p>
+                    <strong>⚡ .htaccess Performance:</strong> 
+                    <?php esc_html_e('Redirect canonici, regole cache ottimizzate e CORS headers per massimizzare le performance via .htaccess.', 'fp-performance-suite'); ?>
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>💡 <?php esc_html_e('Nota:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('Per la compressione (Brotli/Gzip), utilizza la pagina Compression dedicata per evitare conflitti.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($message) : ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
+        <?php endif; ?>
+        
+        <div style="background: #e7f5ff; border-left: 4px solid #2271b1; padding: 15px; margin-bottom: 20px;">
+            <p style="margin: 0;">
+                <strong>💡 <?php esc_html_e('Informazioni:', 'fp-performance-suite'); ?></strong>
+                <?php esc_html_e('Queste impostazioni modificano il file .htaccess per migliorare sicurezza e performance. Viene creato un backup automatico prima di ogni modifica.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
+        <?php if ($status['section_applied']) : ?>
+        <div class="notice notice-success inline" style="margin: 0 0 20px 0;">
+            <p>
+                <span class="dashicons dashicons-yes-alt" style="color: #00a32a;"></span>
+                <strong><?php esc_html_e('Stato: Attivo', 'fp-performance-suite'); ?></strong> -
+                <?php esc_html_e('Le regole di sicurezza sono state applicate al file .htaccess', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        <?php endif; ?>
+        
+        <form method="post" action="?page=fp-performance-suite-security&tab=<?php echo esc_attr($current_tab); ?>">
+            <?php wp_nonce_field('fp-ps-security', 'fp_ps_security_nonce'); ?>
+            <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
+            
+            <!-- Master Switch -->
+            <section class="fp-ps-card">
+                <h2><?php esc_html_e('Stato Generale', 'fp-performance-suite'); ?></h2>
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Ottimizzazioni .htaccess', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('security_htaccess_enabled'); ?>
+                        <small><?php esc_html_e('Attiva ottimizzazioni di sicurezza via .htaccess', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('security_htaccess_enabled')); ?>" />
+                </label>
+            </section>
+            
+            <!-- TAB: .htaccess Performance -->
+            <div class="fp-ps-tab-content" data-tab="performance" style="display: <?php echo $current_tab === 'performance' ? 'block' : 'none'; ?>;">
+            
+            <!-- 1. Redirect Canonico -->
+            <section class="fp-ps-card">
+                <h2>🔄 <?php esc_html_e('Redirect Canonico (HTTPS + WWW)', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Unifica HTTP/HTTPS e WWW/non-WWW in un singolo redirect 301 per evitare loop e migliorare SEO.', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Redirect Canonico', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('htaccess_caching'); ?>
+                        <small><?php esc_html_e('Unifica HTTP/HTTPS e WWW/non-WWW', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="canonical_redirect_enabled" value="1" <?php checked($settings['canonical_redirect']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('htaccess_caching')); ?>" />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Forza HTTPS', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('force_https'); ?>
+                            <small><?php esc_html_e('Reindirizza automaticamente HTTP → HTTPS', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="force_https" value="1" <?php checked($settings['canonical_redirect']['force_https']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('force_https')); ?>" />
+                    </label>
+                    
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Forza WWW', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('force_www'); ?>
+                            <small><?php esc_html_e('Reindirizza automaticamente non-WWW → WWW', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="force_www" value="1" <?php checked($settings['canonical_redirect']['force_www']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('force_www')); ?>" />
+                    </label>
+                    
+                    <p>
+                        <label for="domain"><?php esc_html_e('Dominio', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="domain" id="domain" value="<?php echo esc_attr($settings['canonical_redirect']['domain']); ?>" class="regular-text" placeholder="esempio.com">
+                        <span class="description"><?php esc_html_e('Il tuo dominio senza www (es: esempio.com)', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+                
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin-top: 15px;">
+                    <strong>✅ <?php esc_html_e('Beneficio:', 'fp-performance-suite'); ?></strong>
+                    <?php esc_html_e('Evita redirect multipli che rallentano il caricamento e causano loop infiniti.', 'fp-performance-suite'); ?>
+                </div>
+            </section>
+            
+            <!-- 2. Security Headers (SPOSTATO NEL TAB SECURITY) -->
+            
+            <!-- 3. Cache Rules: SPOSTATO NELLA PAGINA CACHE -->
+            <!-- Le regole di cache sono state spostate nella pagina Cache per una migliore organizzazione logica -->
+            
+            <!-- 4. Compressione: RIMOSSA - Ora gestita nella pagina Compression dedicata -->
+            <!-- Per evitare conflitti con il servizio CompressionManager, la compressione è stata spostata -->
+            
+            <!-- 5. CORS -->
+            <section class="fp-ps-card">
+                <h2>🌐 <?php esc_html_e('CORS Headers (Font/SVG)', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Permette il caricamento di font e SVG da CDN o sottodomini.', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita CORS', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('cors_enabled'); ?>
+                        <small><?php esc_html_e('Permette caricamento font e SVG da CDN', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="cors_enabled" value="1" <?php checked($settings['cors']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('cors_enabled')); ?>" />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <p>
+                        <label for="fonts_origin"><?php esc_html_e('Origin permessa per font', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="fonts_origin" id="fonts_origin" value="<?php echo esc_attr($settings['cors']['fonts_origin']); ?>" class="regular-text" placeholder="*">
+                        <span class="description"><?php esc_html_e('(* = tutti, oppure dominio specifico)', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <p>
+                        <label for="svg_origin"><?php esc_html_e('Origin permessa per SVG', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="svg_origin" id="svg_origin" value="<?php echo esc_attr($settings['cors']['svg_origin']); ?>" class="regular-text" placeholder="*">
+                        <span class="description"><?php esc_html_e('(* = tutti, oppure dominio specifico)', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+            </section>
+            
+            <!-- Close TAB: Performance, Open TAB: Security -->
+            </div>
+            <div class="fp-ps-tab-content" data-tab="security" style="display: <?php echo $current_tab === 'security' ? 'block' : 'none'; ?>;">
+            
+            <!-- 2. Security Headers -->
+            <section class="fp-ps-card">
+                <h2>🛡️ <?php esc_html_e('Security Headers', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Migliora il punteggio di sicurezza e proteggi da attacchi comuni (XSS, clickjacking, MIME sniffing).', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Security Headers', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('security_headers_enabled'); ?>
+                        <small><?php esc_html_e('Protegge da XSS, clickjacking, MIME sniffing', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="security_headers_enabled" value="1" <?php checked($settings['security_headers']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('security_headers_enabled')); ?>" />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <!-- HSTS -->
+                    <h3><?php esc_html_e('HSTS (HTTP Strict Transport Security)', 'fp-performance-suite'); ?></h3>
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Abilita HSTS', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('hsts_enabled'); ?>
+                            <small><?php esc_html_e('Forza HTTPS permanentemente via browser', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="hsts" value="1" <?php checked($settings['security_headers']['hsts']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('hsts_enabled')); ?>" />
+                    </label>
+                    <p style="margin-left: 24px;">
+                        <label for="hsts_max_age"><?php esc_html_e('Max Age (secondi)', 'fp-performance-suite'); ?></label><br>
+                        <input type="number" name="hsts_max_age" id="hsts_max_age" value="<?php echo esc_attr($settings['security_headers']['hsts_max_age']); ?>" min="0" class="small-text">
+                        <span class="description"><?php esc_html_e('(default: 31536000 = 1 anno)', 'fp-performance-suite'); ?></span>
+                    </p>
+                    <div style="margin-left: 24px;">
+                        <label class="fp-ps-toggle">
+                            <span class="info">
+                                <strong><?php esc_html_e('Include sottodomini', 'fp-performance-suite'); ?></strong>
+                                <?php echo RiskMatrix::renderIndicator('hsts_subdomains'); ?>
+                                <small><?php esc_html_e('Applica HSTS anche ai sottodomini', 'fp-performance-suite'); ?></small>
+                            </span>
+                            <input type="checkbox" name="hsts_subdomains" value="1" <?php checked($settings['security_headers']['hsts_subdomains']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('hsts_subdomains')); ?>" />
+                        </label>
+                        
+                        <label class="fp-ps-toggle">
+                            <span class="info">
+                                <strong><?php esc_html_e('Preload', 'fp-performance-suite'); ?></strong>
+                                <?php echo RiskMatrix::renderIndicator('hsts_preload'); ?>
+                                <small><?php esc_html_e('Aggiunge dominio alla lista preload HSTS', 'fp-performance-suite'); ?></small>
+                            </span>
+                            <input type="checkbox" name="hsts_preload" value="1" <?php checked($settings['security_headers']['hsts_preload']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('hsts_preload')); ?>" />
+                        </label>
+                    </div>
+                    
+                    <!-- X-Content-Type-Options -->
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('X-Content-Type-Options: nosniff', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('x_content_type_options'); ?>
+                            <small><?php esc_html_e('Previene MIME-type sniffing', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="x_content_type_options" value="1" <?php checked($settings['security_headers']['x_content_type_options']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('x_content_type_options')); ?>" />
+                    </label>
+                    
+                    <!-- X-Frame-Options -->
+                    <p>
+                        <label for="x_frame_options"><?php esc_html_e('X-Frame-Options', 'fp-performance-suite'); ?></label><br>
+                        <select name="x_frame_options" id="x_frame_options">
+                            <option value="DENY" <?php selected($settings['security_headers']['x_frame_options'], 'DENY'); ?>>DENY</option>
+                            <option value="SAMEORIGIN" <?php selected($settings['security_headers']['x_frame_options'], 'SAMEORIGIN'); ?>>SAMEORIGIN</option>
+                        </select>
+                        <span class="description"><?php esc_html_e('Previene clickjacking', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <!-- Referrer-Policy -->
+                    <p>
+                        <label for="referrer_policy"><?php esc_html_e('Referrer-Policy', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="referrer_policy" id="referrer_policy" value="<?php echo esc_attr($settings['security_headers']['referrer_policy']); ?>" class="regular-text">
+                        <span class="description"><?php esc_html_e('(default: strict-origin-when-cross-origin)', 'fp-performance-suite'); ?></span>
+                    </p>
+                    
+                    <!-- Permissions-Policy -->
+                    <p>
+                        <label for="permissions_policy"><?php esc_html_e('Permissions-Policy', 'fp-performance-suite'); ?></label><br>
+                        <input type="text" name="permissions_policy" id="permissions_policy" value="<?php echo esc_attr($settings['security_headers']['permissions_policy']); ?>" class="large-text">
+                        <span class="description"><?php esc_html_e('(default: camera=(), microphone=(), geolocation=())', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+            </section>
+            
+            <!-- 6. Protezione File -->
+            <section class="fp-ps-card">
+                <h2>🔒 <?php esc_html_e('Protezione File Sensibili', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Blocca accessi diretti a file di configurazione e file nascosti.', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Protezione File', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('file_protection_enabled'); ?>
+                        <small><?php esc_html_e('Blocca accesso a file sensibili', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="file_protection_enabled" value="1" <?php checked($settings['file_protection']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('file_protection_enabled')); ?>" />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Proteggi file nascosti (.env, .git, ecc.)', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('protect_hidden_files'); ?>
+                            <small><?php esc_html_e('Blocca accesso a file nascosti', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="protect_hidden_files" value="1" <?php checked($settings['file_protection']['protect_hidden_files']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('protect_hidden_files')); ?>" />
+                    </label>
+                    
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Proteggi wp-config.php', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('protect_wp_config'); ?>
+                            <small><?php esc_html_e('Blocca accesso diretto a wp-config.php', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="protect_wp_config" value="1" <?php checked($settings['file_protection']['protect_wp_config']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('protect_wp_config')); ?>" />
+                    </label>
+                </div>
+            </section>
+            
+            <!-- 7. XML-RPC -->
+            <section class="fp-ps-card">
+                <h2>🚫 <?php esc_html_e('XML-RPC', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Disabilita XML-RPC se non usi Jetpack, app mobile WordPress o pubblicazione remota.', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Disabilita XML-RPC', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('xmlrpc_disabled'); ?>
+                        <small><?php esc_html_e('Disabilita XML-RPC (vulnerabile a brute-force)', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="xmlrpc_disabled" value="1" <?php checked($settings['xmlrpc_disabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('xmlrpc_disabled')); ?>" />
+                </label>
+            </section>
+            
+            <!-- 8. Anti-Hotlink -->
+            <section class="fp-ps-card">
+                <h2>🖼️ <?php esc_html_e('Anti-Hotlink Immagini', 'fp-performance-suite'); ?></h2>
+                <p class="description"><?php esc_html_e('Blocca l\'uso delle tue immagini da altri siti (risparmia banda).', 'fp-performance-suite'); ?></p>
+                
+                <label class="fp-ps-toggle">
+                    <span class="info">
+                        <strong><?php esc_html_e('Abilita Anti-Hotlink', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('hotlink_protection_enabled'); ?>
+                        <small><?php esc_html_e('Previene uso immagini da altri siti', 'fp-performance-suite'); ?></small>
+                    </span>
+                    <input type="checkbox" name="hotlink_protection_enabled" value="1" <?php checked($settings['hotlink_protection']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('hotlink_protection_enabled')); ?>" />
+                </label>
+                
+                <div style="margin-left: 20px; margin-top: 15px;">
+                    <label class="fp-ps-toggle">
+                        <span class="info">
+                            <strong><?php esc_html_e('Permetti a Google (search, immagini)', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('hotlink_allow_google'); ?>
+                            <small><?php esc_html_e('Permette a Google di indicizzare immagini', 'fp-performance-suite'); ?></small>
+                        </span>
+                        <input type="checkbox" name="hotlink_allow_google" value="1" <?php checked($settings['hotlink_protection']['allow_google']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('hotlink_allow_google')); ?>" />
+                    </label>
+                    
+                    <p>
+                        <label for="hotlink_allowed_domains"><?php esc_html_e('Domini permessi aggiuntivi (uno per riga)', 'fp-performance-suite'); ?></label><br>
+                        <textarea name="hotlink_allowed_domains" id="hotlink_allowed_domains" rows="3" class="large-text"><?php echo esc_textarea(implode("\n", $settings['hotlink_protection']['allowed_domains'] ?? [])); ?></textarea>
+                        <span class="description"><?php esc_html_e('Aggiungi domini fidati che possono usare le tue immagini', 'fp-performance-suite'); ?></span>
+                    </p>
+                </div>
+            </section>
+            
+            <!-- Close TAB: Security -->
+            </div>
+            
+            <div class="fp-ps-card">
+                <p>
+                    <button type="submit" class="button button-primary button-large"><?php esc_html_e('Salva Tutte le Impostazioni', 'fp-performance-suite'); ?></button>
+                </p>
+                <p class="description">
+                    <?php 
+                    echo sprintf(
+                        __('Un backup del file .htaccess viene creato automaticamente prima di ogni modifica. Puoi gestire i backup dalla pagina %s', 'fp-performance-suite'),
+                        '<a href="' . esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=importexport')) . '">' . __('Settings', 'fp-performance-suite') . '</a>'
+                    );
+                    ?>
+                </p>
+            </div>
+        </form>
+        
+        <?php
+        return (string) ob_get_clean();
+    }
+}
+

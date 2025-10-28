@@ -1,0 +1,324 @@
+/**
+ * Mobile Page Component Styles
+ *
+ * Stili specifici per la pagina Mobile Optimization del plugin admin
+ * Utilizza il design system modulare per coerenza grafica
+ *
+ * @package FP\PerfSuite
+ * @author Francesco Passeri
+ */
+
+/* ===========================
+	Mobile Stats Grid
+	=========================== */
+
+.fp-ps-mobile-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--fp-spacing-md);
+	margin: var(--fp-spacing-lg) 0;
+}
+
+.fp-ps-stat-item {
+	display: flex;
+	flex-direction: column;
+	padding: var(--fp-spacing-lg);
+	background: var(--fp-card);
+	border-radius: var(--fp-radius-sm);
+	border-left: 4px solid var(--fp-accent);
+	transition: all var(--fp-transition-base);
+	box-shadow: var(--fp-shadow-sm);
+}
+
+.fp-ps-stat-item:hover {
+	box-shadow: var(--fp-shadow-md);
+	transform: translateY(-2px);
+}
+
+.fp-ps-stat-label {
+	font-weight: 600;
+	color: var(--fp-text);
+	margin-bottom: var(--fp-spacing-xs);
+	font-size: var(--fp-font-size-sm);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.fp-ps-stat-value {
+	font-size: var(--fp-font-size-lg);
+	font-weight: 700;
+	margin: var(--fp-spacing-xs) 0;
+}
+
+/* ===========================
+	Status Indicators
+	=========================== */
+
+.fp-ps-status-enabled {
+	color: var(--fp-ok);
+}
+
+.fp-ps-status-disabled {
+	color: var(--fp-danger);
+}
+
+.fp-ps-critical {
+	color: var(--fp-danger);
+	font-weight: 700;
+}
+
+/* ===========================
+	Issues List
+	=========================== */
+
+.fp-ps-issues-list {
+	margin: var(--fp-spacing-lg) 0;
+}
+
+.fp-ps-issue {
+	padding: var(--fp-spacing-lg);
+	margin: var(--fp-spacing-sm) 0;
+	border-left: 4px solid #ddd;
+	background: var(--fp-card);
+	border-radius: var(--fp-radius-sm);
+	transition: all var(--fp-transition-base);
+	box-shadow: var(--fp-shadow-sm);
+}
+
+.fp-ps-issue:hover {
+	box-shadow: var(--fp-shadow-sm);
+}
+
+.fp-ps-issue-high {
+	border-left-color: var(--fp-danger);
+	background: var(--fp-danger-light);
+}
+
+.fp-ps-issue-medium {
+	border-left-color: var(--fp-warn);
+	background: var(--fp-warning-light);
+}
+
+.fp-ps-issue-low {
+	border-left-color: var(--fp-info);
+	background: var(--fp-info-light);
+}
+
+.fp-ps-issue strong {
+	display: block;
+	margin-bottom: var(--fp-spacing-xs);
+	color: var(--fp-text);
+	font-size: var(--fp-font-size-md);
+}
+
+.fp-ps-issue p {
+	margin: 0;
+	color: var(--fp-gray-700);
+	font-size: var(--fp-font-size-sm);
+	line-height: 1.5;
+}
+
+/* ===========================
+	Recommendations
+	=========================== */
+
+.fp-ps-recommendations {
+	margin: var(--fp-spacing-lg) 0;
+	list-style: none;
+	padding: 0;
+}
+
+.fp-ps-recommendations li {
+	margin: var(--fp-spacing-sm) 0;
+	padding: var(--fp-spacing-md);
+	background: var(--fp-info-light);
+	border-radius: var(--fp-radius-sm);
+	border-left: 3px solid var(--fp-info);
+	color: var(--fp-gray-700);
+	font-size: var(--fp-font-size-sm);
+	line-height: 1.5;
+	transition: all var(--fp-transition-base);
+}
+
+.fp-ps-recommendations li:hover {
+	background: var(--fp-info);
+	color: white;
+	transform: translateX(4px);
+}
+
+/* ===========================
+	Form Enhancements
+	=========================== */
+
+.fp-ps-card .form-table {
+	background: var(--fp-card);
+	border-radius: var(--fp-radius-sm);
+	overflow: hidden;
+	box-shadow: var(--fp-shadow-sm);
+	border: 1px solid #e5e7eb;
+}
+
+.fp-ps-card .form-table th {
+	background: var(--fp-bg);
+	padding: var(--fp-spacing-lg);
+	font-weight: 600;
+	color: var(--fp-text);
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.fp-ps-card .form-table td {
+	padding: var(--fp-spacing-lg);
+	border-bottom: 1px solid #f3f4f6;
+}
+
+.fp-ps-card .form-table tr:last-child td {
+	border-bottom: none;
+}
+
+.fp-ps-card .description {
+	color: var(--fp-gray-700);
+	font-size: var(--fp-font-size-sm);
+	margin-top: var(--fp-spacing-xs);
+}
+
+/* ===========================
+	Responsive Design
+	=========================== */
+
+@media (max-width: 768px) {
+	.fp-ps-mobile-stats {
+		grid-template-columns: 1fr;
+		gap: var(--fp-spacing-sm);
+	}
+
+	.fp-ps-stat-item {
+		padding: var(--fp-spacing-md);
+	}
+
+	.fp-ps-card .form-table {
+		font-size: var(--fp-font-size-sm);
+	}
+
+	.fp-ps-card .form-table th,
+	.fp-ps-card .form-table td {
+		padding: var(--fp-spacing-md);
+	}
+
+	.fp-ps-issue {
+		padding: var(--fp-spacing-md);
+	}
+
+	.fp-ps-recommendations li {
+		padding: var(--fp-spacing-sm);
+	}
+}
+
+@media (max-width: 480px) {
+	.fp-ps-mobile-stats {
+		gap: var(--fp-spacing-xs);
+	}
+
+	.fp-ps-stat-item {
+		padding: var(--fp-spacing-sm);
+	}
+
+	.fp-ps-stat-value {
+		font-size: var(--fp-font-size-md);
+	}
+
+	.fp-ps-card .form-table th,
+	.fp-ps-card .form-table td {
+		padding: var(--fp-spacing-sm);
+		display: block;
+		width: 100%;
+	}
+
+	.fp-ps-card .form-table th {
+		border-bottom: none;
+		padding-bottom: var(--fp-spacing-xs);
+	}
+
+	.fp-ps-card .form-table td {
+		padding-top: 0;
+		padding-bottom: var(--fp-spacing-md);
+	}
+}
+
+/* ===========================
+	Accessibility
+	=========================== */
+
+.fp-ps-card .form-table th {
+	text-align: left;
+}
+
+.fp-ps-card input[type="checkbox"] {
+	margin-right: var(--fp-spacing-xs);
+}
+
+.fp-ps-card input[type="number"],
+.fp-ps-card input[type="text"] {
+	width: 100%;
+	max-width: 200px;
+	padding: var(--fp-spacing-sm);
+	border: 1px solid #d1d5db;
+	border-radius: var(--fp-radius-sm);
+	font-size: var(--fp-font-size-sm);
+}
+
+.fp-ps-card input[type="number"]:focus,
+.fp-ps-card input[type="text"]:focus {
+	outline: none;
+	border-color: var(--fp-accent);
+	box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.1);
+}
+
+/* ===========================
+	Button Enhancements
+	=========================== */
+
+.fp-ps-card .button-primary {
+	background: var(--fp-accent);
+	border-color: var(--fp-accent);
+	color: white;
+	padding: var(--fp-spacing-sm) var(--fp-spacing-lg);
+	border-radius: var(--fp-radius-sm);
+	font-weight: 600;
+	transition: all var(--fp-transition-base);
+}
+
+.fp-ps-card .button-primary:hover {
+	background: #1e4fd4;
+	border-color: #1e4fd4;
+	transform: translateY(-1px);
+	box-shadow: var(--fp-shadow-md);
+}
+
+/* ===========================
+	Loading States
+	=========================== */
+
+.fp-ps-card .loading {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.fp-ps-card .loading::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px;
+	height: 20px;
+	margin: -10px 0 0 -10px;
+	border: 2px solid var(--fp-accent);
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

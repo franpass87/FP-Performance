@@ -1,0 +1,18 @@
+/**
+ * Actions Component
+ *
+ * @package FP\PerfSuite
+ */
+
+.fp-ps-actions {
+	display: flex;
+	gap: var(--fp-spacing-xs);
+	flex-wrap: wrap;
+}
+
+.fp-ps-actions button,
+.fp-ps-actions a.button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
