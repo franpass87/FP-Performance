@@ -131,6 +131,46 @@ class CoreWebVitalsMonitor
     }
     
     /**
+     * Aggiorna le impostazioni del Core Web Vitals Monitor
+     * 
+     * @param array $settings Array con le impostazioni da aggiornare
+     * @return bool True se salvato con successo
+     */
+    public function update(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_cwv_settings', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['lcp_enabled'])) {
+            $newSettings['lcp_enabled'] = (bool) $newSettings['lcp_enabled'];
+        }
+        
+        if (isset($newSettings['fid_enabled'])) {
+            $newSettings['fid_enabled'] = (bool) $newSettings['fid_enabled'];
+        }
+        
+        if (isset($newSettings['cls_enabled'])) {
+            $newSettings['cls_enabled'] = (bool) $newSettings['cls_enabled'];
+        }
+        
+        $result = update_option('fp_ps_cwv_settings', $newSettings, false);
+        
+        // Aggiorna proprietà interne
+        if (isset($newSettings['lcp_enabled'])) {
+            $this->lcp = $newSettings['lcp_enabled'];
+        }
+        if (isset($newSettings['fid_enabled'])) {
+            $this->fid = $newSettings['fid_enabled'];
+        }
+        if (isset($newSettings['cls_enabled'])) {
+            $this->cls = $newSettings['cls_enabled'];
+        }
+        
+        return $result;
+    }
+    
+    /**
      * Restituisce lo stato del Core Web Vitals monitor
      * 
      * @return array Array con 'enabled' e altre informazioni

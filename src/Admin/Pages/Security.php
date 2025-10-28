@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
 
 use function __;
@@ -139,6 +141,11 @@ class Security extends AbstractPage
             </p>
         </div>
         
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
+        
         <!-- Navigazione Tabs -->
         <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
             <a href="?page=fp-performance-suite-security&tab=security" 
@@ -231,8 +238,10 @@ class Security extends AbstractPage
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Abilita Redirect Canonico', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('htaccess_caching'); ?>
+                        <small><?php esc_html_e('Unifica HTTP/HTTPS e WWW/non-WWW', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="canonical_redirect_enabled" value="1" <?php checked($settings['canonical_redirect']['enabled']); ?> />
+                    <input type="checkbox" name="canonical_redirect_enabled" value="1" <?php checked($settings['canonical_redirect']['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('htaccess_caching')); ?>" />
                 </label>
                 
                 <div style="margin-left: 20px; margin-top: 15px;">

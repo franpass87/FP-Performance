@@ -86,6 +86,42 @@ class HtmlMinifier
         $protected = [];
         $index = 0;
         
+        // PROTEZIONE: Banner cookie FP Privacy Plugin
+        // Proteggi il banner e il modal per evitare interferenze
+        $html = preg_replace_callback(
+            '/<div[^>]*id=["\']fp-privacy-banner[^>]*>.*?<\/div>/is',
+            function($matches) use (&$protected, &$index) {
+                $placeholder = '___FP_PRIVACY_BANNER_' . $index . '___';
+                $protected[$placeholder] = $matches[0];
+                $index++;
+                return $placeholder;
+            },
+            $html
+        );
+
+        $html = preg_replace_callback(
+            '/<div[^>]*id=["\']fp-privacy-modal[^>]*>.*?<\/div>/is',
+            function($matches) use (&$protected, &$index) {
+                $placeholder = '___FP_PRIVACY_MODAL_' . $index . '___';
+                $protected[$placeholder] = $matches[0];
+                $index++;
+                return $placeholder;
+            },
+            $html
+        );
+
+        // Proteggi anche il root container del banner
+        $html = preg_replace_callback(
+            '/<div[^>]*data-fp-privacy-banner[^>]*>.*?<\/div>/is',
+            function($matches) use (&$protected, &$index) {
+                $placeholder = '___FP_PRIVACY_ROOT_' . $index . '___';
+                $protected[$placeholder] = $matches[0];
+                $index++;
+                return $placeholder;
+            },
+            $html
+        );
+        
         // Estrai e proteggi tag che non devono essere minificati
         // Include: <pre>, <textarea>, <code>, <script>, <style>
         $html = preg_replace_callback(

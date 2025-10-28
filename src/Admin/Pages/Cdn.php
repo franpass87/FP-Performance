@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\CDN\CdnManager;
 
 use function __;

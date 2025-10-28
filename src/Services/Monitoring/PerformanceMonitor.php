@@ -185,6 +185,43 @@ class PerformanceMonitor
     }
     
     /**
+     * Aggiorna le impostazioni del Performance Monitor
+     * 
+     * @param array $settings Array con le impostazioni da aggiornare
+     * @return bool True se salvato con successo
+     */
+    public function update(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_monitoring_settings', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['enabled'])) {
+            $newSettings['enabled'] = (bool) $newSettings['enabled'];
+        }
+        
+        if (isset($newSettings['core_web_vitals'])) {
+            $newSettings['core_web_vitals'] = (bool) $newSettings['core_web_vitals'];
+        }
+        
+        if (isset($newSettings['real_user_monitoring'])) {
+            $newSettings['real_user_monitoring'] = (bool) $newSettings['real_user_monitoring'];
+        }
+        
+        $result = update_option('fp_ps_monitoring_settings', $newSettings, false);
+        
+        // Aggiorna proprietà interne
+        if (isset($newSettings['core_web_vitals'])) {
+            $this->core_web_vitals = $newSettings['core_web_vitals'];
+        }
+        if (isset($newSettings['real_user_monitoring'])) {
+            $this->real_user_monitoring = $newSettings['real_user_monitoring'];
+        }
+        
+        return $result;
+    }
+    
+    /**
      * Ottiene le statistiche di performance per un periodo specificato
      */
     public function getStats(int $days = 7): array

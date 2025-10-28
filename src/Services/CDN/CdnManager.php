@@ -165,12 +165,63 @@ class CdnManager
     public function settings(): array
     {
         return [
-            'enabled' => $this->enabled,
-            'cdn_url' => $this->cdn_url,
+            'enabled' => $this->enabled ?? false,
+            'cdn_url' => $this->cdn_url ?? '',
             'provider' => $this->provider,
             'api_key' => !empty($this->api_key) ? '***' : '', // Nascondi API key
             'zone_id' => $this->zone_id,
         ];
+    }
+    
+    /**
+     * Aggiorna le impostazioni del CDN
+     * 
+     * @param array $settings Array con le impostazioni da aggiornare
+     * @return bool True se salvato con successo
+     */
+    public function update(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_cdn_settings', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['enabled'])) {
+            $newSettings['enabled'] = (bool) $newSettings['enabled'];
+        }
+        
+        if (isset($newSettings['cdn_url'])) {
+            $newSettings['cdn_url'] = esc_url_raw($newSettings['cdn_url']);
+        }
+        
+        if (isset($newSettings['provider'])) {
+            $allowedProviders = ['cloudflare', 'fastly', 'cloudfront', 'bunnycdn', 'custom'];
+            if (!in_array($newSettings['provider'], $allowedProviders, true)) {
+                $newSettings['provider'] = 'cloudflare';
+            }
+        }
+        
+        if (isset($newSettings['api_key'])) {
+            $newSettings['api_key'] = sanitize_text_field($newSettings['api_key']);
+        }
+        
+        if (isset($newSettings['zone_id'])) {
+            $newSettings['zone_id'] = sanitize_text_field($newSettings['zone_id']);
+        }
+        
+        $result = update_option('fp_ps_cdn_settings', $newSettings, false);
+        
+        // Aggiorna proprietà interne
+        if (isset($newSettings['provider'])) {
+            $this->provider = $newSettings['provider'];
+        }
+        if (isset($newSettings['api_key'])) {
+            $this->api_key = $newSettings['api_key'];
+        }
+        if (isset($newSettings['zone_id'])) {
+            $this->zone_id = $newSettings['zone_id'];
+        }
+        
+        return $result;
     }
     
     /**

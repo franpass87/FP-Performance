@@ -44,105 +44,37 @@ class JavaScriptTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Defer JavaScript', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator amber">
-                            <div class="fp-ps-risk-tooltip amber">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">⚠</span>
-                                    <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Posticipa l\'esecuzione degli script JavaScript dopo il caricamento della pagina.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Può causare errori con script che dipendono da jQuery o altri script caricati prima.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Consigliato: Migliora significativamente il First Contentful Paint. Testa animazioni e funzionalità interattive.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
+                        <?php echo RiskMatrix::renderIndicator('defer_js'); ?>
+                        <small><?php esc_html_e('Posticipa l\'esecuzione degli script dopo il caricamento', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="defer_js" value="1" <?php checked($settings['defer_js']); ?> data-risk="amber" />
+                    <input type="checkbox" name="defer_js" value="1" <?php checked($settings['defer_js']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('defer_js')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Async JavaScript', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator amber">
-                            <div class="fp-ps-risk-tooltip amber">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">⚠</span>
-                                    <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Carica gli script in modo asincrono senza bloccare il rendering.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Gli script potrebbero eseguirsi in ordine diverso, causando errori di dipendenza.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ Usa con cautela: Non combinare con Defer. Testa approfonditamente.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
+                        <?php echo RiskMatrix::renderIndicator('async_js'); ?>
+                        <small><?php esc_html_e('Carica script in modo asincrono senza bloccare rendering', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="async_js" value="1" <?php checked($settings['async_js']); ?> data-risk="amber" />
+                    <input type="checkbox" name="async_js" value="1" <?php checked($settings['async_js']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('async_js')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Combine JS files', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator red">
-                            <div class="fp-ps-risk-tooltip red">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">🔴</span>
-                                    <?php esc_html_e('Rischio Alto', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Combina tutti i file JavaScript in un unico file.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Molto alto rischio di errori JavaScript, problemi di dipendenze e conflitti tra script.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ Sconsigliato: Può rompere funzionalità critiche. Meglio usare il defer invece della combinazione.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
+                        <?php echo RiskMatrix::renderIndicator('combine_js'); ?>
+                        <small><?php esc_html_e('Combina tutti i file JavaScript in un unico file', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="combine_js" value="1" <?php checked($settings['combine_js']); ?> data-risk="red" />
+                    <input type="checkbox" name="combine_js" value="1" <?php checked($settings['combine_js']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('combine_js')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Remove emojis script', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator green">
-                            <div class="fp-ps-risk-tooltip green">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">✓</span>
-                                    <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove lo script WordPress per il supporto emoji legacy. I browser moderni li supportano nativamente.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: Riduce le richieste HTTP senza rischi. Attiva sempre.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
+                        <?php echo RiskMatrix::renderIndicator('remove_emojis'); ?>
+                        <small><?php esc_html_e('Rimuove lo script WordPress per il supporto emoji legacy', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="remove_emojis" value="1" <?php checked($settings['remove_emojis']); ?> data-risk="green" />
+                    <input type="checkbox" name="remove_emojis" value="1" <?php checked($settings['remove_emojis']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('remove_emojis')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">

@@ -10,6 +10,8 @@ use FP\PerfSuite\Services\DB\PluginSpecificOptimizer;
 use FP\PerfSuite\Services\DB\DatabaseReportService;
 use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function array_map;
@@ -78,7 +80,14 @@ class Database extends AbstractPage
             $this->handleFormSubmissions($activeTab);
             
             ob_start();
+            ?>
             
+            <?php
+            // Mostra legenda rischi
+            echo RiskLegend::renderLegend();
+            ?>
+            
+            <?php
             // Render tabs navigation
             $this->renderTabsNavigation($activeTab);
             

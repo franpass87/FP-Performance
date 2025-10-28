@@ -145,6 +145,45 @@ class Cleaner
     }
     
     /**
+     * Aggiorna le impostazioni del cleaner
+     * 
+     * @param array $settings Array con le impostazioni da aggiornare
+     * @return bool True se salvato con successo
+     */
+    public function update(array $settings): bool
+    {
+        $currentSettings = get_option('fp_ps_db_cleaner_settings', []);
+        $newSettings = array_merge($currentSettings, $settings);
+        
+        // Validazione
+        if (isset($newSettings['schedule'])) {
+            $allowedSchedules = ['manual', 'daily', 'weekly', 'monthly'];
+            if (!in_array($newSettings['schedule'], $allowedSchedules, true)) {
+                $newSettings['schedule'] = 'manual';
+            }
+        }
+        
+        if (isset($newSettings['batch'])) {
+            $newSettings['batch'] = max(10, min(10000, (int) $newSettings['batch']));
+        }
+        
+        $result = update_option('fp_ps_db_cleaner_settings', $newSettings, false);
+        
+        // Aggiorna proprietà interne se presenti
+        if (isset($newSettings['clean_revisions'])) {
+            $this->clean_revisions = (bool) $newSettings['clean_revisions'];
+        }
+        if (isset($newSettings['clean_spam'])) {
+            $this->clean_spam = (bool) $newSettings['clean_spam'];
+        }
+        if (isset($newSettings['clean_trash'])) {
+            $this->clean_trash = (bool) $newSettings['clean_trash'];
+        }
+        
+        return $result;
+    }
+    
+    /**
      * Restituisce lo stato del database cleaner
      * 
      * @return array Array con 'enabled', 'overhead_mb' e altre informazioni

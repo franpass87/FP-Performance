@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 
 /**
@@ -88,6 +90,11 @@ class Compression extends AbstractPage
                 <?php esc_html_e('Riduci le dimensioni dei file con compressione GZIP e Brotli. Minifica HTML, CSS e JavaScript per velocizzare il caricamento.', 'fp-performance-suite'); ?>
             </p>
         </div>
+        
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
         
         <?php if ($message) : ?>
             <?php 

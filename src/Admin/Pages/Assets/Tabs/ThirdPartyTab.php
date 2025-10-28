@@ -5,6 +5,8 @@ namespace FP\PerfSuite\Admin\Pages\Assets\Tabs;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
 use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function checked;
@@ -36,6 +38,11 @@ class ThirdPartyTab
         <!-- TAB: Third-Party -->
         <div class="fp-ps-tab-content <?php echo $current_tab === 'thirdparty' ? 'active' : ''; ?>" data-tab="thirdparty">
         
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
+        
         <!-- Third-Party Scripts Section -->
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Third-Party Scripts Management', 'fp-performance-suite'); ?></h2>
@@ -47,15 +54,19 @@ class ThirdPartyTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable Third-Party Scripts Delay', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('third_party_enabled'); ?>
+                        <small><?php esc_html_e('Abilita gestione e ottimizzazione script esterni', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="third_party_enabled" value="1" <?php checked($thirdPartySettings['enabled']); ?> />
+                    <input type="checkbox" name="third_party_enabled" value="1" <?php checked($thirdPartySettings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('third_party_enabled')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Delay All Third-Party Scripts', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('third_party_delay_loading'); ?>
+                        <small><?php esc_html_e('Ritarda caricamento fino a interazione utente', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="third_party_delay_all" value="1" <?php checked($thirdPartySettings['delay_all']); ?> />
+                    <input type="checkbox" name="third_party_delay_loading" value="1" <?php checked($thirdPartySettings['delay_loading']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('third_party_delay_loading')); ?>" />
                 </label>
                 
                 <p>

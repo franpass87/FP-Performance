@@ -4,6 +4,8 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Admin\Pages\AbstractPage;
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\ML\MLPredictor;
 use FP\PerfSuite\Services\ML\PatternLearner;
 use FP\PerfSuite\Services\ML\AnomalyDetector;

@@ -71,6 +71,13 @@ class Optimizer
         $settings = $this->settings();
 
         if (!is_admin() && !$this->isRestOrAjaxRequest()) {
+            // ESCLUSIONE AUTOMATICA: FP Privacy & Cookie Policy Plugin
+            // Non applicare ottimizzazioni se il consenso non è stato dato
+            if ($this->shouldExcludeForPrivacyPlugin()) {
+                // Banner cookie attivo, disabilita ottimizzazioni aggressive
+                return;
+            }
+
             // HTML Minification
             if (!empty($settings['minify_html'])) {
                 add_action('template_redirect', [$this, 'startBuffer'], 1);
@@ -185,7 +192,7 @@ class Optimizer
         return wp_parse_args($options, $defaults);
     }
 
-    public function update(array $settings): void
+    public function update(array $settings): bool
     {
         $current = $this->settings();
         $new = [
@@ -211,7 +218,7 @@ class Optimizer
             'preload_critical_assets' => $this->resolveFlag($settings, 'preload_critical_assets', $current['preload_critical_assets']),
             'critical_assets_list' => isset($settings['critical_assets_list']) ? (is_array($settings['critical_assets_list']) ? $settings['critical_assets_list'] : $this->sanitizeUrlList($settings['critical_assets_list'])) : $current['critical_assets_list'],
         ];
-        update_option(self::OPTION, $new);
+        return update_option(self::OPTION, $new);
     }
 
     public function applyCombination(): void
@@ -252,6 +259,11 @@ class Optimizer
 
     public function filterScriptTag(string $tag, string $handle, string $src): string
     {
+        // ESCLUSIONE: Script del plugin FP Privacy & Cookie Policy
+        if ($this->isPrivacyPluginAsset($handle, $src)) {
+            return $tag; // Non modificare gli script del plugin privacy
+        }
+
         $settings = $this->settings();
         $defer = !empty($settings['defer_js']);
         $async = !empty($settings['async_js']);
@@ -270,6 +282,11 @@ class Optimizer
      */
     public function filterStyleTag(string $html, string $handle, string $href, $media): string
     {
+        // ESCLUSIONE: CSS del plugin FP Privacy & Cookie Policy
+        if ($this->isPrivacyPluginAsset($handle, $href)) {
+            return $html; // Non modificare i CSS del plugin privacy
+        }
+
         // Skip critical CSS handles (should load synchronously)
         $settings = $this->settings();
         $criticalHandles = $settings['critical_css_handles'] ?? [];
@@ -603,6 +620,52 @@ class Optimizer
         }
 
         if (function_exists('is_account_page') && is_account_page()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica se escludere le ottimizzazioni per il plugin FP Privacy & Cookie Policy
+     * 
+     * @return bool True se il banner privacy è attivo e il consenso non è stato dato
+     */
+    private function shouldExcludeForPrivacyPlugin(): bool
+    {
+        // Controlla se il plugin FP Privacy è attivo
+        if (!defined('FP_PRIVACY_VERSION')) {
+            return false; // Plugin non attivo, procedi normalmente
+        }
+
+        // Controlla se il cookie di consenso esiste
+        if (isset($_COOKIE['fp_consent_state_id'])) {
+            // Consenso già dato, procedi normalmente
+            return false;
+        }
+
+        // Banner cookie attivo e consenso non dato, escludi ottimizzazioni
+        return true;
+    }
+
+    /**
+     * Verifica se un asset appartiene al plugin FP Privacy & Cookie Policy
+     * 
+     * @param string $handle Handle dell'asset
+     * @param string $src URL dell'asset
+     * @return bool True se l'asset appartiene al plugin privacy
+     */
+    private function isPrivacyPluginAsset(string $handle, string $src): bool
+    {
+        // Controlla handle che contengono "fp-privacy" o "fp_privacy"
+        if (strpos($handle, 'fp-privacy') !== false || strpos($handle, 'fp_privacy') !== false) {
+            return true;
+        }
+
+        // Controlla URL che contengono il path del plugin
+        if (strpos($src, 'FP-Privacy-and-Cookie-Policy') !== false || 
+            strpos($src, 'fp-privacy-cookie-policy') !== false ||
+            strpos($src, '/plugins/fp-privacy') !== false) {
             return true;
         }
 

@@ -34,6 +34,15 @@ class Assets
 
         // Add type="module" attribute for ES6 modules
         add_filter('script_loader_tag', [$this, 'addModuleType'], 10, 3);
+        
+        // Enqueue risk tooltip positioner
+        wp_enqueue_script(
+            'fp-performance-suite-risk-tooltip',
+            plugins_url('assets/js/risk-tooltip-positioner.js', FP_PERF_SUITE_FILE),
+            [],
+            FP_PERF_SUITE_VERSION,
+            true
+        );
 
         // Localize script data for JavaScript modules
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [

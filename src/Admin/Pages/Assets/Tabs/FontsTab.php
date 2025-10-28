@@ -4,6 +4,8 @@ namespace FP\PerfSuite\Admin\Pages\Assets\Tabs;
 
 use FP\PerfSuite\Services\Assets\CriticalPathOptimizer;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 use function __;
 use function checked;
@@ -66,6 +68,11 @@ class FontsTab
             ?>
         </div>
         
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
+        
         <!-- Configuration Form -->
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Critical Path & Font Settings', 'fp-performance-suite'); ?></h2>
@@ -78,91 +85,98 @@ class FontsTab
                     <tr>
                         <th scope="row"><?php esc_html_e('Enable Critical Path Optimizer', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="critical_path_enabled" value="1" <?php checked($cpSettings['enabled']); ?>>
-                                <?php esc_html_e('Activate critical path optimization for fonts', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Activate critical path optimization for fonts', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('critical_path_enabled'); ?>
+                                    <small><?php esc_html_e('Optimizes font loading to reduce critical path latency', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="critical_path_enabled" value="1" <?php checked($cpSettings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('critical_path_enabled')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Optimizes font loading to reduce critical path latency and improve FCP/LCP.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Preload Critical Fonts', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="preload_critical_fonts" value="1" <?php checked($cpSettings['preload_critical_fonts'] ?? false); ?>>
-                                <?php esc_html_e('Preload fonts in the critical rendering path', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Preload fonts in the critical rendering path', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('preload_critical_fonts'); ?>
+                                    <small><?php esc_html_e('Uses <link rel="preload"> to load critical fonts earlier', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="preload_critical_fonts" value="1" <?php checked($cpSettings['preload_critical_fonts'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('preload_critical_fonts')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Uses <link rel="preload"> to load critical fonts earlier.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Optimize Google Fonts', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="optimize_google_fonts" value="1" <?php checked($cpSettings['optimize_google_fonts'] ?? false); ?>>
-                                <?php esc_html_e('Optimize Google Fonts loading', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Optimize Google Fonts loading', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('optimize_google_fonts'); ?>
+                                    <small><?php esc_html_e('Adds display=swap and preconnect hints for Google Fonts', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="optimize_google_fonts" value="1" <?php checked($cpSettings['optimize_google_fonts'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('optimize_google_fonts')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Adds display=swap and preconnect hints for Google Fonts.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Preconnect to Font Providers', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="preconnect_providers" value="1" <?php checked($cpSettings['preconnect_providers'] ?? false); ?>>
-                                <?php esc_html_e('Add preconnect hints for font providers', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Add preconnect hints for font providers', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('preconnect_providers'); ?>
+                                    <small><?php esc_html_e('Establishes early connections to Google Fonts and other font CDNs', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="preconnect_providers" value="1" <?php checked($cpSettings['preconnect_providers'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('preconnect_providers')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Establishes early connections to Google Fonts and other font CDNs.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Inject font-display', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="inject_font_display" value="1" <?php checked($cpSettings['inject_font_display'] ?? false); ?>>
-                                <?php esc_html_e('Inject font-display: swap in CSS', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Inject font-display: swap in CSS', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('inject_font_display'); ?>
+                                    <small><?php esc_html_e('Forces swap behavior to prevent FOIT', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="inject_font_display" value="1" <?php checked($cpSettings['inject_font_display'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('inject_font_display')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Forces swap behavior on all fonts to prevent FOIT (Flash of Invisible Text).', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Add Resource Hints', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="add_resource_hints" value="1" <?php checked($cpSettings['add_resource_hints'] ?? false); ?>>
-                                <?php esc_html_e('Add dns-prefetch and preconnect hints automatically', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Add dns-prefetch and preconnect hints automatically', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('add_resource_hints'); ?>
+                                    <small><?php esc_html_e('Automatically adds resource hints for detected font providers', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="add_resource_hints" value="1" <?php checked($cpSettings['add_resource_hints'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('add_resource_hints')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Automatically adds resource hints for detected font providers.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th scope="row"><?php esc_html_e('Preload Local Fonts', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="preload_fonts" value="1" <?php checked($fontSettings['preload_fonts'] ?? false); ?>>
-                                <?php esc_html_e('Preload locally hosted fonts', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Preload locally hosted fonts', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('font_preload'); ?>
+                                    <small><?php esc_html_e('Preloads woff2 fonts hosted on your server', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="preload_fonts" value="1" <?php checked($fontSettings['preload_fonts'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('font_preload')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Preloads woff2 fonts hosted on your server.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                 </table>

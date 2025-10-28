@@ -8,6 +8,8 @@ use FP\PerfSuite\Services\Mobile\MobileOptimizer;
 use FP\PerfSuite\Services\Mobile\TouchOptimizer;
 use FP\PerfSuite\Services\Mobile\MobileCacheManager;
 use FP\PerfSuite\Services\Mobile\ResponsiveImageManager;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 
 /**
  * Mobile Optimization Admin Page
@@ -77,6 +79,11 @@ class Mobile extends AbstractPage
                     <?php esc_html_e('Ottimizza l\'esperienza mobile del tuo sito: animazioni, touch targets, responsive images e cache dedicata per dispositivi mobili.', 'fp-performance-suite'); ?>
                 </p>
             </div>
+            
+            <?php
+            // Mostra legenda rischi
+            echo RiskLegend::renderLegend();
+            ?>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                 <!-- Settings Form -->

@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\Admin\BackendOptimizer;
 
 use function __;
@@ -167,6 +169,11 @@ class Backend extends AbstractPage
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>
         <?php endif; ?>
+        
+        <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
 
         <!-- Main Toggle for Backend Optimization -->
         <div class="fp-ps-card" style="margin-bottom: 20px; background: #f8f9fa; border: 2px solid #e9ecef;">

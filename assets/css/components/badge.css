@@ -42,8 +42,8 @@
 .fp-ps-risk-indicator::before {
 	content: '';
 	display: inline-block;
-	width: 16px;
-	height: 16px;
+	width: 12px;
+	height: 12px;
 	border-radius: 50%;
 	flex-shrink: 0;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -93,51 +93,76 @@
 
 /* Tooltip popover */
 .fp-ps-risk-tooltip {
-	position: fixed;
-	bottom: auto;
-	left: auto;
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	transform: translateX(-50%) translateY(-8px);
 	background: #1e293b;
 	color: #fff;
 	padding: 12px 16px;
 	border-radius: 8px;
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 	width: max-content;
-	max-width: 320px;
+	max-width: 280px;
 	opacity: 0;
 	visibility: hidden;
 	transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
 	z-index: 9999999;
-	font-size: 13px;
+	font-size: 12px;
 	line-height: 1.5;
 	pointer-events: none;
+	white-space: normal;
 }
 
 .fp-ps-risk-tooltip::after {
 	content: '';
 	position: absolute;
-	top: var(--arrow-top, 100%);
-	left: var(--arrow-left, 50%);
-	transform: var(--arrow-transform, translateX(-50%));
-	border: 6px solid transparent;
-	border-color: var(--arrow-border-color, #1e293b transparent transparent transparent);
-}
-
-/* Arrow positioning for top position */
-.fp-ps-risk-tooltip[data-arrow-position="top"]::after {
-	top: -12px;
-	border-color: transparent transparent #1e293b transparent;
-}
-
-/* Arrow positioning for bottom position */
-.fp-ps-risk-tooltip[data-arrow-position="bottom"]::after {
 	top: 100%;
-	border-color: #1e293b transparent transparent transparent;
+	left: 50%;
+	transform: translateX(-50%);
+	border: 6px solid transparent;
+	border-top-color: #1e293b;
 }
 
 /* Posizionamento dinamico del tooltip */
 .fp-ps-risk-indicator:hover .fp-ps-risk-tooltip {
 	opacity: 1;
 	visibility: visible;
+}
+
+/* Variante tooltip sotto (per opzioni in alto nella pagina) */
+.fp-ps-risk-tooltip.bottom {
+	bottom: auto;
+	top: 100%;
+	transform: translateX(-50%) translateY(8px);
+}
+
+.fp-ps-risk-tooltip.bottom::after {
+	top: auto;
+	bottom: 100%;
+	border-top-color: transparent;
+	border-bottom-color: #1e293b;
+}
+
+/* Previeni overflow a sinistra/destra */
+.fp-ps-risk-tooltip.align-left {
+	left: 0;
+	transform: translateX(0) translateY(-8px);
+}
+
+.fp-ps-risk-tooltip.align-left::after {
+	left: 20px;
+}
+
+.fp-ps-risk-tooltip.align-right {
+	left: auto;
+	right: 0;
+	transform: translateX(0) translateY(-8px);
+}
+
+.fp-ps-risk-tooltip.align-right::after {
+	left: auto;
+	right: 20px;
 }
 
 .fp-ps-risk-tooltip-title {

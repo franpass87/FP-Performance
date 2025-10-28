@@ -85,6 +85,11 @@ class Cache extends AbstractPage
         </div>
         
         <?php
+        // Mostra legenda rischi
+        echo RiskLegend::renderLegend();
+        ?>
+        
+        <?php
         // Render tabs navigation
         $this->renderTabsNavigation($activeTab);
         

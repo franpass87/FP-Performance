@@ -44,7 +44,25 @@ class RiskMatrix
             'description' => 'Abilita la cache delle pagine statiche per velocizzare il caricamento.',
             'risks' => '✅ Nessun rischio significativo',
             'why_fails' => 'Funziona con la maggior parte dei siti. Raramente causa problemi.',
-            'advice' => '✅ CONSIGLIATO: Attiva sempre. Esclu contenuti dinamici se necessario.'
+            'advice' => '✅ CONSIGLIATO: Attiva sempre. Escludi contenuti dinamici se necessario.'
+        ],
+        
+        'prefetch_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Precarica risorse quando l\'utente passa il mouse su un link.',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Migliora navigazione senza effetti negativi.',
+            'advice' => '✅ CONSIGLIATO: Velocizza navigazione tra pagine.'
+        ],
+        
+        'edge_cache_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita cache edge (Cloudflare, CloudFront).',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Richiede credenziali API corrette.',
+            'advice' => '✅ CONSIGLIATO: Ottimo per siti globali.'
         ],
         
         'browser_cache_enabled' => [
@@ -521,6 +539,51 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Precarica solo 1-2 font principali.'
         ],
         
+        'preload_critical_fonts' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Precarica i font nel critical rendering path.',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Usa <link rel="preload"> standard HTML5.',
+            'advice' => '✅ CONSIGLIATO: Migliora FCP e LCP.'
+        ],
+        
+        'preconnect_providers' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Aggiunge preconnect hints per font provider (Google Fonts, ecc.).',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Stabilisce connessioni anticipate ai CDN font.',
+            'advice' => '✅ CONSIGLIATO: Riduce latenza caricamento font esterni.'
+        ],
+        
+        'inject_font_display' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Inietta font-display: swap nel CSS.',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Previene FOIT (Flash of Invisible Text) mostrando subito testo con font di sistema.',
+            'advice' => '✅ CONSIGLIATO: Migliora esperienza utente durante caricamento font.'
+        ],
+        
+        'add_resource_hints' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Aggiunge automaticamente dns-prefetch e preconnect hints.',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Resource hints standard che velocizzano connessioni.',
+            'advice' => '✅ CONSIGLIATO: Ottimizza caricamento risorse esterne.'
+        ],
+        
+        'critical_path_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita l\'ottimizzazione del critical path per i font.',
+            'risks' => '✅ Sicuro',
+            'why_fails' => 'Applica best practice consolidate per caricamento font.',
+            'advice' => '✅ CONSIGLIATO: Riduce drasticamente critical path latency.'
+        ],
+        
         'font_display_swap' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
@@ -740,6 +803,46 @@ class RiskMatrix
             'risks' => '❌ NESSUNO SCRIPT FUNZIONA all\'inizio\n❌ Menu dropdown rotti\n❌ Slider fermi\n❌ Form non validano',
             'why_fails' => 'Ritardare TUTTO è troppo aggressivo.',
             'advice' => '❌ SCONSIGLIATO: Usa esclusioni selettive invece.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 📊 THIRD-PARTY SCRIPTS - GENERAL
+        // ═══════════════════════════════════════════════════════════
+        
+        'third_party_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita gestione script di terze parti.',
+            'risks' => '✅ Sicuro - Solo attiva il sistema di gestione',
+            'why_fails' => 'Non modifica script, solo abilita controlli.',
+            'advice' => '✅ CONSIGLIATO: Attiva per controllare script esterni.'
+        ],
+        
+        'third_party_auto_detect' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Rileva automaticamente script di terze parti.',
+            'risks' => '✅ Sicuro - Solo analisi',
+            'why_fails' => 'Non modifica nulla, solo identifica script.',
+            'advice' => '✅ CONSIGLIATO: Utile per capire cosa carica il sito.'
+        ],
+        
+        'third_party_delay_loading' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Ritarda caricamento script di terze parti fino a interazione.',
+            'risks' => '⚠️ Analytics potrebbero perdere prime pageview\n⚠️ Chat widget ritardati\n⚠️ Pixel conversione potrebbero non tracciare subito',
+            'why_fails' => 'Alcuni tracking richiedono caricamento immediato per funzionare.',
+            'advice' => '⚠️ OK per la maggior parte: Ma verifica che tracking critici funzionino.'
+        ],
+        
+        'third_party_exclude_critical' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Esclude script critici dal ritardo.',
+            'risks' => '✅ Sicuro - Protegge funzionalità critiche',
+            'why_fails' => 'Permette esclusioni per script importanti.',
+            'advice' => '✅ CONSIGLIATO: Usa sempre con delay loading.'
         ],
         
         // ═══════════════════════════════════════════════════════════

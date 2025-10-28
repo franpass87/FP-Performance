@@ -389,12 +389,34 @@ class Assets extends AbstractPage
             if (isset($_POST['form_type']) && $_POST['form_type'] === 'third_party') {
                 if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
                     $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+                    
+                    // Prepare individual scripts settings
+                    $individualScripts = [];
+                    $scriptKeys = [
+                        'google_analytics', 'facebook_pixel', 'google_ads', 'hotjar', 'intercom', 
+                        'youtube', 'linkedin_insight', 'twitter_pixel', 'tiktok_pixel', 'pinterest_tag',
+                        'hubspot', 'zendesk', 'drift', 'crisp', 'tidio', 'segment', 'mixpanel',
+                        'mailchimp', 'stripe', 'paypal', 'recaptcha', 'google_maps', 'microsoft_clarity',
+                        'vimeo', 'tawk_to', 'optimizely', 'trustpilot', 'klaviyo', 'onetrust',
+                        'calendly', 'fullstory', 'snapchat_pixel', 'soundcloud', 'klarna', 'spotify',
+                        'livechat', 'activecampaign', 'userway', 'typeform', 'brevo', 'wonderpush'
+                    ];
+                    
+                    foreach ($scriptKeys as $key) {
+                        $postKey = 'third_party_' . str_replace('_', '', $key);
+                        $individualScripts[$key] = [
+                            'enabled' => !empty($_POST[$postKey])
+                        ];
+                    }
+                    
                     $thirdPartyScripts->updateSettings([
                         'enabled' => !empty($_POST['third_party_enabled']),
                         'auto_detect' => !empty($_POST['third_party_auto_detect']),
                         'exclude_critical' => !empty($_POST['third_party_exclude_critical']),
                         'delay_loading' => !empty($_POST['third_party_delay_loading']),
+                        'load_on' => isset($_POST['third_party_load_on']) ? sanitize_text_field($_POST['third_party_load_on']) : 'interaction',
                         'custom_scripts' => isset($_POST['third_party_custom_scripts']) ? wp_unslash($_POST['third_party_custom_scripts']) : '',
+                        'scripts' => $individualScripts,
                     ]);
                     
                     $thirdPartySettings = $thirdPartyScripts->settings();
@@ -479,25 +501,6 @@ class Assets extends AbstractPage
                     }
                     
                     return __('Critical CSS settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Critical Path Fonts form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'critical_path_fonts') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $fontOptimizer = $this->container->get(FontOptimizer::class);
-                    $fontOptimizer->updateSettings([
-                        'enabled' => !empty($_POST['fonts_enabled']),
-                        'preload_critical' => !empty($_POST['fonts_preload_critical']),
-                        'display_swap' => !empty($_POST['fonts_display_swap']),
-                        'subset_critical' => !empty($_POST['fonts_subset_critical']),
-                        'critical_fonts' => isset($_POST['fonts_critical_fonts']) ? wp_unslash($_POST['fonts_critical_fonts']) : '',
-                    ]);
-                    
-                    $fontSettings = $fontOptimizer->getSettings();
-                    return __('Critical Path Fonts settings saved successfully!', 'fp-performance-suite');
                 } else {
                     return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
                 }

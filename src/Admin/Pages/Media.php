@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
 
@@ -112,6 +114,11 @@ class Media extends AbstractPage
                     <?php esc_html_e('Ottimizza immagini e media: conversione WebP, compressione, lazy loading e responsive images per ridurre il peso delle pagine.', 'fp-performance-suite'); ?>
                 </p>
             </div>
+            
+            <?php
+            // Mostra legenda rischi
+            echo RiskLegend::renderLegend();
+            ?>
             
             <?php if (isset($_GET['updated'])): ?>
                 <div class="notice notice-success is-dismissible">
