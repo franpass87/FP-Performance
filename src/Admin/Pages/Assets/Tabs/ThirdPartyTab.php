@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\Http2ServerPush;
 use FP\PerfSuite\Services\Assets\SmartAssetDelivery;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\StatusIndicator;
 
 use function __;
 use function checked;
@@ -151,6 +152,38 @@ class ThirdPartyTab
             </form>
         </section>
         
+        <!-- HTTP/2 Server Push Status Cards -->
+        <div class="fp-ps-grid three fp-ps-mb-xl fp-ps-mt-xl">
+            <?php 
+            echo StatusIndicator::renderCard(
+                $http2Settings['enabled'] ? 'success' : 'inactive',
+                __('HTTP/2 Server Push', 'fp-performance-suite'),
+                $http2Settings['enabled'] ? __('Attivo e funzionante', 'fp-performance-suite') : __('Non attivo', 'fp-performance-suite'),
+                $http2Settings['enabled'] ? '✅ ON' : '⚫ OFF'
+            );
+            
+            $pushTypesCount = 0;
+            if ($http2Settings['push_css']) $pushTypesCount++;
+            if ($http2Settings['push_js']) $pushTypesCount++;
+            if ($http2Settings['push_fonts']) $pushTypesCount++;
+            if ($http2Settings['push_images']) $pushTypesCount++;
+            
+            echo StatusIndicator::renderCard(
+                $pushTypesCount > 0 ? 'success' : 'warning',
+                __('Tipi di Asset', 'fp-performance-suite'),
+                __('Tipi di asset configurati per push', 'fp-performance-suite'),
+                '📦 ' . esc_html($pushTypesCount) . '/4'
+            );
+            
+            echo StatusIndicator::renderCard(
+                $http2Settings['critical_only'] ? 'success' : 'warning',
+                __('Modalità', 'fp-performance-suite'),
+                $http2Settings['critical_only'] ? __('Solo risorse critiche', 'fp-performance-suite') : __('Tutti gli asset', 'fp-performance-suite'),
+                $http2Settings['critical_only'] ? '🎯 Critico' : '📋 Tutti'
+            );
+            ?>
+        </div>
+        
         <!-- HTTP/2 Server Push Section -->
         <section class="fp-ps-card fp-ps-mt-xl">
             <h2><?php esc_html_e('HTTP/2 Server Push', 'fp-performance-suite'); ?></h2>
@@ -162,36 +195,46 @@ class ThirdPartyTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable HTTP/2 Server Push', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_push_enabled'); ?>
+                        <small><?php esc_html_e('Attiva HTTP/2 Server Push per asset critici', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_push_enabled" value="1" <?php checked($http2Settings['enabled']); ?> />
+                    <input type="checkbox" name="http2_push_enabled" value="1" <?php checked($http2Settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_push_enabled')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push CSS files', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_push_css'); ?>
+                        <small><?php esc_html_e('Push file CSS critici', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_push_css" value="1" <?php checked($http2Settings['push_css']); ?> />
+                    <input type="checkbox" name="http2_push_css" value="1" <?php checked($http2Settings['push_css']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_push_css')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push JavaScript files', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_push_js'); ?>
+                        <small><?php esc_html_e('Push file JavaScript critici', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_push_js" value="1" <?php checked($http2Settings['push_js']); ?> />
+                    <input type="checkbox" name="http2_push_js" value="1" <?php checked($http2Settings['push_js']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_push_js')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push font files', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_push_fonts'); ?>
+                        <small><?php esc_html_e('Push font critici (woff2)', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_push_fonts" value="1" <?php checked($http2Settings['push_fonts']); ?> />
+                    <input type="checkbox" name="http2_push_fonts" value="1" <?php checked($http2Settings['push_fonts']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_push_fonts')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push critical images', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_push_images'); ?>
+                        <small><?php esc_html_e('Push immagini critiche (logo, hero)', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_push_images" value="1" <?php checked($http2Settings['push_images']); ?> />
+                    <input type="checkbox" name="http2_push_images" value="1" <?php checked($http2Settings['push_images']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_push_images')); ?>" />
                 </label>
                 
                 <p>
@@ -202,8 +245,10 @@ class ThirdPartyTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Push only critical resources', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('http2_critical_only'); ?>
+                        <small><?php esc_html_e('Push solo risorse critiche identificate automaticamente', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="http2_critical_only" value="1" <?php checked($http2Settings['critical_only']); ?> />
+                    <input type="checkbox" name="http2_critical_only" value="1" <?php checked($http2Settings['critical_only']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('http2_critical_only')); ?>" />
                 </label>
                 
                 <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 6px;">
@@ -213,6 +258,38 @@ class ThirdPartyTab
                 </div>
             </form>
         </section>
+        
+        <!-- Smart Asset Delivery Status Cards -->
+        <div class="fp-ps-grid three fp-ps-mb-xl fp-ps-mt-xl">
+            <?php 
+            echo StatusIndicator::renderCard(
+                $smartDeliverySettings['enabled'] ? 'success' : 'inactive',
+                __('Smart Asset Delivery', 'fp-performance-suite'),
+                $smartDeliverySettings['enabled'] ? __('Ottimizzazione attiva', 'fp-performance-suite') : __('Non attivo', 'fp-performance-suite'),
+                $smartDeliverySettings['enabled'] ? '✅ ON' : '⚫ OFF'
+            );
+            
+            $featuresCount = 0;
+            if ($smartDeliverySettings['detect_connection']) $featuresCount++;
+            if ($smartDeliverySettings['save_data_mode']) $featuresCount++;
+            if ($smartDeliverySettings['adaptive_images']) $featuresCount++;
+            if ($smartDeliverySettings['adaptive_videos']) $featuresCount++;
+            
+            echo StatusIndicator::renderCard(
+                $featuresCount >= 3 ? 'success' : ($featuresCount > 0 ? 'warning' : 'inactive'),
+                __('Funzionalità Attive', 'fp-performance-suite'),
+                __('Numero di ottimizzazioni abilitate', 'fp-performance-suite'),
+                '🎯 ' . esc_html($featuresCount) . '/4'
+            );
+            
+            echo StatusIndicator::renderCard(
+                $smartDeliverySettings['detect_connection'] ? 'success' : 'warning',
+                __('Rilevamento Rete', 'fp-performance-suite'),
+                $smartDeliverySettings['detect_connection'] ? __('Velocità rilevata automaticamente', 'fp-performance-suite') : __('Nessun rilevamento', 'fp-performance-suite'),
+                $smartDeliverySettings['detect_connection'] ? '📡 Auto' : '❌ Off'
+            );
+            ?>
+        </div>
         
         <!-- Smart Asset Delivery Section -->
         <section class="fp-ps-card fp-ps-mt-xl">
@@ -225,36 +302,46 @@ class ThirdPartyTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Enable Smart Asset Delivery', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('smart_delivery_enabled'); ?>
+                        <small><?php esc_html_e('Consegna intelligente asset basata su connessione', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="smart_delivery_enabled" value="1" <?php checked($smartDeliverySettings['enabled']); ?> />
+                    <input type="checkbox" name="smart_delivery_enabled" value="1" <?php checked($smartDeliverySettings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('smart_delivery_enabled')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Detect connection speed', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('smart_detect_connection'); ?>
+                        <small><?php esc_html_e('Rileva automaticamente velocità di connessione', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="smart_detect_connection" value="1" <?php checked($smartDeliverySettings['detect_connection']); ?> />
+                    <input type="checkbox" name="smart_detect_connection" value="1" <?php checked($smartDeliverySettings['detect_connection']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('smart_detect_connection')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Respect save-data mode', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('smart_save_data_mode'); ?>
+                        <small><?php esc_html_e('Rispetta modalità "risparmio dati" del browser', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="smart_save_data_mode" value="1" <?php checked($smartDeliverySettings['save_data_mode']); ?> />
+                    <input type="checkbox" name="smart_save_data_mode" value="1" <?php checked($smartDeliverySettings['save_data_mode']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('smart_save_data_mode')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Adaptive image quality', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('smart_adaptive_images'); ?>
+                        <small><?php esc_html_e('Adatta qualità immagini in base a connessione', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="smart_adaptive_images" value="1" <?php checked($smartDeliverySettings['adaptive_images']); ?> />
+                    <input type="checkbox" name="smart_adaptive_images" value="1" <?php checked($smartDeliverySettings['adaptive_images']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('smart_adaptive_images')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Adaptive video quality', 'fp-performance-suite'); ?></strong>
+                        <?php echo RiskMatrix::renderIndicator('smart_adaptive_videos'); ?>
+                        <small><?php esc_html_e('Adatta qualità video in base a connessione', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adaptive_videos']); ?> />
+                    <input type="checkbox" name="smart_adaptive_videos" value="1" <?php checked($smartDeliverySettings['adaptive_videos']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('smart_adaptive_videos')); ?>" />
                 </label>
                 
                 <div class="fp-ps-push-grid">

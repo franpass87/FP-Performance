@@ -39,28 +39,10 @@ class CssTab
                 <label class="fp-ps-toggle">
                     <span class="info">
                         <strong><?php esc_html_e('Combine CSS files', 'fp-performance-suite'); ?></strong>
-                        <span class="fp-ps-risk-indicator red">
-                            <div class="fp-ps-risk-tooltip red">
-                                <div class="fp-ps-risk-tooltip-title">
-                                    <span class="icon">🔴</span>
-                                    <?php esc_html_e('Rischio Alto', 'fp-performance-suite'); ?>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Combina tutti i file CSS in un unico file per ridurre le richieste HTTP.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Alto rischio di rottura del layout, problemi con media queries e specificity CSS.', 'fp-performance-suite'); ?></div>
-                                </div>
-                                <div class="fp-ps-risk-tooltip-section">
-                                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                    <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ Sconsigliato: Usa HTTP/2 invece, che gestisce meglio file multipli. Attiva solo se assolutamente necessario e testa molto bene.', 'fp-performance-suite'); ?></div>
-                                </div>
-                            </div>
-                        </span>
+                        <?php echo RiskMatrix::renderIndicator('combine_css'); ?>
+                        <small><?php esc_html_e('Combina tutti i file CSS in un unico file', 'fp-performance-suite'); ?></small>
                     </span>
-                    <input type="checkbox" name="combine_css" value="1" <?php checked($settings['combine_css']); ?> data-risk="red" />
+                    <input type="checkbox" name="combine_css" value="1" <?php checked($settings['combine_css']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('combine_css')); ?>" />
                 </label>
                 
                 <label class="fp-ps-toggle">
@@ -209,13 +191,14 @@ class CssTab
                     <tr>
                         <th scope="row"><?php esc_html_e('Enable Unused CSS Optimization', 'fp-performance-suite'); ?></th>
                         <td>
-                            <label>
-                                <input type="checkbox" name="unusedcss_enabled" value="1" <?php checked($unusedCssSettings['enabled']); ?>>
-                                <?php esc_html_e('Activate unused CSS removal', 'fp-performance-suite'); ?>
+                            <label class="fp-ps-toggle">
+                                <span class="info">
+                                    <strong><?php esc_html_e('Activate unused CSS removal', 'fp-performance-suite'); ?></strong>
+                                    <?php echo RiskMatrix::renderIndicator('unusedcss_enabled'); ?>
+                                    <small><?php esc_html_e('Abilita sistema di rimozione CSS non utilizzato', 'fp-performance-suite'); ?></small>
+                                </span>
+                                <input type="checkbox" name="unusedcss_enabled" value="1" <?php checked($unusedCssSettings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('unusedcss_enabled')); ?>" />
                             </label>
-                            <p class="description">
-                                <?php esc_html_e('Removes or defers unused CSS to improve performance.', 'fp-performance-suite'); ?>
-                            </p>
                         </td>
                     </tr>
                     
@@ -225,32 +208,10 @@ class CssTab
                             <label class="fp-ps-toggle">
                                 <span class="info">
                                     <strong><?php esc_html_e('Remove unused CSS files completely', 'fp-performance-suite'); ?></strong>
-                                    <span class="fp-ps-risk-indicator red">
-                                        <div class="fp-ps-risk-tooltip red">
-                                            <div class="fp-ps-risk-tooltip-title">
-                                                <span class="icon">🔴</span>
-                                                <?php esc_html_e('Rischio MOLTO Alto', 'fp-performance-suite'); ?>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove completamente i file CSS che Lighthouse considera "inutilizzati".', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ LOGO SCOMPARE\n❌ MENU NON FUNZIONA\n❌ FOOTER ROTTO\n❌ Pulsanti senza stile\n❌ Layout completamente distrutto', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Lighthouse analizza solo la homepage. Il CSS per menu, hover, mobile, altre pagine viene considerato "inutilizzato" e rimosso.', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ SCONSIGLIATO: NON attivare a meno che tu non abbia configurato TUTTE le esclusioni per header, footer, menu e layout base.', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                        </div>
-                                    </span>
+                                    <?php echo RiskMatrix::renderIndicator('unusedcss_remove_unused'); ?>
+                                    <small><?php esc_html_e('Rimuove completamente CSS identificato come non usato', 'fp-performance-suite'); ?></small>
                                 </span>
-                                <input type="checkbox" name="unusedcss_remove_unused_css" value="1" <?php checked($unusedCssSettings['remove_unused_css']); ?> data-risk="red" />
+                                <input type="checkbox" name="unusedcss_remove_unused_css" value="1" <?php checked($unusedCssSettings['remove_unused_css']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('unusedcss_remove_unused')); ?>" />
                             </label>
                         </td>
                     </tr>
@@ -261,32 +222,10 @@ class CssTab
                             <label class="fp-ps-toggle">
                                 <span class="info">
                                     <strong><?php esc_html_e('Defer non-critical CSS loading', 'fp-performance-suite'); ?></strong>
-                                    <span class="fp-ps-risk-indicator red">
-                                        <div class="fp-ps-risk-tooltip red">
-                                            <div class="fp-ps-risk-tooltip-title">
-                                                <span class="icon">🔴</span>
-                                                <?php esc_html_e('Rischio Alto', 'fp-performance-suite'); ?>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Ritarda il caricamento del CSS considerato "non critico" per migliorare LCP.', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ FLASH di contenuto non stilizzato (FOUC)\n❌ LOGO appare dopo 1-2 secondi\n❌ MENU "salta" durante il caricamento\n❌ Footer si materializza dopo\n⚠️ Esperienza utente MOLTO negativa', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Il sistema classifica ERRONEAMENTE come "non critici" gli stili di header, menu, footer. La pagina carica PRIMA senza questi stili, poi "salta" quando arrivano.', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                            <div class="fp-ps-risk-tooltip-section">
-                                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ SCONSIGLIATO: Il guadagno in LCP non vale la pessima esperienza utente. Meglio usare Critical CSS inline.', 'fp-performance-suite'); ?></div>
-                                            </div>
-                                        </div>
-                                    </span>
+                                    <?php echo RiskMatrix::renderIndicator('unusedcss_defer_non_critical'); ?>
+                                    <small><?php esc_html_e('Ritarda caricamento CSS non critico', 'fp-performance-suite'); ?></small>
                                 </span>
-                                <input type="checkbox" name="unusedcss_defer_non_critical" value="1" <?php checked($unusedCssSettings['defer_non_critical']); ?> data-risk="red" />
+                                <input type="checkbox" name="unusedcss_defer_non_critical" value="1" <?php checked($unusedCssSettings['defer_non_critical']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('unusedcss_defer_non_critical')); ?>" />
                             </label>
                         </td>
                     </tr>

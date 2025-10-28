@@ -765,6 +765,109 @@ class RiskMatrix
             'advice' => '⚠️ Avanzato: Richiede comprensione profonda di HTTP/2.'
         ],
         
+        'http2_push_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Attiva HTTP/2 Server Push per asset critici.',
+            'risks' => '⚠️ Può peggiorare performance se configurato male\n⚠️ Push di asset già in cache spreca banda\n⚠️ Alcuni server non supportano HTTP/2',
+            'why_fails' => 'HTTP/2 push è avanzato, richiede server compatibile.',
+            'advice' => '⚠️ Avanzato: Testa con attenzione. Verifica che il server supporti HTTP/2.'
+        ],
+        
+        'http2_push_css' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Push dei file CSS critici.',
+            'risks' => '⚠️ CSS già in cache viene scaricato comunque\n⚠️ Pushare troppi CSS rallenta',
+            'why_fails' => 'Browser non sa che ha già il file in cache.',
+            'advice' => '⚠️ OK: Limita a CSS critici above-the-fold.'
+        ],
+        
+        'http2_push_js' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Push dei file JavaScript critici.',
+            'risks' => '⚠️ JS già in cache viene scaricato comunque\n⚠️ Pushare troppi JS rallenta',
+            'why_fails' => 'Browser non sa che ha già il file in cache.',
+            'advice' => '⚠️ OK: Limita a JS critici. Meglio defer per JS non critici.'
+        ],
+        
+        'http2_push_fonts' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Push dei font critici (woff2).',
+            'risks' => '✅ Ottimo per font critici\n⚠️ Limita a 2-3 font massimo',
+            'why_fails' => 'Pushare troppi font rallenta il first paint.',
+            'advice' => '✅ CONSIGLIATO: Ottimo per font above-the-fold. Max 2-3 font.'
+        ],
+        
+        'http2_push_images' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Push di immagini critiche (logo, hero).',
+            'risks' => '⚠️ Immagini pesanti rallentano tutto\n⚠️ Pushare troppo spreca banda',
+            'why_fails' => 'Le immagini pesano molto, meglio preload.',
+            'advice' => '⚠️ Opzionale: Solo logo/hero piccole (<50kb). Meglio lazy load.'
+        ],
+        
+        'http2_critical_only' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Push solo risorse critiche identificate automaticamente.',
+            'risks' => '✅ Limita il push a ciò che serve davvero',
+            'why_fails' => 'Protezione contro push eccessivo.',
+            'advice' => '✅ CONSIGLIATO: Mantieni attivo per evitare push eccessivo.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🎯 SMART ASSET DELIVERY
+        // ═══════════════════════════════════════════════════════════
+        
+        'smart_delivery_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita consegna intelligente degli asset basata su connessione.',
+            'risks' => '✅ Ottimizza automaticamente qualità in base alla rete',
+            'why_fails' => 'Migliora UX su connessioni lente senza rischi.',
+            'advice' => '✅ CONSIGLIATO: Perfetto per siti con utenti mobile.'
+        ],
+        
+        'smart_detect_connection' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Rileva automaticamente velocità di connessione.',
+            'risks' => '✅ Sicuro - Usa API browser standard',
+            'why_fails' => 'Network Information API supportata da browser moderni.',
+            'advice' => '✅ CONSIGLIATO: Adatta asset a velocità reale utente.'
+        ],
+        
+        'smart_save_data_mode' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Rispetta modalità "risparmio dati" del browser.',
+            'risks' => '✅ Migliora esperienza utenti con dati limitati',
+            'why_fails' => 'Header Save-Data è uno standard.',
+            'advice' => '✅ CONSIGLIATO: Rispetta scelte utente, riduce consumi.'
+        ],
+        
+        'smart_adaptive_images' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Adatta qualità immagini in base a connessione.',
+            'risks' => '✅ Immagini leggere su 3G, alta qualità su WiFi\n⚠️ Leggerissima riduzione qualità su connessioni lente',
+            'why_fails' => 'Trade-off qualità/velocità controllato.',
+            'advice' => '✅ CONSIGLIATO: Migliora caricamento su mobile.'
+        ],
+        
+        'smart_adaptive_videos' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Adatta qualità video in base a connessione.',
+            'risks' => '✅ Previene buffering su connessioni lente\n⚠️ Qualità ridotta su 3G (intenzionale)',
+            'why_fails' => 'Streaming adattivo è lo standard.',
+            'advice' => '✅ CONSIGLIATO: Essenziale per video su mobile.'
+        ],
+        
         'preconnect' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
@@ -865,6 +968,229 @@ class RiskMatrix
             'risks' => '✅ Sicuro se gestisci commenti regolarmente',
             'why_fails' => 'Rimuove solo commenti non ancora approvati.',
             'advice' => '✅ OK: Ma controlla prima che non ci siano commenti legittimi da approvare.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🔒 SECURITY & .HTACCESS
+        // ═══════════════════════════════════════════════════════════
+        
+        'security_htaccess_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita ottimizzazioni di sicurezza via .htaccess.',
+            'risks' => '✅ Sicuro - Solo attiva il sistema',
+            'why_fails' => 'Non modifica nulla finché non attivi opzioni specifiche.',
+            'advice' => '✅ CONSIGLIATO: Attiva per accedere alle ottimizzazioni.'
+        ],
+        
+        'canonical_redirect_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Unifica HTTP/HTTPS e WWW/non-WWW.',
+            'risks' => '✅ Previene redirect multipli\n⚠️ Assicurati di configurare dominio corretto',
+            'why_fails' => 'Migliora SEO eliminando contenuti duplicati.',
+            'advice' => '✅ CONSIGLIATO: Ottimo per SEO, verifica dominio corretto.'
+        ],
+        
+        'force_https' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Forza HTTPS su tutto il sito.',
+            'risks' => '✅ Sicuro se hai certificato SSL\n⚠️ Richiede certificato SSL valido',
+            'why_fails' => 'Redirect HTTP → HTTPS è standard per sicurezza.',
+            'advice' => '✅ CONSIGLIATO: Essenziale per sicurezza moderna.'
+        ],
+        
+        'force_www' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Forza WWW davanti al dominio.',
+            'risks' => '✅ Unifica versioni del sito\n⚠️ Scegli una sola versione (WWW o non-WWW)',
+            'why_fails' => 'Migliora SEO unificando sotto un dominio.',
+            'advice' => '✅ OK: Scegli una versione e mantienila sempre.'
+        ],
+        
+        'cors_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita CORS per font e SVG da CDN.',
+            'risks' => '✅ Necessario per font da CDN\n✅ Previene errori CORS',
+            'why_fails' => 'Header CORS standard per risorse cross-origin.',
+            'advice' => '✅ CONSIGLIATO: Attiva se usi CDN per font/SVG.'
+        ],
+        
+        'security_headers_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita Security Headers (HSTS, X-Frame-Options, ecc.).',
+            'risks' => '✅ Migliora sicurezza\n✅ Aumenta punteggio security scanner',
+            'why_fails' => 'Header standard raccomandati da OWASP.',
+            'advice' => '✅ CONSIGLIATO: Protegge da XSS, clickjacking, MIME sniffing.'
+        ],
+        
+        'hsts_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'HTTP Strict Transport Security - Forza HTTPS via browser.',
+            'risks' => '⚠️ PERMANENTE per durata max-age\n⚠️ Richiede certificato SSL sempre valido\n⚠️ Se SSL scade, sito inaccessibile',
+            'why_fails' => 'HSTS è permanente nel browser finché non scade.',
+            'advice' => '⚠️ OK: Ma assicurati che SSL sia sempre valido e auto-rinnovato.'
+        ],
+        
+        'hsts_subdomains' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Applica HSTS anche ai sottodomini.',
+            'risks' => '⚠️ TUTTI i sottodomini richiedono HTTPS\n⚠️ Se un sottodominio non ha SSL, sarà inaccessibile',
+            'why_fails' => 'Estende HSTS a sottodomini che potrebbero non avere SSL.',
+            'advice' => '⚠️ Attento: Attiva solo se TUTTI i sottodomini hanno SSL valido.'
+        ],
+        
+        'hsts_preload' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Aggiunge dominio alla lista preload HSTS dei browser.',
+            'risks' => '❌ PERMANENTE NEL BROWSER\n❌ Rimozione richiede mesi\n❌ Se SSL si rompe, sito inaccessibile a TUTTI',
+            'why_fails' => 'Preload è una scelta quasi irrevocabile.',
+            'advice' => '❌ PERICOLOSO: Usa solo se sei assolutamente sicuro del tuo setup SSL.'
+        ],
+        
+        'x_content_type_options' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Previene MIME-type sniffing.',
+            'risks' => '✅ Nessun rischio\n✅ Migliora sicurezza',
+            'why_fails' => 'Header standard di sicurezza.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre per sicurezza.'
+        ],
+        
+        'file_protection_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Protegge file sensibili da accesso diretto.',
+            'risks' => '✅ Blocca accesso a .env, .git, wp-config.php',
+            'why_fails' => 'Previene furto di credenziali e informazioni sensibili.',
+            'advice' => '✅ CONSIGLIATO: Essenziale per sicurezza.'
+        ],
+        
+        'protect_hidden_files' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Blocca accesso a file nascosti (.env, .git, ecc.).',
+            'risks' => '✅ Previene esposizione file sensibili',
+            'why_fails' => 'File nascosti contengono spesso credenziali.',
+            'advice' => '✅ CONSIGLIATO: Protezione essenziale.'
+        ],
+        
+        'protect_wp_config' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Blocca accesso diretto a wp-config.php.',
+            'risks' => '✅ Protegge credenziali database',
+            'why_fails' => 'wp-config.php contiene credenziali sensibili.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre.'
+        ],
+        
+        'xmlrpc_disabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Disabilita XML-RPC (vulnerabile a brute-force).',
+            'risks' => '⚠️ Jetpack non funzionerà\n⚠️ App mobile WordPress non funzioneranno\n⚠️ Pubblicazione remota disabilitata',
+            'why_fails' => 'XML-RPC è usato da alcuni servizi legittimi.',
+            'advice' => '⚠️ OK: Ma verifica di non usare Jetpack o app mobile.'
+        ],
+        
+        'hotlink_protection_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Previene uso immagini da altri siti.',
+            'risks' => '✅ Risparmia banda\n⚠️ Permetti Google Images',
+            'why_fails' => 'Blocca riferimenti da domini non autorizzati.',
+            'advice' => '✅ CONSIGLIATO: Risparmia banda se hai sito con molte immagini.'
+        ],
+        
+        'hotlink_allow_google' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Permette a Google di indicizzare immagini.',
+            'risks' => '✅ Mantiene SEO immagini',
+            'why_fails' => 'Google deve accedere alle immagini per indicizzarle.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre se usi hotlink protection.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 📦 UNUSED CSS
+        // ═══════════════════════════════════════════════════════════
+        
+        'unusedcss_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Abilita sistema di rimozione CSS non utilizzato.',
+            'risks' => '⚠️ Richiede configurazione attenta\n⚠️ Può rompere layout se mal configurato',
+            'why_fails' => 'L\'analisi CSS non usato è complessa.',
+            'advice' => '⚠️ Avanzato: Testa molto bene prima di attivare.'
+        ],
+        
+        'unusedcss_remove_unused' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Rimuove completamente CSS identificato come non usato.',
+            'risks' => '❌ LOGO SCOMPARE\n❌ MENU ROTTO\n❌ FOOTER DISTRUTTO\n❌ Layout mobile rotto\n❌ Stati hover scompaiono',
+            'why_fails' => 'Lighthouse analizza solo homepage. CSS per menu, hover, mobile viene rimosso.',
+            'advice' => '❌ SCONSIGLIATO: Troppo aggressivo. Usa defer invece.'
+        ],
+        
+        'unusedcss_defer_non_critical' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Ritarda caricamento CSS non critico.',
+            'risks' => '❌ FOUC pesante (flash contenuto senza stile)\n❌ LOGO appare dopo secondi\n❌ MENU "salta"\n❌ Esperienza utente pessima',
+            'why_fails' => 'Classifica erroneamente header/menu come "non critici".',
+            'advice' => '❌ SCONSIGLIATO: Meglio Critical CSS inline.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🎨 CSS OPTIMIZATION
+        // ═══════════════════════════════════════════════════════════
+        
+        'combine_css' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Combina tutti i CSS in un unico file.',
+            'risks' => '❌ Layout completamente rotto\n❌ Media queries non funzionano\n❌ CSS specificity rotta\n❌ Ordine caricamento errato',
+            'why_fails' => 'Combinare CSS cambia ordine e contesto di caricamento.',
+            'advice' => '❌ SCONSIGLIATO: HTTP/2 rende questo inutile e pericoloso.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🎛️ MAIN TOGGLES
+        // ═══════════════════════════════════════════════════════════
+        
+        'assets_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita ottimizzazioni Asset (CSS, JS, Font).',
+            'risks' => '✅ Sicuro - Solo attiva il sistema',
+            'why_fails' => 'Non modifica nulla finché non attivi opzioni specifiche.',
+            'advice' => '✅ CONSIGLIATO: Attiva per accedere alle ottimizzazioni asset.'
+        ],
+        
+        'backend_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita ottimizzazioni Backend WordPress.',
+            'risks' => '✅ Sicuro - Solo attiva il sistema',
+            'why_fails' => 'Non modifica nulla finché non attivi opzioni specifiche.',
+            'advice' => '✅ CONSIGLIATO: Attiva per accedere alle ottimizzazioni backend.'
+        ],
+        
+        'disable_admin_bar_frontend' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Nascondi barra admin sul frontend per utenti loggati.',
+            'risks' => '✅ Sicuro\n⚠️ Solo nasconde visivamente, non rimuove funzionalità',
+            'why_fails' => 'Utenti admin potrebbero preferire la barra.',
+            'advice' => '✅ OK: Migliora UX rimuovendo elemento inutile dal frontend.'
         ],
         
     ];

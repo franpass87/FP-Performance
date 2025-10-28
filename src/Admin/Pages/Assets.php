@@ -180,8 +180,8 @@ class Assets extends AbstractPage
                     <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                     <input type="hidden" name="form_type" value="main_toggle" />
                     
-                    <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
-                        <input type="checkbox" name="assets_enabled" value="1" <?php checked($settings['enabled'], true); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" />
+                <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
+                    <input type="checkbox" name="assets_enabled" value="1" <?php checked($settings['enabled'], true); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('assets_enabled')); ?>" />
                         <span class="info" style="text-align: left; flex: 1;">
                             <strong style="display: block;"><?php esc_html_e('Enable Asset Optimization', 'fp-performance-suite'); ?></strong>
                             <small style="color: #6c757d; display: block; margin-top: 4px;">
