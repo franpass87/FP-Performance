@@ -264,6 +264,11 @@ class Optimizer
             return $tag; // Non modificare gli script del plugin privacy
         }
 
+        // ESCLUSIONE: Script del plugin FP Restaurant Reservations
+        if ($this->isReservationsPluginAsset($handle, $src)) {
+            return $tag; // Non modificare gli script del plugin prenotazioni
+        }
+
         $settings = $this->settings();
         $defer = !empty($settings['defer_js']);
         $async = !empty($settings['async_js']);
@@ -285,6 +290,11 @@ class Optimizer
         // ESCLUSIONE: CSS del plugin FP Privacy & Cookie Policy
         if ($this->isPrivacyPluginAsset($handle, $href)) {
             return $html; // Non modificare i CSS del plugin privacy
+        }
+
+        // ESCLUSIONE: CSS del plugin FP Restaurant Reservations
+        if ($this->isReservationsPluginAsset($handle, $href)) {
+            return $html; // Non modificare i CSS del plugin prenotazioni
         }
 
         // Skip critical CSS handles (should load synchronously)
@@ -666,6 +676,32 @@ class Optimizer
         if (strpos($src, 'FP-Privacy-and-Cookie-Policy') !== false || 
             strpos($src, 'fp-privacy-cookie-policy') !== false ||
             strpos($src, '/plugins/fp-privacy') !== false) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica se un asset appartiene al plugin FP Restaurant Reservations
+     * 
+     * @param string $handle Handle dell'asset
+     * @param string $src URL dell'asset
+     * @return bool True se l'asset appartiene al plugin prenotazioni
+     */
+    private function isReservationsPluginAsset(string $handle, string $src): bool
+    {
+        // Controlla handle che contengono "fp-resv", "fp_resv", "flatpickr"
+        if (strpos($handle, 'fp-resv') !== false || 
+            strpos($handle, 'fp_resv') !== false ||
+            strpos($handle, 'flatpickr') !== false) {
+            return true;
+        }
+
+        // Controlla URL che contengono il path del plugin
+        if (strpos($src, 'FP-Restaurant-Reservations') !== false || 
+            strpos($src, 'fp-restaurant-reservations') !== false ||
+            strpos($src, '/plugins/fp-resv') !== false) {
             return true;
         }
 

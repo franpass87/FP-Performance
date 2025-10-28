@@ -387,6 +387,16 @@ class ThirdPartyScriptManager
      */
     public function filterScriptTag(string $tag, string $handle, string $src): string
     {
+        // ESCLUSIONE: Script del plugin FP Restaurant Reservations
+        // Non ritardare mai gli script necessari per il form di prenotazione
+        if (strpos($handle, 'fp-resv') !== false || 
+            strpos($handle, 'fp_resv') !== false ||
+            strpos($handle, 'flatpickr') !== false ||
+            strpos($src, 'FP-Restaurant-Reservations') !== false || 
+            strpos($src, 'fp-restaurant-reservations') !== false) {
+            return $tag;
+        }
+
         $settings = $this->settings();
 
         // Check if script should be delayed
