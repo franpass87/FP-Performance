@@ -241,7 +241,42 @@ class PageCache
             'cache_dir' => $this->cache_dir,
             'dir_exists' => file_exists($this->cache_dir),
             'dir_writable' => is_writable($this->cache_dir),
+            'files' => $this->countCachedFiles(),
         ];
+    }
+    
+    /**
+     * Conta i file presenti nella cache
+     * 
+     * @return int Numero di file in cache
+     */
+    private function countCachedFiles(): int
+    {
+        if (!file_exists($this->cache_dir) || !is_readable($this->cache_dir)) {
+            return 0;
+        }
+        
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $this->cache_dir,
+                    \RecursiveDirectoryIterator::SKIP_DOTS
+                ),
+                \RecursiveIteratorIterator::LEAVES_ONLY
+            );
+            
+            $count = 0;
+            foreach ($iterator as $file) {
+                if ($file->isFile() && $file->getExtension() === 'cache') {
+                    $count++;
+                }
+            }
+            
+            return $count;
+        } catch (\Exception $e) {
+            // Se c'è un errore (permessi, etc), restituiamo 0
+            return 0;
+        }
     }
     
     /**

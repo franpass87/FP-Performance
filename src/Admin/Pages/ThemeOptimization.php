@@ -238,7 +238,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="salient_enabled" id="salient_enabled" value="1" 
-                                    <?php checked($config['enabled']); ?>>
+                                    <?php checked($config['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -252,7 +252,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_scripts" value="1" 
-                                    <?php checked($config['optimize_scripts']); ?>>
+                                    <?php checked($config['optimize_scripts']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -266,7 +266,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_styles" value="1" 
-                                    <?php checked($config['optimize_styles']); ?>>
+                                    <?php checked($config['optimize_styles']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -280,7 +280,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="fix_cls" value="1" 
-                                    <?php checked($config['fix_cls']); ?>>
+                                    <?php checked($config['fix_cls']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -294,7 +294,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_animations" value="1" 
-                                    <?php checked($config['optimize_animations']); ?>>
+                                    <?php checked($config['optimize_animations']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -308,7 +308,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_parallax" value="1" 
-                                    <?php checked($config['optimize_parallax']); ?>>
+                                    <?php checked($config['optimize_parallax']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -322,7 +322,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="preload_critical_assets" value="1" 
-                                    <?php checked($config['preload_critical_assets']); ?>>
+                                    <?php checked($config['preload_critical_assets']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('salient_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">
@@ -336,7 +336,7 @@ class ThemeOptimization extends AbstractPage
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="cache_builder_content" value="1" 
-                                    <?php checked($config['cache_builder_content']); ?>>
+                                    <?php checked($config['cache_builder_content']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('wpbakery_optimizer')); ?>">
                                 <span class="fp-ps-toggle-slider"></span>
                             </label>
                             <p class="description">

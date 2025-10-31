@@ -17,6 +17,7 @@ use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
+use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\JavaScriptTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\CssTab;

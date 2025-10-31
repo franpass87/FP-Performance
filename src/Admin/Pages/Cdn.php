@@ -176,7 +176,7 @@ class Cdn extends AbstractPage
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="cdn[enabled]" id="cdn_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <input type="checkbox" name="cdn[enabled]" id="cdn_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('cdn_enabled')); ?>">
                             <?php esc_html_e('Abilita rewriting degli URL verso il CDN', 'fp-performance-suite'); ?>
                         </label>
                         <p class="description">

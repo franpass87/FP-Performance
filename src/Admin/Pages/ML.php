@@ -268,7 +268,7 @@ class ML extends AbstractPage
                                         <label for="enabled"><?php _e('Enable ML Predictions', 'fp-performance-suite'); ?></label>
                                     </th>
                                     <td>
-                                        <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> />
+                                        <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('ml_predictor_enabled')); ?>" />
                                         <p class="description"><?php _e('Enable machine learning predictions and auto-tuning', 'fp-performance-suite'); ?></p>
                                     </td>
                                 </tr>

@@ -208,7 +208,7 @@ class Compression extends AbstractPage
                             <strong><?php esc_html_e('Abilita Compressione', 'fp-performance-suite'); ?></strong>
                             <small><?php esc_html_e('Abilita la compressione Gzip/Brotli per ridurre la dimensione dei file trasferiti', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="compression[enabled]" value="1" <?php checked($status['enabled'], true); ?> />
+                        <input type="checkbox" name="compression[enabled]" value="1" <?php checked($status['enabled'], true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('gzip_enabled')); ?>" />
                     </label>
                 </div>
 
@@ -218,7 +218,7 @@ class Compression extends AbstractPage
                             <strong><?php esc_html_e('Abilita Compressione Gzip/Deflate', 'fp-performance-suite'); ?></strong>
                             <small><?php esc_html_e('Compressione standard supportata da tutti i browser e server', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="compression[deflate_enabled]" value="1" <?php checked($status['deflate_enabled'], true); ?> />
+                        <input type="checkbox" name="compression[deflate_enabled]" value="1" <?php checked($status['deflate_enabled'], true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('gzip_enabled')); ?>" />
                     </label>
                 </div>
 
@@ -229,7 +229,7 @@ class Compression extends AbstractPage
                                 <strong><?php esc_html_e('Abilita Compressione Brotli', 'fp-performance-suite'); ?></strong>
                                 <small><?php esc_html_e('Brotli offre una compressione migliore rispetto a Gzip (15-20% in più)', 'fp-performance-suite'); ?></small>
                             </span>
-                            <input type="checkbox" name="compression[brotli_enabled]" value="1" <?php checked($status['brotli_enabled'], true); ?> />
+                            <input type="checkbox" name="compression[brotli_enabled]" value="1" <?php checked($status['brotli_enabled'], true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('brotli_enabled')); ?>" />
                         </label>
                     </div>
 

@@ -99,7 +99,7 @@ class Mobile extends AbstractPage
                                     <label for="enabled"><?php _e('Enable Mobile Optimization', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> />
+                                    <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('mobile_cache')); ?>" />
                                     <p class="description"><?php _e('Enable mobile-specific optimizations', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -109,7 +109,7 @@ class Mobile extends AbstractPage
                                     <label for="disable_animations"><?php _e('Disable Animations on Mobile', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="disable_animations" name="disable_animations" value="1" <?php checked($settings['disable_animations']); ?> />
+                                    <input type="checkbox" id="disable_animations" name="disable_animations" value="1" <?php checked($settings['disable_animations']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('mobile_disable_animations')); ?>" />
                                     <p class="description"><?php _e('Disable CSS animations on mobile devices for better performance', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -119,7 +119,7 @@ class Mobile extends AbstractPage
                                     <label for="remove_unnecessary_scripts"><?php _e('Remove Unnecessary Scripts', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="remove_unnecessary_scripts" name="remove_unnecessary_scripts" value="1" <?php checked($settings['remove_unnecessary_scripts']); ?> />
+                                    <input type="checkbox" id="remove_unnecessary_scripts" name="remove_unnecessary_scripts" value="1" <?php checked($settings['remove_unnecessary_scripts']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('mobile_remove_scripts')); ?>" />
                                     <p class="description"><?php _e('Remove non-essential scripts on mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -129,7 +129,7 @@ class Mobile extends AbstractPage
                                     <label for="optimize_touch_targets"><?php _e('Optimize Touch Targets', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="optimize_touch_targets" name="optimize_touch_targets" value="1" <?php checked($settings['optimize_touch_targets']); ?> />
+                                    <input type="checkbox" id="optimize_touch_targets" name="optimize_touch_targets" value="1" <?php checked($settings['optimize_touch_targets']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Ensure touch targets are at least 44px for better usability', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -139,7 +139,7 @@ class Mobile extends AbstractPage
                                     <label for="enable_responsive_images"><?php _e('Enable Responsive Images', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="enable_responsive_images" name="enable_responsive_images" value="1" <?php checked($settings['enable_responsive_images']); ?> />
+                                    <input type="checkbox" id="enable_responsive_images" name="enable_responsive_images" value="1" <?php checked($settings['enable_responsive_images']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('responsive_images')); ?>" />
                                     <p class="description"><?php _e('Optimize images for mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -211,7 +211,7 @@ class Mobile extends AbstractPage
                                     <label for="touch_enabled"><?php _e('Enable Touch Optimization', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="touch_enabled" name="touch_enabled" value="1" <?php checked($touch_settings['enabled'] ?? false); ?> />
+                                    <input type="checkbox" id="touch_enabled" name="touch_enabled" value="1" <?php checked($touch_settings['enabled'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Optimize touch interactions for mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -221,7 +221,7 @@ class Mobile extends AbstractPage
                                     <label for="disable_hover_effects"><?php _e('Disable Hover Effects', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="disable_hover_effects" name="disable_hover_effects" value="1" <?php checked($touch_settings['disable_hover_effects'] ?? true); ?> />
+                                    <input type="checkbox" id="disable_hover_effects" name="disable_hover_effects" value="1" <?php checked($touch_settings['disable_hover_effects'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Disable hover effects on mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -231,7 +231,7 @@ class Mobile extends AbstractPage
                                     <label for="improve_touch_targets"><?php _e('Improve Touch Targets', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="improve_touch_targets" name="improve_touch_targets" value="1" <?php checked($touch_settings['improve_touch_targets'] ?? true); ?> />
+                                    <input type="checkbox" id="improve_touch_targets" name="improve_touch_targets" value="1" <?php checked($touch_settings['improve_touch_targets'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Ensure touch targets meet accessibility guidelines', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -241,7 +241,7 @@ class Mobile extends AbstractPage
                                     <label for="optimize_scroll"><?php _e('Optimize Scroll Performance', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="optimize_scroll" name="optimize_scroll" value="1" <?php checked($touch_settings['optimize_scroll'] ?? true); ?> />
+                                    <input type="checkbox" id="optimize_scroll" name="optimize_scroll" value="1" <?php checked($touch_settings['optimize_scroll'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Improve scroll performance on mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -251,7 +251,7 @@ class Mobile extends AbstractPage
                                     <label for="prevent_zoom"><?php _e('Prevent Double-Tap Zoom', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="prevent_zoom" name="prevent_zoom" value="1" <?php checked($touch_settings['prevent_zoom'] ?? true); ?> />
+                                    <input type="checkbox" id="prevent_zoom" name="prevent_zoom" value="1" <?php checked($touch_settings['prevent_zoom'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('touch_optimization')); ?>" />
                                     <p class="description"><?php _e('Prevent accidental zoom on double-tap', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -278,7 +278,7 @@ class Mobile extends AbstractPage
                                     <label for="responsive_enabled"><?php _e('Enable Responsive Images', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="responsive_enabled" name="responsive_enabled" value="1" <?php checked($responsive_settings['enabled'] ?? false); ?> />
+                                    <input type="checkbox" id="responsive_enabled" name="responsive_enabled" value="1" <?php checked($responsive_settings['enabled'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('responsive_images')); ?>" />
                                     <p class="description"><?php _e('Enable responsive image optimization for mobile', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -288,7 +288,7 @@ class Mobile extends AbstractPage
                                     <label for="enable_lazy_loading"><?php _e('Enable Lazy Loading', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="enable_lazy_loading" name="enable_lazy_loading" value="1" <?php checked($responsive_settings['enable_lazy_loading'] ?? true); ?> />
+                                    <input type="checkbox" id="enable_lazy_loading" name="enable_lazy_loading" value="1" <?php checked($responsive_settings['enable_lazy_loading'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('lazy_load_images')); ?>" />
                                     <p class="description"><?php _e('Load images only when they come into view', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>
@@ -298,7 +298,7 @@ class Mobile extends AbstractPage
                                     <label for="optimize_srcset"><?php _e('Optimize Srcset', 'fp-performance-suite'); ?></label>
                                 </th>
                                 <td>
-                                    <input type="checkbox" id="optimize_srcset" name="optimize_srcset" value="1" <?php checked($responsive_settings['optimize_srcset'] ?? true); ?> />
+                                    <input type="checkbox" id="optimize_srcset" name="optimize_srcset" value="1" <?php checked($responsive_settings['optimize_srcset'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('responsive_images')); ?>" />
                                     <p class="description"><?php _e('Optimize srcset attributes for mobile devices', 'fp-performance-suite'); ?></p>
                                 </td>
                             </tr>

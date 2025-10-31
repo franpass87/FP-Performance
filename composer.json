@@ -1,0 +1,39 @@
+{
+    "name": "francescopasseri/fp-performance-suite",
+    "description": "Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "version": "1.6.0",
+    "authors": [
+        {
+            "name": "Francesco Passeri",
+            "email": "info@francescopasseri.com",
+            "homepage": "https://francescopasseri.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "FP\\PerfSuite\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "classmap-authoritative": false,
+        "sort-packages": true,
+        "platform": {
+            "php": "7.4"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"echo 'FP Performance Suite: Autoloader installato con successo.\\n';\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"echo 'FP Performance Suite: Autoloader aggiornato con successo.\\n';\""
+        ]
+    }
+}
+
