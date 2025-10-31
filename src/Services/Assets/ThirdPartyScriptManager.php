@@ -8,6 +8,7 @@ use function add_filter;
 use function get_option;
 use function update_option;
 use function wp_parse_args;
+use function sanitize_textarea_field;
 
 /**
  * Third-Party Script Manager
@@ -337,6 +338,7 @@ class ThirdPartyScriptManager
                     'delay' => true,
                 ],
             ],
+            'exclusions' => '', // Pattern di script da escludere dal delay (uno per riga)
         ];
 
         return wp_parse_args(get_option(self::OPTION, []), $defaults);
@@ -360,6 +362,7 @@ class ThirdPartyScriptManager
             'delay_timeout' => $delayTimeout,
             'load_on' => $settings['load_on'] ?? $current['load_on'],
             'scripts' => isset($settings['scripts']) ? array_merge($current['scripts'], $settings['scripts']) : $current['scripts'],
+            'exclusions' => isset($settings['exclusions']) ? sanitize_textarea_field($settings['exclusions']) : $current['exclusions'],
         ];
 
         update_option(self::OPTION, $new);
@@ -425,6 +428,20 @@ class ThirdPartyScriptManager
      */
     private function shouldDelayScript(string $src, array $settings): bool
     {
+        // CONTROLLO ESCLUSIONI - Prima di tutto
+        if (!empty($settings['exclusions'])) {
+            $exclusions = array_filter(array_map('trim', explode("\n", $settings['exclusions'])));
+            foreach ($exclusions as $pattern) {
+                if (!empty($pattern) && stripos($src, $pattern) !== false) {
+                    Logger::debug('Script escluso dal delay (pattern match)', [
+                        'src' => basename($src),
+                        'pattern' => $pattern,
+                    ]);
+                    return false; // NON ritardare questo script
+                }
+            }
+        }
+        
         // Delay all if enabled (except WordPress core scripts)
         if ($settings['delay_all']) {
             if (strpos($src, '/wp-includes/') !== false || strpos($src, '/wp-admin/') !== false) {

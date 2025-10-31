@@ -185,7 +185,10 @@ class Backend extends AbstractPage
                 <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
                     <input type="checkbox" name="backend_enabled" value="1" <?php checked(!empty($allSettings['enabled'])); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('backend_enabled')); ?>" />
                     <span class="info" style="text-align: left; flex: 1;">
-                        <strong style="display: block;"><?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?></strong>
+                        <strong style="display: block;">
+                            <?php esc_html_e('Enable Backend Optimization', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('backend_enabled'); ?>
+                        </strong>
                         <small style="color: #6c757d; display: block; margin-top: 4px;">
                             <?php esc_html_e('Master switch to enable/disable all backend optimization features. When disabled, no backend optimization will be applied.', 'fp-performance-suite'); ?>
                         </small>
@@ -217,82 +220,68 @@ class Backend extends AbstractPage
                 <div class="fp-ps-grid two">
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Disabilita Admin Bar sul frontend', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove la barra admin quando visualizzi il sito. Riduce HTTP requests e CSS/JS caricati.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Risparmia ~150KB per caricamento pagina. Migliora leggermente il First Contentful Paint.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <strong>
+                                <?php esc_html_e('Disabilita Admin Bar sul frontend', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Nasconde la barra admin per gli utenti loggati sul frontend', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_admin_bar_frontend" value="1" <?php checked($adminBarSettings['disable_frontend'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_admin_bar_frontend" value="1" <?php checked($adminBarSettings['disable_frontend'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Rimuovi logo WordPress', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove il menu dropdown del logo WordPress dalla barra amministrativa.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Interfaccia più pulita. Impatto minimo: ~5KB HTML risparmiati.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <strong>
+                                <?php esc_html_e('Rimuovi logo WordPress', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Rimuove il menu del logo WordPress dalla barra admin', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_wp_logo" value="1" <?php checked($adminBarSettings['disable_wordpress_logo'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_wp_logo" value="1" <?php checked($adminBarSettings['disable_wordpress_logo'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Rimuovi menu aggiornamenti', 'fp-performance-suite'); ?></strong>
+                            <strong>
+                                <?php esc_html_e('Rimuovi menu aggiornamenti', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Nasconde il menu aggiornamenti dalla barra admin', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_updates_menu" value="1" <?php checked($adminBarSettings['disable_updates'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_updates_menu" value="1" <?php checked($adminBarSettings['disable_updates'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Rimuovi menu commenti', 'fp-performance-suite'); ?></strong>
+                            <strong>
+                                <?php esc_html_e('Rimuovi menu commenti', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Nasconde l\'icona commenti dalla barra admin', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_comments_menu" value="1" <?php checked($adminBarSettings['disable_comments'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_comments_menu" value="1" <?php checked($adminBarSettings['disable_comments'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Rimuovi menu "+ Nuovo"', 'fp-performance-suite'); ?></strong>
+                            <strong>
+                                <?php esc_html_e('Rimuovi menu "+ Nuovo"', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Nasconde il menu per creare nuovi contenuti', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_new_menu" value="1" <?php checked($adminBarSettings['disable_new'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_new_menu" value="1" <?php checked($adminBarSettings['disable_new'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
-                            <strong><?php esc_html_e('Rimuovi link Personalizza', 'fp-performance-suite'); ?></strong>
+                            <strong>
+                                <?php esc_html_e('Rimuovi link Personalizza', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('disable_admin_bar_frontend'); ?>
+                            </strong>
                             <small><?php esc_html_e('Nasconde il link al Customizer dalla barra admin', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_customize" value="1" <?php checked($adminBarSettings['disable_customize'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_customize" value="1" <?php checked($adminBarSettings['disable_customize'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_admin_bar_frontend')); ?>" />
                     </label>
                 </div>
 

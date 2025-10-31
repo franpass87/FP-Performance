@@ -233,7 +233,10 @@ class ThemeOptimization extends AbstractPage
                 <tbody>
                     <tr>
                         <th scope="row">
-                            <label for="salient_enabled">Abilita Ottimizzazioni</label>
+                            <label for="salient_enabled">
+                                Abilita Ottimizzazioni
+                                <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                            </label>
                         </th>
                         <td>
                             <label class="fp-ps-toggle">
@@ -248,7 +251,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Ottimizza Script</th>
+                        <th scope="row">
+                            Ottimizza Script
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_scripts" value="1" 
@@ -262,7 +268,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Ottimizza Stili</th>
+                        <th scope="row">
+                            Ottimizza Stili
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_styles" value="1" 
@@ -276,7 +285,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Fix CLS (Layout Shift)</th>
+                        <th scope="row">
+                            Fix CLS (Layout Shift)
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="fix_cls" value="1" 
@@ -290,7 +302,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Ottimizza Animazioni</th>
+                        <th scope="row">
+                            Ottimizza Animazioni
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_animations" value="1" 
@@ -304,7 +319,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Ottimizza Parallax</th>
+                        <th scope="row">
+                            Ottimizza Parallax
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="optimize_parallax" value="1" 
@@ -318,7 +336,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Precarica Asset Critici</th>
+                        <th scope="row">
+                            Precarica Asset Critici
+                            <?php echo RiskMatrix::renderIndicator('salient_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="preload_critical_assets" value="1" 
@@ -332,7 +353,10 @@ class ThemeOptimization extends AbstractPage
                     </tr>
 
                     <tr>
-                        <th scope="row">Cache Contenuto Builder</th>
+                        <th scope="row">
+                            Cache Contenuto Builder
+                            <?php echo RiskMatrix::renderIndicator('wpbakery_optimizer'); ?>
+                        </th>
                         <td>
                             <label class="fp-ps-toggle">
                                 <input type="checkbox" name="cache_builder_content" value="1" 

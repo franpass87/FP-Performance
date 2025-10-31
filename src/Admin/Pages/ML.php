@@ -265,7 +265,10 @@ class ML extends AbstractPage
                             <table class="form-table">
                                 <tr>
                                     <th scope="row">
-                                        <label for="enabled"><?php _e('Enable ML Predictions', 'fp-performance-suite'); ?></label>
+                                        <label for="enabled">
+                                            <?php _e('Enable ML Predictions', 'fp-performance-suite'); ?>
+                                            <?php echo RiskMatrix::renderIndicator('ml_predictor_enabled'); ?>
+                                        </label>
                                     </th>
                                     <td>
                                         <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('ml_predictor_enabled')); ?>" />

@@ -138,7 +138,10 @@ class Media extends AbstractPage
                             <table class="form-table">
                                 <tr>
                                     <th scope="row">
-                                        <label for="responsive_enabled"><?php esc_html_e('Enable Responsive Images', 'fp-performance-suite'); ?></label>
+                                        <label for="responsive_enabled">
+                                            <?php esc_html_e('Enable Responsive Images', 'fp-performance-suite'); ?>
+                                            <?php echo RiskMatrix::renderIndicator('responsive_images'); ?>
+                                        </label>
                                     </th>
                                     <td>
                                         <input type="checkbox" id="responsive_enabled" name="responsive_enabled" value="1" <?php checked($responsiveEnabled); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('responsive_images')); ?>" />
@@ -148,7 +151,10 @@ class Media extends AbstractPage
                                 
                                 <tr>
                                     <th scope="row">
-                                        <label for="responsive_lazy_loading"><?php esc_html_e('Lazy Loading', 'fp-performance-suite'); ?></label>
+                                        <label for="responsive_lazy_loading">
+                                            <?php esc_html_e('Lazy Loading', 'fp-performance-suite'); ?>
+                                            <?php echo RiskMatrix::renderIndicator('lazy_load_images'); ?>
+                                        </label>
                                     </th>
                                     <td>
                                         <input type="checkbox" id="responsive_lazy_loading" name="responsive_lazy_loading" value="1" <?php checked($lazyLoadingEnabled); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('lazy_load_images')); ?>" />
@@ -158,7 +164,10 @@ class Media extends AbstractPage
                                 
                                 <tr>
                                     <th scope="row">
-                                        <label for="responsive_srcset"><?php esc_html_e('Optimize Srcset', 'fp-performance-suite'); ?></label>
+                                        <label for="responsive_srcset">
+                                            <?php esc_html_e('Optimize Srcset', 'fp-performance-suite'); ?>
+                                            <?php echo RiskMatrix::renderIndicator('responsive_images'); ?>
+                                        </label>
                                     </th>
                                     <td>
                                         <input type="checkbox" id="responsive_srcset" name="responsive_srcset" value="1" <?php checked($srcsetOptimization); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('responsive_images')); ?>" />

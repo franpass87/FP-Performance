@@ -417,6 +417,7 @@ class Assets extends AbstractPage
                         'delay_loading' => !empty($_POST['third_party_delay_loading']),
                         'load_on' => isset($_POST['third_party_load_on']) ? sanitize_text_field($_POST['third_party_load_on']) : 'interaction',
                         'custom_scripts' => isset($_POST['third_party_custom_scripts']) ? wp_unslash($_POST['third_party_custom_scripts']) : '',
+                        'exclusions' => isset($_POST['third_party_exclusions']) ? wp_unslash($_POST['third_party_exclusions']) : '',
                         'scripts' => $individualScripts,
                     ]);
                     

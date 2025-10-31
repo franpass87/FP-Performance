@@ -172,7 +172,10 @@ class Cdn extends AbstractPage
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="cdn_enabled"><?php esc_html_e('Abilita CDN', 'fp-performance-suite'); ?></label>
+                        <label for="cdn_enabled">
+                            <?php esc_html_e('Abilita CDN', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('cdn_enabled'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>

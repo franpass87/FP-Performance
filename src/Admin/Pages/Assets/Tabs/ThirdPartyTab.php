@@ -14,7 +14,13 @@ use function checked;
 use function esc_attr;
 use function esc_html;
 use function esc_html_e;
+use function esc_textarea;
 use function wp_nonce_field;
+use function sanitize_text_field;
+use function wp_verify_nonce;
+use function set_transient;
+use function get_transient;
+use function delete_transient;
 
 class ThirdPartyTab
 {
@@ -143,6 +149,27 @@ class ThirdPartyTab
                     }
                     ?>
                 </div>
+                
+                <h3 style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                    <?php esc_html_e('Script Exclusions (Advanced)', 'fp-performance-suite'); ?>
+                </h3>
+                <p style="color: #64748b;">
+                    <?php esc_html_e('Aggiungi pattern per escludere script specifici dal delay (es: trustindex, widget.trustindex.io)', 'fp-performance-suite'); ?>
+                </p>
+                
+                <label for="third_party_exclusions" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <?php esc_html_e('Script da escludere (uno per riga)', 'fp-performance-suite'); ?>
+                </label>
+                <textarea 
+                    name="third_party_exclusions" 
+                    id="third_party_exclusions" 
+                    rows="6" 
+                    style="width: 100%; max-width: 600px; font-family: monospace; padding: 10px; border: 2px solid #cbd5e1; border-radius: 6px;"
+                    placeholder="trustindex&#10;widget.trustindex.io&#10;recensioni&#10;reviews"
+                ><?php echo esc_textarea($thirdPartySettings['exclusions'] ?? ''); ?></textarea>
+                <p class="description">
+                    <?php esc_html_e('Gli script che contengono questi pattern NON verranno ritardati. Uno per riga.', 'fp-performance-suite'); ?>
+                </p>
                 
                 <div class="fp-ps-info-section">
                     <button type="submit" class="button button-primary button-large">
@@ -365,6 +392,179 @@ class ThirdPartyTab
                     </button>
                 </div>
             </form>
+        </section>
+        
+        <!-- Script Detector & Manager -->
+        <section class="fp-ps-card fp-ps-mt-xl" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 2px solid #cbd5e1;">
+            <h2 style="margin-top: 0;">
+                🔍 <?php esc_html_e('Rilevatore Script di Terze Parti', 'fp-performance-suite'); ?>
+            </h2>
+            <p style="color: #475569;">
+                <?php esc_html_e('Scansiona automaticamente la homepage per rilevare script esterni (Trustindex, chat widget, analytics, ecc.) e gestiscili facilmente.', 'fp-performance-suite'); ?>
+            </p>
+            
+            <form method="post" action="?page=fp-performance-suite-assets&tab=thirdparty">
+                <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
+                <input type="hidden" name="detector_action" value="scan" />
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <button type="submit" class="button button-primary button-large" style="margin-right: 10px;">
+                        🔍 <?php esc_html_e('Scansiona Homepage Ora', 'fp-performance-suite'); ?>
+                    </button>
+                    <span style="color: #64748b; font-size: 14px;">
+                        <?php esc_html_e('Rileva automaticamente tutti gli script di terze parti attualmente caricati', 'fp-performance-suite'); ?>
+                    </span>
+                </div>
+            </form>
+            
+            <?php
+            // Gestisci scan
+            if (isset($_POST['detector_action']) && $_POST['detector_action'] === 'scan' && 
+                isset($_POST['fp_ps_detector_nonce']) && wp_verify_nonce($_POST['fp_ps_detector_nonce'], 'fp-ps-detector')) {
+                
+                $detector = new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector($thirdPartyScripts);
+                $detected = $detector->scanHomepage();
+                
+                if (!empty($detected)) {
+                    // Salva i risultati della scansione
+                    set_transient('fp_ps_detected_scripts', $detected, HOUR_IN_SECONDS);
+                    
+                    echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                    echo '<p style="margin: 0; color: #14532d;"><strong>✅ Scansione completata!</strong> Trovati ' . count($detected) . ' script di terze parti.</p>';
+                    echo '</div>';
+                }
+            }
+            
+            // Gestisci aggiungi a esclusioni
+            if (isset($_POST['detector_action']) && $_POST['detector_action'] === 'add_exclusion' && 
+                isset($_POST['fp_ps_detector_nonce']) && wp_verify_nonce($_POST['fp_ps_detector_nonce'], 'fp-ps-detector') &&
+                isset($_POST['script_pattern'])) {
+                
+                $currentSettings = $thirdPartyScripts->settings();
+                $exclusions = $currentSettings['exclusions'] ?? '';
+                $newPattern = sanitize_text_field($_POST['script_pattern']);
+                
+                // Aggiungi se non esiste già
+                if (!empty($newPattern) && stripos($exclusions, $newPattern) === false) {
+                    $exclusions .= (!empty($exclusions) ? "\n" : '') . $newPattern;
+                    $thirdPartyScripts->updateSettings(['exclusions' => $exclusions]);
+                    
+                    echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                    echo '<p style="margin: 0; color: #14532d;"><strong>✅ Pattern aggiunto alle esclusioni:</strong> ' . esc_html($newPattern) . '</p>';
+                    echo '</div>';
+                }
+            }
+            
+            // Mostra script rilevati
+            $detectedScripts = get_transient('fp_ps_detected_scripts');
+            if (!empty($detectedScripts)) {
+                ?>
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1e293b;">
+                        📊 <?php esc_html_e('Script Rilevati', 'fp-performance-suite'); ?>
+                        <span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">
+                            <?php echo count($detectedScripts); ?>
+                        </span>
+                    </h3>
+                    
+                    <div style="display: grid; gap: 15px; margin-top: 20px;">
+                        <?php foreach ($detectedScripts as $script): ?>
+                            <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <strong style="font-size: 16px; color: #1e293b;">
+                                            <?php echo esc_html($script['name']); ?>
+                                        </strong>
+                                        <?php if (!empty($script['managed'])): ?>
+                                            <span style="background: #16a34a; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                                ✓ GESTITO
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="background: #eab308; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                                ⚠ NON GESTITO
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div style="font-size: 13px; color: #64748b; font-family: monospace; word-break: break-all;">
+                                        <?php echo esc_html($script['src']); ?>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 8px; margin-left: 20px;">
+                                    <form method="post" style="margin: 0;">
+                                        <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
+                                        <input type="hidden" name="detector_action" value="add_exclusion" />
+                                        <input type="hidden" name="script_pattern" value="<?php echo esc_attr(parse_url($script['src'], PHP_URL_HOST) ?? ''); ?>" />
+                                        <button type="submit" class="button button-small" style="background: #16a34a; color: white; border: none;" title="Aggiungi alle esclusioni">
+                                            ➕ Escludi
+                                        </button>
+                                    </form>
+                                    
+                                    <form method="post" style="margin: 0;">
+                                        <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
+                                        <input type="hidden" name="detector_action" value="clear_detected" />
+                                        <button type="submit" class="button button-small" style="background: #dc2626; color: white; border: none;" title="Rimuovi dalla lista">
+                                            🗑️ Rimuovi
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 6px;">
+                        <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
+                            <strong>💡 Suggerimento:</strong>
+                            <?php esc_html_e('Clicca "➕ Escludi" per aggiungere lo script alle esclusioni e impedire che venga ritardato. Utile per Trustindex, chat widget, form, ecc.', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+                    
+                    <form method="post" style="margin-top: 15px;">
+                        <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
+                        <input type="hidden" name="detector_action" value="clear_all" />
+                        <button type="submit" class="button" style="color: #dc2626;">
+                            🗑️ <?php esc_html_e('Cancella Tutti i Risultati', 'fp-performance-suite'); ?>
+                        </button>
+                    </form>
+                </div>
+                <?php
+            }
+            
+            // Gestisci azioni
+            if (isset($_POST['detector_action']) && isset($_POST['fp_ps_detector_nonce']) && 
+                wp_verify_nonce($_POST['fp_ps_detector_nonce'], 'fp-ps-detector')) {
+                
+                if ($_POST['detector_action'] === 'clear_all') {
+                    delete_transient('fp_ps_detected_scripts');
+                    echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                    echo '<p style="margin: 0; color: #14532d;"><strong>✅ Risultati cancellati.</strong></p>';
+                    echo '</div>';
+                    echo '<script>window.location.href = window.location.href.split("?")[0] + "?page=fp-performance-suite-assets&tab=thirdparty";</script>';
+                }
+                
+                if ($_POST['detector_action'] === 'clear_detected') {
+                    $detectedScripts = get_transient('fp_ps_detected_scripts') ?: [];
+                    // Rimuovi quello specifico (implementazione futura)
+                    delete_transient('fp_ps_detected_scripts');
+                    echo '<script>window.location.href = window.location.href.split("?")[0] + "?page=fp-performance-suite-assets&tab=thirdparty";</script>';
+                }
+            }
+            ?>
+            
+            <?php if (empty($detectedScripts)): ?>
+                <div style="background: white; padding: 30px; text-align: center; border-radius: 8px; margin: 20px 0; border: 2px dashed #cbd5e1;">
+                    <p style="color: #64748b; font-size: 16px; margin: 0;">
+                        🔍 <?php esc_html_e('Nessuno script rilevato. Clicca "Scansiona Homepage Ora" per iniziare.', 'fp-performance-suite'); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #eab308; padding: 15px; margin: 20px 0; border-radius: 6px;">
+                <p style="margin: 0; color: #713f12; font-size: 14px;">
+                    <strong>⚠️ Importante:</strong>
+                    <?php esc_html_e('Il rilevatore analizza la homepage. Se usi script solo su pagine specifiche (es: checkout), potrebbero non essere rilevati. In quel caso, aggiungi manualmente il pattern nella sezione "Script Exclusions" sopra.', 'fp-performance-suite'); ?>
+                </p>
+            </div>
         </section>
         
         </div>
