@@ -423,14 +423,20 @@ class ThirdPartyTab
                 isset($_POST['fp_ps_detector_nonce']) && wp_verify_nonce($_POST['fp_ps_detector_nonce'], 'fp-ps-detector')) {
                 
                 $detector = new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector($thirdPartyScripts);
-                $detected = $detector->scanHomepage();
+                $analysis = $detector->analyzePage(home_url());
                 
-                if (!empty($detected)) {
+                if (!empty($analysis['scripts'])) {
+                    $detected = $analysis['scripts'];
+                    
                     // Salva i risultati della scansione
                     set_transient('fp_ps_detected_scripts', $detected, HOUR_IN_SECONDS);
                     
                     echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
                     echo '<p style="margin: 0; color: #14532d;"><strong>✅ Scansione completata!</strong> Trovati ' . count($detected) . ' script di terze parti.</p>';
+                    echo '</div>';
+                } else {
+                    echo '<div style="background: #fef3c7; border-left: 4px solid #eab308; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                    echo '<p style="margin: 0; color: #713f12;"><strong>⚠️ Nessuno script rilevato.</strong> Prova a visitare prima la homepage per caricare gli script, poi torna qui e scansiona di nuovo.</p>';
                     echo '</div>';
                 }
             }
@@ -494,7 +500,7 @@ class ThirdPartyTab
                                     <form method="post" style="margin: 0;">
                                         <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
                                         <input type="hidden" name="detector_action" value="add_exclusion" />
-                                        <input type="hidden" name="script_pattern" value="<?php echo esc_attr(parse_url($script['src'], PHP_URL_HOST) ?: ''); ?>" />
+                                        <input type="hidden" name="script_pattern" value="<?php echo esc_attr(parse_url($script['src'], PHP_URL_HOST) ?? ''); ?>" />
                                         <button type="submit" class="button button-small" style="background: #16a34a; color: white; border: none;" title="Aggiungi alle esclusioni">
                                             ➕ Escludi
                                         </button>
