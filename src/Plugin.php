@@ -26,6 +26,7 @@ use FP\PerfSuite\Services\Compatibility\ThemeCompatibility;
 use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Services\Compatibility\CompatibilityFilters;
 use FP\PerfSuite\Services\Compatibility\SalientWPBakeryOptimizer;
+use FP\PerfSuite\Services\Compatibility\FPPluginsIntegration;
 use FP\PerfSuite\Services\Assets\ThemeAssetConfiguration;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Security\HtaccessSecurity;
@@ -200,6 +201,11 @@ class Plugin
                     $container->get(Cleaner::class)->register();
                 });
             }
+            
+            // FP Plugins Integration - SEMPRE attivo per escludere automaticamente dalla cache
+            self::registerServiceOnce(FPPluginsIntegration::class, function() use ($container) {
+                $container->get(FPPluginsIntegration::class)->register();
+            });
             
             // Theme Compatibility - Solo se abilitato esplicitamente
             if (get_option('fp_ps_compatibility_enabled', false)) {
@@ -847,6 +853,7 @@ class Plugin
         $container->set(CompatibilityFilters::class, static fn(ServiceContainer $c) => new CompatibilityFilters($c, $c->get(ThemeDetector::class)));
         $container->set(ThemeCompatibility::class, static fn(ServiceContainer $c) => new ThemeCompatibility($c, $c->get(ThemeDetector::class)));
         $container->set(SalientWPBakeryOptimizer::class, static fn(ServiceContainer $c) => new SalientWPBakeryOptimizer($c, $c->get(ThemeDetector::class)));
+        $container->set(FPPluginsIntegration::class, static fn() => new FPPluginsIntegration());
         
         
         // Smart Intelligence Services
