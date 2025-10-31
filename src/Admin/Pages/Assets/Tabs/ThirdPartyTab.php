@@ -494,7 +494,7 @@ class ThirdPartyTab
                                     <form method="post" style="margin: 0;">
                                         <?php wp_nonce_field('fp-ps-detector', 'fp_ps_detector_nonce'); ?>
                                         <input type="hidden" name="detector_action" value="add_exclusion" />
-                                        <input type="hidden" name="script_pattern" value="<?php echo esc_attr(parse_url($script['src'], PHP_URL_HOST) ?? ''); ?>" />
+                                        <input type="hidden" name="script_pattern" value="<?php echo esc_attr(parse_url($script['src'], PHP_URL_HOST) ?: ''); ?>" />
                                         <button type="submit" class="button button-small" style="background: #16a34a; color: white; border: none;" title="Aggiungi alle esclusioni">
                                             ➕ Escludi
                                         </button>
