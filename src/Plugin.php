@@ -56,23 +56,15 @@ use function wp_clear_scheduled_hook;
 class Plugin
 {
     private static ?ServiceContainer $container = null;
-    private static bool $initialized = false;
     private static array $registeredServices = [];
 
     public static function init(): void
     {
-        global $fp_perf_suite_initialized;
-        
-        // Prevenire inizializzazioni multiple con controllo semplificato
-        if (self::$initialized || self::$container instanceof ServiceContainer) {
+        // FIX RACE CONDITION: Usa SOLO il container come flag atomico
+        // Se già inizializzato, esci immediatamente
+        if (self::$container !== null) {
             return;
         }
-        
-        // Marca come inizializzato immediatamente per prevenire race conditions
-        self::$initialized = true;
-        
-        // Marca anche la variabile globale
-        $fp_perf_suite_initialized = true;
         
         // Aumenta temporaneamente i limiti per l'inizializzazione
         // Usa limiti dinamici basati sul tipo di hosting
@@ -87,9 +79,16 @@ class Plugin
             @ini_set('memory_limit', $recommended_memory);
             @ini_set('max_execution_time', (string) $recommended_time);
             
+            // Crea container temporaneo
             $container = new ServiceContainer();
+            
+            // Registra tutti i servizi
             self::register($container);
+            
+            // ATOMICO: Assegna il container SOLO dopo che è completamente inizializzato
+            // Questo previene race conditions
             self::$container = $container;
+            
         } finally {
             // Ripristina i limiti originali
             if ($original_memory_limit) {
@@ -294,6 +293,40 @@ class Plugin
                 });
             }
             
+            // NEW FEATURES v1.7.0 - Critical Performance Enhancements
+            
+            // Instant Page Loader - Prefetch on hover/viewport
+            $instantPageSettings = get_option('fp_ps_instant_page', []);
+            if (!empty($instantPageSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\InstantPageLoader::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\InstantPageLoader::class)->register();
+                });
+            }
+            
+            // Embed Facades - YouTube/Vimeo/Maps lazy facades
+            $facadesSettings = get_option('fp_ps_embed_facades', []);
+            if (!empty($facadesSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\EmbedFacades::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\EmbedFacades::class)->register();
+                });
+            }
+            
+            // Delayed JavaScript Executor - Delay JS until user interaction
+            $delayJsSettings = get_option('fp_ps_delay_js', []);
+            if (!empty($delayJsSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\DelayedJavaScriptExecutor::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\DelayedJavaScriptExecutor::class)->register();
+                });
+            }
+            
+            // WooCommerce Optimizer - Specific optimizations for WooCommerce
+            $wooSettings = get_option('fp_ps_woocommerce', []);
+            if (!empty($wooSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Compatibility\WooCommerceOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Compatibility\WooCommerceOptimizer::class)->register();
+                });
+            }
+            
             // Machine Learning Services (v1.6.0)
             // PROTEZIONE SHARED HOSTING: Disabilita ML su shared hosting
             $mlSettings = get_option('fp_ps_ml_predictor', []);
@@ -321,19 +354,15 @@ class Plugin
                 }
             }
             
-            // Backend Optimization Services - FIX CRITICO
+            // Backend Optimization Services
             $backendSettings = get_option('fp_ps_backend_optimizer', []);
-            // Registra sempre il servizio per evitare problemi di inizializzazione
-            self::registerServiceOnce(BackendOptimizer::class, function() use ($container) {
-                $backendOptimizer = $container->get(BackendOptimizer::class);
-                // Registra solo se abilitato nelle impostazioni
-                $settings = $backendOptimizer->getSettings();
-                if (!empty($settings['enabled'])) {
-                    $backendOptimizer->register();
-                }
-            });
+            if (!empty($backendSettings['enabled'])) {
+                self::registerServiceOnce(BackendOptimizer::class, function() use ($container) {
+                    $container->get(BackendOptimizer::class)->register();
+                });
+            }
             
-            // Database Optimization Services - FIX CRITICO
+            // Database Optimization Services
             $dbSettings = get_option('fp_ps_db', []);
             if (!empty($dbSettings['enabled'])) {
                 self::registerServiceOnce(DatabaseOptimizer::class, function() use ($container) {
@@ -348,6 +377,11 @@ class Plugin
                 self::registerServiceOnce(DatabaseReportService::class, function() use ($container) {
                     $container->get(DatabaseReportService::class)->register();
                 });
+            }
+            
+            // Query Cache Manager - Può essere abilitato indipendentemente
+            $queryCacheSettings = get_option('fp_ps_query_cache', []);
+            if (!empty($queryCacheSettings['enabled']) || !empty($dbSettings['query_cache_enabled'])) {
                 self::registerServiceOnce(QueryCacheManager::class, function() use ($container) {
                     $container->get(QueryCacheManager::class)->register();
                 });
@@ -775,11 +809,22 @@ class Plugin
         // Core Web Vitals Monitor
         $container->set(\FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor::class, static fn() => new \FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor());
         
-        // Database Query Cache
-        $container->set(QueryCacheManager::class, static fn() => new QueryCacheManager());
-        
         // Predictive Prefetching
         $container->set(\FP\PerfSuite\Services\Assets\PredictivePrefetching::class, static fn() => new \FP\PerfSuite\Services\Assets\PredictivePrefetching());
+        
+        // NEW FEATURES v1.7.0 - Critical Performance Enhancements
+        
+        // Instant Page Loader (Prefetch on hover/viewport)
+        $container->set(\FP\PerfSuite\Services\Assets\InstantPageLoader::class, static fn() => new \FP\PerfSuite\Services\Assets\InstantPageLoader());
+        
+        // Embed Facades (YouTube/Vimeo/Maps lazy load)
+        $container->set(\FP\PerfSuite\Services\Assets\EmbedFacades::class, static fn() => new \FP\PerfSuite\Services\Assets\EmbedFacades());
+        
+        // Delayed JavaScript Executor
+        $container->set(\FP\PerfSuite\Services\Assets\DelayedJavaScriptExecutor::class, static fn() => new \FP\PerfSuite\Services\Assets\DelayedJavaScriptExecutor());
+        
+        // WooCommerce Optimizer
+        $container->set(\FP\PerfSuite\Services\Compatibility\WooCommerceOptimizer::class, static fn() => new \FP\PerfSuite\Services\Compatibility\WooCommerceOptimizer());
         
         // Responsive Image Optimizer (Ripristinato 21 Ott 2025)
         $container->set(\FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer::class, static fn() => new \FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer());
@@ -887,15 +932,14 @@ class Plugin
         });
         $container->set(Cleaner::class, static fn(ServiceContainer $c) => new Cleaner());
         
-        // Backend Optimization Service - Registra sempre per evitare errori
+        // Backend Optimization Service
         $container->set(BackendOptimizer::class, static fn() => new BackendOptimizer());
         
-        // Database Optimization Services (v1.4.0) - Registra sempre per evitare errori
+        // Database Optimization Services (v1.4.0)
         $container->set(DatabaseOptimizer::class, static fn() => new DatabaseOptimizer());
         $container->set(DatabaseQueryMonitor::class, static fn() => new DatabaseQueryMonitor());
         $container->set(PluginSpecificOptimizer::class, static fn() => new PluginSpecificOptimizer());
         $container->set(DatabaseReportService::class, static fn() => new DatabaseReportService());
-        $container->set(QueryCacheManager::class, static fn() => new QueryCacheManager());
         $container->set(DebugToggler::class, static fn(ServiceContainer $c) => new DebugToggler($c->get(Fs::class), $c->get(Env::class)));
         $container->set(RealtimeLog::class, static fn(ServiceContainer $c) => new RealtimeLog($c->get(DebugToggler::class)));
         $container->set(PresetManager::class, static function (ServiceContainer $c) {
@@ -968,11 +1012,12 @@ class Plugin
     
     /**
      * Resetta lo stato di inizializzazione (per debug/recupero errori)
+     * ATTENZIONE: Usare solo in contesti di test/debug
      */
     public static function reset(): void
     {
         self::$container = null;
-        self::$initialized = false;
+        self::$registeredServices = [];
     }
     
     /**
@@ -980,7 +1025,7 @@ class Plugin
      */
     public static function isInitialized(): bool
     {
-        return self::$initialized && self::$container instanceof ServiceContainer;
+        return self::$container !== null;
     }
     
     /**
@@ -1579,8 +1624,19 @@ class Plugin
 
     public static function onDeactivate(): void
     {
+        // === RIMUOVI TUTTI I CRON JOBS DEL PLUGIN ===
         wp_clear_scheduled_hook(Cleaner::CRON_HOOK);
-        Logger::info('Plugin deactivated');
+        wp_clear_scheduled_hook('fp_ps_ml_analyze_patterns');
+        wp_clear_scheduled_hook('fp_ps_ml_predict_issues');
+        wp_clear_scheduled_hook('fp_ps_auto_tune');
+        wp_clear_scheduled_hook('fp_ps_db_auto_report');
+        
+        // ScheduledReports cron (se esiste)
+        if (class_exists('FP\\PerfSuite\\Services\\Reports\\ScheduledReports')) {
+            wp_clear_scheduled_hook(\FP\PerfSuite\Services\Reports\ScheduledReports::CRON_HOOK);
+        }
+        
+        Logger::info('Plugin deactivated - all cron jobs cleared');
         do_action('fp_ps_plugin_deactivated');
     }
 }

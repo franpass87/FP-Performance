@@ -376,7 +376,8 @@ class DatabaseQueryMonitor
     private function getQueryCaller(array $backtrace): string
     {
         foreach ($backtrace as $trace) {
-            if (isset($trace['file']) && !str_contains($trace['file'], 'wp-includes/wp-db.php')) {
+            // BUGFIX PHP 7.4 COMPATIBILITY: str_contains() è PHP 8.0+, usa strpos()
+            if (isset($trace['file']) && strpos($trace['file'], 'wp-includes/wp-db.php') === false) {
                 $file = str_replace(ABSPATH, '', $trace['file']);
                 $line = $trace['line'] ?? '?';
                 return sprintf('%s:%s', $file, $line);

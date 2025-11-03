@@ -86,14 +86,37 @@ class CoreWebVitalsMonitor
     
     public function saveVitals()
     {
-        if (!wp_verify_nonce($_POST['nonce'], 'fp_save_vitals')) {
-            wp_die('Security check failed');
+        // Verifica nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_save_vitals')) {
+            wp_die('Security check failed', 'Unauthorized', ['response' => 403]);
         }
         
-        $vitals = json_decode(stripslashes($_POST['vitals']), true);
+        // Verifica e sanitizza input
+        if (!isset($_POST['vitals']) || !is_string($_POST['vitals'])) {
+            wp_die('Invalid data', 'Bad Request', ['response' => 400]);
+        }
         
-        if ($vitals) {
-            update_option('fp_core_web_vitals', $vitals);
+        $vitalsRaw = wp_unslash($_POST['vitals']); // Usa wp_unslash invece di stripslashes
+        $vitals = json_decode($vitalsRaw, true);
+        
+        // Verifica JSON valido
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($vitals)) {
+            wp_die('Invalid JSON data', 'Bad Request', ['response' => 400]);
+        }
+        
+        // Sanitizza i valori numerici dei vitals
+        $sanitizedVitals = [];
+        $allowedKeys = ['lcp', 'fid', 'cls', 'fcp', 'ttfb', 'inp'];
+        
+        foreach ($allowedKeys as $key) {
+            if (isset($vitals[$key])) {
+                $sanitizedVitals[$key] = is_numeric($vitals[$key]) ? (float)$vitals[$key] : 0;
+            }
+        }
+        
+        if (!empty($sanitizedVitals)) {
+            $sanitizedVitals['timestamp'] = time();
+            update_option('fp_core_web_vitals', $sanitizedVitals, false);
         }
         
         wp_die();

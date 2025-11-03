@@ -302,10 +302,21 @@ class Routes
 
     public function progress(): WP_REST_Response
     {
-        $file = FP_PERF_SUITE_DIR . '/../.codex-state.json';
-        if (!file_exists($file) || !is_readable($file)) {
+        // SECURITY FIX: Usa realpath per normalizzare path e prevenire directory traversal
+        $file = realpath(FP_PERF_SUITE_DIR . '/../.codex-state.json');
+        
+        // Verifica che il file normalizzato esista e sia readable
+        if ($file === false || !file_exists($file) || !is_readable($file)) {
             return rest_ensure_response([]);
         }
+        
+        // SECURITY: Verifica che il file sia nella directory corretta (non traversal)
+        $pluginDir = realpath(FP_PERF_SUITE_DIR . '/..');
+        if ($pluginDir === false || strpos($file, $pluginDir) !== 0) {
+            Logger::warning('Tentativo accesso file fuori dalla directory plugin', ['file' => $file]);
+            return rest_ensure_response([]);
+        }
+        
         $contents = file_get_contents($file);
 
         if (false === $contents || '' === $contents) {
@@ -313,9 +324,13 @@ class Routes
         }
 
         $data = json_decode($contents, true);
-        if (!is_array($data)) {
-            $data = [];
+        
+        // SECURITY: Valida JSON e tipo
+        if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) {
+            Logger::warning('JSON non valido in codex-state', ['error' => json_last_error_msg()]);
+            return rest_ensure_response([]);
         }
+        
         return rest_ensure_response($data);
     }
 

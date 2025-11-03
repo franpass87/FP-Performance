@@ -2,15 +2,33 @@
 
 namespace FP\PerfSuite\Services\Compression;
 
+use FP\PerfSuite\Utils\Logger;
+
+/**
+ * Compression Manager Service
+ * 
+ * Gestisce compressione GZIP/Brotli
+ * 
+ * @package FP\PerfSuite\Services\Compression
+ */
 class CompressionManager
 {
-    private $gzip;
-    private $brotli;
-    private $minify_html;
-    private $minify_css;
-    private $minify_js;
+    private bool $gzip;
+    private bool $brotli;
+    private bool $minify_html;
+    private bool $minify_css;
+    private bool $minify_js;
     
-    public function __construct($gzip = true, $brotli = false, $minify_html = true, $minify_css = true, $minify_js = true)
+    /**
+     * Costruttore
+     * 
+     * @param bool $gzip Abilita GZIP
+     * @param bool $brotli Abilita Brotli
+     * @param bool $minify_html Abilita minify HTML (deprecated)
+     * @param bool $minify_css Abilita minify CSS (deprecated)
+     * @param bool $minify_js Abilita minify JS (deprecated)
+     */
+    public function __construct(bool $gzip = true, bool $brotli = false, bool $minify_html = true, bool $minify_css = true, bool $minify_js = true)
     {
         $this->gzip = $gzip;
         $this->brotli = $brotli;
@@ -19,7 +37,10 @@ class CompressionManager
         $this->minify_js = $minify_js;
     }
     
-    public function init()
+    /**
+     * Inizializza il servizio
+     */
+    public function init(): void
     {
         if ($this->gzip) {
             add_action('init', [$this, 'enableGzip']);
@@ -45,32 +66,101 @@ class CompressionManager
         // }
     }
     
-    public function enableGzip()
+    /**
+     * Abilita compressione GZIP
+     * 
+     * FIX: Previene doppio ob_start
+     */
+    public function enableGzip(): void
     {
-        // LOGGING PER DEBUG
-        error_log("[FP-PerfSuite] CompressionManager::enableGzip() called - is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
-        
         // NON attivare nell'admin di WordPress
         if (is_admin()) {
-            error_log("[FP-PerfSuite] CompressionManager::enableGzip() SKIPPED - in admin");
             return;
         }
         
-        if (!headers_sent() && extension_loaded('zlib')) {
-            ob_start('ob_gzhandler');
+        // FIX: Verifica se GZIP già attivo
+        if ($this->isGzipActive()) {
+            Logger::debug('GZIP already active, skipping');
+            return;
+        }
+        
+        // Verifica headers e estensione
+        if (headers_sent()) {
+            Logger::warning('Headers already sent, cannot enable GZIP');
+            return;
+        }
+        
+        if (!extension_loaded('zlib')) {
+            Logger::warning('zlib extension not loaded, cannot enable GZIP');
+            return;
+        }
+        
+        // Avvia compressione GZIP
+        if (ob_start('ob_gzhandler')) {
+            Logger::debug('GZIP compression enabled');
+        } else {
+            Logger::error('Failed to start GZIP compression');
         }
     }
     
-    public function enableBrotli()
+    /**
+     * Abilita compressione Brotli
+     * 
+     * FIX: Previene doppio ob_start
+     */
+    public function enableBrotli(): void
     {
         // NON attivare nell'admin di WordPress
         if (is_admin()) {
             return;
         }
         
-        if (!headers_sent() && extension_loaded('brotli')) {
-            ob_start('ob_brotli_handler');
+        // FIX: Verifica se Brotli già attivo
+        if ($this->isBrotliActive()) {
+            Logger::debug('Brotli already active, skipping');
+            return;
         }
+        
+        // Verifica headers e estensione
+        if (headers_sent()) {
+            Logger::warning('Headers already sent, cannot enable Brotli');
+            return;
+        }
+        
+        if (!extension_loaded('brotli') || !function_exists('brotli_compress')) {
+            Logger::warning('Brotli extension not available');
+            return;
+        }
+        
+        // Avvia compressione Brotli
+        if (ob_start('brotli_compress')) {
+            Logger::debug('Brotli compression enabled');
+        } else {
+            Logger::error('Failed to start Brotli compression');
+        }
+    }
+    
+    /**
+     * Verifica se GZIP è già attivo
+     * 
+     * @return bool True se già attivo
+     */
+    private function isGzipActive(): bool
+    {
+        $handlers = ob_list_handlers();
+        return in_array('ob_gzhandler', $handlers, true) || 
+               in_array('zlib output compression', $handlers, true);
+    }
+    
+    /**
+     * Verifica se Brotli è già attivo
+     * 
+     * @return bool True se già attivo
+     */
+    private function isBrotliActive(): bool
+    {
+        $handlers = ob_list_handlers();
+        return in_array('brotli_compress', $handlers, true);
     }
     
     public function minifyHTML()

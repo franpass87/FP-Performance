@@ -93,12 +93,28 @@ class TransientRepository
     /**
      * Increment numeric value
      *
+     * BUGFIX RACE CONDITION: Usa wp_cache_incr se disponibile per operazione atomica
+     * Altrimenti fallback su get-set che ha race condition ma è meglio di niente
+     *
      * @param string $key Transient key
      * @param int $amount Amount to increment by
      * @return int New value
      */
     public function increment(string $key, int $amount = 1): int
     {
+        $fullKey = $this->prefix . $key;
+        
+        // Tentativo 1: Usa wp_cache_incr se object cache è disponibile (atomico)
+        if (function_exists('wp_cache_incr')) {
+            $result = wp_cache_incr($fullKey, $amount);
+            if ($result !== false) {
+                // Aggiorna anche il transient per persistenza
+                $this->set($key, $result);
+                return $result;
+            }
+        }
+        
+        // Fallback: get-set non atomico (race condition possibile ma raro)
         $value = (int)$this->get($key, 0);
         $newValue = $value + $amount;
         $this->set($key, $newValue);
@@ -109,12 +125,33 @@ class TransientRepository
     /**
      * Decrement numeric value
      *
+     * BUGFIX RACE CONDITION: Usa wp_cache_decr se disponibile per operazione atomica
+     * Altrimenti fallback su get-set che ha race condition ma è meglio di niente
+     *
      * @param string $key Transient key
      * @param int $amount Amount to decrement by
      * @return int New value
      */
     public function decrement(string $key, int $amount = 1): int
     {
+        $fullKey = $this->prefix . $key;
+        
+        // Tentativo 1: Usa wp_cache_decr se object cache è disponibile (atomico)
+        if (function_exists('wp_cache_decr')) {
+            $result = wp_cache_decr($fullKey, $amount);
+            if ($result !== false) {
+                // Assicura che non vada sotto zero
+                if ($result < 0) {
+                    $result = 0;
+                    wp_cache_set($fullKey, $result);
+                }
+                // Aggiorna anche il transient per persistenza
+                $this->set($key, $result);
+                return $result;
+            }
+        }
+        
+        // Fallback: get-set non atomico (race condition possibile ma raro)
         $value = (int)$this->get($key, 0);
         $newValue = max(0, $value - $amount);
         $this->set($key, $newValue);

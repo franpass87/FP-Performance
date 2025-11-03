@@ -2,60 +2,96 @@
 
 namespace FP\PerfSuite\Services\CDN;
 
+use FP\PerfSuite\Utils\Logger;
+
+/**
+ * CDN Manager Service
+ * 
+ * Gestisce la distribuzione di asset tramite CDN
+ * 
+ * SECURITY: API credentials NON devono MAI essere esposte nel frontend
+ * 
+ * @package FP\PerfSuite\Services\CDN
+ */
 class CdnManager
 {
-    private $provider;
-    private $api_key;
-    private $zone_id;
+    private string $provider;
+    private string $api_key;
+    private string $zone_id;
+    private ?string $cdn_url = null;
     
-    public function __construct($provider = 'cloudflare', $api_key = '', $zone_id = '')
+    /**
+     * Costruttore
+     * 
+     * @param string $provider Provider CDN
+     * @param string $api_key API key (NEVER expose in frontend!)
+     * @param string $zone_id Zone ID (NEVER expose in frontend!)
+     */
+    public function __construct(string $provider = 'cloudflare', string $api_key = '', string $zone_id = '')
     {
         $this->provider = $provider;
         $this->api_key = $api_key;
         $this->zone_id = $zone_id;
+        
+        // Carica CDN URL da settings
+        $settings = $this->settings();
+        $this->cdn_url = $settings['url'] ?? null;
     }
     
-    public function init()
+    /**
+     * Inizializza il servizio
+     */
+    public function init(): void
     {
+        // Solo se CDN è configurato
+        if (empty($this->cdn_url)) {
+            return;
+        }
+        
         add_filter('wp_get_attachment_url', [$this, 'cdnUrl'], 10, 2);
         add_filter('wp_get_attachment_image_src', [$this, 'cdnImageSrc'], 10, 4);
-        add_action('wp_enqueue_scripts', [$this, 'cdnScripts'], 991);
+        
+        // SECURITY FIX: NON esporre API key/zone nel frontend
+        // Rimuovo completamente cdnScripts()
     }
     
-    public function cdnUrl($url, $post_id)
+    /**
+     * Converte URL in CDN URL
+     * 
+     * @param string $url URL originale
+     * @param int $post_id Post ID
+     * @return string CDN URL o URL originale
+     */
+    public function cdnUrl(string $url, int $post_id): string
     {
-        if (empty($this->api_key) || empty($this->zone_id)) {
+        // Verifica che CDN sia configurato
+        if (empty($this->cdn_url)) {
             return $url;
         }
         
         return $this->getCdnUrl($url);
     }
     
-    public function cdnImageSrc($image, $attachment_id, $size, $icon)
+    /**
+     * Converte image src in CDN URL
+     * 
+     * @param array|false $image Image data
+     * @param int $attachment_id Attachment ID
+     * @param string|array $size Image size
+     * @param bool $icon Is icon
+     * @return array|false CDN image data
+     */
+    public function cdnImageSrc($image, int $attachment_id, $size, bool $icon)
     {
-        if (empty($this->api_key) || empty($this->zone_id)) {
+        if (empty($this->cdn_url)) {
             return $image;
         }
         
-        if ($image && isset($image[0])) {
+        if ($image && is_array($image) && isset($image[0])) {
             $image[0] = $this->getCdnUrl($image[0]);
         }
         
         return $image;
-    }
-    
-    public function cdnScripts()
-    {
-        if (empty($this->api_key) || empty($this->zone_id)) {
-            return;
-        }
-        
-        // SICUREZZA: Add CDN configuration con sanitizzazione
-        wp_localize_script('jquery', 'fpCdnConfig', [
-            'provider' => sanitize_text_field($this->provider),
-            'apiKey' => sanitize_text_field($this->api_key),
-            'zoneId' => sanitize_text_field($this->zone_id)
-        ]);
     }
     
     private function getCdnUrl($url)
@@ -72,39 +108,74 @@ class CdnManager
         return str_replace(home_url(), $cdn_domain, $url);
     }
     
+    /**
+     * SECURITY FIX: CDN domain da configurazione, non hardcoded
+     * 
+     * @return string|false CDN domain o false
+     */
     private function getCdnDomain()
     {
-        switch ($this->provider) {
-            case 'cloudflare':
-                return 'https://cdn.example.com';
-            case 'fastly':
-                return 'https://fastly.example.com';
-            case 'aws':
-                return 'https://s3.amazonaws.com/example-bucket';
-            default:
-                return false;
+        // FIX: Usa CDN URL da settings invece di hardcoded
+        if (!empty($this->cdn_url)) {
+            return $this->cdn_url;
         }
+        
+        // Fallback: leggi da settings se non impostato nel constructor
+        $settings = $this->settings();
+        if (!empty($settings['url'])) {
+            return esc_url_raw($settings['url']);
+        }
+        
+        // Nessun CDN configurato
+        Logger::debug('CDN domain not configured');
+        return false;
     }
     
-    public function purgeCache($urls = [])
+    /**
+     * Purga cache CDN
+     * 
+     * SECURITY: API operations only from server-side (never frontend)
+     * 
+     * @param array $urls URL da purgare (vuoto = purge all)
+     * @return bool True se successo
+     */
+    public function purgeCache(array $urls = []): bool
     {
         if (empty($this->api_key) || empty($this->zone_id)) {
+            Logger::warning('CDN purge skipped - missing credentials');
             return false;
         }
         
-        switch ($this->provider) {
-            case 'cloudflare':
-                return $this->purgeCloudflare($urls);
-            case 'fastly':
-                return $this->purgeFastly($urls);
-            default:
-                return false;
+        try {
+            switch ($this->provider) {
+                case 'cloudflare':
+                    return $this->purgeCloudflare($urls);
+                case 'fastly':
+                    return $this->purgeFastly($urls);
+                default:
+                    Logger::warning('CDN purge skipped - unsupported provider', [
+                        'provider' => $this->provider
+                    ]);
+                    return false;
+            }
+        } catch (\Throwable $e) {
+            Logger::error('CDN purge exception', $e);
+            return false;
         }
     }
     
-    private function purgeCloudflare($urls)
+    /**
+     * Purga cache Cloudflare
+     * 
+     * @param array $urls URL da purgare
+     * @return bool True se successo
+     */
+    private function purgeCloudflare(array $urls): bool
     {
-        $endpoint = "https://api.cloudflare.com/client/v4/zones/{$this->zone_id}/purge_cache";
+        $endpoint = sprintf(
+            'https://api.cloudflare.com/client/v4/zones/%s/purge_cache',
+            $this->zone_id
+        );
         
         $data = [
             'purge_everything' => empty($urls),
@@ -116,36 +187,89 @@ class CdnManager
                 'Authorization' => 'Bearer ' . $this->api_key,
                 'Content-Type' => 'application/json'
             ],
-            'body' => json_encode($data)
+            'body' => wp_json_encode($data),
+            'timeout' => 30,
         ]);
         
         if (is_wp_error($response)) {
+            Logger::error('Cloudflare purge failed', [
+                'error' => $response->get_error_message()
+            ]);
             return false;
         }
         
         $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
+        $responseData = json_decode($body, true);
         
-        return isset($data['success']) && $data['success'];
+        // SECURITY FIX: Valida JSON response
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Logger::error('Cloudflare response JSON invalid', [
+                'error' => json_last_error_msg()
+            ]);
+            return false;
+        }
+        
+        $success = isset($responseData['success']) && $responseData['success'];
+        
+        if (!$success) {
+            Logger::error('Cloudflare purge failed', [
+                'errors' => $responseData['errors'] ?? 'Unknown error',
+                'messages' => $responseData['messages'] ?? []
+            ]);
+        } else {
+            Logger::info('Cloudflare cache purged', [
+                'urls_count' => count($urls),
+                'purge_all' => empty($urls)
+            ]);
+        }
+        
+        return $success;
     }
     
-    private function purgeFastly($urls)
+    /**
+     * Purga cache Fastly
+     * 
+     * @param array $urls URL da purgare
+     * @return bool True se successo
+     */
+    private function purgeFastly(array $urls): bool
     {
-        $endpoint = "https://api.fastly.com/service/{$this->zone_id}/purge";
+        $endpoint = sprintf(
+            'https://api.fastly.com/service/%s/purge',
+            $this->zone_id
+        );
         
         $response = wp_remote_post($endpoint, [
             'headers' => [
                 'Fastly-Key' => $this->api_key,
                 'Content-Type' => 'application/json'
             ],
-            'body' => json_encode(['urls' => $urls])
+            'body' => wp_json_encode(['urls' => $urls]),
+            'timeout' => 30,
         ]);
         
         if (is_wp_error($response)) {
+            Logger::error('Fastly purge failed', [
+                'error' => $response->get_error_message()
+            ]);
             return false;
         }
         
-        return wp_remote_retrieve_response_code($response) === 200;
+        $code = wp_remote_retrieve_response_code($response);
+        $success = $code === 200;
+        
+        if (!$success) {
+            Logger::error('Fastly purge failed', [
+                'status_code' => $code,
+                'response' => wp_remote_retrieve_body($response)
+            ]);
+        } else {
+            Logger::info('Fastly cache purged', [
+                'urls_count' => count($urls)
+            ]);
+        }
+        
+        return $success;
     }
     
     public function getCdnMetrics()

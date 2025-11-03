@@ -366,7 +366,8 @@ class ObjectCacheManager
         
         // Verifica che sia il nostro drop-in
         $content = file_get_contents($this->dropInPath);
-        if (!str_contains($content, 'FP Performance Suite')) {
+        // BUGFIX PHP 7.4 COMPATIBILITY: str_contains() è PHP 8.0+, usa strpos()
+        if (strpos($content, 'FP Performance Suite') === false) {
             return [
                 'success' => false,
                 'message' => 'Il file object-cache.php non appartiene a FP Performance Suite.',

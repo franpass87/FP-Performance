@@ -64,7 +64,12 @@ class Logger
         }
         
         if (!empty($actualContext)) {
-            $contextStr .= ' ' . wp_json_encode($actualContext);
+            $encoded = wp_json_encode($actualContext);
+            if ($encoded === false) {
+                $contextStr .= ' [JSON encoding error: ' . json_last_error_msg() . ']';
+            } else {
+                $contextStr .= ' ' . $encoded;
+            }
         }
 
         self::write(self::ERROR, $message . $contextStr);
@@ -78,7 +83,13 @@ class Logger
      */
     public static function warning(string $message, array $context = []): void
     {
-        $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
+        $contextStr = '';
+        if (!empty($context)) {
+            $encoded = wp_json_encode($context);
+            $contextStr = ($encoded === false) 
+                ? ' [JSON encoding error: ' . json_last_error_msg() . ']'
+                : ' ' . $encoded;
+        }
         self::write(self::WARNING, $message . $contextStr);
         do_action('fp_ps_log_warning', $message, $context);
     }
@@ -89,7 +100,13 @@ class Logger
     public static function info(string $message, array $context = []): void
     {
         if (self::shouldLog(self::INFO)) {
-            $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
+            $contextStr = '';
+            if (!empty($context)) {
+                $encoded = wp_json_encode($context);
+                $contextStr = ($encoded === false) 
+                    ? ' [JSON encoding error: ' . json_last_error_msg() . ']'
+                    : ' ' . $encoded;
+            }
             self::write(self::INFO, $message . $contextStr);
             do_action('fp_ps_log_info', $message, $context);
         }
@@ -106,7 +123,13 @@ class Logger
                 return;
             }
             
-            $contextStr = !empty($context) ? ' ' . wp_json_encode($context) : '';
+            $contextStr = '';
+            if (!empty($context)) {
+                $encoded = wp_json_encode($context);
+                $contextStr = ($encoded === false) 
+                    ? ' [JSON encoding error: ' . json_last_error_msg() . ']'
+                    : ' ' . $encoded;
+            }
             self::write(self::DEBUG, $message . $contextStr);
             do_action('fp_ps_log_debug', $message, $context);
         }

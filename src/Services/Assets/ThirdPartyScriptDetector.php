@@ -267,37 +267,82 @@ class ThirdPartyScriptDetector
     public function scanHtml(string $html): array
     {
         $scripts = [];
+        $uniqueKeys = []; // Evita duplicati senza array_unique su grandi array
+
+        // Limita numero di script analizzati per evitare memory issues
+        $maxScripts = 100;
+        $scriptCount = 0;
 
         // Cerca tag script
         preg_match_all('/<script[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
 
         foreach ($matches[1] as $src) {
+            if ($scriptCount >= $maxScripts) {
+                Logger::warning('Limite script raggiunto durante scan', ['limit' => $maxScripts]);
+                break;
+            }
+            
             if ($this->isInternalScript($src)) {
                 continue;
             }
 
             $identified = $this->identifyScript($src);
             if ($identified) {
-                $scripts[] = $identified;
-            }
-        }
-
-        // Cerca script inline che caricano terze parti
-        preg_match_all('/<script[^>]*>(.*?)<\/script>/is', $html, $inlineMatches);
-
-        foreach ($inlineMatches[1] as $inlineScript) {
-            // Cerca URL esterni in script inline
-            preg_match_all('/(https?:)?\/\/[^\s\'"<>]+/i', $inlineScript, $urlMatches);
-            
-            foreach ($urlMatches[0] as $url) {
-                $identified = $this->identifyScript($url);
-                if ($identified) {
+                $key = md5($identified['src']);
+                if (!isset($uniqueKeys[$key])) {
                     $scripts[] = $identified;
+                    $uniqueKeys[$key] = true;
+                    $scriptCount++;
                 }
             }
         }
 
-        return array_unique($scripts, SORT_REGULAR);
+        // Cerca script inline che caricano terze parti (limitato)
+        preg_match_all('/<script[^>]*>(.*?)<\/script>/is', $html, $inlineMatches, PREG_SET_ORDER);
+
+        $inlineCount = 0;
+        $maxInlineScripts = 50; // Limita numero inline scripts analizzati
+        
+        foreach ($inlineMatches as $match) {
+            if ($inlineCount >= $maxInlineScripts) {
+                break;
+            }
+            $inlineCount++;
+            if ($scriptCount >= $maxScripts) {
+                break;
+            }
+            
+            $inlineScript = $match[1] ?? '';
+            
+            // Limita lunghezza script inline analizzati
+            if (strlen($inlineScript) > 50000) { // 50KB max per inline script
+                continue;
+            }
+            
+            // Cerca URL esterni in script inline
+            preg_match_all('/(https?:)?\/\/[^\s\'"<>]+/i', $inlineScript, $urlMatches);
+            
+            foreach ($urlMatches[0] as $url) {
+                if ($scriptCount >= $maxScripts) {
+                    break 2;
+                }
+                
+                $identified = $this->identifyScript($url);
+                if ($identified) {
+                    $key = md5($identified['src']);
+                    if (!isset($uniqueKeys[$key])) {
+                        $scripts[] = $identified;
+                        $uniqueKeys[$key] = true;
+                        $scriptCount++;
+                    }
+                }
+            }
+        }
+        
+        // Cleanup per liberare memoria
+        unset($uniqueKeys, $matches, $inlineMatches);
+
+        return $scripts;
     }
 
     /**
@@ -305,15 +350,36 @@ class ThirdPartyScriptDetector
      */
     public function analyzePage(string $url): array
     {
-        $response = wp_remote_get($url, ['timeout' => 30]);
+        // Timeout ridotto per evitare blocchi su server lenti
+        $response = wp_remote_get($url, [
+            'timeout' => 15,
+            'redirection' => 3,
+            'httpversion' => '1.1',
+            'user-agent' => 'FP-Performance-Suite/1.6.0',
+            'sslverify' => false, // Per sviluppo locale
+        ]);
 
         if (is_wp_error($response)) {
             return [
                 'error' => $response->get_error_message(),
             ];
         }
+        
+        // Verifica response code
+        $responseCode = wp_remote_retrieve_response_code($response);
+        if ($responseCode !== 200) {
+            return [
+                'error' => sprintf('HTTP %d - Impossibile accedere alla pagina', $responseCode),
+            ];
+        }
 
         $html = wp_remote_retrieve_body($response);
+        
+        // Protezione memoria: limita dimensione HTML analizzata
+        if (strlen($html) > 5000000) { // 5MB max
+            $html = substr($html, 0, 5000000);
+            Logger::warning('HTML truncato per limiti memoria', ['size' => strlen($html)]);
+        }
         $scripts = $this->scanHtml($html);
 
         // Analizza impatto

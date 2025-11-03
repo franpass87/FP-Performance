@@ -16,9 +16,10 @@ final class PerformanceScore
     public const GRADE_C = 60;
     public const GRADE_D = 45;
 
-    public readonly int $total;
-    public readonly array $breakdown;
-    public readonly array $suggestions;
+    // BUGFIX PHP 7.4 COMPATIBILITY: readonly è PHP 8.1+, usa private properties
+    private int $total;
+    private array $breakdown;
+    private array $suggestions;
 
     public function __construct(int $total, array $breakdown, array $suggestions = [])
     {
@@ -32,6 +33,11 @@ final class PerformanceScore
         $this->breakdown = $breakdown;
         $this->suggestions = $suggestions;
     }
+    
+    // BUGFIX: Aggiungi getter methods per PHP 7.4 compatibility
+    public function getTotal(): int { return $this->total; }
+    public function getBreakdown(): array { return $this->breakdown; }
+    public function getSuggestions(): array { return $this->suggestions; }
 
     /**
      * Create from array

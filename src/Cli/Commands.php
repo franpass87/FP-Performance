@@ -251,12 +251,16 @@ class Commands
             if (!empty($analysis['recommendations'])) {
                 \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Recommendations ===%n'));
                 foreach ($analysis['recommendations'] as $rec) {
-                    $color = match($rec['type']) {
-                        'critical' => '%R',
-                        'warning' => '%Y',
-                        'info' => '%C',
-                        default => '%G'
-                    };
+                    // BUGFIX PHP 7.4 COMPATIBILITY: match() è PHP 8.0+, usa if-else
+                    if ($rec['type'] === 'critical') {
+                        $color = '%R';
+                    } elseif ($rec['type'] === 'warning') {
+                        $color = '%Y';
+                    } elseif ($rec['type'] === 'info') {
+                        $color = '%C';
+                    } else {
+                        $color = '%G';
+                    }
                     \WP_CLI::log(\WP_CLI::colorize("{$color}• {$rec['title']}%n"));
                     \WP_CLI::log("  {$rec['message']}");
                 }
@@ -288,12 +292,16 @@ class Commands
             if (!empty($health['issues'])) {
                 \WP_CLI::log("\n" . \WP_CLI::colorize('%Y=== Issues Found ===%n'));
                 foreach ($health['issues'] as $issue) {
-                    $color = match($issue['severity']) {
-                        'high' => '%R',
-                        'medium' => '%Y',
-                        'low' => '%C',
-                        default => '%G'
-                    };
+                    // BUGFIX PHP 7.4 COMPATIBILITY: match() è PHP 8.0+, usa if-else
+                    if ($issue['severity'] === 'high') {
+                        $color = '%R';
+                    } elseif ($issue['severity'] === 'medium') {
+                        $color = '%Y';
+                    } elseif ($issue['severity'] === 'low') {
+                        $color = '%C';
+                    } else {
+                        $color = '%G';
+                    }
                     \WP_CLI::log(\WP_CLI::colorize("{$color}• {$issue['issue']} (penalty: {$issue['penalty']})%n"));
                 }
                 

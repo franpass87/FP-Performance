@@ -18,6 +18,13 @@ class AssetLockManager
     private const LOCK_DIR = 'fp-performance-locks';
     
     /**
+     * BUGFIX: Shared static property per conservare i lock resources
+     * Risolve il problema di variabili statiche locali che non condividono lo stato
+     * @var array<string, resource>
+     */
+    private static array $lockResources = [];
+    
+    /**
      * Acquisisce un lock per un'operazione di asset
      * 
      * @param string $assetType Tipo di asset (critical_css, font_opt, image_opt, etc.)
@@ -54,7 +61,12 @@ class AssetLockManager
         ];
         
         fwrite($lock, wp_json_encode($lockData));
-        fclose($lock);
+        fflush($lock); // Forza scrittura su disco
+        
+        // BUG FIX CRITICO: NON chiudere il lock qui!
+        // Il lock deve rimanere aperto fino a release()
+        // Salvalo in static storage come fa MLSemaphore
+        self::storeLockResource($lockKey, $lock);
         
         Logger::debug('Asset lock acquired', [
             'asset_type' => $assetType,
@@ -77,23 +89,27 @@ class AssetLockManager
         $lockKey = self::generateLockKey($assetType, $identifier);
         $lockFile = self::getLockFilePath($lockKey);
         
-        if (file_exists($lockFile)) {
-            $lock = fopen($lockFile, 'r+');
-            if ($lock && flock($lock, LOCK_EX | LOCK_NB)) {
-                flock($lock, LOCK_UN);
-                fclose($lock);
-                @unlink($lockFile);
-                
-                Logger::debug('Asset lock released', [
-                    'asset_type' => $assetType,
-                    'identifier' => $identifier
-                ]);
-                
-                return true;
-            }
+        // BUG FIX: Usa il lock salvato in storage, non aprirne uno nuovo
+        $lock = self::getLockResource($lockKey);
+        
+        if ($lock) {
+            // Rilascia e chiudi il lock esistente
+            flock($lock, LOCK_UN);
+            fclose($lock);
+            self::removeLockResource($lockKey);
         }
         
-        return false;
+        // Rimuovi il file di lock
+        if (file_exists($lockFile)) {
+            @unlink($lockFile);
+        }
+        
+        Logger::debug('Asset lock released', [
+            'asset_type' => $assetType,
+            'identifier' => $identifier
+        ]);
+        
+        return true;
     }
     
     /**
@@ -116,7 +132,9 @@ class AssetLockManager
         $lockData = @file_get_contents($lockFile);
         if ($lockData) {
             $data = json_decode($lockData, true);
-            if (is_array($data) && isset($data['timestamp'])) {
+            
+            // BUGFIX: Verifica json_last_error() per evitare silent failures
+            if (json_last_error() === JSON_ERROR_NONE && is_array($data) && isset($data['timestamp'])) {
                 $age = time() - $data['timestamp'];
                 if ($age > self::LOCK_TIMEOUT) {
                     // Stale lock, clean it up
@@ -144,11 +162,19 @@ class AssetLockManager
         $cleaned = 0;
         $files = glob($lockDir . '/*.lock');
         
+        // BUGFIX: glob() può ritornare false in caso di errore
+        if ($files === false) {
+            Logger::warning('Failed to list lock files', ['dir' => $lockDir]);
+            return 0;
+        }
+        
         foreach ($files as $file) {
             $lockData = @file_get_contents($file);
             if ($lockData) {
                 $data = json_decode($lockData, true);
-                if (is_array($data) && isset($data['timestamp'])) {
+                
+                // BUGFIX: Verifica json_last_error() per evitare silent failures
+                if (json_last_error() === JSON_ERROR_NONE && is_array($data) && isset($data['timestamp'])) {
                     $age = time() - $data['timestamp'];
                     if ($age > self::LOCK_TIMEOUT) {
                         @unlink($file);
@@ -221,5 +247,30 @@ class AssetLockManager
         }
         
         return $lockDir;
+    }
+    
+    /**
+     * Store lock resource for later release (BUG FIX)
+     * Necessario per mantenere il lock aperto fino a release()
+     */
+    private static function storeLockResource(string $lockKey, $lock): void
+    {
+        self::$lockResources[$lockKey] = $lock;
+    }
+    
+    /**
+     * Get stored lock resource (BUG FIX)
+     */
+    private static function getLockResource(string $lockKey)
+    {
+        return self::$lockResources[$lockKey] ?? null;
+    }
+    
+    /**
+     * Remove stored lock resource (BUG FIX)
+     */
+    private static function removeLockResource(string $lockKey): void
+    {
+        unset(self::$lockResources[$lockKey]);
     }
 }

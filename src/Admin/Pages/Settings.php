@@ -7,6 +7,7 @@ use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use function __;
 use function array_key_exists;

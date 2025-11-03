@@ -3,7 +3,7 @@
  * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
  * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.6.0
+ * Version: 1.7.0
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,14 +16,21 @@
 
 defined('ABSPATH') || exit;
 
-// Last modified: 2025-10-25 - v1.6.0 Shared Hosting Optimization
+// Last modified: 2025-11-02 - v1.7.0 Critical Features Release
 // Plugin principale FP Performance Suite - OTTIMIZZATO PER SHARED HOSTING
+// NEW in v1.7.0: Instant Page, Delay JS, Embed Facades, WooCommerce Optimizations
 
 // Abilita SAVEQUERIES per admin se configurato (attivato dopo che WordPress è pronto)
 add_action('plugins_loaded', function() {
     if (!defined('SAVEQUERIES')) {
         $saveQueriesAdminOnly = get_option('fp_ps_savequeries_admin_only', false);
-        if ($saveQueriesAdminOnly && function_exists('is_user_logged_in') && is_user_logged_in() && current_user_can('manage_options')) {
+        
+        // FIX CRITICO: Verifica che tutte le funzioni esistano prima di chiamarle
+        if ($saveQueriesAdminOnly && 
+            function_exists('is_user_logged_in') && 
+            function_exists('current_user_can') && 
+            is_user_logged_in() && 
+            current_user_can('manage_options')) {
             define('SAVEQUERIES', true);
         }
     }
@@ -120,7 +127,7 @@ spl_autoload_register(static function ($class) {
     }
 });
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.6.0');
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.7.0');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 
@@ -177,25 +184,10 @@ if (defined('FP_PERF_SUITE_LOADED')) {
 }
 define('FP_PERF_SUITE_LOADED', true);
 
-// Sistema di inizializzazione FIXATO - SOLO UNA VOLTA
+// Sistema di inizializzazione - FIX RACE CONDITION
 if (function_exists('add_action')) {
-    global $fp_perf_suite_initialized;
-    if (!isset($fp_perf_suite_initialized)) {
-        $fp_perf_suite_initialized = false;
-    }
-    
-    // Inizializzazione con protezione massima - SOLO UNA VOLTA
+    // Inizializzazione con protezione contro race conditions
     add_action('init', static function () {
-        global $fp_perf_suite_initialized;
-        
-        // Prevenire inizializzazioni multiple - FIX CRITICO
-        if ($fp_perf_suite_initialized) {
-            return;
-        }
-        
-        // Marca come inizializzato immediatamente per prevenire race conditions
-        $fp_perf_suite_initialized = true;
-        
         // Inizializzazione sicura con try-catch
         try {
             fp_perf_suite_initialize_plugin_fixed();
@@ -203,7 +195,7 @@ if (function_exists('add_action')) {
             fp_perf_suite_safe_log('Errore inizializzazione plugin: ' . $e->getMessage());
             
             // Mostra avviso in admin se possibile
-            if (is_admin() && current_user_can('manage_options')) {
+            if (is_admin() && function_exists('current_user_can') && current_user_can('manage_options')) {
                 add_action('admin_notices', static function () use ($e) {
                     printf(
                         '<div class="notice notice-error"><p><strong>FP Performance Suite:</strong> Errore di inizializzazione: %s</p></div>',
@@ -216,10 +208,10 @@ if (function_exists('add_action')) {
 }
 
 /**
- * Funzione di inizializzazione FIXATA del plugin
+ * Funzione di inizializzazione del plugin
+ * FIX RACE CONDITION: Il controllo di inizializzazione è ora gestito da Plugin::init()
  */
 function fp_perf_suite_initialize_plugin_fixed(): void {
-    global $fp_perf_suite_initialized;
     
     // Verifica che il file Plugin.php esista
     $pluginFile = __DIR__ . '/src/Plugin.php';

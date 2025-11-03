@@ -14,11 +14,15 @@ use function checked;
 use function esc_attr;
 use function esc_html;
 use function esc_html_e;
+use function esc_js;
 use function esc_textarea;
+use function home_url;
 use function wp_nonce_field;
 use function sanitize_text_field;
 use function sanitize_textarea_field;
 use function wp_verify_nonce;
+use function wp_safe_redirect;
+use function admin_url;
 use function set_transient;
 use function get_transient;
 use function delete_transient;
@@ -515,22 +519,48 @@ class ThirdPartyTab
             if (isset($_POST['detector_action']) && $_POST['detector_action'] === 'scan' && 
                 isset($_POST['fp_ps_detector_nonce']) && wp_verify_nonce($_POST['fp_ps_detector_nonce'], 'fp-ps-detector')) {
                 
-                $detector = new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector($thirdPartyScripts);
-                $analysis = $detector->analyzePage(home_url());
-                
-                if (!empty($analysis['scripts'])) {
-                    $detected = $analysis['scripts'];
+                try {
+                    $detector = new \FP\PerfSuite\Services\Assets\ThirdPartyScriptDetector($thirdPartyScripts);
+                    $analysis = $detector->analyzePage(home_url());
                     
-                    // Salva i risultati della scansione
-                    set_transient('fp_ps_detected_scripts', $detected, HOUR_IN_SECONDS);
+                    // Verifica errori nella risposta
+                    if (isset($analysis['error'])) {
+                        echo '<div style="background: #fee; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                        echo '<p style="margin: 0; color: #991b1b;"><strong>❌ Errore durante la scansione:</strong> ' . esc_html($analysis['error']) . '</p>';
+                        echo '<p style="margin: 5px 0 0 0; color: #991b1b; font-size: 13px;">Verifica che la homepage sia accessibile e riprova.</p>';
+                        echo '</div>';
+                    } elseif (!empty($analysis['scripts']) && is_array($analysis['scripts'])) {
+                        $detected = $analysis['scripts'];
+                        
+                        // Salva i risultati della scansione
+                        set_transient('fp_ps_detected_scripts', $detected, HOUR_IN_SECONDS);
+                        
+                        echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                        echo '<p style="margin: 0; color: #14532d;"><strong>✅ Scansione completata con successo!</strong></p>';
+                        echo '<p style="margin: 5px 0 0 0; color: #14532d;"><strong>Trovati:</strong> ' . count($detected) . ' script di terze parti</p>';
+                        if (!empty($analysis['by_category'])) {
+                            echo '<p style="margin: 5px 0 0 0; color: #14532d; font-size: 13px;"><strong>Categorie:</strong> ' . count($analysis['by_category']) . '</p>';
+                        }
+                        echo '</div>';
+                    } else {
+                        echo '<div style="background: #fef3c7; border-left: 4px solid #eab308; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                        echo '<p style="margin: 0; color: #713f12;"><strong>⚠️ Nessuno script esterno rilevato.</strong></p>';
+                        echo '<p style="margin: 5px 0 0 0; color: #713f12; font-size: 13px;">Possibili cause:</p>';
+                        echo '<ul style="margin: 8px 0 0 20px; color: #713f12; font-size: 13px;">';
+                        echo '<li>La homepage non ha script di terze parti</li>';
+                        echo '<li>Gli script sono caricati solo dopo interazione utente</li>';
+                        echo '<li>Gli script sono in inline (non file esterni)</li>';
+                        echo '</ul>';
+                        echo '</div>';
+                    }
+                } catch (\Exception $e) {
+                    echo '<div style="background: #fee; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0; border-radius: 6px;">';
+                    echo '<p style="margin: 0; color: #991b1b;"><strong>❌ Errore critico:</strong> ' . esc_html($e->getMessage()) . '</p>';
+                    echo '<p style="margin: 5px 0 0 0; color: #991b1b; font-size: 13px;">Controlla il file debug.log per dettagli.</p>';
+                    echo '</div>';
                     
-                    echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
-                    echo '<p style="margin: 0; color: #14532d;"><strong>✅ Scansione completata!</strong> Trovati ' . count($detected) . ' script di terze parti.</p>';
-                    echo '</div>';
-                } else {
-                    echo '<div style="background: #fef3c7; border-left: 4px solid #eab308; padding: 15px; margin: 20px 0; border-radius: 6px;">';
-                    echo '<p style="margin: 0; color: #713f12;"><strong>⚠️ Nessuno script rilevato.</strong> Prova a visitare prima la homepage per caricare gli script, poi torna qui e scansiona di nuovo.</p>';
-                    echo '</div>';
+                    error_log('FP Performance - Script Detector Error: ' . $e->getMessage());
+                    error_log('FP Performance - Stack Trace: ' . $e->getTraceAsString());
                 }
             }
             
@@ -593,8 +623,11 @@ class ThirdPartyTab
                     
                     $addedCount = 0;
                     foreach ($detectedScripts as $script) {
+                        if (empty($script['src'])) {
+                            continue;
+                        }
                         $host = parse_url($script['src'], PHP_URL_HOST);
-                        if (!empty($host) && !in_array($host, $exclusionsList, true)) {
+                        if (!empty($host) && is_string($host) && !in_array($host, $exclusionsList, true)) {
                             $exclusionsList[] = $host;
                             $addedCount++;
                         }
@@ -699,9 +732,20 @@ class ThirdPartyTab
                         $currentExclusions = $thirdPartySettings['exclusions'] ?? '';
                         
                         foreach ($detectedScripts as $script): 
+                            // Verifica dati script
+                            if (empty($script['src'])) {
+                                continue;
+                            }
+                            
                             $cat = $script['category'] ?? 'other';
                             $catInfo = $categoryLabels[$cat] ?? $categoryLabels['other'];
                             $scriptHost = parse_url($script['src'], PHP_URL_HOST);
+                            
+                            // Salta se parse_url fallisce
+                            if (empty($scriptHost) || !is_string($scriptHost)) {
+                                continue;
+                            }
+                            
                             $isExcluded = !empty($currentExclusions) && stripos($currentExclusions, $scriptHost) !== false;
                         ?>
                             <div style="background: <?php echo $isExcluded ? '#f0fdf4' : '#f8fafc'; ?>; border: 2px solid <?php echo $isExcluded ? '#16a34a' : '#e2e8f0'; ?>; border-radius: 8px; padding: 15px; transition: all 0.2s;">
@@ -710,12 +754,12 @@ class ThirdPartyTab
                                         <!-- Header con nome e badge -->
                                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
                                             <strong style="font-size: 16px; color: #1e293b;">
-                                                <?php echo esc_html($script['name']); ?>
+                                                <?php echo esc_html($script['name'] ?? 'Unknown Script'); ?>
                                             </strong>
                                             
                                             <!-- Badge Categoria -->
-                                            <span style="background: <?php echo $catInfo['color']; ?>; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                                                <?php echo $catInfo['icon'] . ' ' . esc_html($catInfo['label']); ?>
+                                            <span style="background: <?php echo esc_attr($catInfo['color'] ?? '#64748b'); ?>; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                                <?php echo ($catInfo['icon'] ?? '📦') . ' ' . esc_html($catInfo['label'] ?? 'Other'); ?>
                                             </span>
                                             
                                             <!-- Stato Gestione -->
@@ -723,7 +767,7 @@ class ThirdPartyTab
                                                 <span style="background: #16a34a; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold;">
                                                     ✓ ESCLUSO DAL DELAY
                                                 </span>
-                                            <?php elseif (!empty($script['managed'])): ?>
+                                            <?php elseif (isset($script['managed']) && $script['managed']): ?>
                                                 <span style="background: #3b82f6; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold;">
                                                     ⏱️ RITARDATO
                                                 </span>
@@ -863,17 +907,16 @@ class ThirdPartyTab
                 
                 if ($_POST['detector_action'] === 'clear_all') {
                     delete_transient('fp_ps_detected_scripts');
-                    echo '<div style="background: #d1f2eb; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 6px;">';
-                    echo '<p style="margin: 0; color: #14532d;"><strong>✅ Risultati cancellati.</strong></p>';
-                    echo '</div>';
-                    echo '<script>window.location.href = window.location.href.split("?")[0] + "?page=fp-performance-suite-assets&tab=thirdparty";</script>';
+                    // Redirect PHP invece di JavaScript
+                    wp_safe_redirect(admin_url('admin.php?page=fp-performance-suite-assets&tab=thirdparty'));
+                    exit;
                 }
                 
                 if ($_POST['detector_action'] === 'clear_detected') {
-                    $detectedScripts = get_transient('fp_ps_detected_scripts') ?: [];
-                    // Rimuovi quello specifico (implementazione futura)
                     delete_transient('fp_ps_detected_scripts');
-                    echo '<script>window.location.href = window.location.href.split("?")[0] + "?page=fp-performance-suite-assets&tab=thirdparty";</script>';
+                    // Redirect PHP invece di JavaScript
+                    wp_safe_redirect(admin_url('admin.php?page=fp-performance-suite-assets&tab=thirdparty'));
+                    exit;
                 }
             }
             ?>

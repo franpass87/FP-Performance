@@ -16,8 +16,9 @@ final class CacheSettings
     public const MAX_TTL = 86400 * 30; // 30 days
     public const DEFAULT_TTL = 3600;
 
-    public readonly bool $enabled;
-    public readonly int $ttl;
+    // BUGFIX PHP 7.4 COMPATIBILITY: readonly è PHP 8.1+, usa private properties
+    private bool $enabled;
+    private int $ttl;
 
     public function __construct(bool $enabled, int $ttl)
     {
@@ -40,6 +41,10 @@ final class CacheSettings
         $this->enabled = $enabled;
         $this->ttl = $ttl;
     }
+    
+    // BUGFIX: Aggiungi getter methods per PHP 7.4 compatibility
+    public function getEnabled(): bool { return $this->enabled; }
+    public function getTtl(): int { return $this->ttl; }
 
     /**
      * Create from array

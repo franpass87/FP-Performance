@@ -32,9 +32,17 @@ class HtmlMinifier
             return;
         }
         
-        // SICUREZZA: Verifica che non ci siano buffer attivi
-        if (ob_get_level() > 0) {
+        // FIX: Non bloccare se ci sono buffer, lavora con loro
+        // WordPress e molti plugin usano output buffering
+        if (ob_get_level() > 5) { // Solo se troppi buffer nested
+            error_log('[FP-PerfSuite] HtmlMinifier: Too many output buffers (' . ob_get_level() . '), skipping');
             return;
+        }
+        
+        // Verifica che non ci siano conflitti
+        $handlers = ob_list_handlers();
+        if (in_array('ob_gzhandler', $handlers, true)) {
+            error_log('[FP-PerfSuite] HtmlMinifier: ob_gzhandler already active, may conflict');
         }
         
         // SICUREZZA: Rimuoviamo error suppression e gestiamo errori correttamente
@@ -42,11 +50,11 @@ class HtmlMinifier
             $started = ob_start([$this, 'minify']);
             if ($started) {
                 $this->bufferStarted = true;
+                error_log('[FP-PerfSuite] HtmlMinifier: Output buffer started successfully');
             } else {
-                // Log dell'errore se necessario
                 error_log('FP Performance Suite: Failed to start output buffer for HTML minification');
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('FP Performance Suite: Exception in HTML minification: ' . $e->getMessage());
         }
     }

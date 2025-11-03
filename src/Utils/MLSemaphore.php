@@ -16,6 +16,13 @@ class MLSemaphore
     private const LOCK_TIMEOUT = 30; // 30 secondi timeout
     
     /**
+     * BUGFIX: Shared static property per conservare i lock resources
+     * Risolve il problema di variabili statiche locali che non condividono lo stato
+     * @var array<string, resource>
+     */
+    private static array $lockResources = [];
+    
+    /**
      * Acquisisce semaforo per operazione ML
      * 
      * @param string $operation Nome operazione (es: 'pattern_learning', 'anomaly_detection')
@@ -65,8 +72,11 @@ class MLSemaphore
             
             // Check if lock file is stale (older than 5 minutes)
             if (file_exists($lockFile)) {
-                $lockData = @json_decode(@file_get_contents($lockFile), true);
-                if ($lockData && isset($lockData['timestamp'])) {
+                $lockContent = @file_get_contents($lockFile);
+                $lockData = $lockContent ? @json_decode($lockContent, true) : null;
+                
+                // BUGFIX: Verifica json_last_error() per evitare silent failures
+                if (json_last_error() === JSON_ERROR_NONE && $lockData && isset($lockData['timestamp'])) {
                     $age = time() - $lockData['timestamp'];
                     if ($age > 300) { // 5 minutes
                         @unlink($lockFile);
@@ -147,7 +157,15 @@ class MLSemaphore
             return null;
         }
         
-        $data = @json_decode(@file_get_contents($lockFile), true);
+        $content = @file_get_contents($lockFile);
+        $data = $content ? @json_decode($content, true) : null;
+        
+        // BUGFIX: Verifica json_last_error() per evitare dati malformati
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Logger::warning('ML semaphore invalid JSON', ['operation' => $operation]);
+            return null;
+        }
+        
         return $data ?: null;
     }
     
@@ -161,6 +179,12 @@ class MLSemaphore
         $tempDir = sys_get_temp_dir();
         $pattern = $tempDir . '/' . self::SEMAPHORE_PREFIX . '*.lock';
         $files = glob($pattern);
+        
+        // BUGFIX: glob() può ritornare false in caso di errore
+        if ($files === false) {
+            Logger::warning('Failed to list ML semaphore files', ['pattern' => $pattern]);
+            return 0;
+        }
         
         $cleaned = 0;
         foreach ($files as $file) {
@@ -178,8 +202,7 @@ class MLSemaphore
      */
     private static function storeLockResource(string $operation, $lock): void
     {
-        static $lockResources = [];
-        $lockResources[$operation] = $lock;
+        self::$lockResources[$operation] = $lock;
     }
     
     /**
@@ -187,8 +210,7 @@ class MLSemaphore
      */
     private static function getLockResource(string $operation)
     {
-        static $lockResources = [];
-        return $lockResources[$operation] ?? null;
+        return self::$lockResources[$operation] ?? null;
     }
     
     /**
@@ -196,7 +218,6 @@ class MLSemaphore
      */
     private static function removeLockResource(string $operation): void
     {
-        static $lockResources = [];
-        unset($lockResources[$operation]);
+        unset(self::$lockResources[$operation]);
     }
 }

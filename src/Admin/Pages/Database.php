@@ -396,7 +396,10 @@ class Database extends AbstractPage
                 <label class="fp-ps-toggle" style="display: flex; align-items: flex-start; gap: 10px; font-size: 16px; margin-bottom: 15px;">
                     <input type="checkbox" name="database_enabled" value="1" <?php checked(!empty($dbSettings['enabled'])); ?> style="transform: scale(1.2); margin-top: 2px; flex-shrink: 0;" />
                     <span class="info" style="text-align: left; flex: 1;">
-                        <strong style="display: block;"><?php esc_html_e('Enable Database Optimization', 'fp-performance-suite'); ?></strong>
+                        <strong style="display: block;">
+                            <?php esc_html_e('Enable Database Optimization', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('database_enabled'); ?>
+                        </strong>
                         <small style="color: #6c757d; display: block; margin-top: 4px;">
                             <?php esc_html_e('Master switch to enable/disable all database optimization features. When disabled, no database optimization will be applied.', 'fp-performance-suite'); ?>
                         </small>
@@ -458,7 +461,10 @@ class Database extends AbstractPage
                 <?php $querySettings = $queryMonitor->getSettings(); ?>
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Abilita Query Monitor', 'fp-performance-suite'); ?></strong>
+                        <strong>
+                            <?php esc_html_e('Abilita Query Monitor', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('query_monitor'); ?>
+                        </strong>
                         <small><?php esc_html_e('Traccia le query database e fornisce statistiche dettagliate', 'fp-performance-suite'); ?></small>
                     </span>
                     <input type="checkbox" name="query_monitor_enabled" value="1" <?php checked($querySettings['enabled']); ?> />
@@ -1127,6 +1133,15 @@ class Database extends AbstractPage
             $content = $reportService->exportCSV($report);
             $filename = 'fp-performance-db-report-' . date('Y-m-d') . '.csv';
             $contentType = 'text/csv';
+        }
+        
+        // BUGFIX: Verifica se headers già inviati per evitare warning
+        if (headers_sent($file, $line)) {
+            Logger::warning('Cannot send download headers - already sent', [
+                'file' => $file,
+                'line' => $line,
+            ]);
+            wp_die('Headers already sent. Cannot download report.');
         }
         
         header('Content-Type: ' . $contentType);

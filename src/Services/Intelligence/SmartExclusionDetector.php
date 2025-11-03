@@ -638,7 +638,21 @@ class SmartExclusionDetector
             'confidence' => 0,
         ];
 
-        // Prova a fare una richiesta alla pagina
+        // BUGFIX SECURITY: Validazione SSRF - accetta solo URL locali del sito
+        $site_url = site_url();
+        $site_host = parse_url($site_url, PHP_URL_HOST);
+        $url_host = parse_url($url, PHP_URL_HOST);
+        
+        if ($url_host !== $site_host) {
+            Logger::warning('SmartExclusionDetector: Blocked SSRF attempt', [
+                'url' => $url,
+                'expected_host' => $site_host,
+                'actual_host' => $url_host,
+            ]);
+            return $analysis;
+        }
+        
+        // Prova a fare una richiesta alla pagina (solo URL locali)
         $response = wp_remote_get($url, ['timeout' => 5, 'sslverify' => false]);
         
         if (is_wp_error($response)) {

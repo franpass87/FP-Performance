@@ -67,7 +67,8 @@ class AIConfigAjax
         $backendSettings['heartbeat_enabled'] = true;
         $backendSettings['heartbeat_interval'] = $interval;
         
-        $result = update_option('fp_ps_backend', $backendSettings, true);
+        // PERFORMANCE FIX: Usa false per autoload (non serve all'avvio WP)
+        $result = update_option('fp_ps_backend', $backendSettings, false);
         
         if ($result !== false) {
             wp_send_json_success([
@@ -119,7 +120,8 @@ class AIConfigAjax
         Logger::info('AI Config: Updating exclusions', ['count' => count($exclusions)]);
         
         // Salva le esclusioni
-        $result = update_option('fp_ps_exclusions', $exclusions, true);
+        // PERFORMANCE FIX: Usa false per autoload (non serve all'avvio WP)
+        $result = update_option('fp_ps_exclusions', $exclusions, false);
         
         if ($result !== false) {
             wp_send_json_success([

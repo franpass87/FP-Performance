@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\DB;
 
+use FP\PerfSuite\Utils\Logger;
+
 class Cleaner
 {
     public const CRON_HOOK = 'fp_clean_database';
@@ -42,15 +44,17 @@ class Cleaner
         return $cleaned;
     }
     
-    private function cleanRevisions()
+    private function cleanRevisions(int $limit = 500)
     {
         global $wpdb;
         
-        $revisions = $wpdb->get_results("
+        // FIX: Aggiungi LIMIT per prevenire timeout
+        $revisions = $wpdb->get_results($wpdb->prepare("
             SELECT ID FROM {$wpdb->posts} 
             WHERE post_type = 'revision' 
             AND post_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ");
+            LIMIT %d
+        ", $limit));
         
         $cleaned = 0;
         foreach ($revisions as $revision) {
@@ -62,14 +66,16 @@ class Cleaner
         return $cleaned;
     }
     
-    private function cleanSpam()
+    private function cleanSpam(int $limit = 500)
     {
         global $wpdb;
         
-        $spam_comments = $wpdb->get_results("
+        // FIX: Aggiungi LIMIT per prevenire timeout
+        $spam_comments = $wpdb->get_results($wpdb->prepare("
             SELECT comment_ID FROM {$wpdb->comments} 
             WHERE comment_approved = 'spam'
-        ");
+            LIMIT %d
+        ", $limit));
         
         $cleaned = 0;
         foreach ($spam_comments as $comment) {
@@ -81,15 +87,17 @@ class Cleaner
         return $cleaned;
     }
     
-    private function cleanTrash()
+    private function cleanTrash(int $limit = 500)
     {
         global $wpdb;
         
-        $trash_posts = $wpdb->get_results("
+        // FIX: Aggiungi LIMIT per prevenire timeout
+        $trash_posts = $wpdb->get_results($wpdb->prepare("
             SELECT ID FROM {$wpdb->posts} 
             WHERE post_status = 'trash' 
             AND post_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ");
+            LIMIT %d
+        ", $limit));
         
         $cleaned = 0;
         foreach ($trash_posts as $post) {
@@ -499,15 +507,50 @@ class Cleaner
     {
         global $wpdb;
         
+        // SECURITY FIX: Usa whitelist invece di validazione regex
+        // Ottieni lista tabelle WordPress ufficiali
         $tables = $wpdb->get_results('SHOW TABLES', ARRAY_N);
-        $optimized = 0;
         
+        if (!is_array($tables) || empty($tables)) {
+            return 0;
+        }
+        
+        // Crea whitelist di tabelle valide
+        $allowedTables = [];
         foreach ($tables as $table) {
             $tableName = $table[0];
+            
+            // Solo tabelle con prefix WordPress
             if (strpos($tableName, $wpdb->prefix) === 0) {
-                $wpdb->query("OPTIMIZE TABLE `{$tableName}`");
-                $optimized++;
+                // Validazione strict: solo alfanumerici e underscore
+                if (preg_match('/^[a-zA-Z0-9_]+$/', $tableName)) {
+                    $allowedTables[] = $tableName;
+                }
             }
+        }
+        
+        $optimized = 0;
+        
+        foreach ($allowedTables as $tableName) {
+            // SECURITY: Usa backtick escaping per nomi tabella
+            // Essendo in whitelist validata, è safe
+            $escaped = '`' . str_replace('`', '``', $tableName) . '`';
+            
+            $result = $wpdb->query("OPTIMIZE TABLE {$escaped}");
+            
+            if ($result !== false) {
+                $optimized++;
+                Logger::debug('Table ottimizzata', ['table' => $tableName]);
+            } else {
+                Logger::warning('Impossibile ottimizzare tabella', [
+                    'table' => $tableName,
+                    'error' => $wpdb->last_error,
+                ]);
+            }
+        }
+        
+        if ($optimized > 0) {
+            Logger::info("Database optimization completata: {$optimized} tabelle ottimizzate");
         }
         
         return $optimized;

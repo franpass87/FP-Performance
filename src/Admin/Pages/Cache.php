@@ -397,7 +397,10 @@ class Cache extends AbstractPage
                 <input type="hidden" name="fp_ps_page_cache" value="1" />
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Enable page cache', 'fp-performance-suite'); ?></strong>
+                        <strong>
+                            <?php esc_html_e('Enable page cache', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('page_cache'); ?>
+                        </strong>
                         <span class="description"><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></span>
                     </span>
                     <input type="checkbox" name="page_cache_enabled" value="1" <?php checked($pageSettings['enabled']); ?> data-risk="amber" />
@@ -477,7 +480,10 @@ class Cache extends AbstractPage
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Enable Predictive Prefetching', 'fp-performance-suite'); ?></strong>
+                        <strong>
+                            <?php esc_html_e('Enable Predictive Prefetching', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('predictive_prefetch'); ?>
+                        </strong>
                         <span class="description"><?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?></span>
                     </span>
                     <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled'] ?? false); ?> data-risk="green" />
@@ -573,7 +579,10 @@ class Cache extends AbstractPage
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
-                        <strong><?php esc_html_e('Abilita Cache Rules', 'fp-performance-suite'); ?></strong>
+                        <strong>
+                            <?php esc_html_e('Abilita Cache Rules', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('cache_rules'); ?>
+                        </strong>
                         <span class="description"><?php esc_html_e('Applica regole .htaccess ottimizzate per il caching dei file statici.', 'fp-performance-suite'); ?></span>
                     </span>
                     <input type="checkbox" name="cache_rules_enabled" value="1" <?php checked($headerSettings['cache_rules']['enabled'] ?? false); ?> data-risk="green" />
@@ -584,6 +593,7 @@ class Cache extends AbstractPage
                         <label>
                             <input type="checkbox" name="html_cache" value="1" <?php checked($headerSettings['cache_rules']['html_cache'] ?? false); ?> />
                             <?php esc_html_e('Cache HTML', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('html_cache'); ?>
                         </label>
                         <span class="description" style="display: block; margin-left: 24px; color: #d63638;"><?php esc_html_e('❌ Sconsigliato: meglio no-cache per contenuti dinamici', 'fp-performance-suite'); ?></span>
                     </p>
@@ -592,6 +602,7 @@ class Cache extends AbstractPage
                         <label>
                             <input type="checkbox" name="fonts_cache" value="1" <?php checked($headerSettings['cache_rules']['fonts_cache'] ?? true); ?> />
                             <?php esc_html_e('Cache Font (woff2, woff, ttf, otf)', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('fonts_cache'); ?>
                         </label>
                     </p>
                     <p style="margin-left: 24px;">
