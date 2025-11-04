@@ -298,3 +298,4 @@ PHP Version: <?php echo PHP_VERSION; ?>&#10;WordPress Version: <?php echo get_bl
 </body>
 </html>
 
+

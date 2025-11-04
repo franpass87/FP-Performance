@@ -520,3 +520,4 @@ Prima del deploy in produzione:
 *Total bugs fixed: 75+*  
 *Quality score: A+*
 
+

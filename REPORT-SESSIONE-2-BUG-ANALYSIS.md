@@ -558,3 +558,4 @@ Il plugin ha una **buona base di sicurezza** nelle admin pages (nonce, caps, san
 *Analisi completata su 50+ file*  
 *15 bug trovati*
 
+

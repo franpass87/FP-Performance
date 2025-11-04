@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Services\Admin\BackendOptimizer;
 
 use function __;
@@ -156,15 +157,14 @@ class Backend extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                ⚙️ <?php esc_html_e('Backend Optimization', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Ottimizza l\'area amministrativa WordPress: disabilita funzionalità inutilizzate, riduci script e migliora le prestazioni del backend.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '⚙️',
+            __('Backend Optimization', 'fp-performance-suite'),
+            __('Ottimizza l\'area amministrativa WordPress: disabilita funzionalità inutilizzate, riduci script e migliora le prestazioni del backend.', 'fp-performance-suite')
+        );
+        ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($message); ?></p></div>

@@ -13,6 +13,8 @@ use function wp_verify_nonce;
 use function date_i18n;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\Components\PageIntro;
+use FP\PerfSuite\Admin\Components\StatsCard;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator;
@@ -133,15 +135,14 @@ class IntelligenceDashboard extends AbstractPage
             }
         </style>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                🧠 <?php esc_html_e('Intelligence Dashboard', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Dashboard intelligente con auto-detection, esclusioni automatiche basate sulle performance e raccomandazioni smart.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🧠',
+            __('Intelligence Dashboard', 'fp-performance-suite'),
+            __('Dashboard intelligente con auto-detection, esclusioni automatiche basate sulle performance e raccomandazioni smart.', 'fp-performance-suite')
+        );
+        ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-<?php echo esc_attr($messageType); ?>">
@@ -149,40 +150,39 @@ class IntelligenceDashboard extends AbstractPage
             </div>
         <?php endif; ?>
 
-        <!-- Intelligence Overview -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🧠 Score Intelligence</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($dashboardData['overall_score']); ?>%</div>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
-                    <?php echo esc_html($this->getScoreStatus($dashboardData['overall_score'])); ?>
-                </div>
-            </div>
-            
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">📊 Esclusioni Attive</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($dashboardData['exclusions_count']); ?></div>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
-                    <?php echo esc_html($dashboardData['exclusions_breakdown']); ?>
-                </div>
-            </div>
-            
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">⚡ Performance Score</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($dashboardData['performance_score']); ?>%</div>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
-                    <?php echo esc_html($dashboardData['performance_status']); ?>
-                </div>
-            </div>
-            
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🎯 Raccomandazioni</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($dashboardData['recommendations_count']); ?></div>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">
-                    <?php echo esc_html($dashboardData['action_required'] ? 'Azione richiesta' : 'Tutto OK'); ?>
-                </div>
-            </div>
-        </div>
+        <?php
+        // Intelligence Overview con StatsCard Component
+        echo StatsCard::renderGrid([
+            [
+                'icon' => '🧠',
+                'label' => __('Score Intelligence', 'fp-performance-suite'),
+                'value' => $dashboardData['overall_score'] . '%',
+                'sublabel' => $this->getScoreStatus($dashboardData['overall_score']),
+                'gradient' => StatsCard::GRADIENT_PURPLE
+            ],
+            [
+                'icon' => '📊',
+                'label' => __('Esclusioni Attive', 'fp-performance-suite'),
+                'value' => $dashboardData['exclusions_count'],
+                'sublabel' => $dashboardData['exclusions_breakdown'],
+                'gradient' => StatsCard::GRADIENT_PINK
+            ],
+            [
+                'icon' => '⚡',
+                'label' => __('Performance Score', 'fp-performance-suite'),
+                'value' => $dashboardData['performance_score'] . '%',
+                'sublabel' => $dashboardData['performance_status'],
+                'gradient' => StatsCard::GRADIENT_BLUE
+            ],
+            [
+                'icon' => '🎯',
+                'label' => __('Raccomandazioni', 'fp-performance-suite'),
+                'value' => $dashboardData['recommendations_count'],
+                'sublabel' => $dashboardData['action_required'] ? __('Azione richiesta', 'fp-performance-suite') : __('Tutto OK', 'fp-performance-suite'),
+                'gradient' => StatsCard::GRADIENT_GREEN
+            ]
+        ]);
+        ?>
 
         <form method="post">
             <?php wp_nonce_field('fp-ps-intelligence', 'fp_ps_intelligence_nonce'); ?>

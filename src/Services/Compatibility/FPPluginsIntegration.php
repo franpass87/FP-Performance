@@ -67,6 +67,13 @@ final class FPPluginsIntegration
         $exclude_uris[] = '/wp-json/fp-*/';
         $exclude_uris[] = 'wp-json/fp-';
         
+        // CRITICAL: Escludi WooCommerce Store API dalla cache (usata da Blocks)
+        $exclude_uris[] = '/wc/store/';
+        $exclude_uris[] = 'wc/store/';
+        $exclude_uris[] = '/wc/store/*';
+        $exclude_uris[] = '/wp-json/wc/store/';
+        $exclude_uris[] = 'wp-json/wc/store/';
+        
         return array_unique($exclude_uris);
     }
     

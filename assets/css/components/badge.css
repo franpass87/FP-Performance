@@ -101,17 +101,20 @@
 	color: #fff;
 	padding: 12px 16px;
 	border-radius: 8px;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
 	width: max-content;
-	max-width: 280px;
+	max-width: 320px;
+	min-width: 280px;
 	opacity: 0;
 	visibility: hidden;
 	transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
-	z-index: 9999999;
-	font-size: 12px;
-	line-height: 1.5;
+	z-index: 9999999 !important;
+	font-size: 13px;
+	line-height: 1.6;
 	pointer-events: none;
 	white-space: normal;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
 }
 
 .fp-ps-risk-tooltip::after {
@@ -125,9 +128,12 @@
 }
 
 /* Posizionamento dinamico del tooltip */
-.fp-ps-risk-indicator:hover .fp-ps-risk-tooltip {
+.fp-ps-risk-indicator:hover .fp-ps-risk-tooltip,
+.fp-ps-risk-indicator:focus .fp-ps-risk-tooltip,
+.fp-ps-risk-indicator:focus-within .fp-ps-risk-tooltip {
 	opacity: 1;
 	visibility: visible;
+	transform: translateX(-50%) translateY(-12px);
 }
 
 /* Variante tooltip sotto (per opzioni in alto nella pagina) */
@@ -200,8 +206,22 @@
 }
 
 .fp-ps-risk-tooltip-text {
-	font-size: 12px;
-	line-height: 1.4;
+	font-size: 13px;
+	line-height: 1.6;
+	color: rgba(255, 255, 255, 0.95);
+}
+
+/* Mobile responsive tooltip */
+@media (max-width: 782px) {
+	.fp-ps-risk-tooltip {
+		max-width: 90vw;
+		min-width: 260px;
+		font-size: 12px;
+	}
+	
+	.fp-ps-risk-tooltip-title {
+		font-size: 13px;
+	}
 }
 
 .fp-ps-risk-tooltip.green .fp-ps-risk-tooltip-title {

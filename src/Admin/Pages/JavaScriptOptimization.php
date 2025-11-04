@@ -6,6 +6,7 @@ use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
 use FP\PerfSuite\Services\Assets\CodeSplittingManager;
 use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function add_action;
 use function wp_verify_nonce;
@@ -123,6 +124,15 @@ class JavaScriptOptimization extends AbstractPage
         $treeShakingSettings = $this->treeShaker->settings();
         
         ob_start();
+        ?>
+        
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '⚡',
+            __('JavaScript Optimization', 'fp-performance-suite'),
+            __('Ottimizzazioni avanzate JavaScript: rimuovi codice inutilizzato, split del codice, tree shaking e dynamic imports per ridurre il bundle size.', 'fp-performance-suite')
+        );
         ?>
         
         <?php

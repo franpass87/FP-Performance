@@ -10,6 +10,7 @@ use FP\PerfSuite\Services\Mobile\MobileCacheManager;
 use FP\PerfSuite\Services\Mobile\ResponsiveImageManager;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 /**
  * Mobile Optimization Admin Page
@@ -70,17 +71,14 @@ class Mobile extends AbstractPage
         }
         ?>
         <div class="wrap">
-            <!-- INTRO BOX -->
-            <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                    📱 <?php esc_html_e('Mobile Optimization', 'fp-performance-suite'); ?>
-                </h2>
-                <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                    <?php esc_html_e('Ottimizza l\'esperienza mobile del tuo sito: animazioni, touch targets, responsive images e cache dedicata per dispositivi mobili.', 'fp-performance-suite'); ?>
-                </p>
-            </div>
-            
             <?php
+            // Intro Box con PageIntro Component
+            echo PageIntro::render(
+                '📱',
+                __('Mobile Optimization', 'fp-performance-suite'),
+                __('Ottimizza l\'esperienza mobile del tuo sito: animazioni, touch targets, responsive images e cache dedicata per dispositivi mobili.', 'fp-performance-suite')
+            );
+            
             // Mostra legenda rischi
             echo RiskLegend::renderLegend();
             ?>

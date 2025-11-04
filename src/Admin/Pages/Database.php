@@ -12,6 +12,7 @@ use FP\PerfSuite\Services\DB\QueryCacheManager;
 use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function __;
 use function array_map;
@@ -298,11 +299,11 @@ class Database extends AbstractPage
         ?>
         
         <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                💾 Ottimizzazione Database
+        <div class="fp-ps-intro-panel">
+            <h2 class="fp-ps-intro-title">
+                💾 <?php esc_html_e('Ottimizzazione Database', 'fp-performance-suite'); ?>
             </h2>
-            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
+            <p class="fp-ps-intro-description" style="margin-bottom: 25px;">
                 <?php esc_html_e('Il database è il cuore del tuo WordPress. Queste operazioni lo mantengono veloce, leggero e ottimizzato.', 'fp-performance-suite'); ?>
             </p>
             

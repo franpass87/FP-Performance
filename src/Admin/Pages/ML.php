@@ -6,6 +6,7 @@ use FP\PerfSuite\Admin\Pages\AbstractPage;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Services\ML\MLPredictor;
 use FP\PerfSuite\Services\ML\PatternLearner;
 use FP\PerfSuite\Services\ML\AnomalyDetector;
@@ -75,39 +76,14 @@ class ML extends AbstractPage
         ob_start();
         ?>
         
-        <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                🤖 <?php esc_html_e('Machine Learning Intelligence', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('L\'intelligenza artificiale che impara dal tuo sito per ottimizzare automaticamente le performance e prevedere problemi futuri.', 'fp-performance-suite'); ?>
-            </p>
-            
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🧠</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Predizioni Intelligenti', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
-                        <?php esc_html_e('Analizza pattern di performance e prevede problemi prima che si verifichino', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Rilevamento Anomalie', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
-                        <?php esc_html_e('Identifica automaticamente comportamenti anomali e potenziali problemi', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">⚙️</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px; color: white;"><?php esc_html_e('Auto-Tuning', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5; color: white;">
-                        <?php esc_html_e('Ottimizza automaticamente le impostazioni basandosi sui dati raccolti', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-            </div>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🤖',
+            __('Machine Learning Intelligence', 'fp-performance-suite'),
+            __('L\'intelligenza artificiale che impara dal tuo sito per ottimizzare automaticamente le performance e prevedere problemi futuri.', 'fp-performance-suite')
+        );
+        ?>
 
         <!-- Alert Informazioni -->
         <div class="notice notice-info inline" style="margin-bottom: 25px; border-left-color: #10b981;">

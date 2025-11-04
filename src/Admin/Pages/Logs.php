@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Logs\DebugToggler;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function __;
 use function checked;
@@ -85,15 +86,14 @@ class Logs extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                📝 <?php esc_html_e('Logs & Debug', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Gestisci i log di debug WordPress, visualizza errori PHP in tempo reale e attiva/disattiva WP_DEBUG in sicurezza.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '📝',
+            __('Logs & Debug', 'fp-performance-suite'),
+            __('Gestisci i log di debug WordPress, visualizza errori PHP in tempo reale e attiva/disattiva WP_DEBUG in sicurezza.', 'fp-performance-suite')
+        );
+        ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-info"><p><?php echo esc_html($message); ?></p></div>

@@ -19,6 +19,7 @@ use FP\PerfSuite\Services\Compatibility\ThemeDetector;
 use FP\PerfSuite\Admin\ThemeHints;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\StatusIndicator;
+use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\JavaScriptTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\CssTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\FontsTab;
@@ -131,15 +132,14 @@ class Assets extends AbstractPage
             ob_start();
             ?>
             <div class="wrap">
-                <!-- INTRO BOX -->
-                <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                        📦 <?php esc_html_e('Assets Optimization', 'fp-performance-suite'); ?>
-                    </h2>
-                    <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                        <?php esc_html_e('Ottimizza JavaScript, CSS, Fonts e risorse di terze parti per velocizzare drasticamente il caricamento delle pagine.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
+                <?php
+                // Intro Box con PageIntro Component
+                echo PageIntro::render(
+                    '📦',
+                    __('Assets Optimization', 'fp-performance-suite'),
+                    __('Ottimizza JavaScript, CSS, Fonts e risorse di terze parti per velocizzare drasticamente il caricamento delle pagine.', 'fp-performance-suite')
+                );
+                ?>
                 
                 <?php if ($message) : ?>
                     <div class="notice notice-success is-dismissible" style="margin: 20px 0; padding: 15px; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px;">

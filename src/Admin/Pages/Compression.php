@@ -5,6 +5,8 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
+use FP\PerfSuite\Admin\Components\InfoBox;
 use FP\PerfSuite\Services\Compression\CompressionManager;
 
 /**
@@ -81,15 +83,14 @@ class Compression extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                🗜️ <?php esc_html_e('Compression', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Riduci le dimensioni dei file con compressione GZIP e Brotli. Minifica HTML, CSS e JavaScript per velocizzare il caricamento.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🗜️',
+            __('Compression', 'fp-performance-suite'),
+            __('Riduci le dimensioni dei file con compressione GZIP e Brotli. Minifica HTML, CSS e JavaScript per velocizzare il caricamento.', 'fp-performance-suite')
+        );
+        ?>
         
         <?php
         // Mostra legenda rischi
@@ -102,46 +103,6 @@ class Compression extends AbstractPage
             $notice_class = $is_error ? 'notice-error' : 'notice-success';
             ?>
             <div class="notice <?php echo esc_attr($notice_class); ?> is-dismissible">
-                <p><?php echo esc_html($message); ?></p>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Pannello Introduttivo -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                🗜️ Compressione
-            </h2>
-            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 25px; opacity: 0.95;">
-                <?php esc_html_e('La compressione riduce drasticamente la dimensione dei file trasferiti, accelerando il caricamento del sito.', 'fp-performance-suite'); ?>
-            </p>
-            
-            <div class="fp-ps-grid three" style="gap: 20px;">
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🗜️</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Gzip', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Compressione standard supportata da tutti i browser. Riduce i file del 60-80%.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">⚡</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Brotli', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Compressione moderna ancora più efficace. Riduzione file fino al 85%.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                <div style="background: rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; backdrop-filter: blur(10px);">
-                    <div style="font-size: 32px; margin-bottom: 10px;">🚀</div>
-                    <strong style="display: block; margin-bottom: 8px; font-size: 16px;"><?php esc_html_e('Performance', 'fp-performance-suite'); ?></strong>
-                    <p style="margin: 0; font-size: 14px; opacity: 0.9; line-height: 1.5;">
-                        <?php esc_html_e('Caricamento pagine 3x più veloce e risparmio banda fino al 70%.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <?php if ($message) : ?>
-            <div class="notice notice-<?php echo isset($_GET['error']) ? 'error' : 'success'; ?> is-dismissible">
                 <p><?php echo esc_html($message); ?></p>
             </div>
         <?php endif; ?>
@@ -320,40 +281,32 @@ class Compression extends AbstractPage
             </section>
         <?php endif; ?>
 
-        <!-- Info Box Benefici -->
-        <section class="fp-ps-card" style="background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%); border: none;">
-            <h2 style="color: #1e40af;"><?php esc_html_e('💡 Vantaggi della Compressione', 'fp-performance-suite'); ?></h2>
-            
-            <div class="fp-ps-grid two" style="gap: 20px; margin: 20px 0;">
-                <div style="background: white; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-top: 0; color: #1e40af;">📊 Risparmio Banda</h3>
-                    <p style="margin: 0; line-height: 1.6;">
-                        <?php esc_html_e('Con Gzip puoi ridurre i file HTML, CSS e JavaScript del 60-80%. Con Brotli fino all\'85%. Questo significa meno banda consumata e costi hosting ridotti.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                
-                <div style="background: white; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-top: 0; color: #1e40af;">🚀 Velocità</h3>
-                    <p style="margin: 0; line-height: 1.6;">
-                        <?php esc_html_e('Pagine più leggere = caricamento più veloce. Gli utenti vedranno il sito caricarsi 2-3 volte più rapidamente, migliorando l\'esperienza e il punteggio SEO.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                
-                <div style="background: white; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-top: 0; color: #1e40af;">📱 Mobile</h3>
-                    <p style="margin: 0; line-height: 1.6;">
-                        <?php esc_html_e('Su connessioni mobili lente, la compressione è essenziale. Utenti con 3G/4G beneficeranno enormemente della riduzione dei dati trasferiti.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-                
-                <div style="background: white; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-top: 0; color: #1e40af;">💰 Costi</h3>
-                    <p style="margin: 0; line-height: 1.6;">
-                        <?php esc_html_e('Riducendo la banda utilizzata, puoi risparmiare sui costi di hosting e CDN. Alcuni provider fatturano in base al traffico trasferito.', 'fp-performance-suite'); ?>
-                    </p>
-                </div>
-            </div>
-        </section>
+        <?php
+        // Info Box Benefici con InfoBox Component
+        echo InfoBox::renderWithGrid(
+            '💡 ' . __('Vantaggi della Compressione', 'fp-performance-suite'),
+            [
+                [
+                    'title' => '📊 ' . __('Risparmio Banda', 'fp-performance-suite'),
+                    'content' => __('Con Gzip puoi ridurre i file HTML, CSS e JavaScript del 60-80%. Con Brotli fino all\'85%. Questo significa meno banda consumata e costi hosting ridotti.', 'fp-performance-suite')
+                ],
+                [
+                    'title' => '🚀 ' . __('Velocità', 'fp-performance-suite'),
+                    'content' => __('Pagine più leggere = caricamento più veloce. Gli utenti vedranno il sito caricarsi 2-3 volte più rapidamente, migliorando l\'esperienza e il punteggio SEO.', 'fp-performance-suite')
+                ],
+                [
+                    'title' => '📱 ' . __('Mobile', 'fp-performance-suite'),
+                    'content' => __('Su connessioni mobili lente, la compressione è essenziale. Utenti con 3G/4G beneficeranno enormemente della riduzione dei dati trasferiti.', 'fp-performance-suite')
+                ],
+                [
+                    'title' => '💰 ' . __('Costi', 'fp-performance-suite'),
+                    'content' => __('Riducendo la banda utilizzata, puoi risparmiare sui costi di hosting e CDN. Alcuni provider fatturano in base al traffico trasferito.', 'fp-performance-suite')
+                ]
+            ],
+            InfoBox::TYPE_INFO,
+            2 // 2 colonne
+        );
+        ?>
 
         <?php
         return (string) ob_get_clean();

@@ -322,59 +322,47 @@ class Menu
         );
 
         // ═══════════════════════════════════════════════════════════
-        // 📊 DASHBOARD & QUICK START
+        // 🏠 DASHBOARD & QUICK START
         // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Overview', 'fp-performance-suite'), __('📊 Overview', 'fp-performance-suite'), $capability, 'fp-performance-suite', [$pages['overview'], 'render']);
-        add_submenu_page('fp-performance-suite', __('AI Auto-Config', 'fp-performance-suite'), __('⚡ AI Auto-Config', 'fp-performance-suite'), $capability, 'fp-performance-suite-ai-config', [$pages['ai_config'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Overview', 'fp-performance-suite'), __('🏠 Overview', 'fp-performance-suite'), $capability, 'fp-performance-suite', [$pages['overview'], 'render']);
+        add_submenu_page('fp-performance-suite', __('AI Config', 'fp-performance-suite'), __('🤖 AI Config', 'fp-performance-suite'), $capability, 'fp-performance-suite-ai-config', [$pages['ai_config'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🚀 PERFORMANCE OPTIMIZATION
+        // 🚀 OPTIMIZATION
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Cache', 'fp-performance-suite'), __('🚀 Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-cache', [$pages['cache'], 'render']);
         add_submenu_page('fp-performance-suite', __('Assets', 'fp-performance-suite'), __('📦 Assets', 'fp-performance-suite'), $capability, 'fp-performance-suite-assets', [$pages['assets'], 'render']);
-        // JS Optimization è ora una tab dentro Assets
-        // add_submenu_page('fp-performance-suite', __('JavaScript Optimization', 'fp-performance-suite'), __('⚡ JS Optimization', 'fp-performance-suite'), $capability, 'fp-performance-suite-js-optimization', [$pages['js_optimization'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('⚙️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         add_submenu_page('fp-performance-suite', __('Compression', 'fp-performance-suite'), __('🗜️ Compression', 'fp-performance-suite'), $capability, 'fp-performance-suite-compression', [$pages['compression'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Media', 'fp-performance-suite'), __('🖼️ Media', 'fp-performance-suite'), $capability, 'fp-performance-suite-media', [$pages['media'], 'render']);
         add_submenu_page('fp-performance-suite', __('Mobile', 'fp-performance-suite'), __('📱 Mobile', 'fp-performance-suite'), $capability, 'fp-performance-suite-mobile', [$pages['mobile'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🌐 CDN
+        // 🏗️ INFRASTRUCTURE
         // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Database', 'fp-performance-suite'), __('💾 Database', 'fp-performance-suite'), $capability, 'fp-performance-suite-database', [$pages['database'], 'render']);
         add_submenu_page('fp-performance-suite', __('CDN', 'fp-performance-suite'), __('🌐 CDN', 'fp-performance-suite'), $capability, 'fp-performance-suite-cdn', [$pages['cdn'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Backend', 'fp-performance-suite'), __('🎛️ Backend', 'fp-performance-suite'), $capability, 'fp-performance-suite-backend', [$pages['backend'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🌐 EXTERNAL CACHE - RIMOSSO (file eliminato)
+        // 🎨 ADVANCED
         // ═══════════════════════════════════════════════════════════
-        // add_submenu_page('fp-performance-suite', __('External Cache', 'fp-performance-suite'), __('🌐 External Cache', 'fp-performance-suite'), $capability, 'fp-performance-suite-external-cache', [$pages['external_cache'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Theme', 'fp-performance-suite'), __('🎨 Theme', 'fp-performance-suite'), $capability, 'fp-performance-suite-theme-optimization', [$pages['theme_optimization'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🛡️ SECURITY & INFRASTRUCTURE
+        // 🧠 INTELLIGENCE
         // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 Machine Learning', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Intelligence', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
+        add_submenu_page('fp-performance-suite', __('Smart Exclusions', 'fp-performance-suite'), __('🎯 Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        
+        // ═══════════════════════════════════════════════════════════
+        // 📈 MONITORING & SECURITY
+        // ═══════════════════════════════════════════════════════════
+        add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('📈 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
         add_submenu_page('fp-performance-suite', __('Security', 'fp-performance-suite'), __('🛡️ Security', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-security', [$pages['security'], 'render']);
         
         // ═══════════════════════════════════════════════════════════
-        // 🎨 THEME & COMPATIBILITY
-        // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Theme Optimization', 'fp-performance-suite'), __('🎨 Theme', 'fp-performance-suite'), $capability, 'fp-performance-suite-theme-optimization', [$pages['theme_optimization'], 'render']);
-        
-        // ═══════════════════════════════════════════════════════════
-        // 🧠 INTELLIGENCE & AUTO-DETECTION
-        // ═══════════════════════════════════════════════════════════
-        // Intelligence e Smart Exclusions sono ora tab dentro Cache
-        // add_submenu_page('fp-performance-suite', __('Intelligence Dashboard', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
-        // add_submenu_page('fp-performance-suite', __('Exclusions', 'fp-performance-suite'), __('🎯 Smart Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 ML', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
-        
-        // ═══════════════════════════════════════════════════════════
-        // 📊 MONITORING & DIAGNOSTICS
-        // ═══════════════════════════════════════════════════════════
-        add_submenu_page('fp-performance-suite', __('Monitoring', 'fp-performance-suite'), __('📊 Monitoring', 'fp-performance-suite'), $capability, 'fp-performance-suite-monitoring', [$pages['monitoring'], 'render']);
-        
-        // ═══════════════════════════════════════════════════════════
-        // 🔧 CONFIGURATION (Logs e Diagnostics sono ora tab dentro Settings)
+        // 🔧 SETTINGS
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Settings', 'fp-performance-suite'), __('🔧 Settings', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-settings', [$pages['settings'], 'render']);
         

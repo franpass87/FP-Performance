@@ -5,9 +5,11 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
+use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
 use FP\PerfSuite\Services\Reports\ScheduledReports;
+use FP\PerfSuite\Services\Logs\DebugToggler;
 
 use function __;
 use function esc_attr;
@@ -82,6 +84,13 @@ class MonitoringReports extends AbstractPage
 
     protected function content(): string
     {
+        // Determina tab attiva
+        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'performance';
+        $valid_tabs = ['performance', 'logs', 'diagnostics'];
+        if (!in_array($current_tab, $valid_tabs, true)) {
+            $current_tab = 'performance';
+        }
+        
         // Handle form submission
         $message = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_wpnonce'])) {
@@ -108,15 +117,56 @@ class MonitoringReports extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                📈 <?php esc_html_e('Monitoring & Reports', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Monitora le prestazioni del sito, analizza Core Web Vitals, visualizza trend e genera report dettagliati.', 'fp-performance-suite'); ?>
-            </p>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '📈',
+            __('Monitoring & Reports', 'fp-performance-suite'),
+            __('Monitora le prestazioni del sito, analizza Core Web Vitals, visualizza trend e genera report dettagliati.', 'fp-performance-suite')
+        );
+        ?>
+        
+        <!-- Navigazione Tabs -->
+        <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
+            <a href="?page=fp-performance-suite-monitoring&tab=performance" 
+               class="nav-tab <?php echo $current_tab === 'performance' ? 'nav-tab-active' : ''; ?>">
+                📈 <?php esc_html_e('Performance', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-monitoring&tab=logs" 
+               class="nav-tab <?php echo $current_tab === 'logs' ? 'nav-tab-active' : ''; ?>">
+                📝 <?php esc_html_e('Logs', 'fp-performance-suite'); ?>
+            </a>
+            <a href="?page=fp-performance-suite-monitoring&tab=diagnostics" 
+               class="nav-tab <?php echo $current_tab === 'diagnostics' ? 'nav-tab-active' : ''; ?>">
+                🔧 <?php esc_html_e('Diagnostics', 'fp-performance-suite'); ?>
+            </a>
         </div>
+        
+        <?php
+        // Render tab content
+        switch ($current_tab) {
+            case 'logs':
+                echo $this->renderLogsTab();
+                break;
+            case 'diagnostics':
+                echo $this->renderDiagnosticsTab();
+                break;
+            case 'performance':
+            default:
+                echo $this->renderPerformanceTab($message);
+                break;
+        }
+        
+        return (string) ob_get_clean();
+    }
+    
+    /**
+     * Render Performance Tab (contenuto originale)
+     */
+    private function renderPerformanceTab(string $message): string
+    {
+        ob_start();
+        ?>
         
         <?php if ($message) : ?>
             <?php 
@@ -997,6 +1047,98 @@ class MonitoringReports extends AbstractPage
             error_log('[FP Performance Suite] Errore nel salvataggio Performance Budget: ' . $e->getMessage());
             throw new \Exception(__('Errore nel salvataggio delle impostazioni del Performance Budget.', 'fp-performance-suite'));
         }
+    }
+    
+    /**
+     * Render Logs Tab
+     * Integra funzionalità della pagina Logs.php
+     */
+    private function renderLogsTab(): string
+    {
+        ob_start();
+        ?>
+        <div class="fp-ps-tab-description" style="background: #fef9c3; border-left: 4px solid #eab308; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="margin: 0; color: #713f12;">
+                <strong>📝 Logs & Debug:</strong> 
+                <?php esc_html_e('Visualizza e gestisci i log di debug WordPress per troubleshooting e analisi errori.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
+        <div class="fp-ps-card">
+            <h3>📝 <?php esc_html_e('Gestione Logs', 'fp-performance-suite'); ?></h3>
+            <p><?php esc_html_e('Accedi alle funzionalità complete di gestione logs dalla pagina dedicata:', 'fp-performance-suite'); ?></p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">🔍 <?php esc_html_e('View Logs', 'fp-performance-suite'); ?></h4>
+                    <p><?php esc_html_e('Visualizza errori PHP in tempo reale, filtra per tipo (error, warning, notice), cerca nel debug.log.', 'fp-performance-suite'); ?></p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>" class="button button-primary">
+                        <?php esc_html_e('Apri Logs Viewer', 'fp-performance-suite'); ?>
+                    </a>
+                </div>
+                
+                <div style="background: #fef3c7; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">⚙️ <?php esc_html_e('Debug Settings', 'fp-performance-suite'); ?></h4>
+                    <p><?php esc_html_e('Attiva/disattiva WP_DEBUG, WP_DEBUG_LOG, SCRIPT_DEBUG, SAVEQUERIES in sicurezza.', 'fp-performance-suite'); ?></p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=logs')); ?>" class="button">
+                        <?php esc_html_e('Debug Toggles', 'fp-performance-suite'); ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render Diagnostics Tab
+     * Integra funzionalità della pagina Diagnostics.php
+     */
+    private function renderDiagnosticsTab(): string
+    {
+        ob_start();
+        ?>
+        <div class="fp-ps-tab-description" style="background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="margin: 0; color: #065f46;">
+                <strong>🔧 System Diagnostics:</strong> 
+                <?php esc_html_e('Diagnostica completa sistema: verifica servizi, configurazione server, compatibilità e troubleshooting.', 'fp-performance-suite'); ?>
+            </p>
+        </div>
+        
+        <div class="fp-ps-card">
+            <h3>🔧 <?php esc_html_e('Diagnostica Sistema', 'fp-performance-suite'); ?></h3>
+            <p><?php esc_html_e('Accedi alla diagnostica completa per verifica servizi, stato plugin e risoluzione problemi:', 'fp-performance-suite'); ?></p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+                <div style="background: #dbeafe; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">🔍 <?php esc_html_e('System Check', 'fp-performance-suite'); ?></h4>
+                    <p><?php esc_html_e('Verifica configurazione server, PHP extensions, permessi file, servizi attivi.', 'fp-performance-suite'); ?></p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-diagnostics')); ?>" class="button button-primary">
+                        <?php esc_html_e('Run Diagnostics', 'fp-performance-suite'); ?>
+                    </a>
+                </div>
+                
+                <div style="background: #dcfce7; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">🛠️ <?php esc_html_e('Recovery Tools', 'fp-performance-suite'); ?></h4>
+                    <p><?php esc_html_e('Recovery da errori, reset impostazioni, clear cache globale, ricostruzione config.', 'fp-performance-suite'); ?></p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-diagnostics&action=recovery')); ?>" class="button">
+                        <?php esc_html_e('Recovery Tools', 'fp-performance-suite'); ?>
+                    </a>
+                </div>
+                
+                <div style="background: #fef3c7; padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">📊 <?php esc_html_e('Service Status', 'fp-performance-suite'); ?></h4>
+                    <p><?php esc_html_e('Stato servizi core, lazy loading, cache, asset optimizer, database cleaner.', 'fp-performance-suite'); ?></p>
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-diagnostics&action=services')); ?>" class="button">
+                        <?php esc_html_e('Check Services', 'fp-performance-suite'); ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <?php
+        return ob_get_clean();
     }
 }
 

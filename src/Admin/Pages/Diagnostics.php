@@ -17,6 +17,7 @@ use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\Htaccess;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\ServiceDiagnostics;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function __;
 use function _e;
@@ -92,6 +93,15 @@ class Diagnostics extends AbstractPage
         }
         
         ob_start();
+        ?>
+        
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🔧',
+            __('System Diagnostics', 'fp-performance-suite'),
+            __('Diagnostica completa del sistema, verifica dello stato dei servizi, recupero da errori e strumenti di risoluzione problemi.', 'fp-performance-suite')
+        );
         ?>
         
         <?php echo $noticesHtml; ?>

@@ -15,6 +15,8 @@ use function wp_verify_nonce;
 use function date_i18n;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Admin\Components\PageIntro;
+use FP\PerfSuite\Admin\Components\StatsCard;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 
 class Exclusions extends AbstractPage
@@ -170,15 +172,14 @@ class Exclusions extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                🎯 <?php esc_html_e('Exclusions Management', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Gestisci esclusioni intelligenti per Assets e Cache. Il sistema AI suggerisce automaticamente cosa escludere in base alle performance.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🎯',
+            __('Exclusions Management', 'fp-performance-suite'),
+            __('Gestisci esclusioni intelligenti per Assets e Cache. Il sistema AI suggerisce automaticamente cosa escludere in base alle performance.', 'fp-performance-suite')
+        );
+        ?>
         
         <?php if ($message) : ?>
             <div class="notice notice-<?php echo esc_attr($messageType); ?>">
@@ -186,23 +187,29 @@ class Exclusions extends AbstractPage
             </div>
         <?php endif; ?>
 
-        <!-- Stats Overview -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">📊 Totale Esclusioni</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($totalExclusions); ?></div>
-            </div>
-            
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">🤖 Automatiche</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($autoExclusions); ?></div>
-            </div>
-            
-            <div class="fp-ps-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px;">
-                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">✍️ Manuali</div>
-                <div style="font-size: 36px; font-weight: 700;"><?php echo esc_html($manualExclusions); ?></div>
-            </div>
-        </div>
+        <?php
+        // Stats Overview con StatsCard Component
+        echo StatsCard::renderGrid([
+            [
+                'icon' => '📊',
+                'label' => __('Totale Esclusioni', 'fp-performance-suite'),
+                'value' => $totalExclusions,
+                'gradient' => StatsCard::GRADIENT_PURPLE
+            ],
+            [
+                'icon' => '🤖',
+                'label' => __('Automatiche', 'fp-performance-suite'),
+                'value' => $autoExclusions,
+                'gradient' => StatsCard::GRADIENT_PINK
+            ],
+            [
+                'icon' => '✍️',
+                'label' => __('Manuali', 'fp-performance-suite'),
+                'value' => $manualExclusions,
+                'gradient' => StatsCard::GRADIENT_BLUE
+            ]
+        ], 3); // 3 colonne
+        ?>
 
         <form method="post">
             <?php wp_nonce_field('fp-ps-exclusions', 'fp_ps_exclusions_nonce'); ?>

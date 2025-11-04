@@ -416,3 +416,4 @@ Il plugin è ora:
 *Lines changed: ~1000*  
 *Bugs fixed: 58+*
 
+

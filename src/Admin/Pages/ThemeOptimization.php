@@ -81,6 +81,16 @@ class ThemeOptimization extends AbstractPage
 
         ob_start();
         ?>
+        
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '🎨',
+            __('Theme Optimization', 'fp-performance-suite'),
+            __('Ottimizzazioni specifiche per il tuo tema e page builder. FP Performance rileva automaticamente tema e builder per applicare le migliori ottimizzazioni.', 'fp-performance-suite')
+        );
+        ?>
+        
         <div class="fp-ps-theme-optimization-page">
             <?php if ($message): ?>
                 <div class="notice notice-success is-dismissible">

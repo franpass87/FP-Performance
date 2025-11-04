@@ -8,6 +8,7 @@ use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Admin\RiskMatrix;
+use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function __;
 use function array_key_exists;
@@ -199,7 +200,7 @@ class Settings extends AbstractPage
         
         // Tab corrente
         $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
-        $valid_tabs = ['general', 'access', 'importexport', 'logs', 'diagnostics', 'test'];
+        $valid_tabs = ['general', 'access', 'importexport'];
         if (!in_array($current_tab, $valid_tabs, true)) {
             $current_tab = 'general';
         }
@@ -219,15 +220,14 @@ class Settings extends AbstractPage
         ob_start();
         ?>
         
-        <!-- INTRO BOX -->
-        <div class="fp-ps-page-intro" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin: 0 0 15px 0; color: white; font-size: 28px;">
-                ⚙️ <?php esc_html_e('Settings', 'fp-performance-suite'); ?>
-            </h2>
-            <p style="margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.95;">
-                <?php esc_html_e('Configura le impostazioni generali del plugin: accesso utenti, notifiche, report automatici e impostazioni avanzate.', 'fp-performance-suite'); ?>
-            </p>
-        </div>
+        <?php
+        // Intro Box con PageIntro Component
+        echo PageIntro::render(
+            '⚙️',
+            __('Settings', 'fp-performance-suite'),
+            __('Configura le impostazioni generali del plugin: accesso utenti, notifiche, report automatici e impostazioni avanzate.', 'fp-performance-suite')
+        );
+        ?>
         
         <!-- Navigazione Tabs -->
         <div class="nav-tab-wrapper" style="margin-bottom: 20px;">
@@ -243,18 +243,18 @@ class Settings extends AbstractPage
                class="nav-tab <?php echo $current_tab === 'importexport' ? 'nav-tab-active' : ''; ?>">
                 📥 <?php esc_html_e('Import/Export', 'fp-performance-suite'); ?>
             </a>
-            <a href="?page=fp-performance-suite-settings&tab=logs" 
-               class="nav-tab <?php echo $current_tab === 'logs' ? 'nav-tab-active' : ''; ?>">
-                📝 <?php esc_html_e('Logs', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=fp-performance-suite-settings&tab=diagnostics" 
-               class="nav-tab <?php echo $current_tab === 'diagnostics' ? 'nav-tab-active' : ''; ?>">
-                🔍 <?php esc_html_e('Diagnostics', 'fp-performance-suite'); ?>
-            </a>
-            <a href="?page=fp-performance-suite-settings&tab=test" 
-               class="nav-tab <?php echo $current_tab === 'test' ? 'nav-tab-active' : ''; ?>">
-                🧪 <?php esc_html_e('Test Funzionalità', 'fp-performance-suite'); ?>
-            </a>
+        </div>
+        
+        <!-- Notice per tabs migrate -->
+        <div class="notice notice-info inline" style="margin-bottom: 20px;">
+            <p>
+                <strong>ℹ️ <?php esc_html_e('Tabs Spostate:', 'fp-performance-suite'); ?></strong>
+                <?php esc_html_e('Le tabs Logs e Diagnostics sono state spostate nella pagina', 'fp-performance-suite'); ?> 
+                <a href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-monitoring')); ?>">
+                    📈 <?php esc_html_e('Monitoring', 'fp-performance-suite'); ?>
+                </a>
+                <?php esc_html_e('per una migliore organizzazione.', 'fp-performance-suite'); ?>
+            </p>
         </div>
 
         <!-- Tab Descriptions -->
