@@ -64,7 +64,8 @@ class Cache extends AbstractPage
     {
         // Determina la tab attiva
         $activeTab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'page';
-        $validTabs = ['page', 'browser', 'pwa', 'edge', 'auto', 'external', 'intelligence', 'exclusions'];
+        // BUGFIX #15b: Rimossa tab 'intelligence' - disponibile solo come pagina standalone
+        $validTabs = ['page', 'browser', 'pwa', 'edge', 'auto', 'external', 'exclusions'];
         if (!in_array($activeTab, $validTabs, true)) {
             $activeTab = 'page';
         }
@@ -108,9 +109,7 @@ class Cache extends AbstractPage
             case 'external':
                 echo $this->renderExternalCacheTab($message);
                 break;
-            case 'intelligence':
-                echo $this->renderIntelligenceTab();
-                break;
+            // BUGFIX #15b: Tab Intelligence rimossa - disponibile solo come pagina standalone nel menu
             case 'exclusions':
                 echo $this->renderExclusionsTab();
                 break;
@@ -326,10 +325,7 @@ class Cache extends AbstractPage
                class="nav-tab <?php echo $activeTab === 'external' ? 'nav-tab-active' : ''; ?>">
                 🌐 <?php esc_html_e('External Cache', 'fp-performance-suite'); ?>
             </a>
-            <a href="<?php echo esc_url($baseUrl . '&tab=intelligence'); ?>" 
-               class="nav-tab <?php echo $activeTab === 'intelligence' ? 'nav-tab-active' : ''; ?>">
-                🧠 <?php esc_html_e('Intelligence', 'fp-performance-suite'); ?>
-            </a>
+            <!-- BUGFIX #15b: Tab Intelligence rimossa - disponibile solo come pagina standalone nel menu principale -->
             <a href="<?php echo esc_url($baseUrl . '&tab=exclusions'); ?>" 
                class="nav-tab <?php echo $activeTab === 'exclusions' ? 'nav-tab-active' : ''; ?>">
                 🎯 <?php esc_html_e('Smart Exclusions', 'fp-performance-suite'); ?>
@@ -1398,33 +1394,7 @@ class Cache extends AbstractPage
         return strlen($url) > $length ? substr($url, 0, $length) . '...' : $url;
     }
     
-    /**
-     * Render Intelligence tab
-     */
-    private function renderIntelligenceTab(): string
-    {
-        ob_start();
-        
-        // Include Intelligence Dashboard content
-        try {
-            $intelligencePage = new \FP\PerfSuite\Admin\Pages\IntelligenceDashboard($this->container);
-            // Estrae solo il contenuto senza il wrapper della pagina
-            $content = $intelligencePage->getContent();
-            
-            // Rimuove l'intro box se presente (perché abbiamo già quello della pagina Cache)
-            $content = preg_replace('/<div class="fp-ps-page-intro".*?<\/div>/s', '', $content);
-            
-            echo $content;
-        } catch (\Exception $e) {
-            ?>
-            <div class="notice notice-error">
-                <p><?php echo esc_html(sprintf(__('Errore nel caricamento di Intelligence: %s', 'fp-performance-suite'), $e->getMessage())); ?></p>
-            </div>
-            <?php
-        }
-        
-        return (string) ob_get_clean();
-    }
+    // BUGFIX #15b: Metodo renderIntelligenceTab() rimosso - Intelligence disponibile solo come pagina standalone
     
     /**
      * Render Smart Exclusions tab

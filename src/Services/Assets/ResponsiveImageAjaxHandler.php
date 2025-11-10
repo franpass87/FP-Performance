@@ -15,6 +15,16 @@ use FP\PerfSuite\Utils\Logger;
  */
 class ResponsiveImageAjaxHandler
 {
+    private const CACHE_GROUP = 'fp_responsive_images';
+    private const CACHE_EXPIRATION = 3600;
+
+    /**
+     * Cache locale per ID allegati calcolati durante la richiesta.
+     *
+     * @var array<string,int>
+     */
+    private array $attachmentIdCache = [];
+
     /**
      * Register AJAX handlers
      */
@@ -241,10 +251,29 @@ class ResponsiveImageAjaxHandler
             'file' => $fileName,
             'width' => $width,
             'height' => $height,
-            'mime-type' => wp_get_image_mime($fileName)
+            'mime-type' => wp_get_image_mime($this->buildAbsolutePathFromMetadata($metadata, $fileName)) ?: 'image/jpeg'
         ];
 
         wp_update_attachment_metadata($attachmentId, $metadata);
+    }
+
+    /**
+     * Helper per costruire il percorso assoluto di un file derivato.
+     */
+    private function buildAbsolutePathFromMetadata(array $metadata, string $fileName): string
+    {
+        $uploadDir = wp_get_upload_dir();
+        $baseDir   = rtrim($uploadDir['basedir'], DIRECTORY_SEPARATOR);
+
+        $relativeDir = '';
+        if (!empty($metadata['file'])) {
+            $dir = dirname($metadata['file']);
+            if ('.' !== $dir) {
+                $relativeDir = DIRECTORY_SEPARATOR . ltrim($dir, DIRECTORY_SEPARATOR);
+            }
+        }
+
+        return $baseDir . $relativeDir . DIRECTORY_SEPARATOR . ltrim($fileName, DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -254,18 +283,46 @@ class ResponsiveImageAjaxHandler
     {
         global $wpdb;
 
-        // Remove size suffix for lookup
-        $url = preg_replace('/-\d+x\d+(?=\.[a-z]{3,4}$)/i', '', $url);
+        if (!isset($wpdb)) {
+            return 0;
+        }
+
+        $normalizedUrl = $this->normalizeImageUrl($url);
+
+        if (isset($this->attachmentIdCache[$normalizedUrl])) {
+            return $this->attachmentIdCache[$normalizedUrl];
+        }
+
+        $cacheKey = 'attachment_id_' . md5($normalizedUrl);
+        $cached = wp_cache_get($cacheKey, self::CACHE_GROUP);
+
+        if (false !== $cached) {
+            $this->attachmentIdCache[$normalizedUrl] = (int) $cached;
+            return (int) $cached;
+        }
 
         $attachmentId = $wpdb->get_var($wpdb->prepare(
             "SELECT post_id FROM {$wpdb->postmeta} 
             WHERE meta_key = '_wp_attached_file' 
             AND meta_value LIKE %s 
             LIMIT 1",
-            '%' . $wpdb->esc_like(basename($url))
+            '%' . $wpdb->esc_like(basename($normalizedUrl))
         ));
 
-        return $attachmentId ? (int) $attachmentId : 0;
+        $attachmentId = $attachmentId ? (int) $attachmentId : 0;
+
+        $this->attachmentIdCache[$normalizedUrl] = $attachmentId;
+        wp_cache_set($cacheKey, $attachmentId, self::CACHE_GROUP, self::CACHE_EXPIRATION);
+
+        return $attachmentId;
+    }
+
+    /**
+     * Normalizza l'URL rimuovendo suffissi di dimensioni generate.
+     */
+    private function normalizeImageUrl(string $url): string
+    {
+        return preg_replace('/-\d+x\d+(?=\.[a-z]{3,4}$)/i', '', $url) ?? $url;
     }
 }
 

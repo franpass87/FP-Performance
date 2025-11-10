@@ -56,7 +56,7 @@ class CompressionManager
         // }
         
         // DISABILITATO: Conflitto con Assets/Optimizer
-        // La minificazione CSS/JS è gestita da Assets/Optimizer
+        // La minificazione CSS/JS Ã¨ gestita da Assets/Optimizer
         // if ($this->minify_css) {
         //     add_action('wp_enqueue_scripts', [$this, 'minifyCSS']);
         // }
@@ -78,7 +78,7 @@ class CompressionManager
             return;
         }
         
-        // FIX: Verifica se GZIP già attivo
+        // FIX: Verifica se GZIP giÃ  attivo
         if ($this->isGzipActive()) {
             Logger::debug('GZIP already active, skipping');
             return;
@@ -115,7 +115,7 @@ class CompressionManager
             return;
         }
         
-        // FIX: Verifica se Brotli già attivo
+        // FIX: Verifica se Brotli giÃ  attivo
         if ($this->isBrotliActive()) {
             Logger::debug('Brotli already active, skipping');
             return;
@@ -141,9 +141,9 @@ class CompressionManager
     }
     
     /**
-     * Verifica se GZIP è già attivo
+     * Verifica se GZIP Ã¨ giÃ  attivo
      * 
-     * @return bool True se già attivo
+     * @return bool True se giÃ  attivo
      */
     private function isGzipActive(): bool
     {
@@ -153,9 +153,9 @@ class CompressionManager
     }
     
     /**
-     * Verifica se Brotli è già attivo
+     * Verifica se Brotli Ã¨ giÃ  attivo
      * 
-     * @return bool True se già attivo
+     * @return bool True se giÃ  attivo
      */
     private function isBrotliActive(): bool
     {
@@ -166,7 +166,7 @@ class CompressionManager
     public function minifyHTML()
     {
         // DISABILITATO: Conflitto con HtmlMinifier
-        // Il minificazione HTML è gestita da Assets/Optimizer
+        // Il minificazione HTML Ã¨ gestita da Assets/Optimizer
         return;
         
         if (!is_admin()) {
@@ -193,7 +193,7 @@ class CompressionManager
     public function minifyCSS()
     {
         // DISABILITATO: Conflitto con Assets/Optimizer
-        // La minificazione CSS è gestita da Assets/Optimizer
+        // La minificazione CSS Ã¨ gestita da Assets/Optimizer
         return;
         
         if ($this->minify_css) {
@@ -216,7 +216,7 @@ class CompressionManager
     public function minifyJS()
     {
         // DISABILITATO: Conflitto con Assets/Optimizer
-        // La minificazione JS è gestita da Assets/Optimizer
+        // La minificazione JS Ã¨ gestita da Assets/Optimizer
         return;
         
         if ($this->minify_js) {

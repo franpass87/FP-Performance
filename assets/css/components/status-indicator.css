@@ -332,14 +332,3 @@
 	}
 }
 
-/* Dark mode support (se necessario in futuro) */
-@media (prefers-color-scheme: dark) {
-	.fp-ps-status-card-description,
-	.fp-ps-status-list-label {
-		color: #d1d5db;
-	}
-
-	.fp-ps-status-list-description {
-		color: #9ca3af;
-	}
-}

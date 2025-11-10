@@ -209,37 +209,22 @@ class CriticalPathOptimizer
     {
         $fonts = $this->getSetting('critical_fonts', []);
 
-        // Add fonts identified in the Lighthouse report
+        // BUGFIX #24: Rimossi font hardcoded con URL parziali/invalidi che causavano 404/403
+        // Gli URL di Google Fonts sono dinamici e NON devono essere hardcoded
+        // I font esterni (Brevo) bloccano preload cross-origin (403)
         $lighthouseFonts = [
-            // Google Fonts problematic fonts (6,414ms critical path)
-            [
-                'url' => 'https://fonts.gstatic.com/s/memvya/v44/memvYaGs1.woff2',
-                'type' => 'font/woff2',
-                'crossorigin' => true,
-            ],
-            [
-                'url' => 'https://fonts.gstatic.com/s/rp2tp2ywx/v17/rP2tp2ywx.woff2',
-                'type' => 'font/woff2',
-                'crossorigin' => true,
-            ],
-            // Brevo fonts (130ms savings)
-            [
-                'url' => 'https://assets.brevo.com/fonts/3ef7cf1.woff2',
-                'type' => 'font/woff2',
-                'crossorigin' => true,
-            ],
-            [
-                'url' => 'https://assets.brevo.com/fonts/7529907.woff2',
-                'type' => 'font/woff2',
-                'crossorigin' => true,
-            ],
-            // FontAwesome from villadianella.it
+            // SOLO font locali che esistono veramente
+            // FontAwesome dal tema
             [
                 'url' => home_url('/wp-content/themes/' . get_stylesheet() . '/fonts/fontawesome-webfont.woff'),
                 'type' => 'font/woff',
                 'crossorigin' => false,
             ],
         ];
+        
+        // NOTE: Google Fonts e font esterni vengono gestiti automaticamente da:
+        // - optimizeGoogleFontsLoading() per Google Fonts
+        // - preconnect hints per font provider esterni
 
         $fonts = array_merge($fonts, $lighthouseFonts);
 
@@ -440,10 +425,18 @@ class CriticalPathOptimizer
 
     /**
      * Check if critical path optimization is enabled
+     * BUGFIX #17: Controlla anche optimize_google_fonts in fp_ps_assets
      */
     public function isEnabled(): bool
     {
         $settings = $this->getSettings();
+        
+        // BUGFIX #17: Abilita anche se optimize_google_fonts è true in Assets
+        $assetsSettings = get_option('fp_ps_assets', []);
+        if (!empty($assetsSettings['optimize_google_fonts'])) {
+            return true;
+        }
+        
         return !empty($settings['enabled']);
     }
 

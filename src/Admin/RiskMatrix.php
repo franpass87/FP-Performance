@@ -38,7 +38,8 @@ class RiskMatrix
         // 📦 CACHE
         // ═══════════════════════════════════════════════════════════
         
-        'page_cache_enabled' => [
+        // BUGFIX: Rinominata da 'page_cache_enabled' a 'page_cache' per matchare Cache.php riga 400
+        'page_cache' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
             'description' => 'Abilita la cache delle pagine statiche per velocizzare il caricamento.',
@@ -47,7 +48,8 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Attiva sempre. Escludi contenuti dinamici se necessario.'
         ],
         
-        'prefetch_enabled' => [
+        // BUGFIX: Rinominata da 'prefetch_enabled' a 'predictive_prefetch' per matchare Cache.php riga 483
+        'predictive_prefetch' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
             'description' => 'Precarica risorse quando l\'utente passa il mouse su un link.',
@@ -74,6 +76,36 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Attiva sempre.'
         ],
         
+        // BUGFIX: Aggiunta chiave mancante usata in Cache.php riga 582
+        'cache_rules' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Applica regole .htaccess ottimizzate per il caching dei file statici.',
+            'risks' => '✅ Sicuro - Regole standard',
+            'why_fails' => 'Funziona su tutti i server Apache. Non funziona su Nginx.',
+            'advice' => '✅ CONSIGLIATO: Attiva se usi Apache. Verifica tipo server prima.'
+        ],
+        
+        // BUGFIX: Aggiunta chiave mancante usata in Cache.php riga 594
+        'html_cache' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Abilita cache per file HTML.',
+            'risks' => '❌ Contenuti dinamici non si aggiornano\n❌ Form potrebbero non funzionare\n❌ Contenuti personalizzati spariscono',
+            'why_fails' => 'L\'HTML contiene spesso contenuti dinamici (utente loggato, carrello, ecc.).',
+            'advice' => '❌ SCONSIGLIATO: Meglio usare Page Cache invece. Cache HTML diretto è troppo aggressivo.'
+        ],
+        
+        // BUGFIX: Aggiunta chiave mancante usata in Cache.php riga 603
+        'fonts_cache' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Cache per font (woff2, woff, ttf, otf) con durata 1 anno.',
+            'risks' => '✅ Sicurissimo',
+            'why_fails' => 'I font cambiano raramente. Cache lungo termine è standard.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre. Riduce richieste HTTP per font.'
+        ],
+        
         // ═══════════════════════════════════════════════════════════
         // 📦 ASSETS - CSS
         // ═══════════════════════════════════════════════════════════
@@ -96,14 +128,7 @@ class RiskMatrix
             'advice' => '⚠️ Testa accuratamente: Usa Critical CSS inline per mitigare FOUC.'
         ],
         
-        'combine_css' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Combina più file CSS in uno solo.',
-            'risks' => '⚠️ Ordine di caricamento errato\n⚠️ Specificità CSS può cambiare\n⚠️ Alcuni stili potrebbero non applicarsi',
-            'why_fails' => 'L\'ordine dei CSS è importante. Combinarli può alterare le priorità.',
-            'advice' => '⚠️ Testa su tutte le pagine: Verifica menu, footer, pagine speciali.'
-        ],
+        // BUGFIX #26: Rimosso duplicato (definizione corretta in sezione CSS OPTIMIZATION più sotto)
         
         'remove_unused_css' => [
             'risk' => self::RISK_RED,
@@ -176,6 +201,26 @@ class RiskMatrix
         // 💾 DATABASE
         // ═══════════════════════════════════════════════════════════
         
+        // BUGFIX: Aggiunta chiave mancante usata in Database.php riga 402
+        'database_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita ottimizzazioni database (cleanup, optimize, query monitor).',
+            'risks' => '✅ Sicuro - Solo attiva il sistema',
+            'why_fails' => 'Non modifica nulla finché non attivi operazioni specifiche.',
+            'advice' => '✅ CONSIGLIATO: Attiva per accedere alle funzionalità database.'
+        ],
+        
+        // BUGFIX: Aggiunta chiave mancante usata in Database.php riga 467
+        'query_monitor' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Monitora le query database per identificare quelle lente.',
+            'risks' => '✅ Solo lettura - Nessun impatto',
+            'why_fails' => 'Raccoglie statistiche senza modificare il database.',
+            'advice' => '✅ CONSIGLIATO: Utile per ottimizzare performance database.'
+        ],
+        
         'db_cleanup_revisions' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
@@ -226,12 +271,12 @@ class RiskMatrix
         ],
         
         'brotli_enabled' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Compressione moderna più efficiente di Gzip.',
-            'risks' => '⚠️ Non supportato da server vecchi\n⚠️ Richiede più CPU',
-            'why_fails' => 'Server shared hosting potrebbero non supportarlo.',
-            'advice' => '⚠️ Verifica supporto server: Controlla con hosting provider.'
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Compressione moderna 20-30% più efficiente di Gzip.',
+            'risks' => '✅ Sicuro - Fallback automatico a GZIP se non supportato\n✅ Supportato da >95% browser moderni',
+            'why_fails' => 'Funziona su tutti i server moderni. Fallback graceful a GZIP se non disponibile.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre. Migliora compression senza rischi.'
         ],
         
         // ═══════════════════════════════════════════════════════════
@@ -248,26 +293,19 @@ class RiskMatrix
         ],
         
         'mobile_disable_animations' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Disabilita animazioni CSS su mobile.',
-            'risks' => '⚠️ Esperienza utente meno "fluida"\n⚠️ Alcuni elementi potrebbero sembrare "rigidi"',
-            'why_fails' => 'Le animazioni sono parte del design.',
-            'advice' => '⚠️ Dipende dal sito: OK per siti content-heavy, NO per portfolio/creative.'
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Disabilita animazioni CSS su mobile per migliorare performance e battery.',
+            'risks' => '✅ Sicuro - Migliora performance fino al 40% su mobile lento\n⚠️ Minimo impatto estetico (no transizioni smooth)',
+            'why_fails' => 'Funziona perfettamente. Impatto solo estetico, non funzionale.',
+            'advice' => '✅ CONSIGLIATO: Attiva su mobile. Dispositivi lenti e battery life ne beneficiano enormemente.'
         ],
         
         // ═══════════════════════════════════════════════════════════
         // ⚙️ BACKEND
         // ═══════════════════════════════════════════════════════════
         
-        'disable_admin_bar_frontend' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
-            'description' => 'Nasconde la barra admin nel frontend.',
-            'risks' => '✅ Nessun rischio',
-            'why_fails' => 'Cambia solo visualizzazione, non funzionalità.',
-            'advice' => '✅ OK: Preferenza personale.'
-        ],
+        // BUGFIX #26: Rimosso duplicato (definizione in sezione MAIN TOGGLES più sotto)
         
         'disable_heartbeat' => [
             'risk' => self::RISK_AMBER,
@@ -363,12 +401,12 @@ class RiskMatrix
         ],
         
         'tree_shaking_enabled' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
-            'description' => 'Rimuove funzioni non utilizzate dai bundle JavaScript.',
-            'risks' => '✅ Generalmente sicuro',
-            'why_fails' => 'Rimuove solo codice oggettivamente non raggiungibile.',
-            'advice' => '✅ CONSIGLIATO: Efficace e sicuro per ridurre bundle.'
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Rimuove automaticamente codice JavaScript non utilizzato dai bundle.',
+            'risks' => '⚠️ Può rimuovere codice caricato dinamicamente\n⚠️ Problemi con import() dinamici\n⚠️ Side effects potrebbero essere rimossi',
+            'why_fails' => 'L\'analisi statica non vede codice caricato via import(), eval() o altre tecniche dinamiche.',
+            'advice' => '⚠️ TESTA: Richiede test approfondito. Può rompere plugin che usano import dinamici.'
         ],
         
         // ═══════════════════════════════════════════════════════════
@@ -394,12 +432,12 @@ class RiskMatrix
         ],
         
         'webp_conversion' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Converte immagini in formato WebP.',
-            'risks' => '⚠️ Browser vecchi non supportano WebP\n⚠️ Richiede processing server',
-            'why_fails' => 'Safari vecchi (<14) non supportano WebP.',
-            'advice' => '⚠️ OK su siti moderni: Include fallback per browser vecchi.'
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Converte immagini in formato WebP (30-50% più leggere).',
+            'risks' => '✅ Sicuro - Supporto >97% browser (2025)\n✅ Fallback automatico a JPEG/PNG per browser vecchi',
+            'why_fails' => 'Funziona su tutti i browser moderni. Fallback automatico per IE e Safari <14.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre. Riduce peso immagini drasticamente senza perdita qualità visibile.'
         ],
         
         // ═══════════════════════════════════════════════════════════
@@ -517,14 +555,7 @@ class RiskMatrix
             'advice' => '⚠️ Fai backup prima: Testa su staging se possibile.'
         ],
         
-        'force_https' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Forza HTTPS per tutte le richieste.',
-            'risks' => '⚠️ Sito inaccessibile se certificato SSL non configurato\n⚠️ Loop di redirect se mal configurato',
-            'why_fails' => 'Richiede SSL/TLS configurato correttamente sul server.',
-            'advice' => '⚠️ Verifica SSL prima: Assicurati che https:// funzioni prima di forzarlo.'
-        ],
+        // BUGFIX #26: Rimosso duplicato (definizione corretta in sezione SECURITY più sotto)
         
         // ═══════════════════════════════════════════════════════════
         // 🖼️ FONT OPTIMIZATION
@@ -756,67 +787,74 @@ class RiskMatrix
         // 📡 HTTP/2 & ADVANCED
         // ═══════════════════════════════════════════════════════════
         
+        // BUGFIX #20: Corretto da AMBER a RED - HTTP/2 Push è deprecato e rimosso dai browser moderni
         'http2_push' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Usa HTTP/2 Server Push per asset critici.',
-            'risks' => '⚠️ Può peggiorare performance se mal configurato\n⚠️ Push di asset già in cache spreca banda',
-            'why_fails' => 'HTTP/2 push è complicato, facile pushare troppo.',
-            'advice' => '⚠️ Avanzato: Richiede comprensione profonda di HTTP/2.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'HTTP/2 Server Push - DEPRECATO e non più supportato.',
+            'risks' => '❌ DEPRECATO: Rimosso da Chrome 106+ (2022) e Firefox 132+ (2024)\n❌ NON funziona più sui browser moderni\n❌ Può PEGGIORARE performance invece di migliorarle\n⚠️ Spreca banda pushando asset già in cache',
+            'why_fails' => 'Tecnologia deprecata e rimossa dai browser moderni. Inefficiente e controproducente.',
+            'advice' => '❌ NON USARE: Usa preload hints o HTTP 103 Early Hints invece. HTTP/2 Push è morto.'
         ],
         
+        // BUGFIX #20: Corretto da AMBER a RED
         'http2_push_enabled' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Attiva HTTP/2 Server Push per asset critici.',
-            'risks' => '⚠️ Può peggiorare performance se configurato male\n⚠️ Push di asset già in cache spreca banda\n⚠️ Alcuni server non supportano HTTP/2',
-            'why_fails' => 'HTTP/2 push è avanzato, richiede server compatibile.',
-            'advice' => '⚠️ Avanzato: Testa con attenzione. Verifica che il server supporti HTTP/2.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Attiva HTTP/2 Server Push - SCONSIGLIATO.',
+            'risks' => '❌ DEPRECATO: Chrome 106+ e Firefox 132+ NON supportano più HTTP/2 Push\n❌ NON funziona sui browser moderni (95%+ utenti)\n❌ Può peggiorare performance invece di migliorarle\n❌ Spreca banda e CPU del server',
+            'why_fails' => 'Browser moderni hanno RIMOSSO il supporto. Tecnologia morta dal 2022.',
+            'advice' => '❌ NON ATTIVARE: Usa <link rel="preload"> o HTTP 103 Early Hints. HTTP/2 Push è obsoleto.'
         ],
         
+        // BUGFIX #20: Corretto da AMBER a RED
         'http2_push_css' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Push dei file CSS critici.',
-            'risks' => '⚠️ CSS già in cache viene scaricato comunque\n⚠️ Pushare troppi CSS rallenta',
-            'why_fails' => 'Browser non sa che ha già il file in cache.',
-            'advice' => '⚠️ OK: Limita a CSS critici above-the-fold.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Push dei file CSS - NON funziona più.',
+            'risks' => '❌ HTTP/2 Push rimosso da Chrome e Firefox\n❌ NON funziona sui browser moderni\n⚠️ CSS già in cache viene scaricato comunque (spreco)',
+            'why_fails' => 'Browser moderni hanno rimosso il supporto HTTP/2 Push.',
+            'advice' => '❌ NON USARE: Usa <link rel="preload" as="style"> invece. Funziona ovunque.'
         ],
         
+        // BUGFIX #20: Corretto da AMBER a RED
         'http2_push_js' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Push dei file JavaScript critici.',
-            'risks' => '⚠️ JS già in cache viene scaricato comunque\n⚠️ Pushare troppi JS rallenta',
-            'why_fails' => 'Browser non sa che ha già il file in cache.',
-            'advice' => '⚠️ OK: Limita a JS critici. Meglio defer per JS non critici.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Push dei file JavaScript - DEPRECATO.',
+            'risks' => '❌ HTTP/2 Push non supportato da Chrome/Firefox moderni\n❌ NON funziona per 95%+ utenti\n⚠️ JS già in cache viene scaricato comunque',
+            'why_fails' => 'Tecnologia rimossa dai browser. Preload è l\'alternativa corretta.',
+            'advice' => '❌ NON USARE: Usa <link rel="modulepreload"> o defer/async. HTTP/2 Push è morto.'
         ],
         
+        // BUGFIX #20: Corretto da GREEN a RED - anche font push non funziona più
         'http2_push_fonts' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
-            'description' => 'Push dei font critici (woff2).',
-            'risks' => '✅ Ottimo per font critici\n⚠️ Limita a 2-3 font massimo',
-            'why_fails' => 'Pushare troppi font rallenta il first paint.',
-            'advice' => '✅ CONSIGLIATO: Ottimo per font above-the-fold. Max 2-3 font.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Push dei font - DEPRECATO come tutto HTTP/2 Push.',
+            'risks' => '❌ HTTP/2 Push rimosso da Chrome 106+ e Firefox 132+\n❌ NON funziona sui browser moderni\n⚠️ Font già in cache vengono scaricati comunque',
+            'why_fails' => 'HTTP/2 Push è stato completamente rimosso dai browser moderni.',
+            'advice' => '❌ NON USARE: Usa <link rel="preload" as="font" crossorigin> invece. Funziona perfettamente.'
         ],
         
+        // BUGFIX #20: Corretto da AMBER a RED
         'http2_push_images' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Push di immagini critiche (logo, hero).',
-            'risks' => '⚠️ Immagini pesanti rallentano tutto\n⚠️ Pushare troppo spreca banda',
-            'why_fails' => 'Le immagini pesano molto, meglio preload.',
-            'advice' => '⚠️ Opzionale: Solo logo/hero piccole (<50kb). Meglio lazy load.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Push di immagini - NON supportato più.',
+            'risks' => '❌ HTTP/2 Push rimosso dai browser moderni\n❌ NON funziona su Chrome 106+ e Firefox 132+\n⚠️ Immagini pesanti rallentano tutto\n⚠️ Spreca banda enorme',
+            'why_fails' => 'Browser non supportano più HTTP/2 Push. Preload è meglio.',
+            'advice' => '❌ NON USARE: Usa <link rel="preload" as="image"> o fetchpriority="high" invece.'
         ],
         
+        // BUGFIX #26: Corretto da GREEN a RED - HTTP/2 Push è deprecato anche se "critical only"
         'http2_critical_only' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
-            'description' => 'Push solo risorse critiche identificate automaticamente.',
-            'risks' => '✅ Limita il push a ciò che serve davvero',
-            'why_fails' => 'Protezione contro push eccessivo.',
-            'advice' => '✅ CONSIGLIATO: Mantieni attivo per evitare push eccessivo.'
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio MOLTO Alto',
+            'description' => 'Push solo risorse critiche - MA HTTP/2 Push è DEPRECATO.',
+            'risks' => '❌ HTTP/2 Push rimosso da Chrome 106+ e Firefox 132+\n❌ NON funziona anche se limitato a "critical only"\n❌ Spreca CPU e banda del server\n❌ NON supportato da 95%+ browser moderni',
+            'why_fails' => 'HTTP/2 Push completamente rimosso dai browser. Anche limitato a "critical" non funziona.',
+            'advice' => '❌ NON USARE: Usa <link rel="preload"> invece. HTTP/2 Push è morto, anche "critical only".'
         ],
         
         // ═══════════════════════════════════════════════════════════
@@ -992,13 +1030,14 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Ottimo per SEO, verifica dominio corretto.'
         ],
         
+        // BUGFIX #26: Corretto da GREEN a AMBER - Richiede SSL come prerequisito (come hsts_enabled)
         'force_https' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
             'description' => 'Forza HTTPS su tutto il sito.',
-            'risks' => '✅ Sicuro se hai certificato SSL\n⚠️ Richiede certificato SSL valido',
-            'why_fails' => 'Redirect HTTP → HTTPS è standard per sicurezza.',
-            'advice' => '✅ CONSIGLIATO: Essenziale per sicurezza moderna.'
+            'risks' => '⚠️ RICHIEDE certificato SSL valido e funzionante\n⚠️ Sito INACCESSIBILE se SSL non configurato\n⚠️ Loop di redirect se SSL mal configurato\n⚠️ Verifica che https:// funzioni PRIMA di attivare',
+            'why_fails' => 'Redirect HTTP → HTTPS fallisce senza SSL configurato correttamente sul server.',
+            'advice' => '⚠️ VERIFICA SSL PRIMA: Assicurati che https://tuosito.it funzioni perfettamente, poi attiva. Essenziale per sicurezza ma richiede setup SSL.'
         ],
         
         'force_www' => [
@@ -1092,12 +1131,12 @@ class RiskMatrix
         ],
         
         'xmlrpc_disabled' => [
-            'risk' => self::RISK_AMBER,
-            'title' => 'Rischio Medio',
-            'description' => 'Disabilita XML-RPC (vulnerabile a brute-force).',
-            'risks' => '⚠️ Jetpack non funzionerà\n⚠️ App mobile WordPress non funzioneranno\n⚠️ Pubblicazione remota disabilitata',
-            'why_fails' => 'XML-RPC è usato da alcuni servizi legittimi.',
-            'advice' => '⚠️ OK: Ma verifica di non usare Jetpack o app mobile.'
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Disabilita XML-RPC per prevenire attacchi brute-force e DDoS.',
+            'risks' => '✅ Sicurissimo - Elimina vettore attacco comune\n⚠️ Solo Jetpack e app WordPress (pre-2016) ne hanno bisogno',
+            'why_fails' => 'Funziona perfettamente. Solo Jetpack e vecchie app mobile WordPress richiedono XML-RPC.',
+            'advice' => '✅ CONSIGLIATO: Attiva sempre a meno che non usi Jetpack. Previene migliaia di attacchi brute force.'
         ],
         
         'hotlink_protection_enabled' => [
@@ -1326,4 +1365,3 @@ class RiskMatrix
         return $counts;
     }
 }
-

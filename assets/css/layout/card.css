@@ -13,7 +13,8 @@
 	display: flex;
 	flex-direction: column;
 	position: relative;
-	overflow: hidden;
+	/* BUGFIX #21: Cambiato da 'hidden' a 'visible' per permettere ai tooltip di essere visibili */
+	overflow: visible;
 }
 
 .fp-ps-card h2 {
@@ -146,8 +147,9 @@
 	line-height: 1.4;
 }
 
-/* Gestione overflow per tutti i contenuti delle card */
-.fp-ps-card {
+/* BUGFIX #21: Rimosso overflow: hidden duplicato - i tooltip DEVONO essere visibili */
+/* Gestione overflow per contenuti INTERNI (non tooltip) */
+.fp-ps-card-content {
 	overflow: hidden;
 }
 
@@ -168,4 +170,3 @@
 .fp-ps-card .description {
 	padding-right: var(--fp-spacing-xs);
 	padding-left: var(--fp-spacing-xs);
-}

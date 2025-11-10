@@ -117,8 +117,12 @@ class Optimizer
         }
 
         // WordPress optimizations
+        // BUGFIX #10: disableEmojis() deve essere chiamato in hook 'init' PRIMA di wp_head
         if (!empty($settings['remove_emojis'])) {
-            $this->wpOptimizer->disableEmojis();
+            $wpOptimizer = $this->wpOptimizer; // Cattura variabile per closure
+            add_action('init', function() use ($wpOptimizer) {
+                $wpOptimizer->disableEmojis();
+            }, 1); // Priorità 1 = molto presto
         }
 
         if (!empty($settings['heartbeat_admin'])) {

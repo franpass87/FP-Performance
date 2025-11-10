@@ -25,11 +25,13 @@
 	line-height: 1.6;
 	margin: 0;
 	opacity: 0.95;
+	color: white !important; /* BUGFIX #14b: Forza testo bianco per leggibilità */
 }
 
 .fp-ps-intro-panel strong {
 	font-weight: 700;
 	opacity: 1;
+	color: white !important; /* BUGFIX #14b: Forza testo bianco per leggibilità */
 }
 
 .fp-ps-intro-title {
@@ -42,6 +44,22 @@
 	margin: 0;
 	font-size: var(--fp-font-size-md);
 	opacity: 0.95;
+	color: white !important; /* BUGFIX #14b: Forza testo bianco per leggibilità */
+}
+
+/* BUGFIX #14b: Regola generale per TUTTI gli elementi di testo nel panel viola */
+.fp-ps-intro-panel *:not(a):not(button) {
+	color: white !important;
+}
+
+/* Link dentro il panel devono rimanere visibili */
+.fp-ps-intro-panel a {
+	color: #bfdbfe !important;
+	text-decoration: underline;
+}
+
+.fp-ps-intro-panel a:hover {
+	color: white !important;
 }
 
 /* Responsive */

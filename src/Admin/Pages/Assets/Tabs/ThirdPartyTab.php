@@ -58,10 +58,22 @@ class ThirdPartyTab
         <!-- Third-Party Scripts Section -->
         <section class="fp-ps-card">
             <h2><?php esc_html_e('Third-Party Scripts Management', 'fp-performance-suite'); ?></h2>
+            
+            <!-- BUGFIX #19: Rilevatore spostato più in alto per migliore UX -->
+            <!-- Script Detector & Manager - MOVED HERE -->
+            <?php echo $this->renderScriptDetector($thirdPartyScripts, $thirdPartySettings); ?>
+            
             <form method="post" action="?page=fp-performance-suite-assets&tab=<?php echo esc_attr($current_tab); ?>">
                 <?php wp_nonce_field('fp-ps-assets', 'fp_ps_assets_nonce'); ?>
                 <input type="hidden" name="form_type" value="third_party" />
                 <input type="hidden" name="current_tab" value="<?php echo esc_attr($current_tab); ?>" />
+                
+                <h3 style="margin-top: 40px; padding-top: 30px; border-top: 3px solid #e2e8f0;">
+                    ⚙️ <?php esc_html_e('Configurazione Manuale (Avanzato)', 'fp-performance-suite'); ?>
+                </h3>
+                <p style="color: #64748b; margin-bottom: 20px;">
+                    <?php esc_html_e('Configura manualmente il ritardo degli script di terze parti. Usa il rilevatore automatico sopra per trovare gli script presenti sul tuo sito.', 'fp-performance-suite'); ?>
+                </p>
                 
                 <label class="fp-ps-toggle">
                     <span class="info">
@@ -98,48 +110,49 @@ class ThirdPartyTab
                 <h3><?php esc_html_e('Individual Script Management', 'fp-performance-suite'); ?></h3>
                 <div class="fp-ps-scripts-grid">
                     <?php
+                    // BUGFIX #19b: Aggiunte icone per identificare visivamente i servizi
                     $scripts = [
-                        'google_analytics' => __('Google Analytics', 'fp-performance-suite'),
-                        'facebook_pixel' => __('Facebook Pixel', 'fp-performance-suite'),
-                        'google_ads' => __('Google Ads', 'fp-performance-suite'),
-                        'hotjar' => __('Hotjar', 'fp-performance-suite'),
-                        'intercom' => __('Intercom', 'fp-performance-suite'),
-                        'youtube' => __('YouTube', 'fp-performance-suite'),
-                        'linkedin_insight' => __('LinkedIn Insight', 'fp-performance-suite'),
-                        'twitter_pixel' => __('Twitter Pixel', 'fp-performance-suite'),
-                        'tiktok_pixel' => __('TikTok Pixel', 'fp-performance-suite'),
-                        'pinterest_tag' => __('Pinterest Tag', 'fp-performance-suite'),
-                        'hubspot' => __('HubSpot', 'fp-performance-suite'),
-                        'zendesk' => __('Zendesk', 'fp-performance-suite'),
-                        'drift' => __('Drift', 'fp-performance-suite'),
-                        'crisp' => __('Crisp', 'fp-performance-suite'),
-                        'tidio' => __('Tidio', 'fp-performance-suite'),
-                        'segment' => __('Segment', 'fp-performance-suite'),
-                        'mixpanel' => __('Mixpanel', 'fp-performance-suite'),
-                        'mailchimp' => __('Mailchimp', 'fp-performance-suite'),
-                        'stripe' => __('Stripe', 'fp-performance-suite'),
-                        'paypal' => __('PayPal', 'fp-performance-suite'),
-                        'recaptcha' => __('reCAPTCHA', 'fp-performance-suite'),
-                        'google_maps' => __('Google Maps', 'fp-performance-suite'),
-                        'microsoft_clarity' => __('Microsoft Clarity', 'fp-performance-suite'),
-                        'vimeo' => __('Vimeo', 'fp-performance-suite'),
-                        'tawk_to' => __('Tawk.to', 'fp-performance-suite'),
-                        'optimizely' => __('Optimizely', 'fp-performance-suite'),
-                        'trustpilot' => __('Trustpilot', 'fp-performance-suite'),
-                        'klaviyo' => __('Klaviyo', 'fp-performance-suite'),
-                        'onetrust' => __('OneTrust', 'fp-performance-suite'),
-                        'calendly' => __('Calendly', 'fp-performance-suite'),
-                        'fullstory' => __('FullStory', 'fp-performance-suite'),
-                        'snapchat_pixel' => __('Snapchat Pixel', 'fp-performance-suite'),
-                        'soundcloud' => __('SoundCloud', 'fp-performance-suite'),
-                        'klarna' => __('Klarna', 'fp-performance-suite'),
-                        'spotify' => __('Spotify', 'fp-performance-suite'),
-                        'livechat' => __('LiveChat', 'fp-performance-suite'),
-                        'activecampaign' => __('ActiveCampaign', 'fp-performance-suite'),
-                        'userway' => __('UserWay', 'fp-performance-suite'),
-                        'typeform' => __('Typeform', 'fp-performance-suite'),
-                        'brevo' => __('Brevo', 'fp-performance-suite'),
-                        'wonderpush' => __('WonderPush', 'fp-performance-suite'),
+                        'google_analytics' => '📊 ' . __('Google Analytics', 'fp-performance-suite'),
+                        'facebook_pixel' => '👥 ' . __('Facebook Pixel', 'fp-performance-suite'),
+                        'google_ads' => '🎯 ' . __('Google Ads', 'fp-performance-suite'),
+                        'hotjar' => '🔥 ' . __('Hotjar', 'fp-performance-suite'),
+                        'intercom' => '💬 ' . __('Intercom', 'fp-performance-suite'),
+                        'youtube' => '📹 ' . __('YouTube', 'fp-performance-suite'),
+                        'linkedin_insight' => '💼 ' . __('LinkedIn Insight', 'fp-performance-suite'),
+                        'twitter_pixel' => '🐦 ' . __('Twitter Pixel', 'fp-performance-suite'),
+                        'tiktok_pixel' => '🎵 ' . __('TikTok Pixel', 'fp-performance-suite'),
+                        'pinterest_tag' => '📌 ' . __('Pinterest Tag', 'fp-performance-suite'),
+                        'hubspot' => '🧲 ' . __('HubSpot', 'fp-performance-suite'),
+                        'zendesk' => '🎧 ' . __('Zendesk', 'fp-performance-suite'),
+                        'drift' => '💬 ' . __('Drift', 'fp-performance-suite'),
+                        'crisp' => '💬 ' . __('Crisp', 'fp-performance-suite'),
+                        'tidio' => '💬 ' . __('Tidio', 'fp-performance-suite'),
+                        'segment' => '📊 ' . __('Segment', 'fp-performance-suite'),
+                        'mixpanel' => '📈 ' . __('Mixpanel', 'fp-performance-suite'),
+                        'mailchimp' => '📧 ' . __('Mailchimp', 'fp-performance-suite'),
+                        'stripe' => '💳 ' . __('Stripe', 'fp-performance-suite'),
+                        'paypal' => '💰 ' . __('PayPal', 'fp-performance-suite'),
+                        'recaptcha' => '🔒 ' . __('reCAPTCHA', 'fp-performance-suite'),
+                        'google_maps' => '🗺️ ' . __('Google Maps', 'fp-performance-suite'),
+                        'microsoft_clarity' => '🔍 ' . __('Microsoft Clarity', 'fp-performance-suite'),
+                        'vimeo' => '🎬 ' . __('Vimeo', 'fp-performance-suite'),
+                        'tawk_to' => '💬 ' . __('Tawk.to', 'fp-performance-suite'),
+                        'optimizely' => '🧪 ' . __('Optimizely', 'fp-performance-suite'),
+                        'trustpilot' => '⭐ ' . __('Trustpilot', 'fp-performance-suite'),
+                        'klaviyo' => '📧 ' . __('Klaviyo', 'fp-performance-suite'),
+                        'onetrust' => '🛡️ ' . __('OneTrust', 'fp-performance-suite'),
+                        'calendly' => '📅 ' . __('Calendly', 'fp-performance-suite'),
+                        'fullstory' => '📹 ' . __('FullStory', 'fp-performance-suite'),
+                        'snapchat_pixel' => '👻 ' . __('Snapchat Pixel', 'fp-performance-suite'),
+                        'soundcloud' => '🎧 ' . __('SoundCloud', 'fp-performance-suite'),
+                        'klarna' => '💳 ' . __('Klarna', 'fp-performance-suite'),
+                        'spotify' => '🎵 ' . __('Spotify', 'fp-performance-suite'),
+                        'livechat' => '💬 ' . __('LiveChat', 'fp-performance-suite'),
+                        'activecampaign' => '📧 ' . __('ActiveCampaign', 'fp-performance-suite'),
+                        'userway' => '♿ ' . __('UserWay', 'fp-performance-suite'),
+                        'typeform' => '📝 ' . __('Typeform', 'fp-performance-suite'),
+                        'brevo' => '📧 ' . __('Brevo', 'fp-performance-suite'),
+                        'wonderpush' => '🔔 ' . __('WonderPush', 'fp-performance-suite'),
                     ];
                     
                     foreach ($scripts as $key => $label) {
@@ -452,6 +465,20 @@ class ThirdPartyTab
             </form>
         </section>
         
+        </div>
+        <!-- Close TAB: Third-Party -->
+        <?php
+        return ob_get_clean();
+    }
+    
+    /**
+     * BUGFIX #19: Rilevatore estratto in metodo separato per riuso
+     * Renderizza il rilevatore automatico di script di terze parti
+     */
+    private function renderScriptDetector($thirdPartyScripts, $thirdPartySettings): string
+    {
+        ob_start();
+        ?>
         <!-- Script Detector & Manager -->
         <section class="fp-ps-card fp-ps-mt-xl" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 2px solid #cbd5e1;">
             <h2 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
@@ -932,13 +959,10 @@ class ThirdPartyTab
             <div style="background: #fef3c7; border-left: 4px solid #eab308; padding: 15px; margin: 20px 0; border-radius: 6px;">
                 <p style="margin: 0; color: #713f12; font-size: 14px;">
                     <strong>⚠️ Importante:</strong>
-                    <?php esc_html_e('Il rilevatore analizza la homepage. Se usi script solo su pagine specifiche (es: checkout), potrebbero non essere rilevati. In quel caso, aggiungi manualmente il pattern nella sezione "Script Exclusions" sopra.', 'fp-performance-suite'); ?>
+                    <?php esc_html_e('Il rilevatore analizza la homepage. Se usi script solo su pagine specifiche (es: checkout), potrebbero non essere rilevati. In quel caso, aggiungi manualmente il pattern nella sezione "Script Exclusions" sotto.', 'fp-performance-suite'); ?>
                 </p>
             </div>
         </section>
-        
-        </div>
-        <!-- Close TAB: Third-Party -->
         <?php
         return ob_get_clean();
     }

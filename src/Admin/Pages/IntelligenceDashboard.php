@@ -72,6 +72,13 @@ class IntelligenceDashboard extends AbstractPage
         
         if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_intelligence_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_intelligence_nonce']), 'fp-ps-intelligence')) {
             
+            // BUGFIX: Handle cache refresh (forza ricalcolo dati)
+            if (isset($_POST['refresh_cache'])) {
+                delete_transient('fp_ps_intelligence_dashboard_data');
+                $message = __('Cache dashboard aggiornata con successo! I dati sono stati rigenerati.', 'fp-performance-suite');
+                $messageType = 'success';
+            }
+            
             // Handle auto-optimization
             if (isset($_POST['run_auto_optimization'])) {
                 $message = $this->runAutoOptimization();
@@ -149,6 +156,34 @@ class IntelligenceDashboard extends AbstractPage
                 <p><?php echo esc_html($message); ?></p>
             </div>
         <?php endif; ?>
+
+        <!-- BUGFIX: Bottone per refresh cache dati -->
+        <div style="margin-bottom: 20px; padding: 10px; background: #fff8dc; border-left: 4px solid #ffb900;">
+            <p style="margin: 0 0 10px 0;">
+                <strong>ℹ️ <?php esc_html_e('Nota:', 'fp-performance-suite'); ?></strong>
+                <?php esc_html_e('I dati di questa dashboard sono cachati per 5 minuti per velocizzare il caricamento. Usa il bottone sotto per aggiornarli manualmente.', 'fp-performance-suite'); ?>
+            </p>
+            <form method="post" style="display: inline;">
+                <?php wp_nonce_field('fp-ps-intelligence', 'fp_ps_intelligence_nonce'); ?>
+                <button type="submit" name="refresh_cache" class="button button-secondary" style="vertical-align: middle;">
+                    🔄 <?php esc_html_e('Aggiorna Dati Ora', 'fp-performance-suite'); ?>
+                </button>
+                <span style="font-size: 12px; color: #666; margin-left: 10px;">
+                    <?php
+                    $cache_time = get_option('_transient_timeout_fp_ps_intelligence_dashboard_data', 0);
+                    if ($cache_time > time()) {
+                        printf(
+                            /* translators: %s: time remaining */
+                            esc_html__('Cache valida ancora per %s', 'fp-performance-suite'),
+                            human_time_diff(time(), $cache_time)
+                        );
+                    } else {
+                        esc_html_e('Cache scaduta - i dati verranno aggiornati', 'fp-performance-suite');
+                    }
+                    ?>
+                </span>
+            </form>
+        </div>
 
         <?php
         // Intelligence Overview con StatsCard Component
@@ -365,26 +400,64 @@ class IntelligenceDashboard extends AbstractPage
      */
     private function getDashboardData(): array
     {
-        $reporter = new IntelligenceReporter();
-        $dashboardReport = $reporter->generateDashboardReport();
+        // BUGFIX: Cache dati dashboard per evitare timeout (>30s) su operazioni pesanti
+        // Cache valida per 5 minuti, poi rigenera
+        $cache_key = 'fp_ps_intelligence_dashboard_data';
+        $cached_data = get_transient($cache_key);
         
-        $smartDetector = new SmartExclusionDetector();
-        $appliedExclusions = $smartDetector->getAppliedExclusions();
+        if ($cached_data !== false && is_array($cached_data)) {
+            return $cached_data;
+        }
         
-        return [
-            'overall_score' => $dashboardReport['overall_score'],
-            'exclusions_count' => $dashboardReport['exclusions_count'],
-            'exclusions_breakdown' => $this->getExclusionsBreakdown($appliedExclusions),
-            'performance_score' => $dashboardReport['performance_score'],
-            'performance_status' => $this->getPerformanceStatus($dashboardReport['performance_score']),
-            'recommendations_count' => $dashboardReport['recommendations_count'],
-            'action_required' => $dashboardReport['action_required'],
-            'recent_recommendations' => $this->getRecentRecommendations(),
-            'smart_detection_status' => $this->getSystemStatus('smart_detection'),
-            'performance_monitor_status' => $this->getSystemStatus('performance_monitor'),
-            'cache_system_status' => $this->getSystemStatus('cache_system'),
-            'cdn_integration_status' => $this->getSystemStatus('cdn_integration'),
-        ];
+        // Se cache scaduta o non esiste, genera dati (può essere lento)
+        try {
+            // BUGFIX #15c: Aumentato timeout da 30 a 90 secondi per Intelligence Report molto complesso
+            set_time_limit(90);
+            
+            $reporter = new IntelligenceReporter();
+            $dashboardReport = $reporter->generateDashboardReport();
+            
+            $smartDetector = new SmartExclusionDetector();
+            $appliedExclusions = $smartDetector->getAppliedExclusions();
+            
+            $data = [
+                'overall_score' => $dashboardReport['overall_score'] ?? 0,
+                'exclusions_count' => $dashboardReport['exclusions_count'] ?? 0,
+                'exclusions_breakdown' => $this->getExclusionsBreakdown($appliedExclusions),
+                'performance_score' => $dashboardReport['performance_score'] ?? 0,
+                'performance_status' => $this->getPerformanceStatus($dashboardReport['performance_score'] ?? 0),
+                'recommendations_count' => $dashboardReport['recommendations_count'] ?? 0,
+                'action_required' => $dashboardReport['action_required'] ?? false,
+                'recent_recommendations' => $this->getRecentRecommendations(),
+                'smart_detection_status' => $this->getSystemStatus('smart_detection'),
+                'performance_monitor_status' => $this->getSystemStatus('performance_monitor'),
+                'cache_system_status' => $this->getSystemStatus('cache_system'),
+                'cdn_integration_status' => $this->getSystemStatus('cdn_integration'),
+            ];
+            
+            // Cache per 5 minuti (300 secondi)
+            set_transient($cache_key, $data, 5 * MINUTE_IN_SECONDS);
+            
+            return $data;
+            
+        } catch (\Exception $e) {
+            // BUGFIX: Fallback in caso di errore per non bloccare la pagina
+            return [
+                'overall_score' => 0,
+                'exclusions_count' => 0,
+                'exclusions_breakdown' => '<p>⚠️ Errore caricamento dati</p>',
+                'performance_score' => 0,
+                'performance_status' => 'Errore',
+                'recommendations_count' => 0,
+                'action_required' => false,
+                'recent_recommendations' => [],
+                'smart_detection_status' => 'Errore: ' . $e->getMessage(),
+                'performance_monitor_status' => 'N/A',
+                'cache_system_status' => 'N/A',
+                'cdn_integration_status' => 'N/A',
+                'error' => true,
+            ];
+        }
     }
 
     /**

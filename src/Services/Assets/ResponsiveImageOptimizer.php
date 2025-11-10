@@ -27,6 +27,13 @@ class ResponsiveImageOptimizer
     private const CACHE_EXPIRATION = 3600; // 1 hour
 
     /**
+     * Cache locale per mapping URL -> attachment ID, evita query ripetute.
+     *
+     * @var array<string,int>
+     */
+    private array $attachmentIdCache = [];
+
+    /**
      * Register hooks
      */
     public function register(): void
@@ -305,7 +312,27 @@ class ResponsiveImageOptimizer
             }
         }
 
-        return $bestSize;
+        if (null === $bestSize) {
+            return null;
+        }
+
+        $uploadDir = wp_get_upload_dir();
+        $baseUrl   = rtrim($uploadDir['baseurl'], '/');
+
+        $relativeDir = '';
+        if (!empty($metadata['file'])) {
+            $dir = dirname($metadata['file']);
+            if ('.' !== $dir) {
+                $relativeDir = '/' . ltrim($dir, '/');
+            }
+        }
+
+        $sizeFile = $metadata['sizes'][$bestSize]['file'] ?? '';
+        if ('' === $sizeFile) {
+            return null;
+        }
+
+        return $baseUrl . $relativeDir . '/' . ltrim($sizeFile, '/');
     }
 
     /**
@@ -396,10 +423,29 @@ class ResponsiveImageOptimizer
             'file' => $fileName,
             'width' => $width,
             'height' => $height,
-            'mime-type' => wp_get_image_mime($fileName)
+            'mime-type' => wp_get_image_mime($this->buildAbsolutePathFromMetadata($metadata, $fileName)) ?: 'image/jpeg'
         ];
 
         wp_update_attachment_metadata($attachmentId, $metadata);
+    }
+
+    /**
+     * Helper to build the absolute path for a derived image.
+     */
+    private function buildAbsolutePathFromMetadata(array $metadata, string $fileName): string
+    {
+        $uploadDir = wp_get_upload_dir();
+        $baseDir   = rtrim($uploadDir['basedir'], DIRECTORY_SEPARATOR);
+
+        $relativeDir = '';
+        if (!empty($metadata['file'])) {
+            $dir = dirname($metadata['file']);
+            if ('.' !== $dir) {
+                $relativeDir = DIRECTORY_SEPARATOR . ltrim($dir, DIRECTORY_SEPARATOR);
+            }
+        }
+
+        return $baseDir . $relativeDir . DIRECTORY_SEPARATOR . ltrim($fileName, DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -459,10 +505,17 @@ class ResponsiveImageOptimizer
         // Skip small images
         $metadata = wp_get_attachment_metadata($attachmentId);
         if (is_array($metadata)) {
-            $width = $metadata['width'] ?? 0;
-            $height = $metadata['height'] ?? 0;
-            
-            if ($width < 300 || $height < 300) {
+            $width  = (int) ($metadata['width'] ?? 0);
+            $height = (int) ($metadata['height'] ?? 0);
+
+            $minWidth  = (int) $this->getSetting('min_width', 300);
+            $minHeight = (int) $this->getSetting('min_height', 300);
+
+            if ($minWidth > 0 && $width > 0 && $width < $minWidth) {
+                return false;
+            }
+
+            if ($minHeight > 0 && $height > 0 && $height < $minHeight) {
                 return false;
             }
         }
@@ -477,18 +530,48 @@ class ResponsiveImageOptimizer
     {
         global $wpdb;
 
-        // Remove size suffix for lookup
-        $url = preg_replace('/-\d+x\d+(?=\.[a-z]{3,4}$)/i', '', $url);
+        if (!isset($wpdb)) {
+            return 0;
+        }
+
+        $normalizedUrl = $this->normalizeImageUrl($url);
+
+        if (isset($this->attachmentIdCache[$normalizedUrl])) {
+            return $this->attachmentIdCache[$normalizedUrl];
+        }
+
+        $cacheKey = 'attachment_id_' . md5($normalizedUrl);
+        $cached = wp_cache_get($cacheKey, self::CACHE_GROUP);
+
+        if (false !== $cached) {
+            $this->attachmentIdCache[$normalizedUrl] = (int) $cached;
+            return (int) $cached;
+        }
+
+        $filename = basename($normalizedUrl);
 
         $attachmentId = $wpdb->get_var($wpdb->prepare(
             "SELECT post_id FROM {$wpdb->postmeta} 
             WHERE meta_key = '_wp_attached_file' 
             AND meta_value LIKE %s 
             LIMIT 1",
-            '%' . $wpdb->esc_like(basename($url))
+            '%' . $wpdb->esc_like($filename)
         ));
 
-        return $attachmentId ? (int) $attachmentId : 0;
+        $attachmentId = $attachmentId ? (int) $attachmentId : 0;
+
+        $this->attachmentIdCache[$normalizedUrl] = $attachmentId;
+        wp_cache_set($cacheKey, $attachmentId, self::CACHE_GROUP, self::CACHE_EXPIRATION);
+
+        return $attachmentId;
+    }
+
+    /**
+     * Normalizza l'URL dell'immagine rimuovendo suffissi di dimensione.
+     */
+    private function normalizeImageUrl(string $url): string
+    {
+        return preg_replace('/-\d+x\d+(?=\.[a-z]{3,4}$)/i', '', $url) ?? $url;
     }
 
     /**
@@ -496,7 +579,41 @@ class ResponsiveImageOptimizer
      */
     private function getImageSizes(): array
     {
-        return wp_get_registered_image_sizes();
+        global $_wp_additional_image_sizes;
+
+        $sizes = [];
+
+        // Get default WordPress sizes
+        $default_sizes = ['thumbnail', 'medium', 'medium_large', 'large'];
+        
+        foreach ($default_sizes as $size) {
+            $width = get_option("{$size}_size_w");
+            $height = get_option("{$size}_size_h");
+            if ((!$width && !$height) || (0 === (int) $width && 0 === (int) $height)) {
+                continue;
+            }
+
+            if ($width || $height) {
+                $sizes[$size] = [
+                    'width' => (int) $width,
+                    'height' => (int) $height,
+                    'crop' => (bool) get_option("{$size}_crop")
+                ];
+            }
+        }
+
+        // Get additional registered sizes
+        if (isset($_wp_additional_image_sizes) && is_array($_wp_additional_image_sizes)) {
+            foreach ($_wp_additional_image_sizes as $name => $data) {
+                $sizes[$name] = [
+                    'width' => isset($data['width']) ? (int) $data['width'] : 0,
+                    'height' => isset($data['height']) ? (int) $data['height'] : 0,
+                    'crop' => isset($data['crop']) ? (bool) $data['crop'] : false
+                ];
+            }
+        }
+
+        return $sizes;
     }
 
     /**

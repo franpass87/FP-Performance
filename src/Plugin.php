@@ -52,14 +52,23 @@ use FP\PerfSuite\Utils\HostingDetector;
 
 use function get_file_data;
 use function wp_clear_scheduled_hook;
+use function wp_convert_hr_to_bytes;
 
 class Plugin
 {
     private static ?ServiceContainer $container = null;
     private static array $registeredServices = [];
+    private static bool $environmentGuardsRegistered = false;
+
+    public static function preboot(): void
+    {
+        self::bootstrapEnvironmentGuards();
+    }
 
     public static function init(): void
     {
+        self::bootstrapEnvironmentGuards();
+
         // FIX RACE CONDITION: Usa SOLO il container come flag atomico
         // Se già inizializzato, esci immediatamente
         if (self::$container !== null) {
@@ -171,7 +180,8 @@ class Plugin
             // Gli altri servizi si registrano solo se le loro opzioni sono abilitate
             
             // Core services - Solo se abilitati esplicitamente
-            $pageCacheSettings = get_option('fp_ps_page_cache', []);
+            // BUGFIX #32: Corretto nome opzione da 'fp_ps_page_cache' a 'fp_ps_page_cache_settings'
+            $pageCacheSettings = get_option('fp_ps_page_cache_settings', []);
             if (!empty($pageCacheSettings['enabled'])) {
                 self::registerServiceOnce(PageCache::class, function() use ($container) {
                     $container->get(PageCache::class)->register();
@@ -568,9 +578,12 @@ class Plugin
                 });
             }
             
-            if (get_option('fp_ps_lazy_loading_enabled', false)) {
+            // BUGFIX #12: Opzione corretta è 'fp_ps_responsive_images['enable_lazy_loading']'
+            // BUGFIX #12b: LazyLoadManager ha init(), NON register()!
+            $responsiveSettings = get_option('fp_ps_responsive_images', []);
+            if (!empty($responsiveSettings['enable_lazy_loading'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Assets\LazyLoadManager::class, function() use ($container) {
-                    $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->register();
+                    $container->get(\FP\PerfSuite\Services\Assets\LazyLoadManager::class)->init();
                 });
             }
             
@@ -603,6 +616,29 @@ class Plugin
                 });
             }
             
+            // BUGFIX #18b: Advanced JavaScript Optimizers (Unused JS, Code Splitting, Tree Shaking)
+            // Registrati solo se le loro opzioni sono abilitate
+            $unusedJSSettings = get_option('fp_ps_js_unused_optimizer', []);
+            if (!empty($unusedJSSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer::class)->register();
+                });
+            }
+            
+            $codeSplittingSettings = get_option('fp_ps_js_code_splitter', []);
+            if (!empty($codeSplittingSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class)->register();
+                });
+            }
+            
+            $treeShakerSettings = get_option('fp_ps_js_tree_shaker', []);
+            if (!empty($treeShakerSettings['enabled'])) {
+                self::registerServiceOnce(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class)->register();
+                });
+            }
+            
             
             // Performance Analysis Services - FIX CRITICO (sempre attivi per analisi performance)
             self::registerServiceOnce(\FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer::class, function() use ($container) {
@@ -625,9 +661,11 @@ class Plugin
             self::registerServiceOnce(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class, function() use ($container) {
                 $container->get(\FP\PerfSuite\Services\Assets\RenderBlockingOptimizer::class)->register();
             });
-            // Critical Path Optimizer - Solo se abilitato
+            // Critical Path Optimizer - Solo se abilitato O se optimize_google_fonts è attivo
+            // BUGFIX #17: optimize_google_fonts richiede CriticalPathOptimizer per preconnect/display=swap
             $criticalPathSettings = get_option('fp_ps_critical_path_optimization', []);
-            if (!empty($criticalPathSettings['enabled'])) {
+            $assetsSettings = get_option('fp_ps_assets', []);
+            if (!empty($criticalPathSettings['enabled']) || !empty($assetsSettings['optimize_google_fonts'])) {
                 self::registerServiceOnce(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)->register();
                 });
@@ -659,6 +697,10 @@ class Plugin
                 self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class, function() use ($container) {
                     $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
                 });
+                // FEATURE: One-Click Safe Optimizations AJAX Handler
+                self::registerServiceOnce(\FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax::class, function() use ($container) {
+                    $container->get(\FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax::class)->register();
+                });
             }, 5);
         }
 
@@ -669,7 +711,6 @@ class Plugin
 
         // Register Site Health checks
         HealthCheck::register();
-
     }
 
     /**
@@ -863,6 +904,8 @@ class Plugin
         $container->set(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\RecommendationsAjax($c));
         $container->set(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\CriticalCssAjax($c));
         $container->set(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\AIConfigAjax($c));
+        // FEATURE: One-Click Safe Optimizations AJAX Handler
+        $container->set(\FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax::class, static fn(ServiceContainer $c) => new \FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax($c));
         
         // EdgeCache Providers (Ripristinato 21 Ott 2025 - FASE 2) - Architettura modulare SOLID
         $container->set(\FP\PerfSuite\Services\Cache\EdgeCache\CloudflareProvider::class, static function (ServiceContainer $c) {
@@ -1008,6 +1051,92 @@ class Plugin
         }
 
         return self::$container;
+    }
+
+    private static function bootstrapEnvironmentGuards(): void
+    {
+        if (self::$environmentGuardsRegistered) {
+            return;
+        }
+
+        self::$environmentGuardsRegistered = true;
+
+        if (function_exists('wp_raise_memory_limit')) {
+            wp_raise_memory_limit('admin');
+            wp_raise_memory_limit('image');
+        } else {
+            @ini_set('memory_limit', '512M');
+        }
+
+        add_filter('admin_memory_limit', [self::class, 'ensureMinimumAdminMemory']);
+        add_action('doing_it_wrong_run', [self::class, 'logDoingItWrongContext'], 10, 3);
+        add_filter('user_has_cap', [self::class, 'traceInvalidMetaCapChecks'], 10, 3);
+    }
+
+    public static function ensureMinimumAdminMemory(string $current): string
+    {
+        if (!function_exists('wp_convert_hr_to_bytes')) {
+            return $current;
+        }
+
+        $targetBytes = wp_convert_hr_to_bytes('512M');
+        $currentBytes = wp_convert_hr_to_bytes($current);
+
+        if ($targetBytes <= 0 || $currentBytes <= 0) {
+            return $current;
+        }
+
+        return ($currentBytes < $targetBytes) ? '512M' : $current;
+    }
+
+    public static function logDoingItWrongContext(string $function, string $message, string $version): void
+    {
+        if (! function_exists('wp_debug_backtrace_summary')) {
+            return;
+        }
+
+        $traceFrames = function_exists('debug_backtrace') ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : [];
+        $trace = !empty($traceFrames) ? print_r(array_slice($traceFrames, 0, 10), true) : (string) wp_debug_backtrace_summary(null, 0, false);
+
+        if ($function === 'map_meta_cap') {
+            error_log('[FP-PerfSuite] map_meta_cap doing_it_wrong trace: ' . $trace);
+            return;
+        }
+
+        if ($function === '_load_textdomain_just_in_time') {
+            error_log('[FP-PerfSuite] load_textdomain_early: ' . $message . ' | trace: ' . $trace);
+        }
+    }
+
+    public static function traceInvalidMetaCapChecks(array $userCaps, array $requiredCaps, array $args): array
+    {
+        if (empty($args)) {
+            return $userCaps;
+        }
+
+        $capability = $args[0];
+        $objectId = $args[2] ?? null;
+
+        if (! in_array($capability, ['delete_post', 'edit_post', 'read_post'], true)) {
+            return $userCaps;
+        }
+
+        if (! empty($objectId)) {
+            return $userCaps;
+        }
+
+        static $logged = false;
+
+        if ($logged || ! function_exists('wp_debug_backtrace_summary')) {
+            return $userCaps;
+        }
+
+        $logged = true;
+        $summary = wp_debug_backtrace_summary(null, 0, false);
+        $trace = is_array($summary) ? print_r($summary, true) : (string) $summary;
+        error_log(sprintf('[FP-PerfSuite] Invalid %s check without object id: %s', $capability, $trace));
+
+        return $userCaps;
     }
     
     /**
@@ -1638,5 +1767,18 @@ class Plugin
         
         Logger::info('Plugin deactivated - all cron jobs cleared');
         do_action('fp_ps_plugin_deactivated');
+    }
+
+    public static function handleDeprecatedWarnings(int $errno, string $errstr, string $errfile = '', int $errline = 0): bool
+    {
+        if ($errno === E_DEPRECATED && (
+            str_contains($errstr, 'str_replace(): Passing null') ||
+            str_contains($errstr, 'strpos(): Passing null')
+        )) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+            error_log('[FP-PerfSuite] deprecated_warning: ' . $errstr . ' | trace: ' . print_r($trace, true));
+        }
+
+        return false;
     }
 }

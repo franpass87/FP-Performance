@@ -176,9 +176,10 @@ class IntelligenceReporter
         
         $analysis = [
             'score' => 0,
-            'avg_load_time' => $performanceReport['summary']['avg_load_time'],
-            'problematic_pages' => $performanceReport['summary']['problematic_pages'],
-            'optimization_potential' => $performanceReport['summary']['optimization_potential'],
+            'avg_load_time' => $performanceReport['summary']['avg_load_time'] ?? 0,
+            'problematic_pages' => $performanceReport['summary']['problematic_pages'] ?? 0,
+            // BUGFIX #15: optimization_potential non esiste in PerformanceDetector - calcoliamo
+            'optimization_potential' => $this->calculateOptimizationPotential($performanceReport),
             'trends' => [],
         ];
 
@@ -484,6 +485,28 @@ class IntelligenceReporter
         $csv .= "Recommendations," . count($report['recommendations']) . "\n";
         
         return $csv;
+    }
+    
+    /**
+     * BUGFIX #15: Calcola potenziale di ottimizzazione in base ai dati performance
+     */
+    private function calculateOptimizationPotential(array $performanceReport): int
+    {
+        $avgLoadTime = $performanceReport['summary']['avg_load_time'] ?? 0;
+        $problematicPages = $performanceReport['summary']['problematic_pages'] ?? 0;
+        
+        // Se load time basso e poche pagine problematiche = basso potenziale
+        if ($avgLoadTime < 1.5 && $problematicPages < 3) {
+            return 20; // Già ottimizzato
+        }
+        
+        // Se load time medio e qualche pagina problematica = medio potenziale
+        if ($avgLoadTime < 3.0 && $problematicPages < 10) {
+            return 50; // Ottimizzazione moderata
+        }
+        
+        // Se load time alto o molte pagine problematiche = alto potenziale
+        return 80; // Grande margine di miglioramento
     }
     
     /**

@@ -159,17 +159,6 @@
 	}
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-	.fp-ps-info-row {
-		border-bottom-color: var(--fp-ps-border-dark);
-	}
-
-	.fp-ps-resource-item .fp-ps-progress-bar {
-		background-color: var(--fp-ps-bg-dark);
-	}
-}
-
 /* High Contrast Mode */
 @media (prefers-contrast: high) {
 	.fp-ps-info-row {

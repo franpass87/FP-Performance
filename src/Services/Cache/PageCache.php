@@ -105,7 +105,7 @@ class PageCache
         }
         
         if (!file_exists($file)) {
-            return true; // Già eliminato
+            return true; // GiÃ  eliminato
         }
         
         return @unlink($file);
@@ -217,7 +217,7 @@ class PageCache
     }
     
     /**
-     * Verifica se la page cache è abilitata
+     * Verifica se la page cache Ã¨ abilitata
      * 
      * @return bool
      */
@@ -264,7 +264,7 @@ class PageCache
         
         if (isset($newSettings['ttl'])) {
             $newSettings['ttl'] = max(0, (int) $newSettings['ttl']);
-            // Se TTL è 0, disabilita la cache
+            // Se TTL Ã¨ 0, disabilita la cache
             if ($newSettings['ttl'] === 0) {
                 $newSettings['enabled'] = false;
             }
@@ -338,7 +338,7 @@ class PageCache
             
             return $count;
         } catch (\Exception $e) {
-            // Se c'è un errore (permessi, etc), restituiamo 0
+            // Se c'Ã¨ un errore (permessi, etc), restituiamo 0
             return 0;
         }
     }
@@ -480,7 +480,7 @@ class PageCache
             $taxonomies = get_object_taxonomies($post);
             foreach ($taxonomies as $taxonomy) {
                 if (in_array($taxonomy, ['category', 'post_tag'], true)) {
-                    continue; // Già gestiti sopra
+                    continue; // GiÃ  gestiti sopra
                 }
                 
                 $terms = get_the_terms($postId, $taxonomy);
@@ -547,7 +547,7 @@ class PageCache
      */
     private function patternToRegex(string $pattern): string
     {
-        // Se già un regex (inizia con / o #), usa direttamente
+        // Se giÃ  un regex (inizia con / o #), usa direttamente
         if (preg_match('/^[\/\#]/', $pattern)) {
             return $pattern;
         }
@@ -565,6 +565,10 @@ class PageCache
      */
     public function register(): void
     {
+        // BUGFIX #8: Aggiunto hook per GENERARE la cache (era completamente mancante!)
+        // Intercetta richieste e serve/genera cache
+        add_action('template_redirect', [$this, 'serveOrCachePage'], 1);
+        
         // Hook per auto-purge quando un post viene aggiornato
         add_action('save_post', [$this, 'autoPurgePost'], 10, 1);
         add_action('deleted_post', [$this, 'autoPurgePost'], 10, 1);
@@ -579,6 +583,50 @@ class PageCache
             wp_schedule_event(time(), 'hourly', 'fp_ps_cache_cleanup');
         }
         add_action('fp_ps_cache_cleanup', [$this, 'cleanupExpiredCache']);
+    }
+    
+    /**
+     * BUGFIX #8: Metodo per servire cache esistente o generarne una nuova
+     * Questo Ã¨ il cuore del sistema di page caching
+     */
+    public function serveOrCachePage(): void
+    {
+        // Solo per richieste GET
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            return;
+        }
+        
+        // Non cachare admin, login, o utenti loggati
+        if (is_admin() || is_user_logged_in() || is_404()) {
+            return;
+        }
+        
+        // Non cachare richieste AJAX o POST
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            return;
+        }
+        
+        // Chiave cache basata su URL completo
+        $cache_key = $_SERVER['REQUEST_URI'] ?? '/';
+        
+        // Prova a servire da cache
+        $cached_content = $this->get($cache_key);
+        if ($cached_content !== false) {
+            // Serve dalla cache e termina
+            header('X-FP-Cache: HIT');
+            echo $cached_content;
+            exit;
+        }
+        
+        // Cache miss - avvia output buffering per catturare HTML
+        header('X-FP-Cache: MISS');
+        ob_start(function($buffer) use ($cache_key) {
+            // Salva in cache solo se HTTP 200 OK
+            if (http_response_code() === 200 && !empty($buffer)) {
+                $this->set($cache_key, $buffer);
+            }
+            return $buffer;
+        });
     }
     
     /**

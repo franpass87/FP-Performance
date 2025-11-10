@@ -331,11 +331,12 @@ class SystemMonitor
                 'avg_usage_percent' => $memoryUsageCount > 0 ? round(array_sum(array_column($memoryUsage, 'usage_percent')) / $memoryUsageCount, 2) : 0,
                 'max_usage_percent' => $memoryUsageCount > 0 ? max(array_column($memoryUsage, 'usage_percent')) : 0,
             ],
+            // BUGFIX #25: Usa l'ULTIMO elemento (più recente) invece del PRIMO (più vecchio)
             'disk' => [
-                'total_gb' => $diskUsage[0]['total_gb'] ?? 0,
-                'free_gb' => $diskUsage[0]['free_gb'] ?? 0,
-                'used_gb' => $diskUsage[0]['used_gb'] ?? 0,
-                'usage_percent' => $diskUsage[0]['usage_percent'] ?? 0,
+                'total_gb' => !empty($diskUsage) ? end($diskUsage)['total_gb'] : 0,
+                'free_gb' => !empty($diskUsage) ? end($diskUsage)['free_gb'] : 0,
+                'used_gb' => !empty($diskUsage) ? end($diskUsage)['used_gb'] : 0,
+                'usage_percent' => !empty($diskUsage) ? end($diskUsage)['usage_percent'] : 0,
             ],
             'load' => [
                 'avg_1min' => $loadAverageCount > 0 ? round(array_sum(array_column($loadAverage, '1min')) / $loadAverageCount, 2) : 0,

@@ -26,14 +26,15 @@ class PageIntro
         ?>
         
         <!-- Page Intro Box -->
-        <div class="fp-ps-intro-panel">
-            <h2 class="fp-ps-intro-title">
+        <!-- BUGFIX #14b: Testo bianco inline per massima leggibilità su gradiente viola -->
+        <div class="fp-ps-intro-panel" style="color: white;">
+            <h2 class="fp-ps-intro-title" style="color: white;">
                 <?php if ($icon): ?>
                     <?php echo esc_html($icon); ?> 
                 <?php endif; ?>
                 <?php echo esc_html($title); ?>
             </h2>
-            <p class="fp-ps-intro-description">
+            <p class="fp-ps-intro-description" style="color: white !important;">
                 <?php echo esc_html($description); ?>
             </p>
         </div>
@@ -56,14 +57,15 @@ class PageIntro
         ?>
         
         <!-- Page Intro Box -->
-        <div class="fp-ps-intro-panel">
-            <h2 class="fp-ps-intro-title">
+        <!-- BUGFIX #14b: Testo bianco inline per massima leggibilità su gradiente viola -->
+        <div class="fp-ps-intro-panel" style="color: white;">
+            <h2 class="fp-ps-intro-title" style="color: white;">
                 <?php if ($icon): ?>
                     <?php echo esc_html($icon); ?> 
                 <?php endif; ?>
                 <?php echo esc_html($title); ?>
             </h2>
-            <div class="fp-ps-intro-description">
+            <div class="fp-ps-intro-description" style="color: white !important;">
                 <?php echo $description_html; // Già escapato dal chiamante ?>
             </div>
         </div>
@@ -72,4 +74,3 @@ class PageIntro
         return ob_get_clean();
     }
 }
-

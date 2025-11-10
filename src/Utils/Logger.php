@@ -166,17 +166,33 @@ class Logger
             return false;
         }
 
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            return true;
-        }
-
-        $configuredLevel = get_option(self::OPTION_LOG_LEVEL, 'ERROR');
+        $configuredLevel = strtoupper((string) get_option(self::OPTION_LOG_LEVEL, self::ERROR));
         $levels = [self::ERROR => 1, self::WARNING => 2, self::INFO => 3, self::DEBUG => 4];
 
-        $currentLevel = $levels[$configuredLevel] ?? 1;
+        if (!isset($levels[$configuredLevel])) {
+            $configuredLevel = self::ERROR;
+        }
+
+        $currentLevel = $levels[$configuredLevel];
         $requestedLevel = $levels[$level] ?? 4;
 
-        return $requestedLevel <= $currentLevel;
+        if ($requestedLevel > $currentLevel) {
+            return false;
+        }
+
+        if ($level === self::DEBUG) {
+            if (defined('FP_PS_FORCE_DEBUG_LOGS') && FP_PS_FORCE_DEBUG_LOGS) {
+                return true;
+            }
+
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                return true;
+            }
+
+            return $configuredLevel === self::DEBUG;
+        }
+
+        return true;
     }
 
     /**
@@ -184,7 +200,7 @@ class Logger
      */
     public static function setLevel(string $level): void
     {
-        update_option(self::OPTION_LOG_LEVEL, $level);
+        update_option(self::OPTION_LOG_LEVEL, strtoupper($level));
     }
     
     /**
@@ -207,6 +223,17 @@ class Logger
             'Cache file count refreshed',
             'Auto-purge hooks registered',
             'Output buffering started for page cache',
+            '=== PLUGIN INIT DEBUG ===',
+            'Frontend services ENABLED',
+            'Frontend services disabled in admin',
+            'Plugin initialized successfully',
+            'Responsive image manager registered',
+            'Performance Analyzer registered',
+            'Recommendation Applicator registered',
+            'ResponsiveImageOptimizer registered',
+            'CriticalPathOptimizer registered',
+            'Theme Detector registered',
+            'Regole sicurezza .htaccess',
         ];
         
         foreach ($repetitivePatterns as $pattern) {
@@ -217,9 +244,17 @@ class Logger
                 if (isset(self::$loggedMessages[$key])) {
                     return true;
                 }
+
+                $transientKey = 'fp_ps_log_' . $key;
+                if (function_exists('get_transient') && false !== get_transient($transientKey)) {
+                    return true;
+                }
                 
                 // Marca come loggato
                 self::$loggedMessages[$key] = $now;
+                if (function_exists('set_transient')) {
+                    set_transient($transientKey, 1, 300);
+                }
                 return false;
             }
         }

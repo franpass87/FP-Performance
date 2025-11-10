@@ -443,22 +443,24 @@ class PostHandler
 
     private function handleAdvancedJsOptimizationForm(): string
     {
-        // Handle unused optimization settings
+        // BUGFIX #18a: Tutti e 3 i servizi avanzati JavaScript usano updateSettings(), non update()
+        
+        // Handle unused JavaScript optimization settings
         if (isset($_POST['unused_optimization'])) {
             $unusedOptimizer = new UnusedJavaScriptOptimizer();
-            $unusedOptimizer->update($_POST['unused_optimization']);
+            $unusedOptimizer->updateSettings($_POST['unused_optimization']);
         }
 
         // Handle code splitting settings
         if (isset($_POST['code_splitting'])) {
             $codeSplittingManager = new CodeSplittingManager();
-            $codeSplittingManager->update($_POST['code_splitting']);
+            $codeSplittingManager->updateSettings($_POST['code_splitting']);
         }
 
         // Handle tree shaking settings
         if (isset($_POST['tree_shaking'])) {
             $treeShaker = new JavaScriptTreeShaker();
-            $treeShaker->update($_POST['tree_shaking']);
+            $treeShaker->updateSettings($_POST['tree_shaking']);
         }
 
         return __('Advanced JavaScript optimization settings saved successfully!', 'fp-performance-suite');

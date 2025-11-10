@@ -197,6 +197,35 @@ class Overview extends AbstractPage
                 </div>
             </div>
             
+            <!-- FEATURE: One-Click Safe Optimizations Button -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h3 style="color: white; margin: 0 0 8px 0; font-size: 18px;">
+                            🚀 <?php esc_html_e('Ottimizzazione One-Click Sicura', 'fp-performance-suite'); ?>
+                        </h3>
+                        <p style="color: rgba(255, 255, 255, 0.9); margin: 0; font-size: 14px; line-height: 1.5;">
+                            <?php esc_html_e('Attiva con un click tutte le 40 ottimizzazioni classificate VERDI (sicure). Zero rischi, massima performance!', 'fp-performance-suite'); ?>
+                        </p>
+                    </div>
+                    <button 
+                        type="button" 
+                        id="fp-ps-apply-all-safe" 
+                        class="button button-primary button-hero"
+                        style="background: white !important; color: #667eea !important; border: none !important; padding: 16px 32px !important; font-size: 16px !important; font-weight: 600 !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; white-space: nowrap;">
+                        🎯 <?php esc_html_e('Attiva 40 Opzioni Sicure', 'fp-performance-suite'); ?>
+                    </button>
+                </div>
+                <div id="fp-ps-safe-progress" style="display: none; margin-top: 16px; color: white;">
+                    <div style="background: rgba(255, 255, 255, 0.2); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 8px;">
+                        <div id="fp-ps-safe-progress-bar" style="background: white; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div id="fp-ps-safe-progress-text" style="font-size: 13px; text-align: center;">
+                        <?php esc_html_e('Inizializzazione...', 'fp-performance-suite'); ?>
+                    </div>
+                </div>
+            </div>
+            
             <div class="fp-ps-quick-wins-grid">
                 <?php foreach ($quickWins as $index => $win) : 
                     $iconMap = [
@@ -660,7 +689,13 @@ class Overview extends AbstractPage
         
         <!-- JavaScript per applicazione suggerimenti -->
         <script type="text/javascript">
-        jQuery(document).ready(function($) {
+        // BUGFIX: Aspetta che jQuery sia disponibile prima di eseguire
+        (function waitForJQuery() {
+            if (typeof jQuery === 'undefined') {
+                setTimeout(waitForJQuery, 50);
+                return;
+            }
+            jQuery(document).ready(function($) {
             // Assicurati che fpPerfSuite sia disponibile
             if (typeof fpPerfSuite === 'undefined') {
                 console.error('fpPerfSuite non è disponibile. Assicurati che gli script siano caricati correttamente.');
@@ -686,6 +721,7 @@ class Overview extends AbstractPage
                 $.ajax({
                     url: fpPerfSuite.ajaxUrl,
                     type: 'POST',
+                    timeout: 15000, // BUGFIX: Timeout 15 secondi per evitare blocchi infiniti
                     data: {
                         action: 'fp_ps_apply_recommendation',
                         action_id: actionId,
@@ -723,11 +759,87 @@ class Overview extends AbstractPage
                     },
                     error: function(xhr, status, error) {
                         $button.prop('disabled', false).html(originalText);
-                        alert('<?php echo esc_js(__('Errore di comunicazione con il server:', 'fp-performance-suite')); ?> ' + error);
+                        // BUGFIX: Messaggio specifico per timeout
+                        if (status === 'timeout') {
+                            alert('<?php echo esc_js(__('Timeout: l\'operazione sta richiedendo troppo tempo. Riprova o abilita manualmente dalla pagina Cache.', 'fp-performance-suite')); ?>');
+                        } else {
+                            alert('<?php echo esc_js(__('Errore di comunicazione con il server:', 'fp-performance-suite')); ?> ' + error);
+                        }
                     }
                 });
             });
-        });
+            
+            // FEATURE: One-Click Safe Optimizations Handler
+            $('#fp-ps-apply-all-safe').on('click', function() {
+                if (!confirm('<?php echo esc_js(__('Vuoi attivare TUTTE le 40 ottimizzazioni sicure (GREEN)?\n\nQueste sono opzioni a ZERO RISCHIO verificate dal sistema.\n\nPuoi sempre disattivarle manualmente dopo.\n\nProcedo?', 'fp-performance-suite')); ?>')) {
+                    return;
+                }
+                
+                var $btn = $(this);
+                var originalText = $btn.html();
+                var $progressContainer = $('#fp-ps-safe-progress');
+                var $progressBar = $('#fp-ps-safe-progress-bar');
+                var $progressText = $('#fp-ps-safe-progress-text');
+                
+                $btn.prop('disabled', true).html('⏳ <?php echo esc_js(__('Applicazione in corso...', 'fp-performance-suite')); ?>');
+                $progressContainer.show();
+                
+                // Simula progresso
+                var progress = 0;
+                var progressInterval = setInterval(function() {
+                    if (progress < 90) {
+                        progress += Math.random() * 10;
+                        if (progress > 90) progress = 90;
+                        $progressBar.css('width', progress + '%');
+                        $progressText.text('<?php echo esc_js(__('Applicazione in corso...', 'fp-performance-suite')); ?> ' + Math.round(progress) + '%');
+                    }
+                }, 400);
+                
+                $.ajax({
+                    url: fpPerfSuite.ajaxUrl,
+                    type: 'POST',
+                    timeout: 60000,
+                    data: {
+                        action: 'fp_ps_apply_all_safe_optimizations',
+                        nonce: '<?php echo wp_create_nonce('fp_ps_apply_all_safe'); ?>'
+                    },
+                    success: function(response) {
+                        clearInterval(progressInterval);
+                        $progressBar.css('width', '100%');
+                        
+                        if (response.success) {
+                            var applied = response.data.applied || 0;
+                            var total = response.data.total || 40;
+                            $progressText.html('✅ <?php echo esc_js(__('Completato!', 'fp-performance-suite')); ?> ' + applied + '/' + total + ' <?php echo esc_js(__('opzioni attivate', 'fp-performance-suite')); ?>');
+                            $btn.html('✅ <?php echo esc_js(__('Completato!', 'fp-performance-suite')); ?>').css({'background': '#10b981', 'color': 'white', 'border-color': '#10b981'});
+                            
+                            setTimeout(function() {
+                                alert('<?php echo esc_js(__('🎉 Ottimizzazioni applicate con successo!\n\n', 'fp-performance-suite')); ?>' + response.data.message + '\n\n<?php echo esc_js(__('Ricarico la pagina per mostrare i nuovi risultati...', 'fp-performance-suite')); ?>');
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            $progressText.text('❌ <?php echo esc_js(__('Errore', 'fp-performance-suite')); ?>');
+                            $btn.prop('disabled', false).html(originalText);
+                            $progressContainer.hide();
+                            alert('<?php echo esc_js(__('Errore:', 'fp-performance-suite')); ?> ' + (response.data || '<?php echo esc_js(__('Errore sconosciuto', 'fp-performance-suite')); ?>'));
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        clearInterval(progressInterval);
+                        $progressContainer.hide();
+                        $btn.prop('disabled', false).html(originalText);
+                        
+                        if (status === 'timeout') {
+                            alert('<?php echo esc_js(__('Timeout: Operazione troppo lunga. Riprova o applica manualmente.', 'fp-performance-suite')); ?>');
+                        } else {
+                            alert('<?php echo esc_js(__('Errore di comunicazione:', 'fp-performance-suite')); ?> ' + error);
+                        }
+                    }
+                });
+            });
+            
+            }); // Chiusura jQuery(document).ready
+        })(); // Chiusura e invocazione waitForJQuery
         </script>
         
         <?php

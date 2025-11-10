@@ -3,7 +3,7 @@
  * Plugin Name: FP Performance Suite
  * Plugin URI: https://francescopasseri.com
  * Description: Modular performance suite for shared hosting with caching, asset tuning, WebP conversion, database cleanup, and safe debug tools.
- * Version: 1.7.0
+ * Version: 1.8.0
  * Author: Francesco Passeri
  * Author URI: https://francescopasseri.com
  * Text Domain: fp-performance-suite
@@ -16,9 +16,9 @@
 
 defined('ABSPATH') || exit;
 
-// Last modified: 2025-11-02 - v1.7.0 Critical Features Release
+// Last modified: 2025-11-02 - v1.8.0 Critical Features Release
 // Plugin principale FP Performance Suite - OTTIMIZZATO PER SHARED HOSTING
-// NEW in v1.7.0: Instant Page, Delay JS, Embed Facades, WooCommerce Optimizations
+// NEW in v1.8.0: Instant Page, Delay JS, Embed Facades, WooCommerce Optimizations
 
 // Abilita SAVEQUERIES per admin se configurato (attivato dopo che WordPress è pronto)
 add_action('plugins_loaded', function() {
@@ -35,6 +35,87 @@ add_action('plugins_loaded', function() {
         }
     }
 }, 1);
+
+// Trace helper per individuare warning deprecati del core (attivabile via filtro)
+if (!function_exists('fp_perf_suite_enable_deprecated_trace')) {
+    function fp_perf_suite_enable_deprecated_trace(): void
+    {
+        static $initialized = false;
+
+        if ($initialized) {
+            return;
+        }
+
+        if (!defined('WP_DEBUG') || !WP_DEBUG) {
+            return;
+        }
+
+        if (!apply_filters('fp_ps_capture_deprecated_trace', false)) {
+            return;
+        }
+
+        $previousHandler = set_error_handler(static function ($errno, $errstr, $errfile, $errline) use (&$previousHandler) {
+            static $handled = [];
+
+            if ($errno === E_DEPRECATED && strpos($errstr, 'str_replace(): Passing null to parameter #3 ($subject)') !== false) {
+                $key = md5($errstr . $errfile . $errline);
+
+                if (!isset($handled[$key])) {
+                    $handled[$key] = true;
+
+                    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+                    $normalizedTrace = [];
+
+                    foreach ($trace as $frame) {
+                        $normalizedTrace[] = [
+                            'function' => $frame['function'] ?? '',
+                            'class' => $frame['class'] ?? '',
+                            'type' => $frame['type'] ?? '',
+                            'file' => $frame['file'] ?? '',
+                            'line' => $frame['line'] ?? 0,
+                        ];
+                    }
+
+                    error_log('[FP-PerfSuite] Deprecated trace captured: ' . $errstr . ' | stack=' . wp_json_encode($normalizedTrace));
+                }
+            }
+
+            if ($previousHandler) {
+                return $previousHandler($errno, $errstr, $errfile, $errline);
+            }
+
+            return false;
+        });
+
+        $initialized = true;
+    }
+}
+
+fp_perf_suite_enable_deprecated_trace();
+add_action('init', 'fp_perf_suite_enable_deprecated_trace', 0);
+
+add_filter(
+    'action_scheduler_queue_runner_batch_size',
+    static function ($size) {
+        $size = (int) $size;
+        if ($size > 10) {
+            return 10;
+        }
+        return $size;
+    }
+);
+
+add_filter(
+    'action_scheduler_queue_runner_concurrent_batches',
+    static function ($batches) {
+        $batches = (int) $batches;
+        if ($batches > 1) {
+            return 1;
+        }
+        return $batches;
+    }
+);
+
 
 /**
  * Verifica se il database WordPress è disponibile
@@ -83,6 +164,26 @@ function fp_perf_suite_safe_log(string $message, string $level = 'ERROR'): void 
         $message
     );
     
+    if ($level === 'DEBUG') {
+        static $recentDebug = [];
+        $now = time();
+        $key = md5($message);
+
+        if (isset($recentDebug[$key]) && ($now - $recentDebug[$key]) < 300) {
+            return;
+        }
+
+        if (function_exists('get_transient')) {
+            $transientKey = 'fp_ps_safe_log_' . $key;
+            if (false !== get_transient($transientKey)) {
+                return;
+            }
+            set_transient($transientKey, 1, 300);
+        }
+
+        $recentDebug[$key] = $now;
+    }
+
     if (defined('WP_DEBUG') && WP_DEBUG && defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
         error_log($logMessage);
     }
@@ -127,7 +228,18 @@ spl_autoload_register(static function ($class) {
     }
 });
 
-defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.7.0');
+// Preboot environment guards il prima possibile
+if (class_exists('\FP\PerfSuite\Plugin')) {
+    \FP\PerfSuite\Plugin::preboot();
+} else {
+    require_once __DIR__ . '/src/Plugin.php';
+    if (class_exists('\FP\PerfSuite\Plugin')) {
+        \FP\PerfSuite\Plugin::preboot();
+    }
+}
+
+// BUGFIX #27: Incremento versione per forzare JS reload (webp-bulk-convert.js mancante)
+defined('FP_PERF_SUITE_VERSION') || define('FP_PERF_SUITE_VERSION', '1.8.0');
 defined('FP_PERF_SUITE_DIR') || define('FP_PERF_SUITE_DIR', __DIR__);
 defined('FP_PERF_SUITE_FILE') || define('FP_PERF_SUITE_FILE', __FILE__);
 

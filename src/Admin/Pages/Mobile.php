@@ -382,6 +382,21 @@ class Mobile extends AbstractPage
             ];
             
             update_option('fp_ps_mobile_optimizer', $settings);
+            
+            // BUGFIX #22: ResponsiveImageManager cerca in 'fp_ps_responsive_images', non 'fp_ps_mobile_optimizer'!
+            // Salva ANCHE nella chiave corretta per far funzionare il servizio
+            if (!empty($settings['enable_responsive_images'])) {
+                update_option('fp_ps_responsive_images', [
+                    'enabled' => true,
+                    'enable_lazy_loading' => true, // Già gestito da LazyLoadManager
+                    'optimize_srcset' => true,
+                    'add_mobile_dimensions' => true,
+                    'max_mobile_width' => 768
+                ]);
+            } else {
+                update_option('fp_ps_responsive_images', ['enabled' => false]);
+            }
+            
             echo '<div class="notice notice-success"><p>' . __('Mobile settings saved successfully!', 'fp-performance-suite') . '</p></div>';
         }
         

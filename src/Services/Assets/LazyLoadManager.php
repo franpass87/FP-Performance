@@ -19,7 +19,13 @@ class LazyLoadManager
     {
         if ($this->images) {
             add_filter('wp_get_attachment_image_attributes', [$this, 'addImageLazyLoading'], 10, 3);
-            add_filter('the_content', [$this, 'optimizeContentImages']);
+            add_filter('the_content', [$this, 'optimizeContentImages'], 999); // PrioritÃ  alta per eseguire dopo
+            
+            // BUGFIX #12d: Output buffering globale per catturare TUTTE le immagini (anche quelle del tema)
+            // Non solo quelle in the_content
+            if (!is_admin()) {
+                add_action('template_redirect', [$this, 'startOutputBuffer'], 1);
+            }
         }
         
         if ($this->videos) {
@@ -36,6 +42,41 @@ class LazyLoadManager
         }
     }
     
+    /**
+     * BUGFIX #12d: Avvia output buffering per catturare tutto l'HTML finale
+     */
+    public function startOutputBuffer()
+    {
+        ob_start([$this, 'processFullPageHtml']);
+    }
+    
+    /**
+     * BUGFIX #12d: Processa l'HTML completo della pagina e aggiungi lazy loading
+     */
+    public function processFullPageHtml($html)
+    {
+        if (empty($html)) {
+            return $html;
+        }
+        
+        // Aggiungi loading="lazy" a TUTTE le immagini che non lo hanno giÃ 
+        $html = preg_replace_callback('/<img([^>]*)>/i', function($matches) {
+            $img_tag = $matches[0];
+            
+            // Se giÃ  ha loading= , non modificare
+            if (stripos($img_tag, 'loading=') !== false) {
+                return $img_tag;
+            }
+            
+            // Aggiungi loading="lazy" decoding="async"
+            $img_tag = str_replace('<img', '<img loading="lazy" decoding="async"', $img_tag);
+            
+            return $img_tag;
+        }, $html);
+        
+        return $html;
+    }
+    
     public function addImageLazyLoading($attr, $attachment, $size)
     {
         $attr['loading'] = 'lazy';
@@ -47,7 +88,21 @@ class LazyLoadManager
     {
         if (!$this->images) return $content;
         
-        $content = preg_replace('/<img([^>]+)src=/', '<img$1loading="lazy" decoding="async" src=', $content);
+        // BUGFIX #12c: Regex migliorato per aggiungere loading="lazy" solo se non giÃ  presente
+        // Evita di aggiungere l'attributo duplicato
+        $content = preg_replace_callback('/<img([^>]*)>/i', function($matches) {
+            $img_tag = $matches[0];
+            
+            // Se giÃ  ha loading="lazy", non modificare
+            if (stripos($img_tag, 'loading=') !== false) {
+                return $img_tag;
+            }
+            
+            // Aggiungi loading="lazy" e decoding="async" prima del >
+            $img_tag = str_replace('<img', '<img loading="lazy" decoding="async"', $img_tag);
+            
+            return $img_tag;
+        }, $content);
         
         return $content;
     }
@@ -80,31 +135,59 @@ class LazyLoadManager
         if (!$this->images && !$this->videos && !$this->iframes) return;
         
         echo '<script>
-            document.addEventListener("DOMContentLoaded", function() {
-                if ("IntersectionObserver" in window) {
-                    const lazyElements = document.querySelectorAll("img[loading=\"lazy\"], iframe[data-src]");
+            // BUGFIX #12e: Lazy loading client-side per immagini dinamiche (emoji, etc)
+            (function() {
+                function applyLazyToAllImages() {
+                    const allImages = document.querySelectorAll("img:not([loading])");
+                    let count = 0;
                     
-                    const lazyObserver = new IntersectionObserver((entries, observer) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                const element = entry.target;
-                                
-                                if (element.tagName === "IMG") {
-                                    element.src = element.dataset.src || element.src;
-                                } else if (element.tagName === "IFRAME") {
-                                    element.src = element.dataset.src;
+                    allImages.forEach(function(img) {
+                        img.setAttribute("loading", "lazy");
+                        img.setAttribute("decoding", "async");
+                        count++;
+                    });
+                    
+                    if (count > 0) {
+                        console.log("FP Performance: Lazy loading applicato a " + count + " immagini");
+                    }
+                }
+                
+                // Applica subito al DOMContentLoaded
+                document.addEventListener("DOMContentLoaded", applyLazyToAllImages);
+                
+                // Ri-applica dopo 500ms per catturare emoji e altre risorse dinamiche
+                document.addEventListener("DOMContentLoaded", function() {
+                    setTimeout(applyLazyToAllImages, 500);
+                    setTimeout(applyLazyToAllImages, 2000);
+                });
+                
+                // Intersection Observer per gestione avanzata
+                if ("IntersectionObserver" in window) {
+                    document.addEventListener("DOMContentLoaded", function() {
+                        const lazyElements = document.querySelectorAll("img[loading=\'lazy\'], iframe[data-src]");
+                        
+                        const lazyObserver = new IntersectionObserver(function(entries, observer) {
+                            entries.forEach(function(entry) {
+                                if (entry.isIntersecting) {
+                                    const element = entry.target;
+                                    
+                                    if (element.tagName === "IMG") {
+                                        element.src = element.dataset.src || element.src;
+                                    } else if (element.tagName === "IFRAME") {
+                                        element.src = element.dataset.src;
+                                    }
+                                    
+                                    observer.unobserve(element);
                                 }
-                                
-                                observer.unobserve(element);
-                            }
+                            });
+                        });
+                        
+                        lazyElements.forEach(function(element) {
+                            lazyObserver.observe(element);
                         });
                     });
-                    
-                    lazyElements.forEach(element => {
-                        lazyObserver.observe(element);
-                    });
                 }
-            });
+            })();
         </script>';
     }
     

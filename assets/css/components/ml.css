@@ -323,27 +323,3 @@
 		width: 100%;
 	}
 }
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-	.fp-ps-stat-item {
-		background: #2c2c2c;
-		color: #e0e0e0;
-	}
-
-	.fp-ps-prediction,
-	.fp-ps-recommendation {
-		background: #2c2c2c;
-		color: #e0e0e0;
-	}
-
-	.fp-ps-anomaly {
-		background: #2c1a1a;
-		color: #e0e0e0;
-	}
-
-	.fp-ps-tuning-category {
-		background: #2c2c2c;
-		color: #e0e0e0;
-	}
-}

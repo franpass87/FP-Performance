@@ -19,25 +19,71 @@ class HtaccessSecurity
     {
         // Solo nel frontend
         if (!is_admin()) {
-            add_action('init', [$this, 'addSecurityHeaders']);
+            // BUGFIX #23a: 'send_headers' Ã¨ MOLTO piÃ¹ presto di 'init' per gli header HTTP
+            add_action('send_headers', [$this, 'addSecurityHeaders'], 1);
             add_action('wp_loaded', [$this, 'updateHtaccess']);
+        }
+        
+        // BUGFIX #23b: Disabilita XML-RPC se richiesto
+        $settings = $this->settings();
+        if (!empty($settings['xmlrpc_disabled'])) {
+            add_filter('xmlrpc_enabled', '__return_false', 999);
+            add_filter('wp_xmlrpc_server_class', '__return_false', 999);
         }
     }
     
     public function addSecurityHeaders()
     {
-        if (!$this->security_headers) {
+        // Carica settings freschi per questa richiesta
+        $settings = $this->settings();
+        
+        if (empty($settings['security_headers']['enabled'])) {
             return;
         }
         
-        if (!headers_sent()) {
-            // Security headers
-            header('X-Content-Type-Options: nosniff');
-            header('X-Frame-Options: SAMEORIGIN');
-            header('X-XSS-Protection: 1; mode=block');
-            header('Referrer-Policy: strict-origin-when-cross-origin');
-            header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        if (headers_sent()) {
+            Logger::warning('Headers giÃ  inviati, impossibile aggiungere security headers');
+            return;
         }
+        
+        $headers = $settings['security_headers'];
+        
+        // BUGFIX #23a: Invia header configurabili invece di hardcoded
+        if (!empty($headers['x_content_type_options'])) {
+            header('X-Content-Type-Options: nosniff');
+        }
+        
+        if (!empty($headers['x_frame_options'])) {
+            $frameOption = $headers['x_frame_options'] ?? 'SAMEORIGIN';
+            header('X-Frame-Options: ' . $frameOption);
+        }
+        
+        // X-XSS-Protection (deprecated ma ancora utile per browser vecchi)
+        header('X-XSS-Protection: 1; mode=block');
+        
+        if (!empty($headers['referrer_policy'])) {
+            $policy = $headers['referrer_policy'] ?? 'strict-origin-when-cross-origin';
+            header('Referrer-Policy: ' . $policy);
+        }
+        
+        if (!empty($headers['permissions_policy'])) {
+            header('Permissions-Policy: ' . $headers['permissions_policy']);
+        }
+        
+        // HSTS
+        if (!empty($headers['hsts'])) {
+            $maxAge = $headers['hsts_max_age'] ?? 31536000;
+            $hsts = "max-age={$maxAge}";
+            if (!empty($headers['hsts_subdomains'])) {
+                $hsts .= '; includeSubDomains';
+            }
+            if (!empty($headers['hsts_preload'])) {
+                $hsts .= '; preload';
+            }
+            header('Strict-Transport-Security: ' . $hsts);
+        }
+        
+        Logger::debug('Security headers inviati', ['headers' => array_keys($headers)]);
     }
     
     public function updateHtaccess()
@@ -87,9 +133,9 @@ class HtaccessSecurity
             return;
         }
         
-        // 4. Verifica se regole già presenti
+        // 4. Verifica se regole giÃ  presenti
         if (strpos($htaccess_content, '# FP Performance Security Rules') !== false) {
-            Logger::debug('Regole sicurezza .htaccess già presenti, skip');
+            Logger::debug('Regole sicurezza .htaccess giÃ  presenti, skip');
             return;
         }
         
@@ -155,12 +201,12 @@ class HtaccessSecurity
             return;
         }
         
-        // Ordina per data (più vecchi prima)
+        // Ordina per data (piÃ¹ vecchi prima)
         usort($backups, function($a, $b) {
             return filemtime($a) - filemtime($b);
         });
         
-        // Rimuovi i più vecchi lasciando solo ultimi 5
+        // Rimuovi i piÃ¹ vecchi lasciando solo ultimi 5
         $to_remove = array_slice($backups, 0, -5);
         foreach ($to_remove as $old_backup) {
             @unlink($old_backup);

@@ -221,46 +221,6 @@
 }
 
 /* ===========================
-	Dark Mode Support
-	=========================== */
-@media (prefers-color-scheme: dark) {
-	.fp-ps-modal {
-		background: #1e293b;
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-	}
-
-	.fp-ps-modal__header {
-		border-bottom-color: #334155;
-	}
-
-	.fp-ps-modal__title {
-		color: #f1f5f9;
-	}
-
-	.fp-ps-modal--danger .fp-ps-modal__title {
-		color: #fca5a5;
-	}
-
-	.fp-ps-modal__message {
-		color: #cbd5e1;
-	}
-
-	.fp-ps-modal__footer {
-		border-top-color: #334155;
-	}
-
-	.fp-ps-modal__cancel {
-		background: #334155 !important;
-		color: #f1f5f9 !important;
-		border-color: #475569 !important;
-	}
-
-	.fp-ps-modal__cancel:hover {
-		background: #475569 !important;
-	}
-}
-
-/* ===========================
 	Reduced Motion
 	=========================== */
 @media (prefers-reduced-motion: reduce) {

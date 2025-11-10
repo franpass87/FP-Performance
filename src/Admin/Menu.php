@@ -39,6 +39,8 @@ use function wp_send_json_error;
 use function wp_send_json_success;
 use function esc_html;
 use function sanitize_key;
+use function get_current_screen;
+use function remove_all_actions;
 
 class Menu
 {
@@ -48,6 +50,59 @@ class Menu
     public function __construct(ServiceContainer $container)
     {
         $this->container = $container;
+        
+        // FEATURE: Nascondi notice di altri plugin sulle pagine FP Performance
+        // Usa priorità 999 per eseguire DOPO che gli altri plugin registrano i loro notice
+        add_action('admin_head', [$this, 'hideOtherPluginsNotices'], 999);
+    }
+    
+    /**
+     * Nascondi admin notices di altri plugin sulle pagine FP Performance
+     * Per evitare clutter e confusione nell'interfaccia
+     */
+    public function hideOtherPluginsNotices(): void
+    {
+        // Verifica se siamo su una pagina FP Performance controllando il parametro GET
+        if (!isset($_GET['page']) || strpos($_GET['page'], 'fp-performance-suite') !== 0) {
+            return;
+        }
+        
+        // Nascondi i notice con CSS inline (più affidabile di remove_all_actions)
+        echo '<style>
+            /* Nascondi TUTTI i notice WordPress di altri plugin sulle pagine FP Performance */
+            /* Notice di FP Privacy */
+            .notice.fp-privacy-detector-alert,
+            /* Notice di FP Publisher */
+            .notice:not([class*="fp-perf"]):not([class*="fp-performance"]),
+            .updated:not([class*="fp-perf"]):not([class*="fp-performance"]),
+            .error:not([class*="fp-perf"]):not([class*="fp-performance"]) {
+                display: none !important;
+            }
+            
+            /* Mostra solo i notice di FP Performance (se ci sono) */
+            .notice.fp-performance-notice,
+            .notice.fp-perf-notice {
+                display: block !important;
+            }
+            
+            /* BUGFIX #14b: Testo bianco su box viola intro per leggibilità */
+            .fp-ps-intro-panel p,
+            .fp-ps-intro-panel strong,
+            .fp-ps-intro-panel span,
+            .fp-ps-intro-panel div {
+                color: white !important;
+            }
+        </style>
+        <script>
+            // BUGFIX #14b: Forza testo bianco via JavaScript per bypassare OPCache
+            document.addEventListener("DOMContentLoaded", function() {
+                const introPanels = document.querySelectorAll(".fp-ps-intro-panel");
+                introPanels.forEach(panel => {
+                    const allText = panel.querySelectorAll("p, strong, span, div, h2, h3");
+                    allText.forEach(el => el.style.color = "white");
+                });
+            });
+        </script>';
     }
 
     public function boot(): void
@@ -352,8 +407,11 @@ class Menu
         // 🧠 INTELLIGENCE
         // ═══════════════════════════════════════════════════════════
         add_submenu_page('fp-performance-suite', __('Machine Learning', 'fp-performance-suite'), __('🤖 Machine Learning', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-ml', [$pages['ml'], 'render']);
+        
+        // BUGFIX #15: Intelligence ripristinata come pagina standalone (troppo pesante come tab)
         add_submenu_page('fp-performance-suite', __('Intelligence', 'fp-performance-suite'), __('🧠 Intelligence', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-intelligence', [$pages['intelligence'], 'render']);
-        add_submenu_page('fp-performance-suite', __('Smart Exclusions', 'fp-performance-suite'), __('🎯 Exclusions', 'fp-performance-suite'), 'manage_options', 'fp-performance-suite-exclusions', [$pages['exclusions'], 'render']);
+        
+        // NOTA: Exclusions è disponibile come TAB dentro la pagina Cache (più logico)
         
         // ═══════════════════════════════════════════════════════════
         // 📈 MONITORING & SECURITY
@@ -546,23 +604,29 @@ class Menu
             }
         </style>
         <script type="text/javascript">
-            jQuery(document).ready(function($) {
-                // Rimuovi i notice di altri plugin nelle pagine FP Performance
-                var fpNoticeKeywords = [
-                    'fp-performance',
-                    'fp-ps',
-                    'performance suite',
-                    'francesco passeri'
-                ];
-                
-                // Cerca tutti i notice nella pagina
-                var notices = $('#wpbody-content .notice, #wpbody-content .error, #wpbody-content .updated');
-                
-                notices.each(function() {
-                    var noticeText = $(this).text().toLowerCase();
-                    var isFpNotice = false;
+            // BUGFIX #28-29: Wrapper waitForjQuery per evitare "jQuery is not defined"
+            (function waitForjQuery() {
+                if (typeof jQuery === 'undefined') {
+                    setTimeout(waitForjQuery, 50);
+                    return;
+                }
+                jQuery(document).ready(function($) {
+                    // Rimuovi i notice di altri plugin nelle pagine FP Performance
+                    var fpNoticeKeywords = [
+                        'fp-performance',
+                        'fp-ps',
+                        'performance suite',
+                        'francesco passeri'
+                    ];
                     
-                    // Controlla se il notice appartiene al plugin FP Performance
+                    // Cerca tutti i notice nella pagina
+                    var notices = $('#wpbody-content .notice, #wpbody-content .error, #wpbody-content .updated');
+                    
+                    notices.each(function() {
+                        var noticeText = $(this).text().toLowerCase();
+                        var isFpNotice = false;
+                        
+                        // Controlla se il notice appartiene al plugin FP Performance
                     for (var i = 0; i < fpNoticeKeywords.length; i++) {
                         if (noticeText.indexOf(fpNoticeKeywords[i]) !== -1) {
                             isFpNotice = true;
@@ -578,9 +642,9 @@ class Menu
                         $(this).addClass('fp-ps-admin-notice');
                     }
                 });
-            });
+            }); // Chiusura jQuery(document).ready
+            })(); // Chiusura e invocazione waitForjQuery
         </script>
         <?php
     }
 }
-

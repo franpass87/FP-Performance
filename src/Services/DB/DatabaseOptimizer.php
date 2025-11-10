@@ -106,6 +106,83 @@ class DatabaseOptimizer
         return $optimized;
     }
     
+    /**
+     * BUGFIX #16: Implementato metodo optimizeAllTables() che mancava
+     * Questo metodo viene chiamato dalla pagina Database.php
+     * 
+     * @return array Risultati dell'ottimizzazione con lista tabelle ottimizzate ed errori
+     */
+    public function optimizeAllTables(): array
+    {
+        global $wpdb;
+        
+        $results = [
+            'success' => true,
+            'optimized' => [],
+            'errors' => [],
+            'total' => 0,
+            'duration' => 0,
+        ];
+        
+        $start_time = microtime(true);
+        
+        try {
+            // Ottieni tutte le tabelle
+            $tables = $wpdb->get_results("SHOW TABLES", ARRAY_N);
+            
+            if (empty($tables)) {
+                $results['success'] = false;
+                $results['errors']['general'] = 'Nessuna tabella trovata nel database';
+                return $results;
+            }
+            
+            $results['total'] = count($tables);
+            
+            // Ottimizza ogni tabella
+            foreach ($tables as $table) {
+                $table_name = $table[0];
+                
+                // Valida nome tabella per sicurezza
+                if (!preg_match('/^[a-zA-Z0-9_]+$/', $table_name)) {
+                    $results['errors'][$table_name] = 'Nome tabella non valido';
+                    continue;
+                }
+                
+                try {
+                    // Esegui OPTIMIZE TABLE
+                    $result = $wpdb->query("OPTIMIZE TABLE `{$table_name}`");
+                    
+                    if ($result !== false) {
+                        $results['optimized'][] = $table_name;
+                        Logger::info("Table {$table_name} ottimizzata con successo");
+                    } else {
+                        $results['errors'][$table_name] = $wpdb->last_error ?: 'Errore sconosciuto';
+                        Logger::error("Errore ottimizzando {$table_name}: " . $wpdb->last_error);
+                    }
+                } catch (\Throwable $e) {
+                    $results['errors'][$table_name] = $e->getMessage();
+                    Logger::error("Eccezione ottimizzando {$table_name}: " . $e->getMessage());
+                }
+            }
+            
+            $results['duration'] = round(microtime(true) - $start_time, 2);
+            
+            Logger::info(sprintf(
+                'optimizeAllTables completato: %d/%d tabelle ottimizzate in %ss',
+                count($results['optimized']),
+                $results['total'],
+                $results['duration']
+            ));
+            
+        } catch (\Throwable $e) {
+            $results['success'] = false;
+            $results['errors']['general'] = $e->getMessage();
+            Logger::error('optimizeAllTables fallito: ' . $e->getMessage());
+        }
+        
+        return $results;
+    }
+    
     public function enableQueryCache()
     {
         global $wpdb;
@@ -123,18 +200,41 @@ class DatabaseOptimizer
         $total_size = 0;
         $total_rows = 0;
         
-        foreach ($tables as $table) {
-            $total_size += $table->Data_length + $table->Index_length;
-            $total_rows += $table->Rows;
+        if (!empty($tables)) {
+            foreach ($tables as $table) {
+                $total_size += ($table->Data_length ?? 0) + ($table->Index_length ?? 0);
+                $total_rows += $table->Rows ?? 0;
+            }
         }
         
         return [
             'total_tables' => count($tables),
             'total_size' => $total_size,
+            'total_size_mb' => round($total_size / 1024 / 1024, 2),
             'total_rows' => $total_rows,
             'auto_optimize' => $this->auto_optimize,
             'query_cache' => $this->query_cache
         ];
+    }
+    
+    /**
+     * BUGFIX #16b: Implementato metodo getDatabaseSize() che mancava
+     * Usato dalla pagina Database.php per mostrare la dimensione
+     */
+    public function getDatabaseSize(): float
+    {
+        $metrics = $this->getDatabaseMetrics();
+        return $metrics['total_size_mb'];
+    }
+    
+    /**
+     * BUGFIX #16c: Implementato metodo getTables() che mancava
+     * Usato dalla pagina Database.php per mostrare info tabelle
+     */
+    public function getTables(): array
+    {
+        $analysis = $this->analyze();
+        return $analysis['tables'] ?? [];
     }
     
     public function getTableStatus()
@@ -153,14 +253,9 @@ class DatabaseOptimizer
     {
         global $wpdb;
         
-        $analysis = [
-            'tables' => [],
-            'total_size' => 0,
-            'overhead' => 0,
-            'recommendations' => [],
-            'issues' => [],
-            'optimization_score' => 100,
-        ];
+        $tables_data = [];
+        $total_size_bytes = 0;
+        $total_overhead_bytes = 0;
         
         // Ottieni informazioni sulle tabelle
         $tables = $this->getTableStatus();
@@ -175,7 +270,7 @@ class DatabaseOptimizer
             $total_size = $data_length + $index_length;
             $overhead = $data_free;
             
-            $analysis['tables'][$table_name] = [
+            $tables_data[$table_name] = [
                 'size' => $total_size,
                 'overhead' => $overhead,
                 'rows' => $rows,
@@ -183,11 +278,43 @@ class DatabaseOptimizer
                 'needs_optimization' => $overhead > ($total_size * 0.1), // > 10% overhead
             ];
             
-            $analysis['total_size'] += $total_size;
-            $analysis['overhead'] += $overhead;
+            $total_size_bytes += $total_size;
+            $total_overhead_bytes += $overhead;
+        }
+        
+        // BUGFIX #16d: Restituisce struttura compatibile con Database.php
+        // Database.php si aspetta: database_size.total_mb e table_analysis.total_tables
+        $analysis = [
+            // Struttura corretta per dimensione database
+            'database_size' => [
+                'total_bytes' => $total_size_bytes,
+                'total_mb' => round($total_size_bytes / 1024 / 1024, 2),
+                'total_gb' => round($total_size_bytes / 1024 / 1024 / 1024, 2),
+            ],
+            // Struttura corretta per analisi tabelle
+            'table_analysis' => [
+                'total_tables' => count($tables),
+                'tables' => $tables_data,
+                'total_overhead_bytes' => $total_overhead_bytes,
+                'total_overhead_mb' => round($total_overhead_bytes / 1024 / 1024, 2),
+            ],
+            // Struttura legacy (per compatibilitÃ )
+            'tables' => $tables_data,
+            'total_size' => $total_size_bytes,
+            'overhead' => $total_overhead_bytes,
+            'recommendations' => [],
+            'issues' => [],
+            'optimization_score' => 100,
+        ];
+        
+        // Rileva problemi
+        foreach ($tables_data as $table_name => $table_info) {
+            $overhead = $table_info['overhead'];
+            $size = $table_info['size'];
+            $rows = $table_info['rows'];
+            $engine = $table_info['engine'];
             
-            // Rileva problemi
-            if ($overhead > ($total_size * 0.2)) {
+            if ($overhead > ($size * 0.2)) {
                 $analysis['issues'][] = [
                     'type' => 'warning',
                     'table' => $table_name,
@@ -196,7 +323,7 @@ class DatabaseOptimizer
                 $analysis['optimization_score'] -= 10;
             }
             
-            if ($rows > 100000 && $table->Engine === 'MyISAM') {
+            if ($rows > 100000 && $engine === 'MyISAM') {
                 $analysis['issues'][] = [
                     'type' => 'info',
                     'table' => $table_name,
@@ -245,7 +372,7 @@ class DatabaseOptimizer
             $index_length = $table->Index_length ?? 0;
             $total_size = $data_length + $index_length;
             
-            // Considera frammentata se ha più del 10% di overhead
+            // Considera frammentata se ha piÃ¹ del 10% di overhead
             if ($total_size > 0 && $data_free > ($total_size * 0.1)) {
                 $fragmentation_percentage = ($data_free / $total_size) * 100;
                 
