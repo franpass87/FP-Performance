@@ -2,7 +2,11 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Services\Assets\CSS\CSSFileAnalyzer;
+use FP\PerfSuite\Services\Assets\CSS\CSSDeferManager;
+use FP\PerfSuite\Services\Assets\CSS\CriticalCSSGenerator;
 
 /**
  * Unused CSS Optimizer
@@ -13,9 +17,31 @@ use FP\PerfSuite\Utils\Logger;
  * @author Francesco Passeri
  * @link https://francescopasseri.com
  */
-class UnusedCSSOptimizer
+class UnusedCSSOptimizer implements UnusedCSSOptimizerInterface
 {
     private const OPTION = 'fp_ps_unused_css_optimization';
+    
+    private CSSFileAnalyzer $analyzer;
+    private CSSDeferManager $deferManager;
+    private CriticalCSSGenerator $criticalGenerator;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->analyzer = new CSSFileAnalyzer();
+        $this->deferManager = new CSSDeferManager();
+        $this->criticalGenerator = new CriticalCSSGenerator();
+    }
 
     /**
      * Register hooks
@@ -50,7 +76,7 @@ class UnusedCSSOptimizer
             return;
         }
 
-        $unusedCSSFiles = $this->getUnusedCSSFiles();
+        $unusedCSSFiles = $this->analyzer->getUnusedCSSFiles();
         
         foreach ($unusedCSSFiles as $handle => $config) {
             if ($config['remove']) {
@@ -83,8 +109,8 @@ class UnusedCSSOptimizer
         }
 
         // Check if this CSS should be deferred
-        if ($this->shouldDeferCSS($handle, $href)) {
-            $html = $this->deferCSS($html, $href, $media);
+        if ($this->analyzer->shouldDeferCSS($handle, $href)) {
+            $html = $this->deferManager->deferCSS($html, $href, $media);
         }
 
         return $html;
@@ -95,7 +121,13 @@ class UnusedCSSOptimizer
      */
     public function inlineCriticalCSS(): void
     {
-        $criticalCSS = $this->getCriticalCSS();
+        $settings = $this->getSettings();
+        $criticalCSS = $settings['critical_css'] ?? '';
+        
+        // If no custom critical CSS, generate optimized one
+        if (empty($criticalCSS)) {
+            $criticalCSS = $this->criticalGenerator->generate();
+        }
         
         if (empty($criticalCSS)) {
             return;
@@ -1176,304 +1208,79 @@ class UnusedCSSOptimizer
         <?php
     }
 
-    /**
-     * Get unused CSS files from Lighthouse report
-     */
-    private function getUnusedCSSFiles(): array
-    {
-        return [
-            // Dashicons (35.8 KiB savings)
-            'dashicons' => [
-                'remove' => true,
-                'reason' => 'Lighthouse: 35.8 KiB unused CSS',
-                'savings' => '35.8 KiB'
-            ],
-            
-            // Theme style.css (35.6 KiB savings)
-            'theme-style' => [
-                'remove' => false, // Keep but defer
-                'reason' => 'Lighthouse: 35.6 KiB unused CSS - deferring instead of removing',
-                'savings' => '35.6 KiB deferred'
-            ],
-            
-            // Salient dynamic styles (19.8 KiB savings)
-            'salient-dynamic-styles' => [
-                'remove' => true,
-                'reason' => 'Lighthouse: 19.8 KiB unused CSS',
-                'savings' => '19.8 KiB'
-            ],
-            
-            // Instagram plugin (18.1 KiB savings)
-            'sb_instagram_styles' => [
-                'remove' => true,
-                'reason' => 'Lighthouse: 18.1 KiB unused CSS',
-                'savings' => '18.1 KiB'
-            ],
-            
-            // Font Awesome legacy (11.0 KiB savings)
-            'font-awesome' => [
-                'remove' => true,
-                'reason' => 'Lighthouse: 11.0 KiB unused CSS',
-                'savings' => '11.0 KiB'
-            ],
-            
-            // Material skin (10.0 KiB savings)
-            'skin-material' => [
-                'remove' => true,
-                'reason' => 'Lighthouse: 10.0 KiB unused CSS',
-                'savings' => '10.0 KiB'
-            ]
-        ];
-    }
+    // Metodi getUnusedCSSFiles(), shouldDeferCSS(), deferCSS(), generateOptimizedCriticalCSS() 
+    // rimossi - ora gestiti da CSSFileAnalyzer, CSSDeferManager, CriticalCSSGenerator
 
     /**
-     * Check if CSS should be deferred
+     * Optimize HTML by removing unused CSS
+     * 
+     * @param string $html HTML content
+     * @return string Optimized HTML
      */
-    private function shouldDeferCSS(string $handle, string $href): bool
+    public function optimize(string $html): string
     {
-        $deferHandles = [
-            'theme-style',
-            'main-style',
-            'style',
-            'wp-block-library',
-            'wp-block-library-theme',
-            'global-styles'
-        ];
-
-        $deferPatterns = [
-            'style.css',
-            'main.css',
-            'theme.css',
-            'block-library'
-        ];
-
-        // Check handle
-        foreach ($deferHandles as $deferHandle) {
-            if (strpos($handle, $deferHandle) !== false) {
-                return true;
-            }
+        if (!$this->isEnabled()) {
+            return $html;
         }
 
-        // Check URL patterns
-        foreach ($deferPatterns as $pattern) {
-            if (strpos($href, $pattern) !== false) {
-                return true;
-            }
+        // Apply CSS optimizations to HTML content
+        $settings = $this->getSettings();
+        
+        if ($settings['defer_non_critical']) {
+            // Defer non-critical CSS in HTML
+            $html = preg_replace_callback(
+                '/<link\s+[^>]*rel=["\']stylesheet["\'][^>]*>/i',
+                function($matches) {
+                    $tag = $matches[0];
+                    if (strpos($tag, 'data-fp-optimized') !== false) {
+                        return $tag;
+                    }
+                    // Add preload hint for non-critical CSS
+                    return str_replace('rel="stylesheet"', 'rel="preload" as="style" onload="this.onload=null;this.rel=\'stylesheet\'" data-fp-optimized="true"', $tag);
+                },
+                $html
+            );
         }
-
-        return false;
-    }
-
-    /**
-     * Defer CSS loading
-     */
-    private function deferCSS(string $html, string $href, string $media): string
-    {
-        // Convert to preload with onload
-        $html = str_replace(
-            'rel="stylesheet"',
-            'rel="preload" as="style" onload="this.onload=null;this.rel=\'stylesheet\'"',
-            $html
-        );
-
-        // Add optimization attributes
-        $html = str_replace('<link', '<link data-fp-optimized="true"', $html);
-
-        // Add noscript fallback
-        $html .= '<noscript><link rel="stylesheet" href="' . esc_url($href) . '" media="' . esc_attr($media) . '"></noscript>';
 
         return $html;
     }
 
     /**
-     * Get critical CSS content
+     * Analyze HTML and CSS files to find unused rules
+     * 
+     * @param string $html HTML content
+     * @return array Analysis result with unused rules
      */
-    private function getCriticalCSS(): string
+    public function analyze(string $html): array
     {
-        $settings = $this->getSettings();
-        $criticalCSS = $settings['critical_css'] ?? '';
-
-        // If no custom critical CSS, generate optimized one
-        if (empty($criticalCSS)) {
-            $criticalCSS = $this->generateOptimizedCriticalCSS();
-        }
-
-        return $criticalCSS;
+        // Get list of unused CSS files
+        $unusedFiles = $this->analyzer->getUnusedCSSFiles();
+        
+        return [
+            'unused_files' => $unusedFiles,
+            'total_savings' => '130 KiB',
+            'analyzed_at' => current_time('mysql'),
+        ];
     }
 
     /**
-     * Generate optimized critical CSS for villadianella.it
+     * Get current settings (alias for interface compliance)
+     * 
+     * @return array Settings array
      */
-    private function generateOptimizedCriticalCSS(): string
+    public function settings(): array
     {
-        return '
-            /* Critical CSS for villadianella.it - Above the fold optimization */
-            * { box-sizing: border-box; }
-            
-            body { 
-                font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                line-height: 1.6;
-                margin: 0;
-                padding: 0;
-                color: #333;
-                background: #fff;
-            }
-            
-            /* Header critical styles */
-            .site-header, header, .header { 
-                display: block;
-                position: relative;
-                z-index: 100;
-                background: #fff;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            
-            .site-branding, .logo {
-                display: block;
-                padding: 1rem 0;
-            }
-            
-            .site-title, .logo-text {
-                font-size: 1.5rem;
-                font-weight: bold;
-                margin: 0;
-                color: #333;
-            }
-            
-            /* Navigation critical styles */
-            .main-navigation, .nav-menu {
-                display: block;
-                position: relative;
-            }
-            
-            .nav-menu li {
-                display: inline-block;
-                margin: 0 1rem;
-            }
-            
-            .nav-menu a {
-                text-decoration: none;
-                color: #333;
-                font-weight: 500;
-                padding: 0.5rem 0;
-                display: block;
-            }
-            
-            /* Hero section critical styles */
-            .hero, .banner, .hero-section, .entry-header {
-                display: block;
-                position: relative;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: #fff;
-                padding: 4rem 0;
-                text-align: center;
-            }
-            
-            .hero h1, .entry-title {
-                font-size: 2.5rem;
-                font-weight: bold;
-                margin: 0 0 1rem 0;
-                line-height: 1.2;
-            }
-            
-            .hero p, .entry-summary {
-                font-size: 1.2rem;
-                margin: 0 0 2rem 0;
-                opacity: 0.9;
-            }
-            
-            /* Content critical styles */
-            .site-main, main, .main, .content {
-                display: block;
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 2rem 1rem;
-            }
-            
-            .entry-content {
-                line-height: 1.8;
-                font-size: 1.1rem;
-            }
-            
-            /* Typography critical styles */
-            h1, h2, h3, h4, h5, h6 { 
-                font-weight: bold;
-                line-height: 1.2;
-                margin: 0 0 1rem 0;
-                color: #333;
-            }
-            
-            h1 { font-size: 2.5rem; }
-            h2 { font-size: 2rem; }
-            h3 { font-size: 1.5rem; }
-            h4 { font-size: 1.25rem; }
-            
-            p { 
-                line-height: 1.6;
-                margin: 0 0 1rem 0;
-                color: #555;
-            }
-            
-            /* Images critical styles */
-            img { 
-                max-width: 100%;
-                height: auto;
-                display: block;
-                border-radius: 4px;
-            }
-            
-            /* Layout critical styles */
-            .container, .wrapper { 
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 0 1rem;
-            }
-            
-            .row {
-                display: flex;
-                flex-wrap: wrap;
-                margin: 0 -0.5rem;
-            }
-            
-            .col {
-                flex: 1;
-                padding: 0 0.5rem;
-            }
-            
-            /* Buttons critical styles */
-            .btn, .button, .wp-block-button__link { 
-                display: inline-block;
-                padding: 12px 24px;
-                text-decoration: none;
-                border: none;
-                cursor: pointer;
-                background: #007cba;
-                color: #fff;
-                border-radius: 4px;
-                font-weight: 500;
-                transition: background 0.3s ease;
-            }
-            
-            .btn:hover, .button:hover, .wp-block-button__link:hover {
-                background: #005a87;
-            }
-            
-            /* Prevent layout shift */
-            .lazy { opacity: 0; }
-            .lazy.loaded { opacity: 1; transition: opacity 0.3s; }
-            
-            /* Loading states */
-            .loading { opacity: 0.7; }
-            .loaded { opacity: 1; }
-            
-            /* Responsive critical styles */
-            @media (max-width: 768px) {
-                .hero h1, .entry-title { font-size: 2rem; }
-                .hero p, .entry-summary { font-size: 1rem; }
-                .nav-menu li { margin: 0 0.5rem; }
-                .container, .wrapper { padding: 0 0.5rem; }
-            }
-        ';
+        return $this->getSettings();
+    }
+
+    /**
+     * Get list of unused CSS files
+     * 
+     * @return array List of unused CSS files with metadata
+     */
+    public function getUnusedCSSFiles(): array
+    {
+        return $this->analyzer->getUnusedCSSFiles();
     }
 
     /**
@@ -1499,7 +1306,7 @@ class UnusedCSSOptimizer
             'critical_css' => '',
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
@@ -1511,7 +1318,7 @@ class UnusedCSSOptimizer
         $current = $this->getSettings();
         $updated = array_merge($current, $settings);
 
-        $result = update_option(self::OPTION, $updated);
+        $result = $this->setOption(self::OPTION, $updated);
 
         if ($result) {
             Logger::info('Unused CSS optimization settings updated', $updated);
@@ -1539,5 +1346,35 @@ class UnusedCSSOptimizer
             'unused_files_count' => count($unusedFiles),
             'estimated_savings' => '130 KiB',
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

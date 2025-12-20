@@ -2,9 +2,11 @@
 
 namespace FP\PerfSuite\Services\Reports;
 
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Plugin;
 use FP\PerfSuite\Services\Score\Scorer;
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Scheduled Performance Reports
@@ -18,6 +20,72 @@ class ScheduledReports
 {
     private const OPTION = 'fp_ps_reports';
     private const CRON_HOOK = 'fp_ps_send_report';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
 
     /**
      * Register hooks
@@ -56,13 +124,13 @@ class ScheduledReports
         $defaults = [
             'enabled' => false,
             'frequency' => 'weekly', // daily, weekly, monthly
-            'recipient' => get_option('admin_email'),
+            'recipient' => get_option('admin_email'), // WordPress core option
             'include_suggestions' => true,
             'include_optimizations' => true,
             'include_metrics' => true,
         ];
 
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        return wp_parse_args($this->getOption(self::OPTION, []), $defaults);
     }
 
     /**
@@ -83,12 +151,12 @@ class ScheduledReports
             'include_metrics' => !empty($settings['include_metrics']),
         ];
 
-        update_option(self::OPTION, $new);
+        $this->setOption(self::OPTION, $new);
 
         // Reschedule
         $this->maybeSchedule(true);
 
-        Logger::info('Scheduled reports settings updated', $new);
+        $this->log('info', 'Scheduled reports settings updated', $new);
     }
 
     /**
@@ -114,7 +182,7 @@ class ScheduledReports
         $recurrence = $this->getRecurrence($settings['frequency']);
         wp_schedule_event(time() + HOUR_IN_SECONDS, $recurrence, self::CRON_HOOK);
 
-        Logger::info('Scheduled performance reports', [
+        $this->log('info', 'Scheduled performance reports', [
             'frequency' => $settings['frequency'],
             'recipient' => $settings['recipient'],
         ]);
@@ -158,18 +226,18 @@ class ScheduledReports
             );
 
             if ($sent) {
-                Logger::info('Performance report sent', [
+                $this->log('info', 'Performance report sent', [
                     'recipient' => $settings['recipient'],
                 ]);
-                update_option('fp_ps_last_report', [
+                $this->setOption('fp_ps_last_report', [
                     'time' => time(),
                     'recipient' => $settings['recipient'],
                 ]);
             } else {
-                Logger::error('Failed to send performance report');
+                $this->log('error', 'Failed to send performance report');
             }
         } catch (\Throwable $e) {
-            Logger::error('Failed to generate performance report', $e);
+            $this->log('error', 'Failed to generate performance report', [], $e);
         }
     }
 
@@ -406,7 +474,7 @@ class ScheduledReports
                 'error' => __('Failed to send test report', 'fp-performance-suite'),
             ];
         } catch (\Throwable $e) {
-            Logger::error('Failed to send test report', $e);
+            $this->log('error', 'Failed to send test report', [], $e);
             return [
                 'success' => false,
                 'error' => $e->getMessage(),

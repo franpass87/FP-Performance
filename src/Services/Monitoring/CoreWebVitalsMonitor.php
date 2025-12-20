@@ -2,17 +2,64 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
+use function wp_verify_nonce;
+use function wp_unslash;
+
 class CoreWebVitalsMonitor
 {
+    private const VITALS_KEY = 'fp_core_web_vitals';
+    private const SETTINGS_KEY = 'fp_ps_cwv_settings';
+    
     private $lcp;
     private $fid;
     private $cls;
     
-    public function __construct($lcp = true, $fid = true, $cls = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($lcp = true, $fid = true, $cls = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->lcp = $lcp;
         $this->fid = $fid;
         $this->cls = $cls;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     public function init()
@@ -87,7 +134,7 @@ class CoreWebVitalsMonitor
     public function saveVitals()
     {
         // Verifica nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'fp_save_vitals')) {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(wp_unslash($_POST['nonce']), 'fp_save_vitals')) {
             wp_die('Security check failed', 'Unauthorized', ['response' => 403]);
         }
         
@@ -116,7 +163,7 @@ class CoreWebVitalsMonitor
         
         if (!empty($sanitizedVitals)) {
             $sanitizedVitals['timestamp'] = time();
-            update_option('fp_core_web_vitals', $sanitizedVitals, false);
+            $this->setOption(self::VITALS_KEY, $sanitizedVitals);
         }
         
         wp_die();
@@ -124,7 +171,7 @@ class CoreWebVitalsMonitor
     
     public function getCoreWebVitals()
     {
-        return get_option('fp_core_web_vitals', []);
+        return $this->getOption(self::VITALS_KEY, []);
     }
     
     public function getCoreWebVitalsMetrics()
@@ -161,7 +208,7 @@ class CoreWebVitalsMonitor
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_cwv_settings', []);
+        $currentSettings = $this->getOption(self::SETTINGS_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -177,7 +224,7 @@ class CoreWebVitalsMonitor
             $newSettings['cls_enabled'] = (bool) $newSettings['cls_enabled'];
         }
         
-        $result = update_option('fp_ps_cwv_settings', $newSettings, false);
+        $result = $this->setOption(self::SETTINGS_KEY, $newSettings);
         
         // Aggiorna proprietà interne
         if (isset($newSettings['lcp_enabled'])) {

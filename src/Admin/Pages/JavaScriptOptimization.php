@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\UnusedJavaScriptOptimizer;
 use FP\PerfSuite\Services\Assets\CodeSplittingManager;
@@ -10,6 +11,8 @@ use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function add_action;
 use function wp_verify_nonce;
+use function wp_unslash;
+use function sanitize_key;
 use function esc_html;
 use function esc_attr;
 use function checked;
@@ -68,7 +71,7 @@ class JavaScriptOptimization extends AbstractPage
     public function handleSave(): void
     {
         // Verifica che sia una richiesta POST
-        if (!isset($_POST['fp_ps_js_optimization_nonce']) || !wp_verify_nonce($_POST['fp_ps_js_optimization_nonce'], 'fp_ps_js_optimization')) {
+        if (!isset($_POST['fp_ps_js_optimization_nonce']) || !wp_verify_nonce(wp_unslash($_POST['fp_ps_js_optimization_nonce']), 'fp_ps_js_optimization')) {
             wp_die(__('Security check failed', 'fp-performance-suite'));
         }
 
@@ -93,9 +96,8 @@ class JavaScriptOptimization extends AbstractPage
             wp_redirect(add_query_arg(['page' => 'fp-performance-suite-js-optimization', 'saved' => '1'], admin_url('admin.php')));
             exit;
             
-        } catch (\Exception $e) {
-            // Log dell'errore per debug
-            error_log('FP Performance Suite - JavaScript Optimization Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'JavaScript Optimization Error');
             
             // Redirect with error message
             wp_redirect(add_query_arg([
@@ -137,7 +139,7 @@ class JavaScriptOptimization extends AbstractPage
         
         <?php
         // Gestione messaggi di successo e errore
-        if (isset($_GET['saved']) && $_GET['saved'] === '1') {
+        if (isset($_GET['saved']) && sanitize_key(wp_unslash($_GET['saved'] ?? '')) === '1') {
             echo '<div class="notice notice-success is-dismissible"><p><strong>' . esc_html__('Impostazioni salvate con successo!', 'fp-performance-suite') . '</strong></p></div>';
         }
         
@@ -291,15 +293,15 @@ class JavaScriptOptimization extends AbstractPage
                 <h2><?php esc_html_e('📊 Impatto Ottimizzazioni', 'fp-performance-suite'); ?></h2>
                 <div class="fp-ps-grid three fp-ps-mt-md">
                     <div class="fp-ps-stat-box">
-                        <div class="stat-value success"><?php echo $unusedSettings['enabled'] ? '✓' : '—'; ?></div>
+                        <div class="stat-value success"><?php echo esc_html($unusedSettings['enabled'] ? '✓' : '—'); ?></div>
                         <div class="stat-label"><?php esc_html_e('Unused JS', 'fp-performance-suite'); ?></div>
                     </div>
                     <div class="fp-ps-stat-box">
-                        <div class="stat-value success"><?php echo $codeSplittingSettings['enabled'] ? '✓' : '—'; ?></div>
+                        <div class="stat-value success"><?php echo esc_html($codeSplittingSettings['enabled'] ? '✓' : '—'); ?></div>
                         <div class="stat-label"><?php esc_html_e('Code Splitting', 'fp-performance-suite'); ?></div>
                     </div>
                     <div class="fp-ps-stat-box">
-                        <div class="stat-value success"><?php echo $treeShakingSettings['enabled'] ? '✓' : '—'; ?></div>
+                        <div class="stat-value success"><?php echo esc_html($treeShakingSettings['enabled'] ? '✓' : '—'); ?></div>
                         <div class="stat-label"><?php esc_html_e('Tree Shaking', 'fp-performance-suite'); ?></div>
                     </div>
                 </div>

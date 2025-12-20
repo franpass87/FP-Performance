@@ -66,7 +66,7 @@ class Media extends AbstractPage
         }
 
         // Gestione form submission
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fp_ps_media_nonce'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['fp_ps_media_nonce'])) {
             $this->handleFormSubmission();
         }
 
@@ -75,7 +75,7 @@ class Media extends AbstractPage
 
     private function handleFormSubmission(): void
     {
-        if (!wp_verify_nonce($_POST['fp_ps_media_nonce'], 'fp_ps_media_settings')) {
+        if (!wp_verify_nonce(wp_unslash($_POST['fp_ps_media_nonce'] ?? ''), 'fp_ps_media_settings')) {
             wp_die(__('Security check failed.', 'fp-performance-suite'));
         }
 
@@ -111,7 +111,7 @@ class Media extends AbstractPage
             echo PageIntro::render(
                 '🖼️',
                 __('Media Optimization', 'fp-performance-suite'),
-                __('Ottimizza immagini e media: conversione WebP, compressione, lazy loading e responsive images per ridurre il peso delle pagine.', 'fp-performance-suite')
+                __('Ottimizza immagini e media: compressione, lazy loading e responsive images per ridurre il peso delle pagine.', 'fp-performance-suite')
             );
             ?>
             

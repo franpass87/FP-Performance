@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 use FP\PerfSuite\Utils\AssetLockManager;
 
 /**
@@ -18,6 +20,67 @@ class CriticalCss
 {
     private const OPTION = 'fp_ps_critical_css';
     private const MAX_SIZE = 50000; // 50KB max
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
 
     /**
      * Register hooks
@@ -43,7 +106,7 @@ class CriticalCss
      */
     public function get(): string
     {
-        $css = get_option(self::OPTION, '');
+        $css = $this->getOption(self::OPTION, '');
         return is_string($css) ? trim($css) : '';
     }
 
@@ -78,7 +141,7 @@ class CriticalCss
 
         // Use asset lock to prevent race conditions
         $result = AssetLockManager::executeWithLock('critical_css', '', function() use ($css) {
-            update_option(self::OPTION, $css);
+            $this->setOption(self::OPTION, $css);
             return true;
         });
 
@@ -89,7 +152,7 @@ class CriticalCss
             ];
         }
 
-        Logger::info('Critical CSS updated', [
+        $this->log('info', 'Critical CSS updated', [
             'size' => strlen($css),
             'enabled' => !empty($css),
         ]);
@@ -109,7 +172,7 @@ class CriticalCss
     public function clear(): void
     {
         delete_option(self::OPTION);
-        Logger::info('Critical CSS cleared');
+        $this->log('info', 'Critical CSS cleared');
         do_action('fp_ps_critical_css_cleared');
     }
 
@@ -133,7 +196,7 @@ class CriticalCss
         echo "\n</style>\n";
         echo "<!-- End Critical CSS -->\n";
 
-        Logger::debug('Critical CSS inlined', ['size' => strlen($css)]);
+        $this->log('debug', 'Critical CSS inlined', ['size' => strlen($css)]);
     }
 
     /**

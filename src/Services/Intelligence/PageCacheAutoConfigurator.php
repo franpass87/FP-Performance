@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -16,10 +17,22 @@ use FP\PerfSuite\Utils\Logger;
 class PageCacheAutoConfigurator
 {
     private SmartExclusionDetector $detector;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
 
-    public function __construct(SmartExclusionDetector $detector)
+    /**
+     * Constructor
+     * 
+     * @param SmartExclusionDetector $detector Smart exclusion detector instance
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(SmartExclusionDetector $detector, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->detector = $detector;
+        $this->optionsRepo = $optionsRepo;
     }
 
     /**
@@ -203,10 +216,10 @@ class PageCacheAutoConfigurator
         $exclusions = $this->autoConfigure();
         
         // Salva nelle opzioni cache
-        $currentExclusions = get_option('fp_ps_cache_exclusions', []);
+        $currentExclusions = $this->getOption('fp_ps_cache_exclusions', []);
         $newExclusions = array_unique(array_merge($currentExclusions, $exclusions));
         
-        return update_option('fp_ps_cache_exclusions', $newExclusions);
+        return $this->setOption('fp_ps_cache_exclusions', $newExclusions);
     }
     
     /**
@@ -216,6 +229,36 @@ class PageCacheAutoConfigurator
     {
         // PageCacheAutoConfigurator non ha hook specifici da registrare
         // È utilizzato principalmente per configurazione on-demand
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }
 

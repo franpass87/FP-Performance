@@ -2,8 +2,10 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Services\Assets\Optimizer;
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Asset Optimization Integrator
@@ -18,11 +20,50 @@ class AssetOptimizationIntegrator
 {
     private SmartExclusionDetector $smartDetector;
     private Optimizer $optimizer;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+    
+    /**
+     * @var LoggerInterface|null
+     */
+    private ?LoggerInterface $logger = null;
 
-    public function __construct()
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     * @param LoggerInterface|null $logger Logger instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
         $this->smartDetector = new SmartExclusionDetector();
         $this->optimizer = new Optimizer();
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
     }
 
     /**
@@ -49,11 +90,11 @@ class AssetOptimizationIntegrator
             $results['css_exclusions_applied'] = $cssResults['applied'];
             $results['critical_css_detected'] = $cssResults['detected'];
 
-            Logger::info('Smart asset exclusions applied', $results);
+            $this->log('info', 'Smart asset exclusions applied', $results);
 
         } catch (\Exception $e) {
             $results['errors'][] = $e->getMessage();
-            Logger::error('Smart asset exclusions failed', ['error' => $e->getMessage()]);
+            $this->log('error', 'Smart asset exclusions failed', ['error' => $e->getMessage()], $e);
         }
 
         return $results;
@@ -75,7 +116,7 @@ class AssetOptimizationIntegrator
                              count($excludeJs['plugin_specific']);
 
         // Applica esclusioni alle impostazioni
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         $currentExclusions = $settings['exclude_js'] ?? '';
         $exclusionsList = array_filter(explode("\n", $currentExclusions));
 
@@ -120,7 +161,7 @@ class AssetOptimizationIntegrator
         if (!empty($newExclusions)) {
             $allExclusions = array_merge($exclusionsList, $newExclusions);
             $settings['exclude_js'] = implode("\n", array_unique($allExclusions));
-            update_option('fp_ps_assets', $settings);
+            $this->setOption('fp_ps_assets', $settings);
             $results['applied'] = count($newExclusions);
         }
 
@@ -142,7 +183,7 @@ class AssetOptimizationIntegrator
                              count($excludeCss['admin_styles']);
 
         // Applica esclusioni alle impostazioni
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         $currentExclusions = $settings['exclude_css'] ?? '';
         $exclusionsList = array_filter(explode("\n", $currentExclusions));
 
@@ -182,7 +223,7 @@ class AssetOptimizationIntegrator
         if (!empty($newExclusions)) {
             $allExclusions = array_merge($exclusionsList, $newExclusions);
             $settings['exclude_css'] = implode("\n", array_unique($allExclusions));
-            update_option('fp_ps_assets', $settings);
+            $this->setOption('fp_ps_assets', $settings);
             $results['applied'] = count($newExclusions);
         }
 
@@ -200,7 +241,7 @@ class AssetOptimizationIntegrator
             'recommendations' => [],
         ];
 
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         $optimizations = [];
 
         // 1. Configura minificazione basandosi su script critici
@@ -256,7 +297,7 @@ class AssetOptimizationIntegrator
 
         // Applica ottimizzazioni
         if (!empty($optimizations)) {
-            update_option('fp_ps_assets', $settings);
+            $this->setOption('fp_ps_assets', $settings);
             $results['optimizations_applied'] = count($optimizations);
             $results['settings_updated'] = $optimizations;
         }
@@ -392,7 +433,7 @@ class AssetOptimizationIntegrator
         ];
 
         // Analizza esclusioni JavaScript
-        $jsSettings = get_option('fp_ps_assets', []);
+        $jsSettings = $this->getOption('fp_ps_assets', []);
         $jsExclusions = $jsSettings['exclude_js'] ?? '';
         $jsExclusionsList = array_filter(explode("\n", $jsExclusions));
 
@@ -454,7 +495,7 @@ class AssetOptimizationIntegrator
         $report = [
             'exclusions_analysis' => $this->analyzeAssetExclusionEffectiveness(),
             'optimization_status' => $this->getOptimizationStatus(),
-            'recommendations' => $this->generateAssetRecommendations(get_option('fp_ps_assets', [])),
+            'recommendations' => $this->generateAssetRecommendations($this->getOption('fp_ps_assets', [])),
             'performance_impact' => $this->calculatePerformanceImpact(),
         ];
 
@@ -466,7 +507,7 @@ class AssetOptimizationIntegrator
      */
     private function getOptimizationStatus(): array
     {
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         
         return [
             'minification_enabled' => ($settings['minify_js'] ?? false) && ($settings['minify_css'] ?? false),
@@ -484,7 +525,7 @@ class AssetOptimizationIntegrator
     {
         // Questa funzione potrebbe essere integrata con metriche reali
         // Per ora restituisce stime basate sulla configurazione
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         
         $impact = [
             'estimated_improvement' => 0,
@@ -513,5 +554,35 @@ class AssetOptimizationIntegrator
         }
 
         return $impact;
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

@@ -70,7 +70,7 @@ class Exclusions extends AbstractPage
         $message = '';
         $messageType = 'success';
         
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_exclusions_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_exclusions_nonce']), 'fp-ps-exclusions')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_exclusions_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_exclusions_nonce']), 'fp-ps-exclusions')) {
             
             // Handle auto-detect action
             if (isset($_POST['auto_detect_exclusions'])) {

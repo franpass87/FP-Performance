@@ -2,7 +2,13 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\AssetLockManager;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector\UrlDetector;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector\ScriptDetector;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector\CssDetector;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector\ProtectionManager;
+use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector\ExclusionManager;
 
 /**
  * Smart Exclusion Detector
@@ -17,6 +23,32 @@ use FP\PerfSuite\Utils\AssetLockManager;
  */
 class SmartExclusionDetector
 {
+    private UrlDetector $urlDetector;
+    private ScriptDetector $scriptDetector;
+    private CssDetector $cssDetector;
+    private ProtectionManager $protectionManager;
+    private ExclusionManager $exclusionManager;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->urlDetector = new UrlDetector();
+        $this->scriptDetector = new ScriptDetector();
+        $this->cssDetector = new CssDetector();
+        $this->protectionManager = new ProtectionManager();
+        $this->exclusionManager = new ExclusionManager($this->optionsRepo);
+    }
+
     /**
      * Registra gli hook del servizio
      */
@@ -27,7 +59,7 @@ class SmartExclusionDetector
     }
 
     /**
-     * Pattern sensibili comuni
+     * Pattern sensibili comuni (deprecato - ora in UrlDetector)
      */
     private const SENSITIVE_URL_PATTERNS = [
         // E-commerce
@@ -103,18 +135,18 @@ class SmartExclusionDetector
         ];
 
         // Ottieni pattern già protetti di default nel PageCache
-        $alreadyProtected = $this->getBuiltInProtections();
+        $alreadyProtected = $this->protectionManager->getBuiltInProtections();
 
         // 1. Rileva URL sensibili standard
-        $autoDetected = $this->detectStandardSensitiveUrls();
-        $exclusions['auto_detected'] = $this->filterOutProtected($autoDetected, $alreadyProtected);
+        $autoDetected = $this->urlDetector->detectStandardSensitiveUrls();
+        $exclusions['auto_detected'] = $this->protectionManager->filterOutProtected($autoDetected, $alreadyProtected);
 
         // 2. Rileva basandosi sui plugin attivi
-        $pluginBased = $this->detectPluginBasedUrls();
-        $exclusions['plugin_based'] = $this->filterOutProtected($pluginBased, $alreadyProtected);
+        $pluginBased = $this->urlDetector->detectPluginBasedUrls();
+        $exclusions['plugin_based'] = $this->protectionManager->filterOutProtected($pluginBased, $alreadyProtected);
 
         // 3. Rileva da comportamento utente (errori, slow pages)
-        $exclusions['user_behavior'] = $this->detectFromBehavior();
+        $exclusions['user_behavior'] = $this->urlDetector->detectFromBehavior();
 
         // 4. Mostra cosa è già protetto (informativo)
         $exclusions['already_protected'] = $alreadyProtected;
@@ -259,16 +291,16 @@ class SmartExclusionDetector
     public function detectCriticalScripts(): array
     {
         $critical = [
-            'always_exclude' => self::CRITICAL_SCRIPTS,
+            'always_exclude' => $this->scriptDetector->getCriticalScripts(),
             'plugin_critical' => [],
             'dependency_critical' => [],
         ];
 
         // Rileva script critici dei plugin attivi
-        $critical['plugin_critical'] = $this->detectPluginCriticalScripts();
+        $critical['plugin_critical'] = $this->scriptDetector->detectPluginCriticalScripts();
 
         // Analizza dipendenze per trovare script critici
-        $critical['dependency_critical'] = $this->analyzeDependencies();
+        $critical['dependency_critical'] = $this->scriptDetector->analyzeDependencies();
 
         return $critical;
     }
@@ -277,6 +309,13 @@ class SmartExclusionDetector
      * Rileva CSS da escludere dall'ottimizzazione
      */
     public function detectExcludeCss(): array
+    {
+        return $this->cssDetector->detectExcludeCss();
+    }
+    
+    // Metodo detectExcludeCss() originale rimosso - ora gestito da CssDetector
+    
+    private function detectExcludeCss_OLD(): array
     {
         global $wp_styles;
 
@@ -352,6 +391,13 @@ class SmartExclusionDetector
      * Rileva JavaScript da escludere dall'ottimizzazione
      */
     public function detectExcludeJs(): array
+    {
+        return $this->scriptDetector->detectExcludeJs();
+    }
+    
+    // Metodo detectExcludeJs() originale rimosso - ora gestito da ScriptDetector
+    
+    private function detectExcludeJs_OLD(): array
     {
         global $wp_scripts;
 
@@ -753,6 +799,14 @@ class SmartExclusionDetector
      */
     public function autoApplyExclusions(bool $dryRun = true): array
     {
+        $detected = $this->detectSensitiveUrls();
+        return $this->exclusionManager->autoApplyExclusions($detected, $dryRun);
+    }
+    
+    // Metodo autoApplyExclusions() originale rimosso - ora gestito da ExclusionManager
+    
+    private function autoApplyExclusions_OLD(bool $dryRun = true): array
+    {
         $results = [
             'applied' => 0,
             'skipped' => 0,
@@ -801,7 +855,7 @@ class SmartExclusionDetector
     private function addExclusion(string $url, array $metadata = []): bool
     {
         // Salva l'esclusione con metadata separato
-        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        $trackedExclusions = $this->getOption('fp_ps_tracked_exclusions', []);
         
         // CONTROLLO DUPLICATI: Verifica se l'URL esiste già
         foreach ($trackedExclusions as $existingExclusion) {
@@ -825,10 +879,10 @@ class SmartExclusionDetector
         
         // Use asset lock to prevent race conditions
         $result = AssetLockManager::executeWithLock('intelligence_exclusions', $url, function() use ($trackedExclusions, $url) {
-            update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+            $this->setOption('fp_ps_tracked_exclusions', $trackedExclusions);
             
             // Aggiungi anche alla cache page (backward compatibility)
-            $settings = get_option('fp_ps_page_cache', []);
+            $settings = $this->getOption('fp_ps_page_cache', []);
             $currentExclusions = $settings['exclude_urls'] ?? '';
             
             $exclusionsList = array_filter(explode("\n", $currentExclusions));
@@ -836,7 +890,7 @@ class SmartExclusionDetector
             if (!in_array($url, $exclusionsList, true)) {
                 $exclusionsList[] = $url;
                 $settings['exclude_urls'] = implode("\n", $exclusionsList);
-                update_option('fp_ps_page_cache', $settings);
+                $this->setOption('fp_ps_page_cache', $settings);
             }
             
             return true;
@@ -854,7 +908,14 @@ class SmartExclusionDetector
      */
     public function getAppliedExclusions(): array
     {
-        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        return $this->exclusionManager->getAppliedExclusions();
+    }
+    
+    // Metodo getAppliedExclusions() originale rimosso - ora gestito da ExclusionManager
+    
+    private function getAppliedExclusions_OLD(): array
+    {
+        $trackedExclusions = $this->getOption('fp_ps_tracked_exclusions', []);
         
         // Ordina per data di applicazione (più recenti prima)
         usort($trackedExclusions, function($a, $b) {
@@ -869,7 +930,14 @@ class SmartExclusionDetector
      */
     public function removeExclusion(string $exclusionId): bool
     {
-        $trackedExclusions = get_option('fp_ps_tracked_exclusions', []);
+        return $this->exclusionManager->removeExclusion($exclusionId);
+    }
+    
+    // Metodo removeExclusion() originale rimosso - ora gestito da ExclusionManager
+    
+    private function removeExclusion_OLD(string $exclusionId): bool
+    {
+        $trackedExclusions = $this->getOption('fp_ps_tracked_exclusions', []);
         
         if (!isset($trackedExclusions[$exclusionId])) {
             return false;
@@ -879,17 +947,17 @@ class SmartExclusionDetector
         
         // Rimuovi dai tracked
         unset($trackedExclusions[$exclusionId]);
-        update_option('fp_ps_tracked_exclusions', $trackedExclusions);
+        $this->setOption('fp_ps_tracked_exclusions', $trackedExclusions);
         
         // Rimuovi anche dalla cache page
-        $settings = get_option('fp_ps_page_cache', []);
+        $settings = $this->getOption('fp_ps_page_cache', []);
         $currentExclusions = $settings['exclude_urls'] ?? '';
         
         $exclusionsList = array_filter(explode("\n", $currentExclusions));
         $exclusionsList = array_filter($exclusionsList, fn($item) => $item !== $url);
         
         $settings['exclude_urls'] = implode("\n", $exclusionsList);
-        update_option('fp_ps_page_cache', $settings);
+        $this->setOption('fp_ps_page_cache', $settings);
         
         return true;
     }
@@ -901,10 +969,47 @@ class SmartExclusionDetector
      */
     public function addManualExclusion(string $url, string $reason = ''): bool
     {
+        return $this->exclusionManager->addManualExclusion($url, $reason);
+    }
+    
+    // Metodo addManualExclusion() originale rimosso - ora gestito da ExclusionManager
+    
+    private function addManualExclusion_OLD(string $url, string $reason = ''): bool
+    {
         return $this->addExclusion($url, [
             'type' => 'manual',
             'reason' => $reason ?: __('Manual exclusion', 'fp-performance-suite'),
             'confidence' => 1.0,
         ]);
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

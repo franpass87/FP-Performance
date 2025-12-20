@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * HTTP/2 Server Push
@@ -17,6 +19,67 @@ class Http2ServerPush
 {
     private const OPTION_KEY = 'fp_ps_http2_push';
     private array $pushedAssets = [];
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
 
     /**
      * Registra il servizio
@@ -32,7 +95,7 @@ class Http2ServerPush
         // Hook per aggiungere header Link - solo nel frontend
         add_action('template_redirect', [$this, 'sendPushHeaders'], 1);
 
-        Logger::debug('HTTP/2 Server Push registered');
+        $this->log('debug', 'HTTP/2 Server Push registered');
     }
 
     /**
@@ -59,7 +122,7 @@ class Http2ServerPush
             'custom_assets' => [],
         ];
 
-        $options = get_option(self::OPTION_KEY, []);
+        $options = $this->getOption(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
     }
 
@@ -71,10 +134,10 @@ class Http2ServerPush
         $current = $this->getSettings();
         $updated = wp_parse_args($settings, $current);
 
-        $result = update_option(self::OPTION_KEY, $updated);
+        $result = $this->setOption(self::OPTION_KEY, $updated);
         
         if ($result) {
-            Logger::info('HTTP/2 Server Push settings updated', $updated);
+            $this->log('info', 'HTTP/2 Server Push settings updated', $updated);
         }
 
         return $result;
@@ -116,7 +179,7 @@ class Http2ServerPush
             $this->pushAsset($asset);
         }
 
-        Logger::debug('HTTP/2 push headers sent', ['count' => count($assets)]);
+        $this->log('debug', 'HTTP/2 push headers sent', ['count' => count($assets)]);
     }
 
     /**

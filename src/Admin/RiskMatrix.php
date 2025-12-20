@@ -431,15 +431,6 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Ottimo per video/mappe embedded.'
         ],
         
-        'webp_conversion' => [
-            'risk' => self::RISK_GREEN,
-            'title' => 'Rischio Basso',
-            'description' => 'Converte immagini in formato WebP (30-50% più leggere).',
-            'risks' => '✅ Sicuro - Supporto >97% browser (2025)\n✅ Fallback automatico a JPEG/PNG per browser vecchi',
-            'why_fails' => 'Funziona su tutti i browser moderni. Fallback automatico per IE e Safari <14.',
-            'advice' => '✅ CONSIGLIATO: Attiva sempre. Riduce peso immagini drasticamente senza perdita qualità visibile.'
-        ],
-        
         // ═══════════════════════════════════════════════════════════
         // 💾 DATABASE - OPZIONI AVANZATE
         // ═══════════════════════════════════════════════════════════

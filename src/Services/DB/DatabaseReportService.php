@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\DB;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -22,6 +23,49 @@ class DatabaseReportService
     private const REPORT_HISTORY_KEY = 'fp_ps_db_report_history';
     private const SNAPSHOT_KEY = 'fp_ps_db_snapshots';
     private const MAX_SNAPSHOTS = 30; // Mantieni 30 snapshot (circa 1 mese se giornalieri)
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
+    }
     
     /**
      * Crea snapshot corrente del database
@@ -69,7 +113,7 @@ class DatabaseReportService
         ];
         
         // Salva snapshot
-        $snapshots = get_option(self::SNAPSHOT_KEY, []);
+        $snapshots = $this->getOption(self::SNAPSHOT_KEY, []);
         
         // Mantieni solo ultimi MAX_SNAPSHOTS
         if (count($snapshots) >= self::MAX_SNAPSHOTS) {
@@ -77,7 +121,7 @@ class DatabaseReportService
         }
         
         $snapshots[] = $snapshot;
-        update_option(self::SNAPSHOT_KEY, $snapshots);
+        $this->setOption(self::SNAPSHOT_KEY, $snapshots);
         
         Logger::info('Database snapshot created', ['label' => $label]);
         
@@ -89,7 +133,7 @@ class DatabaseReportService
      */
     public function getSnapshots(int $limit = 0): array
     {
-        $snapshots = get_option(self::SNAPSHOT_KEY, []);
+        $snapshots = $this->getOption(self::SNAPSHOT_KEY, []);
         
         if ($limit > 0) {
             return array_slice($snapshots, -$limit);
@@ -161,7 +205,7 @@ class DatabaseReportService
      */
     public function calculateROI(): array
     {
-        $history = get_option(DatabaseOptimizer::class . '_history', []);
+        $history = $this->getOption(DatabaseOptimizer::class . '_history', []);
         
         if (empty($history)) {
             return [
@@ -460,7 +504,14 @@ class DatabaseReportService
             $scheduled = wp_schedule_event(time() + HOUR_IN_SECONDS, $interval, 'fp_ps_db_auto_report');
             
             if ($scheduled === false) {
-                error_log('FP Performance Suite: Failed to schedule database report');
+                if (class_exists('\FP\PerfSuite\Utils\ErrorHandler')) {
+                    \FP\PerfSuite\Utils\ErrorHandler::handleSilently(
+                        new \RuntimeException('Failed to schedule database report'),
+                        'DatabaseReportService'
+                    );
+                } else {
+                    error_log('FP Performance Suite: Failed to schedule database report');
+                }
             }
         }
         
@@ -476,7 +527,7 @@ class DatabaseReportService
         $health = $this->getHealthScore();
         
         // Salva report
-        $reports = get_option(self::REPORT_HISTORY_KEY, []);
+        $reports = $this->getOption(self::REPORT_HISTORY_KEY, []);
         
         // Mantieni solo ultimi 10 report
         if (count($reports) >= 10) {
@@ -491,7 +542,7 @@ class DatabaseReportService
             'issues_count' => count($health['issues']),
         ];
         
-        update_option(self::REPORT_HISTORY_KEY, $reports);
+        $this->setOption(self::REPORT_HISTORY_KEY, $reports);
         
         Logger::info('Automatic database report generated', [
             'score' => $health['score'],

@@ -15,18 +15,22 @@ use function date_i18n;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Admin\Components\StatsCard;
-use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
-use FP\PerfSuite\Services\Intelligence\PerformanceBasedExclusionDetector;
-use FP\PerfSuite\Services\Intelligence\CacheAutoConfigurator;
-use FP\PerfSuite\Services\Intelligence\IntelligenceReporter;
-use FP\PerfSuite\Services\Intelligence\AssetOptimizationIntegrator;
-use FP\PerfSuite\Services\Intelligence\CDNExclusionSync;
+use FP\PerfSuite\Admin\Pages\IntelligenceDashboard\FormHandler;
+use FP\PerfSuite\Admin\Pages\IntelligenceDashboard\DashboardDataCollector;
+use FP\PerfSuite\Admin\Pages\IntelligenceDashboard\DashboardFormatter;
 
 class IntelligenceDashboard extends AbstractPage
 {
+    private FormHandler $formHandler;
+    private DashboardDataCollector $dataCollector;
+    private DashboardFormatter $formatter;
+
     public function __construct(ServiceContainer $container)
     {
         parent::__construct($container);
+        $this->formatter = new DashboardFormatter();
+        $this->formHandler = new FormHandler();
+        $this->dataCollector = new DashboardDataCollector($this->formatter);
     }
 
     public function slug(): string
@@ -70,54 +74,53 @@ class IntelligenceDashboard extends AbstractPage
         $message = '';
         $messageType = 'success';
         
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_intelligence_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_intelligence_nonce']), 'fp-ps-intelligence')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_intelligence_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_intelligence_nonce']), 'fp-ps-intelligence')) {
             
             // BUGFIX: Handle cache refresh (forza ricalcolo dati)
             if (isset($_POST['refresh_cache'])) {
-                delete_transient('fp_ps_intelligence_dashboard_data');
-                $message = __('Cache dashboard aggiornata con successo! I dati sono stati rigenerati.', 'fp-performance-suite');
+                $message = $this->formHandler->handleCacheRefresh();
                 $messageType = 'success';
             }
             
             // Handle auto-optimization
             if (isset($_POST['run_auto_optimization'])) {
-                $message = $this->runAutoOptimization();
+                $message = $this->formHandler->runAutoOptimization();
                 $messageType = 'success';
             }
             
             // Handle performance-based exclusions
             if (isset($_POST['apply_performance_exclusions'])) {
-                $message = $this->applyPerformanceExclusions();
+                $message = $this->formHandler->applyPerformanceExclusions();
                 $messageType = 'success';
             }
             
             // Handle cache auto-configuration
             if (isset($_POST['auto_configure_cache'])) {
-                $message = $this->autoConfigureCache();
+                $message = $this->formHandler->autoConfigureCache();
                 $messageType = 'success';
             }
             
             // Handle asset optimization
             if (isset($_POST['optimize_assets'])) {
-                $message = $this->optimizeAssets();
+                $message = $this->formHandler->optimizeAssets();
                 $messageType = 'success';
             }
             
             // Handle CDN sync
             if (isset($_POST['sync_cdn_exclusions'])) {
-                $message = $this->syncCDNExclusions();
+                $message = $this->formHandler->syncCDNExclusions();
                 $messageType = 'success';
             }
             
             // Handle generate report
             if (isset($_POST['generate_report'])) {
-                $message = $this->generateIntelligenceReport();
+                $message = $this->formHandler->generateIntelligenceReport();
                 $messageType = 'success';
             }
         }
         
         // Get current data
-        $dashboardData = $this->getDashboardData();
+        $dashboardData = $this->dataCollector->getDashboardData();
         
         ob_start();
         ?>
@@ -192,7 +195,7 @@ class IntelligenceDashboard extends AbstractPage
                 'icon' => '🧠',
                 'label' => __('Score Intelligence', 'fp-performance-suite'),
                 'value' => $dashboardData['overall_score'] . '%',
-                'sublabel' => $this->getScoreStatus($dashboardData['overall_score']),
+                'sublabel' => $this->formatter->getScoreStatus($dashboardData['overall_score']),
                 'gradient' => StatsCard::GRADIENT_PURPLE
             ],
             [
@@ -329,7 +332,7 @@ class IntelligenceDashboard extends AbstractPage
                         <h3 style="margin-top: 0; color: #495057;">🎯 <?php esc_html_e('Raccomandazioni Recenti', 'fp-performance-suite'); ?></h3>
                         
                         <?php foreach ($dashboardData['recent_recommendations'] as $recommendation) : ?>
-                            <div style="background: white; border-left: 4px solid <?php echo esc_attr($this->getPriorityColor($recommendation['priority'])); ?>; padding: 12px; margin: 10px 0; border-radius: 4px;">
+                            <div style="background: white; border-left: 4px solid <?php echo esc_attr($this->formatter->getPriorityColor($recommendation['priority'])); ?>; padding: 12px; margin: 10px 0; border-radius: 4px;">
                                 <div style="font-weight: 600; color: #495057; margin-bottom: 5px;">
                                     <?php echo esc_html($recommendation['title']); ?>
                                 </div>
@@ -337,7 +340,7 @@ class IntelligenceDashboard extends AbstractPage
                                     <?php echo esc_html($recommendation['description']); ?>
                                 </div>
                                 <div style="font-size: 11px; color: #adb5bd; margin-top: 5px;">
-                                    <?php echo esc_html($this->getPriorityLabel($recommendation['priority'])); ?>
+                                    <?php echo esc_html($this->formatter->getPriorityLabel($recommendation['priority'])); ?>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -395,249 +398,19 @@ class IntelligenceDashboard extends AbstractPage
         return (string) ob_get_clean();
     }
 
-    /**
-     * Ottieni dati per la dashboard
-     */
-    private function getDashboardData(): array
-    {
-        // BUGFIX: Cache dati dashboard per evitare timeout (>30s) su operazioni pesanti
-        // Cache valida per 5 minuti, poi rigenera
-        $cache_key = 'fp_ps_intelligence_dashboard_data';
-        $cached_data = get_transient($cache_key);
-        
-        if ($cached_data !== false && is_array($cached_data)) {
-            return $cached_data;
-        }
-        
-        // Se cache scaduta o non esiste, genera dati (può essere lento)
-        try {
-            // BUGFIX #15c: Aumentato timeout da 30 a 90 secondi per Intelligence Report molto complesso
-            set_time_limit(90);
-            
-            $reporter = new IntelligenceReporter();
-            $dashboardReport = $reporter->generateDashboardReport();
-            
-            $smartDetector = new SmartExclusionDetector();
-            $appliedExclusions = $smartDetector->getAppliedExclusions();
-            
-            $data = [
-                'overall_score' => $dashboardReport['overall_score'] ?? 0,
-                'exclusions_count' => $dashboardReport['exclusions_count'] ?? 0,
-                'exclusions_breakdown' => $this->getExclusionsBreakdown($appliedExclusions),
-                'performance_score' => $dashboardReport['performance_score'] ?? 0,
-                'performance_status' => $this->getPerformanceStatus($dashboardReport['performance_score'] ?? 0),
-                'recommendations_count' => $dashboardReport['recommendations_count'] ?? 0,
-                'action_required' => $dashboardReport['action_required'] ?? false,
-                'recent_recommendations' => $this->getRecentRecommendations(),
-                'smart_detection_status' => $this->getSystemStatus('smart_detection'),
-                'performance_monitor_status' => $this->getSystemStatus('performance_monitor'),
-                'cache_system_status' => $this->getSystemStatus('cache_system'),
-                'cdn_integration_status' => $this->getSystemStatus('cdn_integration'),
-            ];
-            
-            // Cache per 5 minuti (300 secondi)
-            set_transient($cache_key, $data, 5 * MINUTE_IN_SECONDS);
-            
-            return $data;
-            
-        } catch (\Exception $e) {
-            // BUGFIX: Fallback in caso di errore per non bloccare la pagina
-            return [
-                'overall_score' => 0,
-                'exclusions_count' => 0,
-                'exclusions_breakdown' => '<p>⚠️ Errore caricamento dati</p>',
-                'performance_score' => 0,
-                'performance_status' => 'Errore',
-                'recommendations_count' => 0,
-                'action_required' => false,
-                'recent_recommendations' => [],
-                'smart_detection_status' => 'Errore: ' . $e->getMessage(),
-                'performance_monitor_status' => 'N/A',
-                'cache_system_status' => 'N/A',
-                'cdn_integration_status' => 'N/A',
-                'error' => true,
-            ];
-        }
-    }
-
-    /**
-     * Ottieni breakdown delle esclusioni
-     */
-    private function getExclusionsBreakdown(array $exclusions): string
-    {
-        $automatic = count(array_filter($exclusions, fn($e) => $e['type'] === 'automatic'));
-        $manual = count(array_filter($exclusions, fn($e) => $e['type'] === 'manual'));
-        
-        return sprintf('%d auto, %d manuali', $automatic, $manual);
-    }
-
-    /**
-     * Ottieni status delle performance
-     */
-    private function getPerformanceStatus(int $score): string
-    {
-        if ($score >= 80) return 'Eccellente';
-        if ($score >= 60) return 'Buono';
-        if ($score >= 40) return 'Migliorabile';
-        return 'Critico';
-    }
-
-    /**
-     * Ottieni status del score
-     */
-    private function getScoreStatus(int $score): string
-    {
-        if ($score >= 80) return 'Eccellente';
-        if ($score >= 60) return 'Buono';
-        if ($score >= 40) return 'Migliorabile';
-        return 'Critico';
-    }
-
-    /**
-     * Ottieni raccomandazioni recenti
-     */
-    private function getRecentRecommendations(): array
-    {
-        $reporter = new IntelligenceReporter();
-        $fullReport = $reporter->generateComprehensiveReport(7);
-        
-        return array_slice($fullReport['recommendations'] ?? [], 0, 3);
-    }
-
-    /**
-     * Ottieni status del sistema
-     */
-    private function getSystemStatus(string $system): string
-    {
-        switch ($system) {
-            case 'smart_detection':
-                return get_option('fp_ps_intelligence_enabled', false) ? 'Attivo' : 'Inattivo';
-            case 'performance_monitor':
-                $monitor = \FP\PerfSuite\Services\Monitoring\PerformanceMonitor::instance();
-                return $monitor->isEnabled() ? 'Attivo' : 'Inattivo';
-            case 'cache_system':
-                $cacheSettings = get_option('fp_ps_page_cache', []);
-                return !empty($cacheSettings['enabled']) ? 'Attivo' : 'Inattivo';
-            case 'cdn_integration':
-                $cdnSync = new CDNExclusionSync();
-                $validation = $cdnSync->validateCDNConfiguration();
-                return $validation['providers_detected'] > 0 ? 'Rilevato' : 'Non rilevato';
-            default:
-                return 'Sconosciuto';
-        }
-    }
-
-    /**
-     * Ottieni colore per priorità
-     */
-    private function getPriorityColor(string $priority): string
-    {
-        switch ($priority) {
-            case 'high': return '#dc3545';
-            case 'medium': return '#ffc107';
-            case 'low': return '#28a745';
-            default: return '#6c757d';
-        }
-    }
-
-    /**
-     * Ottieni label per priorità
-     */
-    private function getPriorityLabel(string $priority): string
-    {
-        switch ($priority) {
-            case 'high': return 'Priorità Alta';
-            case 'medium': return 'Priorità Media';
-            case 'low': return 'Priorità Bassa';
-            default: return 'Priorità Sconosciuta';
-        }
-    }
-
-    /**
-     * Esegui ottimizzazione automatica
-     */
-    private function runAutoOptimization(): string
-    {
-        $results = [];
-        
-        // 1. Performance-based exclusions
-        $performanceDetector = new PerformanceBasedExclusionDetector();
-        $performanceResults = $performanceDetector->autoApplyPerformanceExclusions(false);
-        $results[] = sprintf('%d esclusioni performance applicate', $performanceResults['applied']);
-        
-        // 2. Cache auto-configuration
-        $cacheConfigurator = new CacheAutoConfigurator();
-        $cacheResults = $cacheConfigurator->autoConfigureCacheRules();
-        $results[] = sprintf('%d ottimizzazioni cache applicate', $cacheResults['optimizations_applied']);
-        
-        // 3. Asset optimization
-        $assetIntegrator = new AssetOptimizationIntegrator();
-        $assetResults = $assetIntegrator->applySmartAssetExclusions();
-        $results[] = sprintf('%d esclusioni asset applicate', $assetResults['js_exclusions_applied'] + $assetResults['css_exclusions_applied']);
-        
-        // 4. CDN sync
-        $cdnSync = new CDNExclusionSync();
-        $cdnResults = $cdnSync->syncExclusionsWithCDN();
-        $results[] = sprintf('%d provider CDN sincronizzati', $cdnResults['cdn_providers_synced']);
-        
-        return '✅ Ottimizzazione completata: ' . implode(', ', $results);
-    }
-
-    /**
-     * Applica esclusioni basate su performance
-     */
-    private function applyPerformanceExclusions(): string
-    {
-        $performanceDetector = new PerformanceBasedExclusionDetector();
-        $results = $performanceDetector->autoApplyPerformanceExclusions(false);
-        
-        return sprintf('✅ %d esclusioni performance applicate con successo!', $results['applied']);
-    }
-
-    /**
-     * Auto-configura cache
-     */
-    private function autoConfigureCache(): string
-    {
-        $cacheConfigurator = new CacheAutoConfigurator();
-        $results = $cacheConfigurator->autoConfigureCacheRules();
-        
-        return sprintf('✅ %d ottimizzazioni cache applicate con successo!', $results['optimizations_applied']);
-    }
-
-    /**
-     * Ottimizza asset
-     */
-    private function optimizeAssets(): string
-    {
-        $assetIntegrator = new AssetOptimizationIntegrator();
-        $results = $assetIntegrator->applySmartAssetExclusions();
-        
-        return sprintf('✅ %d esclusioni asset applicate con successo!', $results['js_exclusions_applied'] + $results['css_exclusions_applied']);
-    }
-
-    /**
-     * Sincronizza esclusioni CDN
-     */
-    private function syncCDNExclusions(): string
-    {
-        $cdnSync = new CDNExclusionSync();
-        $results = $cdnSync->syncExclusionsWithCDN();
-        
-        return sprintf('✅ %d provider CDN sincronizzati con successo!', $results['cdn_providers_synced']);
-    }
-
-    /**
-     * Genera report intelligence
-     */
-    private function generateIntelligenceReport(): string
-    {
-        $reporter = new IntelligenceReporter();
-        $report = $reporter->generateComprehensiveReport(30);
-        
-        // Salva report per visualizzazione
-        update_option('fp_ps_intelligence_last_report', $report);
-        
-        return sprintf('✅ Report intelligence generato con score %d%%!', $report['summary']['overall_score']);
-    }
+    // Metodi rimossi - ora gestiti da DashboardDataCollector, DashboardFormatter e FormHandler
+    // getDashboardData() -> DashboardDataCollector::getDashboardData()
+    // getExclusionsBreakdown() -> DashboardFormatter::getExclusionsBreakdown()
+    // getPerformanceStatus() -> DashboardFormatter::getPerformanceStatus()
+    // getScoreStatus() -> DashboardFormatter::getScoreStatus()
+    // getRecentRecommendations() -> DashboardFormatter::getRecentRecommendations()
+    // getSystemStatus() -> DashboardFormatter::getSystemStatus()
+    // getPriorityColor() -> DashboardFormatter::getPriorityColor()
+    // getPriorityLabel() -> DashboardFormatter::getPriorityLabel()
+    // runAutoOptimization() -> FormHandler::runAutoOptimization()
+    // applyPerformanceExclusions() -> FormHandler::applyPerformanceExclusions()
+    // autoConfigureCache() -> FormHandler::autoConfigureCache()
+    // optimizeAssets() -> FormHandler::optimizeAssets()
+    // syncCDNExclusions() -> FormHandler::syncCDNExclusions()
+    // generateIntelligenceReport() -> FormHandler::generateIntelligenceReport()
 }

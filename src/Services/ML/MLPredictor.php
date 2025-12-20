@@ -2,9 +2,14 @@
 
 namespace FP\PerfSuite\Services\ML;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 use FP\PerfSuite\Utils\MLSemaphore;
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Services\ML\MLPredictor\DataStorage;
+use FP\PerfSuite\Services\ML\MLPredictor\DataCollector;
+use FP\PerfSuite\Services\ML\MLPredictor\PredictionEngine;
 
 /**
  * ML Predictor Service
@@ -26,18 +31,60 @@ class MLPredictor
     private const DATA_RETENTION_DAYS_DEFAULT = 30;
     private const MEMORY_LIMIT_ML = '256M'; // Memory limit per operazioni ML
     
-    private ServiceContainer $container;
+    /** @var mixed */
+    private $container;
     private PatternLearner $patternLearner;
     private AnomalyDetector $anomalyDetector;
+    private DataStorage $dataStorage;
+    private DataCollector $dataCollector;
+    private PredictionEngine $predictionEngine;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+    
+    /**
+     * @var LoggerInterface|null
+     */
+    private ?LoggerInterface $logger = null;
 
     public function __construct(
-        ServiceContainer $container,
+        mixed $container,
         PatternLearner $patternLearner,
-        AnomalyDetector $anomalyDetector
+        AnomalyDetector $anomalyDetector,
+        ?OptionsRepositoryInterface $optionsRepo = null,
+        ?LoggerInterface $logger = null
     ) {
         $this->container = $container;
         $this->patternLearner = $patternLearner;
         $this->anomalyDetector = $anomalyDetector;
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+        $this->dataStorage = new DataStorage($optionsRepo);
+        $this->dataCollector = new DataCollector($optionsRepo);
+        $this->predictionEngine = new PredictionEngine($this->dataStorage);
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
     }
 
     /**
@@ -45,7 +92,7 @@ class MLPredictor
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        $defaults = [
             'enabled' => false,
             'data_retention_days' => self::DATA_RETENTION_DAYS_DEFAULT,
             'max_storage_mb' => self::MAX_STORAGE_MB,
@@ -53,7 +100,10 @@ class MLPredictor
             'prediction_threshold' => 0.7,
             'anomaly_threshold' => 0.8,
             'pattern_confidence_threshold' => 0.8
-        ]);
+        ];
+        
+        $settings = $this->getOption(self::OPTION, []);
+        return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
     /**
@@ -61,7 +111,7 @@ class MLPredictor
      */
     public function updateSettings(array $settings): void
     {
-        update_option(self::OPTION, $settings);
+        $this->setOption(self::OPTION, $settings);
     }
 
     /**
@@ -87,7 +137,7 @@ class MLPredictor
         // Schedula analisi automatiche
         $this->scheduleAnalysis();
         
-        Logger::debug('ML Predictor registered');
+        $this->log('debug', 'ML Predictor registered');
     }
 
     /**
@@ -103,7 +153,7 @@ class MLPredictor
 
         // RESOURCE FIX: Verifica quota storage prima di raccogliere dati
         if ($this->isStorageQuotaExceeded()) {
-            Logger::warning('ML data storage quota exceeded, skipping collection. Run cleanup.');
+            $this->log('warning', 'ML data storage quota exceeded, skipping collection. Run cleanup.');
             
             // Auto-cleanup se quota superata
             $this->cleanupOldData();
@@ -122,7 +172,7 @@ class MLPredictor
             $maxSize = self::MAX_ENTRY_SIZE_KB * 1024;
             
             if ($dataSize > $maxSize) {
-                Logger::warning('Performance data too large, truncating', [
+                $this->log('warning', 'Performance data too large, truncating', [
                     'original_size' => $dataSize,
                     'max_size' => $maxSize
                 ]);
@@ -137,7 +187,7 @@ class MLPredictor
             }
             
         } catch (\Throwable $e) {
-            Logger::error('ML data collection failed', $e);
+            $this->log('error', 'ML data collection failed', [], $e);
         } finally {
             // RESOURCE FIX: Ripristina memory limit
             @ini_set('memory_limit', $originalLimit);
@@ -157,7 +207,7 @@ class MLPredictor
 
         // RESOURCE FIX: Timeout ridotto da 60s a 30s
         if (!MLSemaphore::acquire('pattern_analysis', 30)) {
-            Logger::warning('ML pattern analysis skipped - semaphore busy');
+            $this->log('warning', 'ML pattern analysis skipped - semaphore busy');
             return;
         }
 
@@ -166,21 +216,21 @@ class MLPredictor
         @ini_set('memory_limit', self::MEMORY_LIMIT_ML);
 
         try {
-            $data = $this->getStoredData();
+            $data = $this->dataStorage->getStoredData();
             
             // RESOURCE FIX: Limita i dati processati
             if (count($data) > 1000) {
                 $data = array_slice($data, -1000); // Solo ultimi 1000
-                Logger::debug('ML analysis limited to last 1000 data points');
+                $this->log('debug', 'ML analysis limited to last 1000 data points');
             }
             
             $patterns = $this->patternLearner->learnPatterns($data);
             
-            $this->updateLearnedPatterns($patterns);
+            $this->dataStorage->updateLearnedPatterns($patterns);
             
-            Logger::info('ML patterns analyzed', ['patterns_count' => count($patterns)]);
+            $this->log('info', 'ML patterns analyzed', ['patterns_count' => count($patterns)]);
         } catch (\Throwable $e) {
-            Logger::error('ML pattern analysis failed', $e);
+            $this->log('error', 'ML pattern analysis failed', [], $e);
         } finally {
             MLSemaphore::release('pattern_analysis');
             @ini_set('memory_limit', $originalLimit);
@@ -200,7 +250,7 @@ class MLPredictor
 
         // RESOURCE FIX: Timeout ridotto da 60s a 30s
         if (!MLSemaphore::acquire('prediction_generation', 30)) {
-            Logger::warning('ML prediction generation skipped - semaphore busy');
+            $this->log('warning', 'ML prediction generation skipped - semaphore busy');
             return [];
         }
 
@@ -209,18 +259,18 @@ class MLPredictor
         @ini_set('memory_limit', self::MEMORY_LIMIT_ML);
 
         try {
-            $patterns = $this->getLearnedPatterns();
-            $current_data = $this->getCurrentData();
+            $patterns = $this->dataStorage->getLearnedPatterns();
+            $current_data = $this->dataStorage->getCurrentData();
             
-            $predictions = $this->generatePredictions($patterns, $current_data);
+            $predictions = $this->predictionEngine->generatePredictions($patterns, $current_data);
             
-            $this->storePredictions($predictions);
+            $this->dataStorage->storePredictions($predictions);
             
-            Logger::info('ML predictions generated', ['predictions_count' => count($predictions)]);
+            $this->log('info', 'ML predictions generated', ['predictions_count' => count($predictions)]);
             
             return $predictions;
         } catch (\Throwable $e) {
-            Logger::error('ML prediction generation failed', $e);
+            $this->log('error', 'ML prediction generation failed', [], $e);
             return [];
         } finally {
             MLSemaphore::release('prediction_generation');
@@ -239,13 +289,13 @@ class MLPredictor
 
         // Acquire semaphore for anomaly detection
         if (!MLSemaphore::acquire('anomaly_detection', 30)) {
-            Logger::warning('ML anomaly detection skipped - semaphore busy');
+            $this->log('warning', 'ML anomaly detection skipped - semaphore busy');
             return [];
         }
 
         try {
-            $current_data = $this->getCurrentData();
-            $historical_data = $this->getHistoricalData();
+            $current_data = $this->dataStorage->getCurrentData();
+            $historical_data = $this->dataStorage->getHistoricalData();
             
             $anomalies = $this->anomalyDetector->detect($current_data, $historical_data);
             
@@ -260,9 +310,9 @@ class MLPredictor
      */
     public function getMLRecommendations(): array
     {
-        $predictions = $this->getStoredPredictions();
+        $predictions = $this->dataStorage->getStoredPredictions();
         $anomalies = $this->detectAnomalies();
-        $patterns = $this->getLearnedPatterns();
+        $patterns = $this->dataStorage->getLearnedPatterns();
         
         $recommendations = [];
         
@@ -324,14 +374,14 @@ class MLPredictor
      */
     public function generateMLReport(): array
     {
-        $predictions = $this->getStoredPredictions();
+        $predictions = $this->dataStorage->getStoredPredictions();
         $anomalies = $this->detectAnomalies();
-        $patterns = $this->getLearnedPatterns();
+        $patterns = $this->dataStorage->getLearnedPatterns();
         $recommendations = $this->getMLRecommendations();
         
         return [
             'enabled' => $this->isEnabled(),
-            'data_points' => $this->getDataPointCount(),
+            'data_points' => count($this->dataStorage->getStoredData()),
             'predictions' => $predictions,
             'anomalies' => $anomalies,
             'patterns' => $patterns,
@@ -342,140 +392,9 @@ class MLPredictor
         ];
     }
 
-    /**
-     * Raccoglie dati di performance
-     */
-    private function gatherPerformanceData(): array
-    {
-        $data = [
-            'timestamp' => time(),
-            'url' => $this->getCurrentUrl(),
-            'load_time' => $this->getLoadTime(),
-            'memory_usage' => memory_get_peak_usage(true),
-            'db_queries' => $this->getDbQueryCount(),
-            'cache_hits' => $this->getCacheHits(),
-            'cache_misses' => $this->getCacheMisses(),
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-            'is_mobile' => wp_is_mobile(),
-            'is_admin' => is_admin(),
-            'active_plugins' => $this->getActivePluginsCount(),
-            'theme' => get_template(),
-            'php_version' => PHP_VERSION,
-            'wp_version' => get_bloginfo('version'),
-            'server_load' => $this->getServerLoad(),
-            'error_count' => $this->getErrorCount()
-        ];
-        
-        return $data;
-    }
-
-    /**
-     * Memorizza dati di performance
-     * 
-     * RESOURCE LIMIT FIX: Rispetta limiti configurati
-     */
-    private function storePerformanceData(array $data): void
-    {
-        $stored_data = get_option(self::DATA_OPTION, []);
-        
-        $settings = $this->getSettings();
-        $maxPoints = $settings['max_data_points'] ?? self::MAX_DATA_POINTS;
-        
-        // RESOURCE FIX: Mantieni solo i punti configurati
-        if (count($stored_data) >= $maxPoints) {
-            $keepCount = $maxPoints - 1;
-            $stored_data = array_slice($stored_data, -$keepCount);
-            
-            Logger::debug('ML data trimmed to max points', [
-                'max_points' => $maxPoints,
-                'kept' => $keepCount
-            ]);
-        }
-        
-        $stored_data[] = $data;
-        
-        update_option(self::DATA_OPTION, $stored_data, false); // No autoload
-    }
-
-    /**
-     * Genera predizioni basate su pattern e dati attuali
-     */
-    private function generatePredictions(array $patterns, array $current_data): array
-    {
-        $predictions = [];
-        
-        // Predizione carico eccessivo
-        if ($this->predictHighLoad($patterns, $current_data)) {
-            $predictions[] = [
-                'type' => 'high_load',
-                'severity' => 'high',
-                'confidence' => 0.85,
-                'message' => 'Predetto carico eccessivo nelle prossime ore',
-                'recommended_action' => 'Attivare cache aggiuntiva e ottimizzazioni'
-            ];
-        }
-        
-        // Predizione problemi di memoria
-        if ($this->predictMemoryIssues($patterns, $current_data)) {
-            $predictions[] = [
-                'type' => 'memory_issue',
-                'severity' => 'medium',
-                'confidence' => 0.75,
-                'message' => 'Possibili problemi di memoria in arrivo',
-                'recommended_action' => 'Ottimizzare query database e cache'
-            ];
-        }
-        
-        // Predizione errori
-        if ($this->predictErrors($patterns, $current_data)) {
-            $predictions[] = [
-                'type' => 'errors',
-                'severity' => 'high',
-                'confidence' => 0.80,
-                'message' => 'Aumento errori previsto',
-                'recommended_action' => 'Controllare log e configurazioni'
-            ];
-        }
-        
-        return $predictions;
-    }
-
-    /**
-     * Predice carico eccessivo
-     */
-    private function predictHighLoad(array $patterns, array $current_data): bool
-    {
-        // Logica semplificata per predizione carico
-        $recent_loads = array_column(array_slice($this->getStoredData(), -10), 'server_load');
-        $recentLoadsCount = count($recent_loads);
-        $avg_load = $recentLoadsCount > 0 ? array_sum($recent_loads) / $recentLoadsCount : 0;
-        
-        return $avg_load > 0.8 && $current_data['server_load'] > 0.7;
-    }
-
-    /**
-     * Predice problemi di memoria
-     */
-    private function predictMemoryIssues(array $patterns, array $current_data): bool
-    {
-        $recent_memory = array_column(array_slice($this->getStoredData(), -10), 'memory_usage');
-        $recentMemoryCount = count($recent_memory);
-        $avg_memory = $recentMemoryCount > 0 ? array_sum($recent_memory) / $recentMemoryCount : 0;
-        
-        return $current_data['memory_usage'] > $avg_memory * 1.2;
-    }
-
-    /**
-     * Predice errori
-     */
-    private function predictErrors(array $patterns, array $current_data): bool
-    {
-        $recent_errors = array_column(array_slice($this->getStoredData(), -10), 'error_count');
-        $recentErrorsCount = count($recent_errors);
-        $avg_errors = $recentErrorsCount > 0 ? array_sum($recent_errors) / $recentErrorsCount : 0;
-        
-        return $current_data['error_count'] > $avg_errors * 1.5;
-    }
+    // Metodi gatherPerformanceData(), storePerformanceData(), generatePredictions(),
+    // predictHighLoad(), predictMemoryIssues(), predictErrors() rimossi - ora gestiti da
+    // DataCollector, DataStorage e PredictionEngine
 
     /**
      * Schedula analisi automatiche
@@ -504,131 +423,10 @@ class MLPredictor
         return $schedules;
     }
 
-    /**
-     * Ottiene URL corrente
-     */
-    private function getCurrentUrl(): string
-    {
-        return home_url($_SERVER['REQUEST_URI'] ?? '');
-    }
-
-    /**
-     * Ottiene tempo di caricamento
-     */
-    private function getLoadTime(): float
-    {
-        return microtime(true) - ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
-    }
-
-    /**
-     * Ottiene conteggio query database
-     */
-    private function getDbQueryCount(): int
-    {
-        global $wpdb;
-        return $wpdb->num_queries ?? 0;
-    }
-
-    /**
-     * Ottiene cache hits
-     */
-    private function getCacheHits(): int
-    {
-        return wp_cache_get('fp_ps_cache_hits', 'fp_ps_stats') ?: 0;
-    }
-
-    /**
-     * Ottiene cache misses
-     */
-    private function getCacheMisses(): int
-    {
-        return wp_cache_get('fp_ps_cache_misses', 'fp_ps_stats') ?: 0;
-    }
-
-    /**
-     * Ottiene conteggio plugin attivi
-     */
-    private function getActivePluginsCount(): int
-    {
-        return count(get_option('active_plugins', []));
-    }
-
-    /**
-     * Ottiene carico server
-     */
-    private function getServerLoad(): float
-    {
-        if (function_exists('sys_getloadavg')) {
-            $load = sys_getloadavg();
-            return $load[0] ?? 0.0;
-        }
-        
-        return 0.0;
-    }
-
-    /**
-     * Ottiene conteggio errori
-     */
-    private function getErrorCount(): int
-    {
-        return count(error_get_last() ? [error_get_last()] : []);
-    }
-
-    /**
-     * Ottiene dati memorizzati
-     */
-    private function getStoredData(): array
-    {
-        return get_option(self::DATA_OPTION, []);
-    }
-
-    /**
-     * Ottiene dati attuali
-     */
-    private function getCurrentData(): array
-    {
-        return $this->gatherPerformanceData();
-    }
-
-    /**
-     * Ottiene dati storici
-     */
-    private function getHistoricalData(): array
-    {
-        return array_slice($this->getStoredData(), -100); // Ultimi 100 punti
-    }
-
-    /**
-     * Ottiene pattern appresi
-     */
-    private function getLearnedPatterns(): array
-    {
-        return get_option('fp_ps_ml_patterns', []);
-    }
-
-    /**
-     * Aggiorna pattern appresi
-     */
-    private function updateLearnedPatterns(array $patterns): void
-    {
-        update_option('fp_ps_ml_patterns', $patterns);
-    }
-
-    /**
-     * Memorizza predizioni
-     */
-    private function storePredictions(array $predictions): void
-    {
-        update_option('fp_ps_ml_predictions', $predictions);
-    }
-
-    /**
-     * Ottiene predizioni memorizzate
-     */
-    private function getStoredPredictions(): array
-    {
-        return get_option('fp_ps_ml_predictions', []);
-    }
+    // Metodi getCurrentUrl(), getLoadTime(), getDbQueryCount(), getCacheHits(), getCacheMisses(),
+    // getActivePluginsCount(), getServerLoad(), getErrorCount(), getStoredData(), getCurrentData(),
+    // getHistoricalData(), getLearnedPatterns(), updateLearnedPatterns(), storePredictions(),
+    // getStoredPredictions() rimossi - ora gestiti da DataCollector e DataStorage
 
     /**
      * Calcola accuratezza del modello
@@ -644,7 +442,7 @@ class MLPredictor
      */
     private function getLastAnalysisTime(): int
     {
-        return get_option('fp_ps_ml_last_analysis', 0);
+        return (int) $this->getOption('fp_ps_ml_last_analysis', 0);
     }
 
     /**
@@ -655,13 +453,7 @@ class MLPredictor
         return wp_next_scheduled('fp_ps_ml_analyze_patterns') ?: 0;
     }
 
-    /**
-     * Ottiene conteggio punti dati
-     */
-    private function getDataPointCount(): int
-    {
-        return count($this->getStoredData());
-    }
+    // Metodo getDataPointCount() rimosso - ora usa count($this->dataStorage->getStoredData())
 
     /**
      * Controlla se il servizio è abilitato
@@ -672,117 +464,8 @@ class MLPredictor
         return !empty($settings['enabled']);
     }
     
-    /**
-     * RESOURCE LIMIT: Verifica se la quota storage è stata superata
-     * 
-     * @return bool True se quota superata
-     */
-    private function isStorageQuotaExceeded(): bool
-    {
-        $settings = $this->getSettings();
-        $maxSizeMB = $settings['max_storage_mb'] ?? self::MAX_STORAGE_MB;
-        
-        $currentSizeBytes = $this->getCurrentStorageSize();
-        $currentSizeMB = $currentSizeBytes / 1048576; // Converti in MB
-        
-        if ($currentSizeMB > $maxSizeMB) {
-            Logger::warning('ML storage quota exceeded', [
-                'current_mb' => round($currentSizeMB, 2),
-                'max_mb' => $maxSizeMB
-            ]);
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * RESOURCE LIMIT: Ottiene dimensione storage corrente
-     * 
-     * @return int Dimensione in bytes
-     */
-    private function getCurrentStorageSize(): int
-    {
-        $stored_data = get_option(self::DATA_OPTION, []);
-        $patterns = get_option('fp_ps_ml_patterns', []);
-        $predictions = get_option('fp_ps_ml_predictions', []);
-        
-        $totalSize = 0;
-        $totalSize += strlen(serialize($stored_data));
-        $totalSize += strlen(serialize($patterns));
-        $totalSize += strlen(serialize($predictions));
-        
-        return $totalSize;
-    }
-    
-    /**
-     * RESOURCE LIMIT: Pulisce dati vecchi oltre retention period
-     */
-    private function cleanupOldData(): int
-    {
-        $settings = $this->getSettings();
-        $retentionDays = $settings['data_retention_days'] ?? self::DATA_RETENTION_DAYS_DEFAULT;
-        
-        $stored_data = get_option(self::DATA_OPTION, []);
-        $cutoffTime = time() - ($retentionDays * DAY_IN_SECONDS);
-        
-        $originalCount = count($stored_data);
-        
-        // Filtra dati più vecchi del retention period
-        $filtered_data = array_filter($stored_data, function($entry) use ($cutoffTime) {
-            return isset($entry['timestamp']) && $entry['timestamp'] >= $cutoffTime;
-        });
-        
-        $filtered_data = array_values($filtered_data); // Re-index
-        
-        $removed = $originalCount - count($filtered_data);
-        
-        if ($removed > 0) {
-            update_option(self::DATA_OPTION, $filtered_data, false);
-            
-            Logger::info('ML old data cleaned up', [
-                'removed' => $removed,
-                'remaining' => count($filtered_data),
-                'retention_days' => $retentionDays
-            ]);
-        }
-        
-        return $removed;
-    }
-    
-    /**
-     * RESOURCE LIMIT: Tronca dati troppo grandi
-     * 
-     * @param array $data Dati da troncare
-     * @return array Dati troncati
-     */
-    private function truncateData(array $data): array
-    {
-        // Rimuovi campi non essenziali
-        $essential = [
-            'timestamp',
-            'url',
-            'load_time',
-            'memory_usage',
-            'db_queries',
-            'is_mobile',
-            'error_count'
-        ];
-        
-        $truncated = [];
-        foreach ($essential as $key) {
-            if (isset($data[$key])) {
-                $truncated[$key] = $data[$key];
-            }
-        }
-        
-        // Tronca URL troppo lunghi
-        if (isset($truncated['url']) && strlen($truncated['url']) > 255) {
-            $truncated['url'] = substr($truncated['url'], 0, 255);
-        }
-        
-        return $truncated;
-    }
+    // Metodi isStorageQuotaExceeded(), getCurrentStorageSize(), cleanupOldData(), truncateData()
+    // rimossi - ora gestiti da DataStorage
     
     /**
      * RESOURCE LIMIT: Ottiene statistiche storage
@@ -792,21 +475,49 @@ class MLPredictor
     public function getStorageStats(): array
     {
         $settings = $this->getSettings();
-        $currentSize = $this->getCurrentStorageSize();
+        $stats = $this->dataStorage->getStorageStats();
         $maxSize = ($settings['max_storage_mb'] ?? self::MAX_STORAGE_MB) * 1048576;
-        
-        $dataPoints = $this->getDataPointCount();
         $maxPoints = $settings['max_data_points'] ?? self::MAX_DATA_POINTS;
         
         return [
-            'current_size_bytes' => $currentSize,
-            'current_size_mb' => round($currentSize / 1048576, 2),
+            'current_size_bytes' => $stats['storage_size_bytes'],
+            'current_size_mb' => $stats['storage_size_mb'],
             'max_size_mb' => $settings['max_storage_mb'] ?? self::MAX_STORAGE_MB,
-            'usage_percent' => round(($currentSize / $maxSize) * 100, 2),
-            'data_points' => $dataPoints,
+            'usage_percent' => round(($stats['storage_size_bytes'] / $maxSize) * 100, 2),
+            'data_points' => $stats['data_points'],
             'max_data_points' => $maxPoints,
-            'points_usage_percent' => round(($dataPoints / $maxPoints) * 100, 2),
-            'quota_exceeded' => $this->isStorageQuotaExceeded(),
+            'points_usage_percent' => round(($stats['data_points'] / $maxPoints) * 100, 2),
+            'quota_exceeded' => $this->dataStorage->isStorageQuotaExceeded($settings),
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

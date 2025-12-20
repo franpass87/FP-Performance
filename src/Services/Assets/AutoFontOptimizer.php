@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Auto Font Optimizer
@@ -16,6 +18,51 @@ use FP\PerfSuite\Utils\Logger;
 class AutoFontOptimizer
 {
     private const OPTION = 'fp_ps_auto_font_optimization';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
 
     /**
      * Register hooks
@@ -41,7 +88,7 @@ class AutoFontOptimizer
             // Ottimizzazione automatica font locali - PRIORITÀ BASSA
             add_filter('style_loader_tag', [$this, 'autoOptimizeLocalFonts'], 26, 4);
             
-            Logger::debug('AutoFontOptimizer registered');
+            $this->log('debug', 'AutoFontOptimizer registered');
         }
     }
 
@@ -64,7 +111,7 @@ class AutoFontOptimizer
         
         echo "<!-- End Auto Font Detection & Optimization -->\n";
         
-        Logger::debug('Auto-detected and optimized fonts', [
+        $this->log('debug', 'Auto-detected and optimized fonts', [
             'count' => count($detectedFonts),
             'fonts' => array_column($detectedFonts, 'name')
         ]);
@@ -88,7 +135,7 @@ class AutoFontOptimizer
             echo '<style id="fp-auto-font-display-fix">' . $css . '</style>' . "\n";
             echo "<!-- End Auto Font Display Fix -->\n";
             
-            Logger::debug('Injected auto font-display CSS');
+            $this->log('debug', 'Injected auto font-display CSS');
         }
     }
 
@@ -121,7 +168,7 @@ class AutoFontOptimizer
         
         echo "<!-- End Auto Critical Font Preload -->\n";
         
-        Logger::debug('Auto-preloaded critical fonts', ['count' => count($criticalFonts)]);
+        $this->log('debug', 'Auto-preloaded critical fonts', ['count' => count($criticalFonts)]);
     }
 
     /**
@@ -149,7 +196,7 @@ class AutoFontOptimizer
         
         echo "<!-- End Auto Font Provider Preconnect -->\n";
         
-        Logger::debug('Auto-added font provider preconnect', ['count' => count($providers)]);
+        $this->log('debug', 'Auto-added font provider preconnect', ['count' => count($providers)]);
     }
 
     /**
@@ -518,7 +565,7 @@ class AutoFontOptimizer
     private function applyFontOptimization(array $font): void
     {
         // Log del font rilevato
-        Logger::debug('Auto-detected problematic font', [
+        $this->log('debug', 'Auto-detected problematic font', [
             'name' => $font['name'],
             'url' => $font['url'],
             'priority' => $font['priority']
@@ -595,7 +642,7 @@ class AutoFontOptimizer
             'auto_optimize_local_fonts' => true,
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 

@@ -230,7 +230,6 @@
                     { name: 'Page Cache', key: 'page_cache', endpoint: '/fp-ps/v1/cache/settings' },
                     { name: 'Browser Cache', key: 'browser_cache', endpoint: '/fp-ps/v1/cache/headers' },
                     { name: 'Asset Optimizer', key: 'asset_optimizer', endpoint: '/fp-ps/v1/assets/settings' },
-                    { name: 'WebP', key: 'webp', endpoint: '/fp-ps/v1/media/webp/settings' },
                     { name: 'Lazy Load', key: 'lazy_load', endpoint: '/fp-ps/v1/media/lazy-load/settings' },
                     { name: 'Database', key: 'db', endpoint: '/fp-ps/v1/database/settings' },
                     { name: 'Backend', key: 'backend', endpoint: '/fp-ps/v1/backend/settings' },
@@ -440,7 +439,7 @@
                 const config = JSON.parse(jsonText);
                 
                 // Valida struttura
-                if (!config.page_cache && !config.webp && !config.asset_optimizer) {
+                if (!config.page_cache && !config.asset_optimizer) {
                     throw new Error('Configurazione non valida');
                 }
                 

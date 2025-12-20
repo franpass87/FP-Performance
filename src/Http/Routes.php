@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Http;
 
+use FP\PerfSuite\Kernel\Container;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\DB\Cleaner;
@@ -11,6 +12,12 @@ use FP\PerfSuite\Services\Presets\Manager as PresetManager;
 use FP\PerfSuite\Services\Score\Scorer;
 use FP\PerfSuite\Utils\Capabilities;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Http\Controllers\CacheController;
+use FP\PerfSuite\Http\Controllers\LogsController;
+use FP\PerfSuite\Http\Controllers\PresetController;
+use FP\PerfSuite\Http\Controllers\DatabaseController;
+use FP\PerfSuite\Http\Controllers\ScoreController;
+use FP\PerfSuite\Http\Controllers\DebugController;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
@@ -24,11 +31,33 @@ use function wp_verify_nonce;
 
 class Routes
 {
-    private ServiceContainer $container;
+    /** @var Container|ServiceContainer Service container */
+    private $container;
+    
+    /** @var bool Whether to use new controllers */
+    private bool $useControllers = false;
 
-    public function __construct(ServiceContainer $container)
+    public function __construct($container)
     {
         $this->container = $container;
+        // Use controllers if new Container is available and controllers are registered
+        if ($container instanceof Container) {
+            $this->useControllers = $container->has(CacheController::class);
+        }
+    }
+    
+    /**
+     * Get service from container (compatible with both Container types)
+     * 
+     * @param string $id Service identifier
+     * @return mixed
+     */
+    private function getService(string $id)
+    {
+        if ($this->container instanceof Container) {
+            return $this->container->get($id);
+        }
+        return $this->container->get($id);
     }
 
     public function boot(): void
@@ -211,6 +240,13 @@ class Routes
 
     public function logsTail(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(LogsController::class);
+            return $controller->tail($request);
+        }
+        
+        // Legacy implementation
         $lines = (int) $request->get_param('lines');
         if ($lines < 1) {
             $lines = 1;
@@ -220,16 +256,23 @@ class Routes
         }
         $level = trim(sanitize_text_field((string) $request->get_param('level')));
         $query = trim(sanitize_text_field((string) $request->get_param('query')));
-        $log = $this->container->get(RealtimeLog::class);
+        $log = $this->getService(RealtimeLog::class);
         $data = $log->tail($lines, $level, $query);
         return rest_ensure_response(['data' => $data]);
     }
 
     public function debugToggle(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(DebugController::class);
+            return $controller->toggle($request);
+        }
+        
+        // Legacy implementation
         $enabled = (bool) $request->get_param('enabled');
         $log = (bool) $request->get_param('log');
-        $toggler = $this->container->get(DebugToggler::class);
+        $toggler = $this->getService(DebugToggler::class);
         $result = $toggler->toggle($enabled, $log);
         if (!$result) {
             return new WP_Error('fp_ps_debug', esc_html__('Unable to toggle debug mode.', 'fp-performance-suite'));
@@ -239,6 +282,13 @@ class Routes
 
     public function presetApply(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(PresetController::class);
+            return $controller->apply($request);
+        }
+        
+        // Legacy implementation
         $id = sanitize_key($request->get_param('id'));
         
         if (empty($id)) {
@@ -248,7 +298,7 @@ class Routes
         
         Logger::info('Applying preset via REST API', ['preset_id' => $id]);
         
-        $manager = $this->container->get(PresetManager::class);
+        $manager = $this->getService(PresetManager::class);
         $result = $manager->apply($id);
         
         if (isset($result['error'])) {
@@ -260,9 +310,16 @@ class Routes
         return rest_ensure_response($result);
     }
 
-    public function presetRollback()
+    public function presetRollback(?WP_REST_Request $request = null)
     {
-        $manager = $this->container->get(PresetManager::class);
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(PresetController::class);
+            return $controller->rollback($request ?? new WP_REST_Request());
+        }
+        
+        // Legacy implementation
+        $manager = $this->getService(PresetManager::class);
         $result = $manager->rollback();
         if (!$result) {
             return new WP_Error('fp_ps_preset', esc_html__('Unable to rollback preset.', 'fp-performance-suite'), ['status' => 400]);
@@ -272,6 +329,13 @@ class Routes
 
     public function dbCleanup(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(DatabaseController::class);
+            return $controller->cleanup($request);
+        }
+        
+        // Legacy implementation
         $scope = $this->sanitizeCleanupScope((array) $request->get_param('scope'));
         $dry = filter_var($request->get_param('dryRun'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         $dry = $dry === null ? true : $dry;
@@ -284,7 +348,7 @@ class Routes
             'batch' => $batch,
         ]);
 
-        $cleaner = $this->container->get(Cleaner::class);
+        $cleaner = $this->getService(Cleaner::class);
         $result = $cleaner->cleanup($scope, $dry, $batch);
 
         if (isset($result['error'])) {
@@ -294,9 +358,16 @@ class Routes
         return rest_ensure_response($result);
     }
 
-    public function score(): WP_REST_Response
+    public function score(?WP_REST_Request $request = null): WP_REST_Response
     {
-        $scorer = $this->container->get(Scorer::class);
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(ScoreController::class);
+            return $controller->calculate($request ?? new WP_REST_Request());
+        }
+        
+        // Legacy implementation
+        $scorer = $this->getService(Scorer::class);
         return rest_ensure_response($scorer->calculate());
     }
 
@@ -336,13 +407,20 @@ class Routes
 
     public function cachePurgeUrl(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(CacheController::class);
+            return $controller->purgeUrl($request);
+        }
+        
+        // Legacy implementation
         $url = $request->get_param('url');
         
         if (empty($url)) {
             return new WP_Error('invalid_url', esc_html__('URL is required', 'fp-performance-suite'), ['status' => 400]);
         }
 
-        $cache = $this->container->get(PageCache::class);
+        $cache = $this->getService(PageCache::class);
         $result = $cache->purgeUrl($url);
 
         if (!$result) {
@@ -358,13 +436,20 @@ class Routes
 
     public function cachePurgePost(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(CacheController::class);
+            return $controller->purgePost($request);
+        }
+        
+        // Legacy implementation
         $postId = (int) $request->get_param('post_id');
         
         if ($postId <= 0) {
             return new WP_Error('invalid_post_id', esc_html__('Valid post ID is required', 'fp-performance-suite'), ['status' => 400]);
         }
 
-        $cache = $this->container->get(PageCache::class);
+        $cache = $this->getService(PageCache::class);
         $purged = $cache->purgePost($postId);
 
         return rest_ensure_response([
@@ -377,13 +462,20 @@ class Routes
 
     public function cachePurgePattern(WP_REST_Request $request)
     {
+        // Delegate to controller if available
+        if ($this->useControllers) {
+            $controller = $this->getService(CacheController::class);
+            return $controller->purgePattern($request);
+        }
+        
+        // Legacy implementation
         $pattern = $request->get_param('pattern');
         
         if (empty($pattern)) {
             return new WP_Error('invalid_pattern', esc_html__('Pattern is required', 'fp-performance-suite'), ['status' => 400]);
         }
 
-        $cache = $this->container->get(PageCache::class);
+        $cache = $this->getService(PageCache::class);
         $purged = $cache->purgePattern($pattern);
 
         return rest_ensure_response([

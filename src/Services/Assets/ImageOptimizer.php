@@ -2,13 +2,38 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class ImageOptimizer
 {
+    private const OPTION_KEY = 'fp_ps_image_optimizer';
+    
     private $lazy_loading;
     
-    public function __construct($lazy_loading = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($lazy_loading = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->lazy_loading = $lazy_loading;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
     }
     
     public function init()
@@ -92,10 +117,9 @@ class ImageOptimizer
      */
     public function getSettings(): array
     {
-        $settings = get_option('fp_ps_image_optimizer', [
+        $settings = $this->getOption(self::OPTION_KEY, [
             'enabled' => false,
             'lazy_loading' => true,
-            'webp_conversion' => true,
             'compression_quality' => 85,
             'max_width' => 2048,
             'max_height' => 2048,

@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -18,18 +19,59 @@ class SystemMonitor
     private const MAX_ENTRIES = 100;
 
     private static ?self $instance = null;
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
 
-    private function __construct()
+    private function __construct(?OptionsRepositoryInterface $optionsRepo = null)
     {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
 
     /**
      * Get singleton instance
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository (optional)
      */
-    public static function instance(): self
+    public static function instance(?OptionsRepositoryInterface $optionsRepo = null): self
     {
         if (self::$instance === null) {
-            self::$instance = new self();
+            self::$instance = new self($optionsRepo);
         }
 
         return self::$instance;
@@ -270,7 +312,7 @@ class SystemMonitor
      */
     private function storeMetrics(array $metrics): void
     {
-        $stored = get_option(self::OPTION . '_data', []);
+        $stored = $this->getOption(self::OPTION . '_data', []);
         
         if (!is_array($stored)) {
             $stored = [];
@@ -283,7 +325,7 @@ class SystemMonitor
             $stored = array_slice($stored, -self::MAX_ENTRIES);
         }
         
-        update_option(self::OPTION . '_data', $stored, false);
+        $this->setOption(self::OPTION . '_data', $stored);
     }
 
     /**
@@ -291,7 +333,7 @@ class SystemMonitor
      */
     public function getStats(int $days = 7): array
     {
-        $data = get_option(self::OPTION . '_data', []);
+        $data = $this->getOption(self::OPTION . '_data', []);
         
         if (empty($data)) {
             return $this->getDefaultStats();
@@ -314,15 +356,23 @@ class SystemMonitor
      */
     private function calculateStats(array $data): array
     {
-        $memoryUsage = array_column($data, 'memory_usage');
-        $diskUsage = array_column($data, 'disk_usage');
-        $loadAverage = array_column($data, 'load_average');
+        if (empty($data)) {
+            return $this->getDefaultStats();
+        }
+
+        // Reindicizza per garantire accesso affidabile all'ultimo elemento
+        $normalizedData = array_values($data);
+        $latest = end($normalizedData) ?: [];
+
+        $memoryUsage = array_column($normalizedData, 'memory_usage');
+        $diskUsage = array_column($normalizedData, 'disk_usage');
+        $loadAverage = array_column($normalizedData, 'load_average');
         
         $memoryUsageCount = count($memoryUsage);
         $loadAverageCount = count($loadAverage);
         
         return [
-            'samples' => count($data),
+            'samples' => count($normalizedData),
             'memory' => [
                 'avg_usage_mb' => $memoryUsageCount > 0 ? round(array_sum(array_column($memoryUsage, 'current_mb')) / $memoryUsageCount, 2) : 0,
                 'max_usage_mb' => $memoryUsageCount > 0 ? max(array_column($memoryUsage, 'current_mb')) : 0,
@@ -347,15 +397,15 @@ class SystemMonitor
                 'max_15min' => $loadAverageCount > 0 ? max(array_column($loadAverage, '15min')) : 0,
             ],
             'database' => [
-                'size_mb' => $data[0]['database_size']['size_mb'] ?? 0,
-                'tables' => $data[0]['database_size']['tables'] ?? 0,
+                'size_mb' => $latest['database_size']['size_mb'] ?? 0,
+                'tables' => $latest['database_size']['tables'] ?? 0,
             ],
             'system' => [
-                'php_version' => $data[0]['php_version'] ?? PHP_VERSION,
-                'server_software' => $data[0]['server_software'] ?? 'Unknown',
-                'uptime' => $data[0]['uptime'] ?? null,
-                'cpu_cores' => $data[0]['cpu_info']['cores'] ?? null,
-                'cpu_model' => $data[0]['cpu_info']['model'] ?? null,
+                'php_version' => $latest['php_version'] ?? PHP_VERSION,
+                'server_software' => $latest['server_software'] ?? 'Unknown',
+                'uptime' => $latest['uptime'] ?? null,
+                'cpu_cores' => $latest['cpu_info']['cores'] ?? null,
+                'cpu_model' => $latest['cpu_info']['model'] ?? null,
             ],
         ];
     }
@@ -408,7 +458,7 @@ class SystemMonitor
      */
     public function cleanup(int $days = 30): int
     {
-        $data = get_option(self::OPTION . '_data', []);
+        $data = $this->getOption(self::OPTION . '_data', []);
         
         if (empty($data)) {
             return 0;
@@ -422,7 +472,7 @@ class SystemMonitor
         $removed = count($data) - count($filtered);
         
         if ($removed > 0) {
-            update_option(self::OPTION . '_data', array_values($filtered), false);
+            $this->setOption(self::OPTION . '_data', array_values($filtered));
         }
         
         return $removed;

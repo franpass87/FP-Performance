@@ -5,6 +5,9 @@ namespace FP\PerfSuite\Services\Assets;
 use FP\PerfSuite\Services\Assets\Combiners\CssCombiner;
 use FP\PerfSuite\Services\Assets\Combiners\DependencyResolver;
 use FP\PerfSuite\Services\Assets\Combiners\JsCombiner;
+use FP\PerfSuite\Services\Assets\Optimizer\SettingsManager;
+use FP\PerfSuite\Services\Assets\Optimizer\DataSanitizer;
+use FP\PerfSuite\Services\Assets\Optimizer\RequestExclusionChecker;
 use FP\PerfSuite\Services\Assets\ResourceHints\ResourceHintsManager;
 use FP\PerfSuite\Utils\Semaphore;
 
@@ -37,7 +40,6 @@ use const FILTER_VALIDATE_BOOLEAN;
  */
 class Optimizer
 {
-    private const OPTION = 'fp_ps_assets';
 
     private Semaphore $semaphore;
     private HtmlMinifier $htmlMinifier;
@@ -46,6 +48,9 @@ class Optimizer
     private ResourceHintsManager $resourceHints;
     private CssCombiner $cssCombiner;
     private JsCombiner $jsCombiner;
+    private SettingsManager $settingsManager;
+    private DataSanitizer $sanitizer;
+    private RequestExclusionChecker $exclusionChecker;
 
     public function __construct(
         Semaphore $semaphore,
@@ -64,6 +69,11 @@ class Optimizer
         $dependencyResolver = $dependencyResolver ?? new DependencyResolver();
         $this->cssCombiner = new CssCombiner($dependencyResolver);
         $this->jsCombiner = new JsCombiner($dependencyResolver);
+        
+        // Inizializza le dipendenze mancanti
+        $this->sanitizer = new DataSanitizer();
+        $this->settingsManager = new SettingsManager($this->sanitizer);
+        $this->exclusionChecker = new RequestExclusionChecker();
     }
 
     public function register(): void
@@ -151,79 +161,15 @@ class Optimizer
      */
     public function settings(): array
     {
-        $defaults = [
-            'enabled' => false,
-            'minify_html' => false,
-            'defer_js' => false,
-            'async_js' => false,
-            'async_css' => false,
-            'remove_emojis' => false,
-            'dns_prefetch' => [],
-            'preload' => [],
-            'preconnect' => [],
-            'heartbeat_admin' => 60,
-            'combine_css' => false,
-            'combine_js' => false,
-            'critical_css_handles' => [],
-            'exclude_css' => '',
-            'exclude_js' => '',
-            'minify_inline_css' => false,
-            'minify_inline_js' => false,
-            'remove_comments' => false,
-            'optimize_google_fonts' => false,
-            'preload_critical_assets' => false,
-            'critical_assets_list' => [],
-        ];
-        $options = get_option(self::OPTION, []);
-
-        // Sanitize URL lists
-        if (isset($options['dns_prefetch'])) {
-            $options['dns_prefetch'] = $this->sanitizeUrlList($options['dns_prefetch']);
-        }
-        if (isset($options['preload'])) {
-            $options['preload'] = $this->sanitizeUrlList($options['preload']);
-        }
-        if (isset($options['preconnect']) && is_string($options['preconnect'])) {
-            $options['preconnect'] = $this->sanitizeUrlList($options['preconnect']);
-        }
-        if (isset($options['critical_css_handles']) && is_string($options['critical_css_handles'])) {
-            $options['critical_css_handles'] = $this->sanitizeHandleList($options['critical_css_handles']);
-        }
-        if (isset($options['critical_assets_list']) && is_string($options['critical_assets_list'])) {
-            $options['critical_assets_list'] = $this->sanitizeUrlList($options['critical_assets_list']);
-        }
-
-        return wp_parse_args($options, $defaults);
+        return $this->settingsManager->get();
     }
 
     public function update(array $settings): bool
     {
-        $current = $this->settings();
-        $new = [
-            'enabled' => $this->resolveFlag($settings, 'enabled', $current['enabled']),
-            'minify_html' => $this->resolveFlag($settings, 'minify_html', $current['minify_html']),
-            'defer_js' => $this->resolveFlag($settings, 'defer_js', $current['defer_js']),
-            'async_js' => $this->resolveFlag($settings, 'async_js', $current['async_js']),
-            'async_css' => $this->resolveFlag($settings, 'async_css', $current['async_css']),
-            'remove_emojis' => $this->resolveFlag($settings, 'remove_emojis', $current['remove_emojis']),
-            'dns_prefetch' => $this->sanitizeUrlList($settings['dns_prefetch'] ?? $current['dns_prefetch']),
-            'preload' => $this->sanitizeUrlList($settings['preload'] ?? $current['preload']),
-            'preconnect' => isset($settings['preconnect']) ? $this->sanitizeUrlList($settings['preconnect']) : $current['preconnect'],
-            'heartbeat_admin' => isset($settings['heartbeat_admin']) ? (int) $settings['heartbeat_admin'] : $current['heartbeat_admin'],
-            'combine_css' => $this->resolveFlag($settings, 'combine_css', $current['combine_css']),
-            'combine_js' => $this->resolveFlag($settings, 'combine_js', $current['combine_js']),
-            'critical_css_handles' => isset($settings['critical_css_handles']) ? $this->sanitizeHandleList($settings['critical_css_handles']) : $current['critical_css_handles'],
-            'exclude_css' => isset($settings['exclude_css']) ? $settings['exclude_css'] : $current['exclude_css'],
-            'exclude_js' => isset($settings['exclude_js']) ? $settings['exclude_js'] : $current['exclude_js'],
-            'minify_inline_css' => $this->resolveFlag($settings, 'minify_inline_css', $current['minify_inline_css']),
-            'minify_inline_js' => $this->resolveFlag($settings, 'minify_inline_js', $current['minify_inline_js']),
-            'remove_comments' => $this->resolveFlag($settings, 'remove_comments', $current['remove_comments']),
-            'optimize_google_fonts' => $this->resolveFlag($settings, 'optimize_google_fonts', $current['optimize_google_fonts']),
-            'preload_critical_assets' => $this->resolveFlag($settings, 'preload_critical_assets', $current['preload_critical_assets']),
-            'critical_assets_list' => isset($settings['critical_assets_list']) ? (is_array($settings['critical_assets_list']) ? $settings['critical_assets_list'] : $this->sanitizeUrlList($settings['critical_assets_list'])) : $current['critical_assets_list'],
-        ];
-        return update_option(self::OPTION, $new);
+        return $this->settingsManager->update($settings);
     }
+    
+    // Metodi settings() e update() rimossi - ora gestiti da SettingsManager
 
     public function applyCombination(): void
     {
@@ -528,187 +474,25 @@ class Optimizer
         return $this->jsCombiner;
     }
 
-    /**
-     * Check if current request should skip optimization
-     *
-     * @return bool
-     */
     private function isRestOrAjaxRequest(): bool
     {
-        // Check for REST API request
-        if (defined('REST_REQUEST') && REST_REQUEST) {
-            return true;
-        }
-
-        // Check for AJAX request
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            return true;
-        }
-
-        // Check for WP-Cron request
-        if (defined('DOING_CRON') && DOING_CRON) {
-            return true;
-        }
-
-        // Check for Customizer preview
-        if (function_exists('is_customize_preview') && is_customize_preview()) {
-            return true;
-        }
-
-        // Check for post preview
-        if (function_exists('is_preview') && is_preview()) {
-            return true;
-        }
-
-        // Check URL patterns
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
-            
-            // Check for WP-JSON in URL
-            $restPrefix = rest_get_url_prefix();
-            if (strpos($requestUri, '/' . $restPrefix . '/') !== false || strpos($requestUri, '/' . $restPrefix) !== false) {
-                return true;
-            }
-
-            // Exclude critical WordPress files and endpoints
-            $excludeFiles = [
-                '/xmlrpc.php',
-                '/wp-cron.php',
-                '/wp-login.php',
-                '/wp-signup.php',
-                '/wp-trackback.php',
-                '/wp-comments-post.php',
-                '/wp-sitemap',
-                'sitemap.xml',
-                '/feed/',
-                '/rss/',
-                '/atom/',
-            ];
-
-            // WooCommerce critical pages
-            $woocommercePages = [
-                '/cart',
-                '/checkout',
-                '/my-account',
-                '/wc-ajax',
-                '/wc-api',
-                '?add-to-cart=',
-            ];
-
-            // Easy Digital Downloads
-            $eddPages = [
-                '/edd-ajax',
-                '/edd-api',
-                '/purchase',
-                '?edd_action=',
-            ];
-
-            // MemberPress, LearnDash, bbPress, BuddyPress
-            $otherPluginPages = [
-                '/membership',
-                '/mepr',
-                '/courses/',
-                '/lessons/',
-                '/forums/',
-                '/members/',
-                '/groups/',
-                '/activity/',
-            ];
-
-            $excludePluginPages = array_merge($excludeFiles, $woocommercePages, $eddPages, $otherPluginPages);
-
-            foreach ($excludePluginPages as $file) {
-                if (strpos($requestUri, $file) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        // WooCommerce conditional tags
-        if (function_exists('is_cart') && is_cart()) {
-            return true;
-        }
-
-        if (function_exists('is_checkout') && is_checkout()) {
-            return true;
-        }
-
-        if (function_exists('is_account_page') && is_account_page()) {
-            return true;
-        }
-
-        return false;
+        return $this->exclusionChecker->isRestOrAjaxRequest();
     }
 
-    /**
-     * Verifica se escludere le ottimizzazioni per il plugin FP Privacy & Cookie Policy
-     * 
-     * @return bool True se il banner privacy è attivo e il consenso non è stato dato
-     */
     private function shouldExcludeForPrivacyPlugin(): bool
     {
-        // Controlla se il plugin FP Privacy è attivo
-        if (!defined('FP_PRIVACY_VERSION')) {
-            return false; // Plugin non attivo, procedi normalmente
-        }
-
-        // Controlla se il cookie di consenso esiste
-        if (isset($_COOKIE['fp_consent_state_id'])) {
-            // Consenso già dato, procedi normalmente
-            return false;
-        }
-
-        // Banner cookie attivo e consenso non dato, escludi ottimizzazioni
-        return true;
+        return $this->exclusionChecker->shouldExcludeForPrivacyPlugin();
     }
 
-    /**
-     * Verifica se un asset appartiene al plugin FP Privacy & Cookie Policy
-     * 
-     * @param string $handle Handle dell'asset
-     * @param string $src URL dell'asset
-     * @return bool True se l'asset appartiene al plugin privacy
-     */
     private function isPrivacyPluginAsset(string $handle, string $src): bool
     {
-        // Controlla handle che contengono "fp-privacy" o "fp_privacy"
-        if (strpos($handle, 'fp-privacy') !== false || strpos($handle, 'fp_privacy') !== false) {
-            return true;
-        }
-
-        // Controlla URL che contengono il path del plugin
-        if (strpos($src, 'FP-Privacy-and-Cookie-Policy') !== false || 
-            strpos($src, 'fp-privacy-cookie-policy') !== false ||
-            strpos($src, '/plugins/fp-privacy') !== false) {
-            return true;
-        }
-
-        return false;
+        return $this->exclusionChecker->isPrivacyPluginAsset($handle, $src);
     }
 
-    /**
-     * Verifica se un asset appartiene al plugin FP Restaurant Reservations
-     * 
-     * @param string $handle Handle dell'asset
-     * @param string $src URL dell'asset
-     * @return bool True se l'asset appartiene al plugin prenotazioni
-     */
     private function isReservationsPluginAsset(string $handle, string $src): bool
     {
-        // Controlla handle che contengono "fp-resv", "fp_resv", "flatpickr"
-        if (strpos($handle, 'fp-resv') !== false || 
-            strpos($handle, 'fp_resv') !== false ||
-            strpos($handle, 'flatpickr') !== false) {
-            return true;
-        }
-
-        // Controlla URL che contengono il path del plugin
-        if (strpos($src, 'FP-Restaurant-Reservations') !== false || 
-            strpos($src, 'fp-restaurant-reservations') !== false ||
-            strpos($src, '/plugins/fp-resv') !== false) {
-            return true;
-        }
-
-        return false;
+        return $this->exclusionChecker->isReservationsPluginAsset($handle, $src);
     }
+    
+    // Metodi isRestOrAjaxRequest(), shouldExcludeForPrivacyPlugin(), isPrivacyPluginAsset(), isReservationsPluginAsset() rimossi - ora gestiti da RequestExclusionChecker
 }

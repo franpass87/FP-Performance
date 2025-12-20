@@ -4,6 +4,9 @@ namespace FP\PerfSuite\Services\Assets;
 
 use FP\PerfSuite\Utils\Logger;
 
+use function wp_verify_nonce;
+use function wp_unslash;
+
 /**
  * AJAX Handler for Responsive Image Optimization
  *
@@ -40,7 +43,7 @@ class ResponsiveImageAjaxHandler
     public function handleOptimizeImage(): void
     {
         // Verify nonce for security
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'fp_ps_optimize_image')) {
+        if (!wp_verify_nonce(wp_unslash($_POST['nonce'] ?? ''), 'fp_ps_optimize_image')) {
             wp_die('Security check failed', 'Unauthorized', ['response' => 403]);
         }
 

@@ -74,7 +74,7 @@ class ThemeOptimization extends AbstractPage
         $message = '';
         
         // Handle form submission
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_theme_opt_nonce'])) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_theme_opt_nonce'])) {
             if (wp_verify_nonce(wp_unslash($_POST['fp_ps_theme_opt_nonce']), 'fp-ps-theme-optimization')) {
                 $message = $this->handleFormSubmission();
             }

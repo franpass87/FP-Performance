@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Admin\Pages\Assets\Handlers;
 
+use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
@@ -25,10 +27,17 @@ use function wp_verify_nonce;
 
 class PostHandler
 {
+    private ServiceContainer $container;
+
+    public function __construct(ServiceContainer $container)
+    {
+        $this->container = $container;
+    }
+
     public function handlePost(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
     {
         // Verifica che sia una richiesta POST
-        if (!isset($_POST['fp_ps_assets_nonce']) || !wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
+        if (!isset($_POST['fp_ps_assets_nonce']) || !wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             return '';
         }
 
@@ -38,7 +47,7 @@ class PostHandler
         try {
             // Handle success messages from redirects
             if (isset($_GET['msg'])) {
-                switch ($_GET['msg']) {
+                switch (sanitize_key(wp_unslash($_GET['msg']))) {
                     case 'js_excluded':
                         $message = __('JavaScript exclusions applied successfully!', 'fp-performance-suite');
                         break;
@@ -78,8 +87,13 @@ class PostHandler
             }
 
             if (isset($_POST['auto_detect_critical_assets'])) {
-                $optimizer = new Optimizer();
-                $assetsDetector = new CriticalAssetsDetector();
+                // Use dependency injection from container
+                $optimizer = $this->container->has(Optimizer::class)
+                    ? $this->container->get(Optimizer::class)
+                    : new Optimizer();
+                $assetsDetector = $this->container->has(CriticalAssetsDetector::class)
+                    ? $this->container->get(CriticalAssetsDetector::class)
+                    : new CriticalAssetsDetector();
                 $result = $assetsDetector->autoApplyCriticalAssets(false, $optimizer);
                 $count = $result['applied'] ?? 0;
                 $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $count);
@@ -126,11 +140,8 @@ class PostHandler
 
             return $message;
         
-        } catch (\Exception $e) {
-            // Log dell'errore per debug
-            error_log('FP Performance Suite - PostHandler Error: ' . $e->getMessage());
-            
-            // Ritorna un messaggio di errore user-friendly
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'PostHandler error');
             return sprintf(
                 __('Errore durante il salvataggio: %s. Contatta il supporto se il problema persiste.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -141,7 +152,10 @@ class PostHandler
     private function handleJavaScriptForm(array &$settings): string
     {
         try {
-            $optimizer = new Optimizer();
+            // Use dependency injection from container
+            $optimizer = $this->container->has(Optimizer::class)
+                ? $this->container->get(Optimizer::class)
+                : new Optimizer();
             $excludeJs = isset($_POST['exclude_js']) 
                 ? wp_unslash($_POST['exclude_js']) 
                 : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
@@ -159,8 +173,8 @@ class PostHandler
             
             return __('JavaScript settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - JavaScript Form Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'JavaScript Form Error');
             return sprintf(
                 __('Error saving JavaScript settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -171,7 +185,10 @@ class PostHandler
     private function handleCssForm(array &$settings): string
     {
         try {
-            $optimizer = new Optimizer();
+            // Use dependency injection from container
+            $optimizer = $this->container->has(Optimizer::class)
+                ? $this->container->get(Optimizer::class)
+                : new Optimizer();
             $excludeCss = isset($_POST['exclude_css']) 
                 ? wp_unslash($_POST['exclude_css']) 
                 : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
@@ -184,16 +201,20 @@ class PostHandler
                 'exclude_css' => $excludeCss,
             ]);
             
-            // Handle Unused CSS settings
-            $unusedCssOptimizer = new UnusedCSSOptimizer();
+            // Handle Unused CSS settings - use dependency injection
+            $unusedCssOptimizer = $this->container->has(UnusedCSSOptimizer::class)
+                ? $this->container->get(UnusedCSSOptimizer::class)
+                : new UnusedCSSOptimizer();
             $unusedCssOptimizer->updateSettings([
                 'enabled' => !empty($_POST['unusedcss_enabled']),
                 'remove_unused_css' => !empty($_POST['unusedcss_remove_unused_css']),
                 'defer_non_critical' => !empty($_POST['unusedcss_defer_non_critical']),
             ]);
 
-            // Handle Critical CSS settings
-            $criticalCssService = new CriticalCss();
+            // Handle Critical CSS settings - use dependency injection
+            $criticalCssService = $this->container->has(CriticalCss::class)
+                ? $this->container->get(CriticalCss::class)
+                : new CriticalCss();
             if (isset($_POST['critical_css'])) {
                 $result = $criticalCssService->update(wp_unslash($_POST['critical_css']));
                 if (!$result['success']) {
@@ -205,8 +226,8 @@ class PostHandler
             
             return __('CSS settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - CSS Form Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'CSS Form Error');
             return sprintf(
                 __('Error saving CSS settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -217,7 +238,7 @@ class PostHandler
     private function handleThirdPartyForm(array &$thirdPartySettings): string
     {
         try {
-            $thirdPartyScripts = new ThirdPartyScriptManager();
+            $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
             $thirdPartyScripts->updateSettings([
                 'enabled' => !empty($_POST['third_party_enabled']),
                 'delay_all' => !empty($_POST['third_party_delay_all']),
@@ -271,8 +292,8 @@ class PostHandler
             
             return __('Third-Party Script settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - Third Party Form Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Third Party Form Error');
             return sprintf(
                 __('Error saving Third-Party settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -283,7 +304,7 @@ class PostHandler
     private function handleHttp2PushForm(): string
     {
         try {
-            $http2Push = new Http2ServerPush();
+            $http2Push = $this->container->get(Http2ServerPush::class);
             $http2Push->updateSettings([
                 'enabled' => !empty($_POST['http2_push_enabled']),
                 'push_critical_css' => !empty($_POST['http2_push_css']),
@@ -294,8 +315,8 @@ class PostHandler
             
             return __('HTTP/2 Server Push settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - HTTP/2 Push Form Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'HTTP/2 Push Form Error');
             return sprintf(
                 __('Error saving HTTP/2 Push settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -306,7 +327,7 @@ class PostHandler
     private function handleSmartDeliveryForm(): string
     {
         try {
-            $smartDelivery = new SmartAssetDelivery();
+            $smartDelivery = $this->container->get(SmartAssetDelivery::class);
             $smartDelivery->updateSettings([
                 'enabled' => !empty($_POST['smart_delivery_enabled']),
                 'adapt_images' => !empty($_POST['smart_adaptive_images']),
@@ -317,8 +338,8 @@ class PostHandler
             
             return __('Smart Asset Delivery settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - Smart Delivery Form Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Smart Delivery Form Error');
             return sprintf(
                 __('Error saving Smart Delivery settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()
@@ -328,7 +349,10 @@ class PostHandler
 
     private function handleUnusedCssForm(): string
     {
-        $unusedCssOptimizer = new UnusedCSSOptimizer();
+        // Use dependency injection from container
+        $unusedCssOptimizer = $this->container->has(UnusedCSSOptimizer::class)
+            ? $this->container->get(UnusedCSSOptimizer::class)
+            : new UnusedCSSOptimizer();
         $unusedCssOptimizer->updateSettings([
             'enabled' => !empty($_POST['unusedcss_enabled']),
             'remove_unused_css' => !empty($_POST['unusedcss_remove_unused_css']),
@@ -342,7 +366,10 @@ class PostHandler
 
     private function handleCriticalCssForm(): string
     {
-        $criticalCssService = new CriticalCss();
+        // Use dependency injection from container
+        $criticalCssService = $this->container->has(CriticalCss::class)
+            ? $this->container->get(CriticalCss::class)
+            : new CriticalCss();
         if (isset($_POST['critical_css'])) {
             $criticalCssService->update(wp_unslash($_POST['critical_css']));
             return __('Critical CSS saved successfully!', 'fp-performance-suite');
@@ -352,7 +379,10 @@ class PostHandler
 
     private function handleCriticalPathFontsForm(array &$fontSettings): string
     {
-        $criticalPathOptimizer = new \FP\PerfSuite\Services\Assets\CriticalPathOptimizer();
+        // Use dependency injection from container
+        $criticalPathOptimizer = $this->container->has(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)
+            ? $this->container->get(\FP\PerfSuite\Services\Assets\CriticalPathOptimizer::class)
+            : new \FP\PerfSuite\Services\Assets\CriticalPathOptimizer();
         $criticalPathOptimizer->updateSettings([
             'enabled' => !empty($_POST['critical_path_enabled']),
             'preload_critical_fonts' => !empty($_POST['preload_critical_fonts']),
@@ -362,7 +392,9 @@ class PostHandler
             'add_resource_hints' => !empty($_POST['add_resource_hints']),
         ]);
         
-        $fontOptimizer = new FontOptimizer();
+        $fontOptimizer = $this->container->has(FontOptimizer::class)
+            ? $this->container->get(FontOptimizer::class)
+            : new FontOptimizer();
         $fontOptimizer->updateSettings([
             'preload_fonts' => !empty($_POST['preload_fonts']),
         ]);
@@ -401,15 +433,18 @@ class PostHandler
                 }
             }
             
-        } catch (Exception $e) {
-            error_log('FP Performance Suite - Errore nella re-registrazione dei servizi font: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Errore nella re-registrazione dei servizi font');
         }
     }
 
     private function handleScriptDetectorForm(): string
     {
-        $thirdPartyScripts = new ThirdPartyScriptManager();
-        $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
+        $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
+        // Use dependency injection from container
+        $scriptDetector = $this->container->has(ThirdPartyScriptDetector::class)
+            ? $this->container->get(ThirdPartyScriptDetector::class)
+            : new ThirdPartyScriptDetector($thirdPartyScripts);
         
         if (isset($_POST['action_scan'])) {
             $scriptDetector->scanHomepage();
@@ -432,7 +467,7 @@ class PostHandler
             $scriptDetector->dismissScript($hash);
             return __('Suggestion dismissed.', 'fp-performance-suite');
         } elseif (isset($_POST['action_remove_custom'])) {
-            $key = sanitize_key($_POST['custom_key'] ?? '');
+            $key = sanitize_key(wp_unslash($_POST['custom_key'] ?? ''));
             if ($scriptDetector->removeCustomScript($key)) {
                 return __('Custom script removed.', 'fp-performance-suite');
             }
@@ -445,21 +480,27 @@ class PostHandler
     {
         // BUGFIX #18a: Tutti e 3 i servizi avanzati JavaScript usano updateSettings(), non update()
         
-        // Handle unused JavaScript optimization settings
+        // Handle unused JavaScript optimization settings - use dependency injection
         if (isset($_POST['unused_optimization'])) {
-            $unusedOptimizer = new UnusedJavaScriptOptimizer();
+            $unusedOptimizer = $this->container->has(UnusedJavaScriptOptimizer::class)
+                ? $this->container->get(UnusedJavaScriptOptimizer::class)
+                : new UnusedJavaScriptOptimizer();
             $unusedOptimizer->updateSettings($_POST['unused_optimization']);
         }
 
-        // Handle code splitting settings
+        // Handle code splitting settings - use dependency injection
         if (isset($_POST['code_splitting'])) {
-            $codeSplittingManager = new CodeSplittingManager();
+            $codeSplittingManager = $this->container->has(CodeSplittingManager::class)
+                ? $this->container->get(CodeSplittingManager::class)
+                : new CodeSplittingManager();
             $codeSplittingManager->updateSettings($_POST['code_splitting']);
         }
 
-        // Handle tree shaking settings
+        // Handle tree shaking settings - use dependency injection
         if (isset($_POST['tree_shaking'])) {
-            $treeShaker = new JavaScriptTreeShaker();
+            $treeShaker = $this->container->has(JavaScriptTreeShaker::class)
+                ? $this->container->get(JavaScriptTreeShaker::class)
+                : new JavaScriptTreeShaker();
             $treeShaker->updateSettings($_POST['tree_shaking']);
         }
 
@@ -469,10 +510,10 @@ class PostHandler
     private function handleMainToggleForm(array &$settings): string
     {
         try {
-            // Debug: Log the POST data
-            error_log('FP Performance Suite - Main Toggle POST data: ' . print_r($_POST, true));
-            
-            $optimizer = new Optimizer();
+            // Use dependency injection from container
+            $optimizer = $this->container->has(Optimizer::class)
+                ? $this->container->get(Optimizer::class)
+                : new Optimizer();
             
             // Get current settings
             $currentSettings = $optimizer->settings();
@@ -480,31 +521,20 @@ class PostHandler
             // Update the main enabled flag - ensure we handle both checked and unchecked states
             $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
             
-            // Debug: Log the settings being saved
-            error_log('FP Performance Suite - Saving settings: ' . print_r($currentSettings, true));
-            
             // Save the updated settings
             $result = $optimizer->update($currentSettings);
-            
-            // Debug: Log the result
-            error_log('FP Performance Suite - Update result: ' . ($result ? 'success' : 'failed'));
             
             // Update the settings array for the view
             $settings = $optimizer->settings();
             
             // Verify the setting was actually saved
             $savedSettings = $optimizer->settings();
-            error_log('FP Performance Suite - Settings after save: ' . print_r($savedSettings['enabled'], true));
             
             // Return success message instead of redirect to avoid page issues
             return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            error_log('FP Performance Suite - Main Toggle Error: ' . $e->getMessage());
-            error_log('FP Performance Suite - Main Toggle Stack trace: ' . $e->getTraceAsString());
-            
-            // Return error message instead of redirect
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Main Toggle Error');
             return sprintf(
                 __('Error saving settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()

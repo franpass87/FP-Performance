@@ -2,112 +2,100 @@
 
 namespace FP\PerfSuite\Services\DB;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Services\DB\Cleaner\CleanupOperations;
+use FP\PerfSuite\Services\DB\Cleaner\CleanupCounter;
+use FP\PerfSuite\Services\DB\Cleaner\SchedulerManager;
 
 class Cleaner
 {
     public const CRON_HOOK = 'fp_clean_database';
+    private const LAST_RUN_KEY = 'fp_ps_db_last_run';
+    private const SETTINGS_KEY = 'fp_ps_db_cleaner_settings';
+    private const DB_KEY = 'fp_ps_db';
     
     private $clean_revisions;
     private $clean_spam;
     private $clean_trash;
+    private int $lastRun = 0;
+    private CleanupOperations $operations;
+    private CleanupCounter $counter;
+    private SchedulerManager $scheduler;
     
-    public function __construct($clean_revisions = true, $clean_spam = true, $clean_trash = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($clean_revisions = true, $clean_spam = true, $clean_trash = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->clean_revisions = $clean_revisions;
         $this->clean_spam = $clean_spam;
         $this->clean_trash = $clean_trash;
+        $this->optionsRepo = $optionsRepo;
+        $this->lastRun = (int) $this->getOption(self::LAST_RUN_KEY, 0);
+        
+        $this->operations = new CleanupOperations();
+        $this->counter = new CleanupCounter();
+        $this->scheduler = new SchedulerManager($this->optionsRepo);
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     public function init()
     {
         add_action('wp_scheduled_delete', [$this, 'cleanDatabase']);
         add_action('fp_clean_database', [$this, 'cleanDatabase']);
+        add_filter('cron_schedules', [$this->scheduler, 'registerCronSchedules']);
     }
     
     public function cleanDatabase()
     {
-        $cleaned = 0;
-        
-        if ($this->clean_revisions) {
-            $cleaned += $this->cleanRevisions();
+        $scope = $this->scheduler->getScheduledScope();
+        $results = $this->cleanup($scope, false, $this->scheduler->getBatch());
+
+        if (!empty($this->getDbOption('optimization')['optimize_on_cleanup'])) {
+            $this->cleanup(['optimize_tables'], false, $this->batch);
         }
-        
-        if ($this->clean_spam) {
-            $cleaned += $this->cleanSpam();
-        }
-        
-        if ($this->clean_trash) {
-            $cleaned += $this->cleanTrash();
-        }
-        
-        return $cleaned;
+
+        $this->pruneDebugLog();
+
+        return $results['total_cleaned'] ?? 0;
     }
     
-    private function cleanRevisions(int $limit = 500)
-    {
-        global $wpdb;
-        
-        // FIX: Aggiungi LIMIT per prevenire timeout
-        $revisions = $wpdb->get_results($wpdb->prepare("
-            SELECT ID FROM {$wpdb->posts} 
-            WHERE post_type = 'revision' 
-            AND post_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
-            LIMIT %d
-        ", $limit));
-        
-        $cleaned = 0;
-        foreach ($revisions as $revision) {
-            if (wp_delete_post($revision->ID, true)) {
-                $cleaned++;
-            }
-        }
-        
-        return $cleaned;
-    }
-    
-    private function cleanSpam(int $limit = 500)
-    {
-        global $wpdb;
-        
-        // FIX: Aggiungi LIMIT per prevenire timeout
-        $spam_comments = $wpdb->get_results($wpdb->prepare("
-            SELECT comment_ID FROM {$wpdb->comments} 
-            WHERE comment_approved = 'spam'
-            LIMIT %d
-        ", $limit));
-        
-        $cleaned = 0;
-        foreach ($spam_comments as $comment) {
-            if (wp_delete_comment($comment->comment_ID, true)) {
-                $cleaned++;
-            }
-        }
-        
-        return $cleaned;
-    }
-    
-    private function cleanTrash(int $limit = 500)
-    {
-        global $wpdb;
-        
-        // FIX: Aggiungi LIMIT per prevenire timeout
-        $trash_posts = $wpdb->get_results($wpdb->prepare("
-            SELECT ID FROM {$wpdb->posts} 
-            WHERE post_status = 'trash' 
-            AND post_date < DATE_SUB(NOW(), INTERVAL 30 DAY)
-            LIMIT %d
-        ", $limit));
-        
-        $cleaned = 0;
-        foreach ($trash_posts as $post) {
-            if (wp_delete_post($post->ID, true)) {
-                $cleaned++;
-            }
-        }
-        
-        return $cleaned;
-    }
+    // Metodi cleanRevisions(), cleanSpam(), cleanTrash() rimossi - ora gestiti da CleanupOperations
     
     public function getCleanerMetrics()
     {
@@ -151,6 +139,8 @@ class Cleaner
             'clean_trash' => $this->clean_trash,
             'clean_transients' => $this->clean_transients ?? false,
             'optimize_tables' => $this->optimize_tables ?? false,
+            'schedule' => $this->schedule,
+            'batch' => $this->batch,
         ];
     }
     
@@ -162,7 +152,7 @@ class Cleaner
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_db_cleaner_settings', []);
+        $currentSettings = $this->getOption(self::SETTINGS_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -174,10 +164,10 @@ class Cleaner
         }
         
         if (isset($newSettings['batch'])) {
-            $newSettings['batch'] = max(10, min(10000, (int) $newSettings['batch']));
+            $newSettings['batch'] = max(50, min(1000, (int) $newSettings['batch']));
         }
         
-        $result = update_option('fp_ps_db_cleaner_settings', $newSettings, false);
+        $result = $this->setOption(self::SETTINGS_KEY, $newSettings);
         
         // Aggiorna proprietà interne se presenti
         if (isset($newSettings['clean_revisions'])) {
@@ -189,6 +179,21 @@ class Cleaner
         if (isset($newSettings['clean_trash'])) {
             $this->clean_trash = (bool) $newSettings['clean_trash'];
         }
+
+        if (isset($newSettings['schedule'])) {
+            $this->schedule = $newSettings['schedule'];
+        }
+
+        if (isset($newSettings['batch'])) {
+            $this->batch = (int) $newSettings['batch'];
+        }
+
+        $dbSettings = $this->getDbOption();
+        $dbSettings['schedule'] = $this->schedule;
+        $dbSettings['batch'] = $this->batch;
+        $this->setOption(self::DB_KEY, $dbSettings);
+
+        $this->ensureSchedule(true);
         
         return $result;
     }
@@ -220,6 +225,10 @@ class Cleaner
             'clean_revisions' => $this->clean_revisions,
             'clean_spam' => $this->clean_spam,
             'clean_trash' => $this->clean_trash,
+            'schedule' => $this->schedule,
+            'batch' => $this->batch,
+            'last_run' => $this->lastRun,
+            'next_run' => wp_next_scheduled(self::CRON_HOOK) ?: null,
         ];
     }
     
@@ -229,6 +238,7 @@ class Cleaner
     public function register(): void
     {
         $this->init();
+        $this->scheduler->ensureSchedule();
     }
     
     /**
@@ -257,45 +267,45 @@ class Cleaner
                 switch ($operation) {
                     case 'revisions':
                         if ($this->clean_revisions) {
-                            $count = $dryRun ? $this->countRevisions() : $this->cleanRevisions();
+                            $count = $dryRun ? $this->counter->countRevisions() : $this->operations->cleanRevisions();
                         }
                         break;
                         
                     case 'spam_comments':
                         if ($this->clean_spam) {
-                            $count = $dryRun ? $this->countSpam() : $this->cleanSpam();
+                            $count = $dryRun ? $this->counter->countSpam() : $this->operations->cleanSpam();
                         }
                         break;
                         
                     case 'trash_posts':
                         if ($this->clean_trash) {
-                            $count = $dryRun ? $this->countTrash() : $this->cleanTrash();
+                            $count = $dryRun ? $this->counter->countTrash() : $this->operations->cleanTrash();
                         }
                         break;
                         
                     case 'auto_drafts':
-                        $count = $dryRun ? $this->countAutoDrafts() : $this->cleanAutoDrafts();
+                        $count = $dryRun ? $this->counter->countAutoDrafts() : $this->operations->cleanAutoDrafts();
                         break;
                         
                     case 'expired_transients':
-                        $count = $dryRun ? $this->countExpiredTransients() : $this->cleanExpiredTransients();
+                        $count = $dryRun ? $this->counter->countExpiredTransients() : $this->operations->cleanExpiredTransients();
                         break;
                         
                     case 'orphan_postmeta':
-                        $count = $dryRun ? $this->countOrphanPostmeta() : $this->cleanOrphanPostmeta();
+                        $count = $dryRun ? $this->counter->countOrphanPostmeta() : $this->operations->cleanOrphanPostmeta();
                         break;
                         
                     case 'orphan_termmeta':
-                        $count = $dryRun ? $this->countOrphanTermmeta() : $this->cleanOrphanTermmeta();
+                        $count = $dryRun ? $this->counter->countOrphanTermmeta() : $this->operations->cleanOrphanTermmeta();
                         break;
                         
                     case 'orphan_usermeta':
-                        $count = $dryRun ? $this->countOrphanUsermeta() : $this->cleanOrphanUsermeta();
+                        $count = $dryRun ? $this->counter->countOrphanUsermeta() : $this->operations->cleanOrphanUsermeta();
                         break;
                         
                     case 'optimize_tables':
                         if (!$dryRun) {
-                            $count = $this->optimizeTables();
+                            $count = $this->operations->optimizeTables();
                         }
                         break;
                 }
@@ -307,7 +317,12 @@ class Cleaner
             $results['success'] = false;
             $results['error'] = $e->getMessage();
         }
-        
+
+        if (!$dryRun) {
+            $this->lastRun = time();
+            $this->setOption(self::LAST_RUN_KEY, $this->lastRun);
+        }
+
         return $results;
     }
     
@@ -382,6 +397,112 @@ class Cleaner
         }
         
         return $cleaned;
+    }
+
+    public function registerCronSchedules(array $schedules): array
+    {
+        if (!isset($schedules['fp_ps_weekly'])) {
+            $schedules['fp_ps_weekly'] = [
+                'interval' => WEEK_IN_SECONDS,
+                'display' => __('Once Weekly (FP Performance)', 'fp-performance-suite'),
+            ];
+        }
+
+        if (!isset($schedules['fp_ps_monthly'])) {
+            $schedules['fp_ps_monthly'] = [
+                'interval' => 30 * DAY_IN_SECONDS,
+                'display' => __('Once Monthly (FP Performance)', 'fp-performance-suite'),
+            ];
+        }
+
+        return $schedules;
+    }
+
+    private function ensureSchedule(bool $force = false): void
+    {
+        if ($force) {
+            wp_clear_scheduled_hook(self::CRON_HOOK);
+        }
+
+        if ($this->schedule === 'manual') {
+            wp_clear_scheduled_hook(self::CRON_HOOK);
+            return;
+        }
+
+        if (wp_next_scheduled(self::CRON_HOOK) && !$force) {
+            return;
+        }
+
+        $recurrence = $this->schedule === 'monthly' ? 'fp_ps_monthly' : 'fp_ps_weekly';
+        if ($this->schedule === 'daily') {
+            $recurrence = 'daily';
+        }
+
+        if (!in_array($recurrence, array_keys(apply_filters('cron_schedules', [])), true)) {
+            // Ensure schedules are registered
+            add_filter('cron_schedules', [$this, 'registerCronSchedules']);
+        }
+
+        wp_schedule_event(time() + HOUR_IN_SECONDS, $recurrence, self::CRON_HOOK);
+    }
+
+    private function getScheduledScope(): array
+    {
+        $dbSettings = $this->getDbOption();
+        $scope = $dbSettings['cleanup_scope'] ?? [];
+
+        if (empty($scope) || !is_array($scope)) {
+            $scope = [
+                'revisions',
+                'auto_drafts',
+                'trash_posts',
+                'spam_comments',
+                'expired_transients',
+            ];
+        }
+
+        return array_unique($scope);
+    }
+
+    private function pruneDebugLog(): void
+    {
+        $logFile = WP_CONTENT_DIR . '/debug.log';
+        $maxSize = apply_filters('fp_ps_debug_log_max_size_kb', 1024); // 1 MB default
+
+        if (!file_exists($logFile)) {
+            return;
+        }
+
+        $sizeKb = (int) (filesize($logFile) / 1024);
+        if ($sizeKb <= $maxSize) {
+            return;
+        }
+
+        $archiveDir = WP_CONTENT_DIR . '/fp-ps-logs';
+        if (!is_dir($archiveDir)) {
+            wp_mkdir_p($archiveDir);
+        }
+
+        $archiveFile = trailingslashit($archiveDir) . 'debug-' . gmdate('Ymd-His') . '.log';
+
+        if (@rename($logFile, $archiveFile)) {
+            touch($logFile);
+        } else {
+            // Fallback: truncate file
+            $handle = @fopen($logFile, 'w');
+            if ($handle) {
+                fclose($handle);
+            }
+        }
+    }
+
+    private function getDbOption(?string $key = null)
+    {
+        $settings = $this->getOption(self::DB_KEY, []);
+        if ($key === null) {
+            return $settings;
+        }
+        return $settings[$key] ?? [];
     }
     
     /**

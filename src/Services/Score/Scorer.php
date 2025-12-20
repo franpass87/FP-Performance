@@ -16,6 +16,7 @@ use FP\PerfSuite\Services\Compression\CompressionManager;
 use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use function __;
 use function _n;
 use function apache_get_modules;
@@ -24,7 +25,6 @@ use function file_exists;
 use function filemtime;
 use function filesize;
 use function function_exists;
-use function get_option;
 use function has_action;
 use function headers_list;
 use function in_array;
@@ -51,6 +51,11 @@ class Scorer
     private ?CdnManager $cdnManager = null;
     private ?CriticalCss $criticalCss = null;
     private ?CompressionManager $compression = null;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
 
     /**
      * Registra gli hook del servizio
@@ -74,7 +79,8 @@ class Scorer
         ?ObjectCacheManager $objectCache = null,
         ?CdnManager $cdnManager = null,
         ?CriticalCss $criticalCss = null,
-        ?CompressionManager $compression = null
+        ?CompressionManager $compression = null,
+        ?OptionsRepositoryInterface $optionsRepo = null
     ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
@@ -89,6 +95,7 @@ class Scorer
         $this->cdnManager = $cdnManager;
         $this->criticalCss = $criticalCss;
         $this->compression = $compression;
+        $this->optionsRepo = $optionsRepo;
     }
 
     /**
@@ -427,20 +434,35 @@ class Scorer
         if ($removed && $embedsDisabled) {
             return [5, null];
         }
+
+        if ($removed) {
+            return [5, null];
+        }
+
+        if ($embedsDisabled) {
+            return [3, __('Disable emojis to reduce front-end requests.', 'fp-performance-suite')];
+        }
+
         return [2, __('Disable emojis and embeds to reduce front-end requests.', 'fp-performance-suite')];
     }
 
     private function criticalCssScore(): array
     {
-        $critical = get_option('fp_ps_critical_css', '');
+        $critical = $this->getOption('fp_ps_critical_css', '');
         $hasCritical = is_string($critical) && trim($critical) !== '';
-        $required = (bool) apply_filters('fp_ps_require_critical_css', false);
+        $settings = $this->getOption('fp_ps_settings', []);
+        $requireCritical = !empty($settings['require_critical_css']);
+        $required = (bool) apply_filters('fp_ps_require_critical_css', $requireCritical);
 
-        if ($hasCritical || !$required) {
+        if ($hasCritical) {
             return [5, null];
         }
 
-        return [0, __('Add critical CSS placeholder for above-the-fold styles.', 'fp-performance-suite')];
+        if ($required) {
+            return [0, __('Add critical CSS placeholder for above-the-fold styles.', 'fp-performance-suite')];
+        }
+
+        return [5, null];
     }
 
     private function logScore(): array
@@ -459,5 +481,20 @@ class Scorer
             return [12, __('Review debug log for warnings in the last 24 hours.', 'fp-performance-suite')];
         }
         return [6, __('Log file is noisy. Resolve errors and clear debug.log.', 'fp-performance-suite')];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
     }
 }

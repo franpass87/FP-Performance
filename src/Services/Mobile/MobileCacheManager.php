@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Mobile;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -16,6 +17,32 @@ class MobileCacheManager
 {
     private const OPTION = 'fp_ps_mobile_cache';
     private const CACHE_GROUP = 'fp_ps_mobile';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
 
     /**
      * Registra gli hook per la gestione cache mobile
@@ -190,7 +217,7 @@ class MobileCacheManager
             'enabled' => $this->isEnabled(),
             'settings' => $this->settings(),
             'cache_group' => self::CACHE_GROUP,
-            'last_cleared' => get_option('fp_ps_mobile_cache_last_cleared', 0)
+            'last_cleared' => $this->getOption('fp_ps_mobile_cache_last_cleared', 0)
         ];
     }
 
@@ -199,7 +226,7 @@ class MobileCacheManager
      */
     private function settings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'enable_mobile_cache_headers' => true,
             'enable_resource_caching' => true,

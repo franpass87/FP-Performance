@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -16,6 +17,21 @@ use FP\PerfSuite\Utils\Logger;
 class SmartAssetDelivery
 {
     private const OPTION_KEY = 'fp_ps_smart_delivery';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     /**
      * Registra il servizio
@@ -65,7 +81,7 @@ class SmartAssetDelivery
             'quality_fast' => 85,
         ];
 
-        $options = get_option(self::OPTION_KEY, []);
+        $options = $this->getOption(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
     }
 
@@ -77,7 +93,37 @@ class SmartAssetDelivery
         $current = $this->getSettings();
         $updated = wp_parse_args($settings, $current);
 
-        return update_option(self::OPTION_KEY, $updated);
+        return $this->setOption(self::OPTION_KEY, $updated);
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 
     /**

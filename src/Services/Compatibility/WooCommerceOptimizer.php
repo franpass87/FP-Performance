@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Compatibility;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 use function add_action;
@@ -39,13 +40,55 @@ use function defined;
 class WooCommerceOptimizer
 {
     private const OPTION = 'fp_ps_woocommerce';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
     
     /**
      * Impostazioni del servizio
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'disable_cart_fragments' => true, // Su non-cart pages
             'lazy_load_cart' => true,
@@ -70,7 +113,7 @@ class WooCommerceOptimizer
         $current = $this->getSettings();
         $new = array_merge($current, $settings);
         
-        return update_option(self::OPTION, $new, false);
+        return $this->setOption(self::OPTION, $new, false);
     }
     
     /**

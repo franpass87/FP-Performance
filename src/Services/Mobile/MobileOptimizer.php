@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Mobile;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -19,6 +20,7 @@ class MobileOptimizer
     private bool $touch_optimization;
     private bool $mobile_cache;
     private bool $responsive_images;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
     /**
      * Costruttore
@@ -26,12 +28,14 @@ class MobileOptimizer
      * @param bool $touch_optimization Abilita ottimizzazioni touch
      * @param bool $mobile_cache Abilita cache mobile
      * @param bool $responsive_images Abilita responsive images
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
      */
-    public function __construct(bool $touch_optimization = true, bool $mobile_cache = true, bool $responsive_images = true)
+    public function __construct(bool $touch_optimization = true, bool $mobile_cache = true, bool $responsive_images = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->touch_optimization = $touch_optimization;
         $this->mobile_cache = $mobile_cache;
         $this->responsive_images = $responsive_images;
+        $this->optionsRepo = $optionsRepo;
     }
     
     /**
@@ -241,6 +245,21 @@ class MobileOptimizer
     }
     
     /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
      * Ottiene impostazioni validate
      * 
      * SECURITY: Validazione completa di tutte le opzioni
@@ -249,7 +268,7 @@ class MobileOptimizer
      */
     private function getValidatedSettings(): array
     {
-        $settings = get_option('fp_ps_mobile_optimizer', []);
+        $settings = $this->getOption('fp_ps_mobile_optimizer', []);
         
         // SECURITY: Valida ogni campo con default safe
         return [

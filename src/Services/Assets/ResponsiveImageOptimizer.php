@@ -2,7 +2,11 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer\ImageSizeOptimizer;
+use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer\ImageSizeGenerator;
+use FP\PerfSuite\Services\Assets\ResponsiveImageOptimizer\ImageMetadataManager;
 
 /**
  * Responsive Image Optimizer
@@ -23,15 +27,26 @@ use FP\PerfSuite\Utils\Logger;
 class ResponsiveImageOptimizer
 {
     private const OPTION = 'fp_ps_responsive_images';
-    private const CACHE_GROUP = 'fp_responsive_images';
-    private const CACHE_EXPIRATION = 3600; // 1 hour
+    
+    private ImageMetadataManager $metadataManager;
+    private ImageSizeGenerator $sizeGenerator;
+    private ImageSizeOptimizer $sizeOptimizer;
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
 
     /**
-     * Cache locale per mapping URL -> attachment ID, evita query ripetute.
-     *
-     * @var array<string,int>
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository (optional for backward compatibility)
      */
-    private array $attachmentIdCache = [];
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->metadataManager = new ImageMetadataManager();
+        $this->sizeGenerator = new ImageSizeGenerator($this->metadataManager);
+        $this->sizeOptimizer = new ImageSizeOptimizer($this->metadataManager, $this->sizeGenerator);
+    }
 
     /**
      * Register hooks
@@ -107,7 +122,7 @@ class ResponsiveImageOptimizer
             }
 
             // Get optimal size for this width
-            $optimalUrl = $this->getOptimalSizeForWidth($source['url'], $attachment_id, $width);
+            $optimalUrl = $this->sizeOptimizer->getOptimalSizeForWidth($source['url'], $attachment_id, $width);
             
             if ($optimalUrl && $optimalUrl !== $source['url']) {
                 $source['url'] = $optimalUrl;
@@ -152,7 +167,7 @@ class ResponsiveImageOptimizer
         }
 
         $src = $srcMatch[1];
-        $attachmentId = $this->getAttachmentIdFromUrl($src);
+        $attachmentId = $this->metadataManager->getAttachmentIdFromUrl($src);
 
         if ($attachmentId <= 0) {
             return $imgTag;
@@ -164,7 +179,7 @@ class ResponsiveImageOptimizer
         }
 
         // Get optimal size
-        $optimalSrc = $this->getOptimalImageSize($src, $attachmentId);
+        $optimalSrc = $this->sizeOptimizer->getOptimalImageSize($src, $attachmentId);
         
         if ($optimalSrc && $optimalSrc !== $src) {
             // Replace src in attributes
@@ -180,54 +195,7 @@ class ResponsiveImageOptimizer
         return $imgTag;
     }
 
-    /**
-     * Get optimal image size based on context and display dimensions
-     */
-    private function getOptimalImageSize(string $originalUrl, $attachmentId, $requestedSize = null): ?string
-    {
-        // Get image metadata
-        $metadata = wp_get_attachment_metadata($attachmentId);
-        if (!is_array($metadata)) {
-            return null;
-        }
-
-        // Get original dimensions
-        $originalWidth = $metadata['width'] ?? 0;
-        $originalHeight = $metadata['height'] ?? 0;
-
-        if ($originalWidth <= 0 || $originalHeight <= 0) {
-            return null;
-        }
-
-        // Determine target dimensions based on context
-        $targetDimensions = $this->getTargetDimensions($originalUrl, $attachmentId, $requestedSize);
-        
-        if (!$targetDimensions) {
-            return null;
-        }
-
-        $targetWidth = $targetDimensions['width'];
-        $targetHeight = $targetDimensions['height'];
-
-        // If target is larger than original, use original
-        if ($targetWidth >= $originalWidth && $targetHeight >= $originalHeight) {
-            return null;
-        }
-
-        // Check if we have a suitable size already
-        $suitableSize = $this->findSuitableSize($metadata, $targetWidth, $targetHeight);
-        
-        if ($suitableSize) {
-            return $suitableSize;
-        }
-
-        // Generate new size if needed and enabled
-        if ($this->getSetting('generate_sizes', true)) {
-            return $this->generateOptimalSize($originalUrl, $attachmentId, $targetWidth, $targetHeight);
-        }
-
-        return null;
-    }
+    // Metodo getOptimalImageSize() rimosso - ora gestito da ImageSizeOptimizer
 
     /**
      * Get target dimensions based on context
@@ -699,7 +667,7 @@ class ResponsiveImageOptimizer
             'quality' => 85,
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
@@ -744,6 +712,24 @@ class ResponsiveImageOptimizer
             'min_dimensions' => $settings['min_width'] . 'x' . $settings['min_height'],
             'quality' => $settings['quality'],
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * Note: WordPress core image size options (thumbnail_size_w, etc.) are accessed directly
+     * via get_option() as they are WordPress core settings, not plugin settings.
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
     }
 }
 

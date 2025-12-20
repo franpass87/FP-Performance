@@ -1,41 +1,36 @@
 # Composer
 /vendor/
-composer.phar
 composer.lock
 
-# Logs e cache
-*.log
-*.cache
-/logs/
-/cache/
-
-# IDE e editor
-.vscode/
+# IDE
 .idea/
-*.sublime-project
-*.sublime-workspace
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Node modules (se presente)
-node_modules/
-package-lock.json
-yarn.lock
-.npm/
+# Testing
+tests/coverage/
+.phpunit.result.cache
+.phpunit.cache
 
-# File temporanei
-*.tmp
-*.temp
-*.swp
-*~
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
-# Build files
+# Logs
+*.log
+debug.log
+
+# Cache
+/cache/
+*.cache
+
+# Build
 /build/
 /dist/
-
-# WordPress specifici
-*.sql
-*.sql.gz
-wp-config-local.php
-local-config.php
-

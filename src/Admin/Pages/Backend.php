@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
@@ -73,9 +74,12 @@ class Backend extends AbstractPage
         $message = '';
         
         // Debug: Log delle impostazioni correnti
-        error_log('Backend Optimization Settings: ' . print_r($allSettings, true));
+        // Debug log rimosso - usa ErrorHandler se necessario per logging strutturato
+        // if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+        //     ErrorHandler::handleSilently(new \RuntimeException('Backend Optimization Settings: ' . print_r($allSettings, true)), 'Backend settings debug');
+        // }
 
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_backend_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_backend_nonce']), 'fp-ps-backend')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_backend_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_backend_nonce']), 'fp-ps-backend')) {
             
             // Main Toggle for Backend Optimization
             if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {

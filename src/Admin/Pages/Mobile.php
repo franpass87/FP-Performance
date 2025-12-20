@@ -12,6 +12,10 @@ use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Admin\Components\PageIntro;
 
+use function __;
+use function wp_verify_nonce;
+use function wp_unslash;
+
 /**
  * Mobile Optimization Admin Page
  * 
@@ -58,7 +62,7 @@ class Mobile extends AbstractPage
         try {
             $mobile_optimizer = $this->container->get(MobileOptimizer::class);
             $report = $mobile_optimizer->generateMobileReport();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Fallback se il servizio non è disponibile
             $report = [
                 'enabled' => false,
@@ -169,8 +173,8 @@ class Mobile extends AbstractPage
                     <div class="fp-ps-mobile-stats">
                         <div class="fp-ps-stat-item">
                             <span class="fp-ps-stat-label"><?php _e('Status', 'fp-performance-suite'); ?></span>
-                            <span class="fp-ps-stat-value <?php echo $report['enabled'] ? 'fp-ps-status-enabled' : 'fp-ps-status-disabled'; ?>">
-                                <?php echo $report['enabled'] ? __('Enabled', 'fp-performance-suite') : __('Disabled', 'fp-performance-suite'); ?>
+                            <span class="fp-ps-stat-value <?php echo esc_attr($report['enabled'] ? 'fp-ps-status-enabled' : 'fp-ps-status-disabled'); ?>">
+                                <?php echo esc_html($report['enabled'] ? __('Enabled', 'fp-performance-suite') : __('Disabled', 'fp-performance-suite')); ?>
                             </span>
                         </div>
                         
@@ -372,7 +376,7 @@ class Mobile extends AbstractPage
     private function handleFormSubmission(): void
     {
         // Handle mobile settings
-        if (isset($_POST['fp_ps_mobile_nonce']) && wp_verify_nonce($_POST['fp_ps_mobile_nonce'], 'fp_ps_mobile_settings')) {
+        if (isset($_POST['fp_ps_mobile_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_mobile_nonce']), 'fp_ps_mobile_settings')) {
             $settings = [
                 'enabled' => !empty($_POST['enabled']),
                 'disable_animations' => !empty($_POST['disable_animations']),
@@ -401,7 +405,7 @@ class Mobile extends AbstractPage
         }
         
         // Handle touch settings
-        if (isset($_POST['fp_ps_touch_nonce']) && wp_verify_nonce($_POST['fp_ps_touch_nonce'], 'fp_ps_touch_settings')) {
+        if (isset($_POST['fp_ps_touch_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_touch_nonce']), 'fp_ps_touch_settings')) {
             $settings = [
                 'enabled' => !empty($_POST['touch_enabled']),
                 'disable_hover_effects' => !empty($_POST['disable_hover_effects']),
@@ -415,7 +419,7 @@ class Mobile extends AbstractPage
         }
         
         // Handle responsive settings
-        if (isset($_POST['fp_ps_responsive_nonce']) && wp_verify_nonce($_POST['fp_ps_responsive_nonce'], 'fp_ps_responsive_settings')) {
+        if (isset($_POST['fp_ps_responsive_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_responsive_nonce']), 'fp_ps_responsive_settings')) {
             $settings = [
                 'enabled' => !empty($_POST['responsive_enabled']),
                 'enable_lazy_loading' => !empty($_POST['enable_lazy_loading']),

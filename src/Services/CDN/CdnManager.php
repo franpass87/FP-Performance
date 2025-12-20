@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\CDN;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * CDN Manager Service
@@ -21,21 +23,56 @@ class CdnManager
     private ?string $cdn_url = null;
     
     /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+    
+    /**
+     * @var LoggerInterface|null
+     */
+    private ?LoggerInterface $logger = null;
+    
+    /**
      * Costruttore
      * 
      * @param string $provider Provider CDN
      * @param string $api_key API key (NEVER expose in frontend!)
      * @param string $zone_id Zone ID (NEVER expose in frontend!)
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     * @param LoggerInterface|null $logger Logger instance
      */
-    public function __construct(string $provider = 'cloudflare', string $api_key = '', string $zone_id = '')
+    public function __construct(string $provider = 'cloudflare', string $api_key = '', string $zone_id = '', ?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
         $this->provider = $provider;
         $this->api_key = $api_key;
         $this->zone_id = $zone_id;
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
         
         // Carica CDN URL da settings
         $settings = $this->settings();
         $this->cdn_url = $settings['url'] ?? null;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
     }
     
     /**
@@ -127,7 +164,7 @@ class CdnManager
         }
         
         // Nessun CDN configurato
-        Logger::debug('CDN domain not configured');
+        $this->log('debug', 'CDN domain not configured');
         return false;
     }
     
@@ -142,7 +179,7 @@ class CdnManager
     public function purgeCache(array $urls = []): bool
     {
         if (empty($this->api_key) || empty($this->zone_id)) {
-            Logger::warning('CDN purge skipped - missing credentials');
+            $this->log('warning', 'CDN purge skipped - missing credentials');
             return false;
         }
         
@@ -153,13 +190,13 @@ class CdnManager
                 case 'fastly':
                     return $this->purgeFastly($urls);
                 default:
-                    Logger::warning('CDN purge skipped - unsupported provider', [
+                    $this->log('warning', 'CDN purge skipped - unsupported provider', [
                         'provider' => $this->provider
                     ]);
                     return false;
             }
         } catch (\Throwable $e) {
-            Logger::error('CDN purge exception', $e);
+            $this->log('error', 'CDN purge exception', [], $e);
             return false;
         }
     }
@@ -192,7 +229,7 @@ class CdnManager
         ]);
         
         if (is_wp_error($response)) {
-            Logger::error('Cloudflare purge failed', [
+            $this->log('error', 'Cloudflare purge failed', [
                 'error' => $response->get_error_message()
             ]);
             return false;
@@ -203,7 +240,7 @@ class CdnManager
         
         // SECURITY FIX: Valida JSON response
         if (json_last_error() !== JSON_ERROR_NONE) {
-            Logger::error('Cloudflare response JSON invalid', [
+            $this->log('error', 'Cloudflare response JSON invalid', [
                 'error' => json_last_error_msg()
             ]);
             return false;
@@ -212,12 +249,12 @@ class CdnManager
         $success = isset($responseData['success']) && $responseData['success'];
         
         if (!$success) {
-            Logger::error('Cloudflare purge failed', [
+            $this->log('error', 'Cloudflare purge failed', [
                 'errors' => $responseData['errors'] ?? 'Unknown error',
                 'messages' => $responseData['messages'] ?? []
             ]);
         } else {
-            Logger::info('Cloudflare cache purged', [
+            $this->log('info', 'Cloudflare cache purged', [
                 'urls_count' => count($urls),
                 'purge_all' => empty($urls)
             ]);
@@ -249,7 +286,7 @@ class CdnManager
         ]);
         
         if (is_wp_error($response)) {
-            Logger::error('Fastly purge failed', [
+            $this->log('error', 'Fastly purge failed', [
                 'error' => $response->get_error_message()
             ]);
             return false;
@@ -259,12 +296,12 @@ class CdnManager
         $success = $code === 200;
         
         if (!$success) {
-            Logger::error('Fastly purge failed', [
+            $this->log('error', 'Fastly purge failed', [
                 'status_code' => $code,
                 'response' => wp_remote_retrieve_body($response)
             ]);
         } else {
-            Logger::info('Fastly cache purged', [
+            $this->log('info', 'Fastly cache purged', [
                 'urls_count' => count($urls)
             ]);
         }
@@ -305,7 +342,7 @@ class CdnManager
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_cdn_settings', []);
+        $currentSettings = $this->getOption('fp_ps_cdn_settings', []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -332,7 +369,7 @@ class CdnManager
             $newSettings['zone_id'] = sanitize_text_field($newSettings['zone_id']);
         }
         
-        $result = update_option('fp_ps_cdn_settings', $newSettings, false);
+        $result = $this->setOption('fp_ps_cdn_settings', $newSettings);
         
         // Aggiorna proprietà interne
         if (isset($newSettings['provider'])) {
@@ -370,5 +407,35 @@ class CdnManager
     public function register(): void
     {
         $this->init();
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

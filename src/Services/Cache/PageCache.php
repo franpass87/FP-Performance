@@ -2,19 +2,86 @@
 
 namespace FP\PerfSuite\Services\Cache;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Services\Cache\PageCache\CacheFileManager;
+use FP\PerfSuite\Services\Cache\PageCache\UrlNormalizer;
+use FP\PerfSuite\Services\Cache\PageCache\CachePurger;
+use FP\PerfSuite\Services\Cache\PageCache\AutoPurgeHandler;
+use FP\PerfSuite\Utils\ErrorHandler;
+
 class PageCache
 {
+    private const OPTION_KEY = 'fp_ps_page_cache_settings';
+    
     private $cache_dir;
     private $ttl;
+    private CacheFileManager $fileManager;
+    private UrlNormalizer $urlNormalizer;
+    private CachePurger $purger;
+    private AutoPurgeHandler $autoPurgeHandler;
     
-    public function __construct($cache_dir = null, $ttl = 3600)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($cache_dir = null, $ttl = 3600, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->cache_dir = $cache_dir ?: WP_CONTENT_DIR . '/cache/fp-performance/page-cache';
         $this->ttl = $ttl;
+        $this->optionsRepo = $optionsRepo;
         
         if (!file_exists($this->cache_dir)) {
             wp_mkdir_p($this->cache_dir);
         }
+        
+        // Inizializza le classi helper
+        $this->fileManager = new CacheFileManager($this->cache_dir);
+        $this->urlNormalizer = new UrlNormalizer();
+        $this->purger = new CachePurger(
+            $this->cache_dir,
+            $this->fileManager,
+            $this->urlNormalizer,
+            [$this, 'delete']
+        );
+        $this->autoPurgeHandler = new AutoPurgeHandler(
+            $this->purger,
+            [$this, 'settings'],
+            [$this->purger, 'purgePost']
+        );
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     public function get($key)
@@ -24,10 +91,10 @@ class PageCache
             return false;
         }
         
-        $file = $this->getCacheFile($key);
+        $file = $this->fileManager->getCacheFile($key);
         
         // SICUREZZA: Verifichiamo che il file sia nella directory cache
-        if (!$this->isValidCacheFile($file)) {
+        if (!$this->fileManager->isValidCacheFile($file)) {
             return false;
         }
         
@@ -42,7 +109,7 @@ class PageCache
             }
             
             // SICUREZZA: Validiamo i dati prima di unserialize per prevenire object injection
-            $cache_data = $this->safeUnserialize($data);
+            $cache_data = $this->fileManager->safeUnserialize($data);
             
             if (!is_array($cache_data) || !isset($cache_data['expires'])) {
                 $this->delete($key);
@@ -56,7 +123,7 @@ class PageCache
             
             return $cache_data['content'];
         } catch (\Exception $e) {
-            error_log('FP Performance Suite: Cache read error: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'PageCache read');
             return false;
         }
     }
@@ -68,10 +135,10 @@ class PageCache
             return false;
         }
         
-        $file = $this->getCacheFile($key);
+        $file = $this->fileManager->getCacheFile($key);
         
         // SICUREZZA: Verifichiamo che il file sia nella directory cache
-        if (!$this->isValidCacheFile($file)) {
+        if (!$this->fileManager->isValidCacheFile($file)) {
             return false;
         }
         
@@ -84,7 +151,7 @@ class PageCache
             $result = file_put_contents($file, serialize($cache_data), LOCK_EX);
             return $result !== false;
         } catch (\Exception $e) {
-            error_log('FP Performance Suite: Cache write error: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'PageCache write');
             return false;
         }
     }
@@ -96,7 +163,7 @@ class PageCache
             return false;
         }
         
-        $file = $this->getCacheFile($key);
+        $file = $this->fileManager->getCacheFile($key);
         
         // SECURITY FIX: Verifica che il file sia nella directory cache autorizzata
         if (!$this->isValidCacheFile($file)) {
@@ -131,7 +198,7 @@ class PageCache
         
         foreach ($files as $file) {
             // Skip directories e file non validi
-            if (!is_file($file) || !$this->isValidCacheFile($file)) {
+            if (!is_file($file) || !$this->fileManager->isValidCacheFile($file)) {
                 continue;
             }
             
@@ -151,70 +218,7 @@ class PageCache
         return $errors === 0;
     }
     
-    private function getCacheFile($key)
-    {
-        return $this->cache_dir . '/' . md5($key) . '.cache';
-    }
-    
-    /**
-     * SICUREZZA: Verifica che il file sia nella directory cache autorizzata
-     */
-    private function isValidCacheFile($file): bool
-    {
-        $realCacheDir = realpath($this->cache_dir);
-        $realFile = realpath(dirname($file));
-        
-        if ($realCacheDir === false || $realFile === false) {
-            return false;
-        }
-        
-        return strpos($realFile, $realCacheDir) === 0;
-    }
-    
-    /**
-     * SICUREZZA: Unserialize sicuro per prevenire object injection
-     * 
-     * @param string $data Dati serializzati da deserializzare
-     * @return mixed|false Dati deserializzati o false in caso di errore
-     */
-    private function safeUnserialize($data)
-    {
-        if (empty($data) || !is_string($data)) {
-            error_log('FP Performance Suite: Invalid data type for unserialize');
-            return false;
-        }
-        
-        // SECURITY FIX: Usa allowed_classes => false per prevenire object injection
-        // PHP 7.0+ supporta questo parametro
-        try {
-            // Usa unserialize con opzioni sicure
-            $result = @unserialize($data, ['allowed_classes' => false]);
-            
-            // Verifica che il risultato sia un array valido
-            if (!is_array($result)) {
-                error_log('FP Performance Suite: Invalid cache data format - expected array');
-                return false;
-            }
-            
-            // Verifica struttura attesa
-            if (!isset($result['content']) || !isset($result['expires'])) {
-                error_log('FP Performance Suite: Invalid cache data structure');
-                return false;
-            }
-            
-            // Valida il tipo di expires
-            if (!is_numeric($result['expires'])) {
-                error_log('FP Performance Suite: Invalid expires value');
-                return false;
-            }
-            
-            return $result;
-            
-        } catch (\Throwable $e) {
-            error_log('FP Performance Suite: Unserialize error: ' . $e->getMessage());
-            return false;
-        }
-    }
+    // Metodi getCacheFile(), isValidCacheFile(), safeUnserialize() rimossi - ora gestiti da CacheFileManager
     
     /**
      * Verifica se la page cache Ã¨ abilitata
@@ -223,7 +227,7 @@ class PageCache
      */
     public function isEnabled(): bool
     {
-        $settings = get_option('fp_ps_page_cache_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         return isset($settings['enabled']) && $settings['enabled'];
     }
     
@@ -234,7 +238,7 @@ class PageCache
      */
     public function settings(): array
     {
-        $settings = get_option('fp_ps_page_cache_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         
         return [
             'enabled' => isset($settings['enabled']) && $settings['enabled'],
@@ -254,7 +258,7 @@ class PageCache
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_page_cache_settings', []);
+        $currentSettings = $this->getOption(self::OPTION_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -281,7 +285,7 @@ class PageCache
             $newSettings['exclude_query_strings'] = [];
         }
         
-        $result = update_option('fp_ps_page_cache_settings', $newSettings, false);
+        $result = $this->setOption(self::OPTION_KEY, $newSettings);
         
         if ($result && isset($newSettings['ttl'])) {
             $this->ttl = $newSettings['ttl'];
@@ -351,14 +355,7 @@ class PageCache
      */
     public function purgeUrl(string $url): bool
     {
-        if (empty($url)) {
-            return false;
-        }
-        
-        // Genera la chiave cache dall'URL
-        $key = $this->urlToKey($url);
-        
-        return $this->delete($key);
+        return $this->purger->purgeUrl($url);
     }
     
     /**
@@ -369,20 +366,7 @@ class PageCache
      */
     public function purgePost(int $postId): int
     {
-        if ($postId <= 0) {
-            return 0;
-        }
-        
-        $urls = $this->getPostUrls($postId);
-        $purged = 0;
-        
-        foreach ($urls as $url) {
-            if ($this->purgeUrl($url)) {
-                $purged++;
-            }
-        }
-        
-        return $purged;
+        return $this->purger->purgePost($postId);
     }
     
     /**
@@ -393,172 +377,16 @@ class PageCache
      */
     public function purgePattern(string $pattern): int
     {
-        if (empty($pattern)) {
-            return 0;
-        }
-        
-        if (!file_exists($this->cache_dir) || !is_readable($this->cache_dir)) {
-            return 0;
-        }
-        
-        try {
-            $files = glob($this->cache_dir . '/*.cache');
-            
-            if ($files === false) {
-                return 0;
-            }
-            
-            $purged = 0;
-            
-            // Converti wildcard in regex se necessario
-            $regex = $this->patternToRegex($pattern);
-            
-            foreach ($files as $file) {
-                if (!$this->isValidCacheFile($file)) {
-                    continue;
-                }
-                
-                $basename = basename($file, '.cache');
-                
-                if (preg_match($regex, $basename)) {
-                    if (@unlink($file)) {
-                        $purged++;
-                    }
-                }
-            }
-            
-            return $purged;
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite: Error in purgePattern: ' . $e->getMessage());
-            return 0;
-        }
+        return $this->purger->purgePattern($pattern);
     }
     
-    /**
-     * Ottiene gli URL associati a un post
-     * 
-     * @param int $postId ID del post
-     * @return array Array di URL
-     */
-    private function getPostUrls(int $postId): array
-    {
-        $urls = [];
-        
-        // URL principale del post
-        $permalink = get_permalink($postId);
-        if ($permalink) {
-            $urls[] = $permalink;
-        }
-        
-        // URL home (potrebbe contenere il post in archivi)
-        $urls[] = home_url('/');
-        
-        // URL delle tassonomie associate
-        $post = get_post($postId);
-        if ($post) {
-            // Categorie
-            $categories = get_the_category($postId);
-            foreach ($categories as $category) {
-                $categoryUrl = get_category_link($category->term_id);
-                if ($categoryUrl) {
-                    $urls[] = $categoryUrl;
-                }
-            }
-            
-            // Tags
-            $tags = get_the_tags($postId);
-            if ($tags) {
-                foreach ($tags as $tag) {
-                    $tagUrl = get_tag_link($tag->term_id);
-                    if ($tagUrl) {
-                        $urls[] = $tagUrl;
-                    }
-                }
-            }
-            
-            // Custom taxonomies
-            $taxonomies = get_object_taxonomies($post);
-            foreach ($taxonomies as $taxonomy) {
-                if (in_array($taxonomy, ['category', 'post_tag'], true)) {
-                    continue; // GiÃ  gestiti sopra
-                }
-                
-                $terms = get_the_terms($postId, $taxonomy);
-                if ($terms && !is_wp_error($terms)) {
-                    foreach ($terms as $term) {
-                        $termUrl = get_term_link($term);
-                        if ($termUrl && !is_wp_error($termUrl)) {
-                            $urls[] = $termUrl;
-                        }
-                    }
-                }
-            }
-            
-            // Feed
-            $urls[] = get_post_comments_feed_link($postId);
-        }
-        
-        // Rimuovi duplicati
-        $urls = array_unique(array_filter($urls));
-        
-        return $urls;
-    }
+    // Metodi getPostUrls(), urlToKey(), normalizeUrl(), patternToRegex() rimossi - ora gestiti da:
+    // - CachePurger (getPostUrls)
+    // - UrlNormalizer (urlToKey, normalizeUrl, patternToRegex)
     
-    /**
-     * Converte un URL in chiave cache
-     * 
-     * @param string $url URL da convertire
-     * @return string Chiave cache
-     */
-    private function urlToKey(string $url): string
-    {
-        // Normalizza l'URL
-        $url = $this->normalizeUrl($url);
-        
-        // Usa lo stesso metodo di generazione chiave usato altrove
-        return md5($url);
-    }
-    
-    /**
-     * Normalizza un URL per coerenza nella cache
-     * 
-     * @param string $url URL da normalizzare
-     * @return string URL normalizzato
-     */
-    private function normalizeUrl(string $url): string
-    {
-        // Rimuovi schema per evitare duplicati http/https
-        $url = preg_replace('#^https?://#i', '', $url);
-        
-        // Rimuovi trailing slash
-        $url = rtrim($url, '/');
-        
-        // Converti in lowercase per case-insensitive matching
-        $url = strtolower($url);
-        
-        return $url;
-    }
-    
-    /**
-     * Converte un pattern wildcard in regex
-     * 
-     * @param string $pattern Pattern wildcard o regex
-     * @return string Pattern regex
-     */
-    private function patternToRegex(string $pattern): string
-    {
-        // Se giÃ  un regex (inizia con / o #), usa direttamente
-        if (preg_match('/^[\/\#]/', $pattern)) {
-            return $pattern;
-        }
-        
-        // Converti wildcard in regex
-        $pattern = preg_quote($pattern, '/');
-        $pattern = str_replace('\*', '.*', $pattern);
-        $pattern = str_replace('\?', '.', $pattern);
-        
-        return '/^' . $pattern . '$/i';
-    }
+    // Metodi getPostUrls(), urlToKey(), normalizeUrl(), patternToRegex() rimossi - ora gestiti da:
+    // - CachePurger (getPostUrls)
+    // - UrlNormalizer (urlToKey, normalizeUrl, patternToRegex)
     
     /**
      * Registra il servizio
@@ -592,7 +420,7 @@ class PageCache
     public function serveOrCachePage(): void
     {
         // Solo per richieste GET
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
             return;
         }
         
@@ -631,54 +459,26 @@ class PageCache
     
     /**
      * Auto-purge cache quando un post viene modificato
-     * 
-     * @param int $postId ID del post
      */
     public function autoPurgePost(int $postId): void
     {
-        // Verifica che auto-purge sia abilitato
-        $settings = $this->settings();
-        if (empty($settings['auto_purge'])) {
-            return;
-        }
-        
-        // Verifica che non sia una revisione o auto-draft
-        if (wp_is_post_revision($postId) || wp_is_post_autosave($postId)) {
-            return;
-        }
-        
-        $this->purgePost($postId);
+        $this->autoPurgeHandler->autoPurgePost($postId);
     }
     
     /**
      * Auto-purge cache quando un commento viene aggiunto
-     * 
-     * @param int $commentId ID del commento
-     * @param int|string $approved Stato approvazione
      */
     public function autoPurgePostOnComment(int $commentId, $approved): void
     {
-        if ($approved !== 1 && $approved !== 'approve') {
-            return; // Solo commenti approvati
-        }
-        
-        $comment = get_comment($commentId);
-        if ($comment && $comment->comment_post_ID) {
-            $this->autoPurgePost((int) $comment->comment_post_ID);
-        }
+        $this->autoPurgeHandler->autoPurgePostOnComment($commentId, $approved);
     }
     
     /**
      * Auto-purge cache quando un commento viene modificato
-     * 
-     * @param int $commentId ID del commento
      */
     public function autoPurgeCommentPost(int $commentId): void
     {
-        $comment = get_comment($commentId);
-        if ($comment && $comment->comment_post_ID) {
-            $this->autoPurgePost((int) $comment->comment_post_ID);
-        }
+        $this->autoPurgeHandler->autoPurgeCommentPost($commentId);
     }
     
     /**
@@ -701,7 +501,7 @@ class PageCache
             $now = time();
             
             foreach ($files as $file) {
-                if (!$this->isValidCacheFile($file)) {
+                if (!$this->fileManager->isValidCacheFile($file)) {
                     continue;
                 }
                 
@@ -711,7 +511,7 @@ class PageCache
                     continue;
                 }
                 
-                $cache_data = $this->safeUnserialize($data);
+                $cache_data = $this->fileManager->safeUnserialize($data);
                 
                 if (!is_array($cache_data) || !isset($cache_data['expires'])) {
                     // File corrotto, rimuovi
@@ -731,7 +531,7 @@ class PageCache
                 error_log("FP Performance Suite: Rimossi {$removed} file cache scaduti");
             }
         } catch (\Exception $e) {
-            error_log('FP Performance Suite: Error in cleanupExpiredCache: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'PageCache cleanupExpiredCache');
         }
     }
 }

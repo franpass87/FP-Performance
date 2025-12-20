@@ -2,7 +2,13 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager\CriticalPageDetector;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager\ScriptFilter;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager\ScriptDelayChecker;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager\DelayedLoader;
+use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager\ScriptDetector;
 
 use function add_filter;
 use function get_option;
@@ -22,6 +28,30 @@ use function sanitize_textarea_field;
 class ThirdPartyScriptManager
 {
     private const OPTION = 'fp_ps_third_party_scripts';
+    
+    private CriticalPageDetector $criticalPageDetector;
+    private ScriptFilter $scriptFilter;
+    private ScriptDelayChecker $delayChecker;
+    private DelayedLoader $delayedLoader;
+    private ScriptDetector $scriptDetector;
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository (optional for backward compatibility)
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->criticalPageDetector = new CriticalPageDetector();
+        $this->delayChecker = new ScriptDelayChecker();
+        $this->scriptFilter = new ScriptFilter($this->delayChecker);
+        $this->delayedLoader = new DelayedLoader();
+        $this->scriptDetector = new ScriptDetector();
+    }
 
     public function register(): void
     {
@@ -37,7 +67,7 @@ class ThirdPartyScriptManager
         }
 
         // CRITICAL: Don't delay scripts on checkout, cart, payment pages!
-        if ($this->isCriticalPage()) {
+        if ($this->criticalPageDetector->isCriticalPage()) {
             return;
         }
 
@@ -46,70 +76,6 @@ class ThirdPartyScriptManager
         
         // Add delayed loading script - PRIORITÀ ALTA per gestire altri script
         add_action('wp_footer', [$this, 'injectDelayedLoader'], 5);
-    }
-
-    /**
-     * Check if current page is critical (checkout, payment, etc.)
-     *
-     * @return bool
-     */
-    private function isCriticalPage(): bool
-    {
-        // WooCommerce critical pages
-        if (function_exists('is_checkout') && is_checkout()) {
-            return true;
-        }
-
-        if (function_exists('is_cart') && is_cart()) {
-            return true;
-        }
-
-        if (function_exists('is_account_page') && is_account_page()) {
-            return true;
-        }
-
-        if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url()) {
-            return true;
-        }
-
-        // Check URL patterns for payment/checkout
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $requestUri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
-            
-            $criticalPatterns = [
-                '/checkout',
-                '/cart',
-                '/payment',
-                '/stripe',
-                '/paypal',
-                '/subscription',
-                '/booking',
-                '/my-account',
-                '/wc-ajax',
-                '/wc-api',
-                '?add-to-cart=',
-                // EDD
-                '/edd-ajax',
-                '/purchase',
-                // MemberPress
-                '/membership',
-                '/register',
-                // Forms
-                '/contact',
-                '/form',
-                // LMS quiz (interactive)
-                '/quiz/',
-                '/lesson/',
-            ];
-
-            foreach ($criticalPatterns as $pattern) {
-                if (strpos($requestUri, $pattern) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -341,7 +307,7 @@ class ThirdPartyScriptManager
             'exclusions' => '', // Pattern di script da escludere dal delay (uno per riga)
         ];
 
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        return wp_parse_args($this->getOption(self::OPTION, []), $defaults);
     }
 
     /**
@@ -365,7 +331,7 @@ class ThirdPartyScriptManager
             'exclusions' => isset($settings['exclusions']) ? sanitize_textarea_field($settings['exclusions']) : $current['exclusions'],
         ];
 
-        update_option(self::OPTION, $new);
+        $this->setOption(self::OPTION, $new);
     }
     
     /**
@@ -390,99 +356,12 @@ class ThirdPartyScriptManager
      */
     public function filterScriptTag(string $tag, string $handle, string $src): string
     {
-        // ESCLUSIONE: Script del plugin FP Restaurant Reservations
-        // Non ritardare mai gli script necessari per il form di prenotazione
-        if (strpos($handle, 'fp-resv') !== false || 
-            strpos($handle, 'fp_resv') !== false ||
-            strpos($handle, 'flatpickr') !== false ||
-            strpos($src, 'FP-Restaurant-Reservations') !== false || 
-            strpos($src, 'fp-restaurant-reservations') !== false) {
-            return $tag;
-        }
-
         $settings = $this->settings();
-
-        // Check if script should be delayed
-        if (!$this->shouldDelayScript($src, $settings)) {
-            return $tag;
-        }
-
-        // Add data attribute for delayed loading
-        $tag = str_replace(' src=', ' data-fp-delayed-src=', $tag);
-        $tag = str_replace('<script', '<script data-fp-delayed="true" type="text/plain"', $tag);
-
-        Logger::debug('Third-party script marked for delay', [
-            'handle' => $handle,
-            'src' => basename($src),
-        ]);
-
-        return $tag;
-    }
-
-    /**
-     * Check if script should be delayed
-     *
-     * @param string $src Script source
-     * @param array $settings Settings
-     * @return bool True if should delay
-     */
-    private function shouldDelayScript(string $src, array $settings): bool
-    {
-        // CONTROLLO ESCLUSIONI - Prima di tutto
-        if (!empty($settings['exclusions'])) {
-            $exclusions = array_filter(array_map('trim', explode("\n", $settings['exclusions'])));
-            foreach ($exclusions as $pattern) {
-                if (!empty($pattern) && stripos($src, $pattern) !== false) {
-                    Logger::debug('Script escluso dal delay (pattern match)', [
-                        'src' => basename($src),
-                        'pattern' => $pattern,
-                    ]);
-                    return false; // NON ritardare questo script
-                }
-            }
-        }
-        
-        // Delay all if enabled (except WordPress core scripts)
-        if ($settings['delay_all']) {
-            if (strpos($src, '/wp-includes/') !== false || strpos($src, '/wp-admin/') !== false) {
-                return false;
-            }
-            return true;
-        }
-
-        // Check against configured script patterns
-        foreach ($settings['scripts'] as $scriptConfig) {
-            if (empty($scriptConfig['enabled']) || empty($scriptConfig['delay'])) {
-                continue;
-            }
-
-            if (!isset($scriptConfig['patterns']) || !is_array($scriptConfig['patterns'])) {
-                continue;
-            }
-
-            foreach ($scriptConfig['patterns'] as $pattern) {
-                if (strpos($src, $pattern) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        // Check against custom scripts
         $customScripts = $this->getCustomScripts();
-        foreach ($customScripts as $customScript) {
-            if (empty($customScript['enabled']) || empty($customScript['delay'])) {
-                continue;
-            }
-
-            foreach ($customScript['patterns'] as $pattern) {
-                if (strpos($src, $pattern) !== false) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return $this->scriptFilter->filterScriptTag($tag, $handle, $src, $settings, $customScripts);
     }
+
+    // Metodo shouldDelayScript() rimosso - ora gestito da ScriptDelayChecker
 
     /**
      * Inject delayed script loader
@@ -585,36 +464,8 @@ class ThirdPartyScriptManager
      */
     public function detectScripts(string $html): array
     {
-        $detected = [];
-        
-        preg_match_all('/<script[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $html, $matches);
-        
-        if (empty($matches[1])) {
-            return $detected;
-        }
-
         $settings = $this->settings();
-
-        foreach ($matches[1] as $src) {
-            foreach ($settings['scripts'] as $name => $config) {
-                if (!isset($config['patterns']) || !is_array($config['patterns'])) {
-                    continue;
-                }
-                
-                foreach ($config['patterns'] as $pattern) {
-                    if (strpos($src, $pattern) !== false) {
-                        $detected[] = [
-                            'name' => $name,
-                            'src' => $src,
-                            'managed' => $config['enabled'] ?? false,
-                        ];
-                        break 2;
-                    }
-                }
-            }
-        }
-
-        return $detected;
+        return $this->scriptDetector->detectScripts($html, $settings);
     }
 
     /**
@@ -624,7 +475,7 @@ class ThirdPartyScriptManager
      */
     public function getCustomScripts(): array
     {
-        return get_option('fp_ps_custom_scripts', []);
+        return $this->getOption('fp_ps_custom_scripts', []);
     }
 
     /**
@@ -690,5 +541,35 @@ class ThirdPartyScriptManager
             'managed_scripts' => $managedCount,
             'custom_scripts' => $customCount,
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

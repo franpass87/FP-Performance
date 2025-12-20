@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Mobile;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\Utils\MobileRateLimiter;
 
@@ -16,6 +17,32 @@ use FP\PerfSuite\Utils\MobileRateLimiter;
 class ResponsiveImageManager
 {
     private const OPTION = 'fp_ps_responsive_images';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
 
     /**
      * Registra gli hook per la gestione immagini responsive
@@ -321,7 +348,7 @@ class ResponsiveImageManager
      */
     private function settings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'enable_lazy_loading' => true,
             'optimize_srcset' => true,

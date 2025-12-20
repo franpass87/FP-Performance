@@ -2,17 +2,83 @@
 
 namespace FP\PerfSuite\Services\Security;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 class HtaccessSecurity
 {
     private $cache_rules;
     private $security_headers;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
     
-    public function __construct($cache_rules = true, $security_headers = true)
+    /**
+     * Costruttore
+     * 
+     * @param bool $cache_rules Abilita regole cache
+     * @param bool $security_headers Abilita security headers
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct($cache_rules = true, $security_headers = true, ?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
         $this->cache_rules = $cache_rules;
         $this->security_headers = $security_headers;
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -42,7 +108,7 @@ class HtaccessSecurity
         }
         
         if (headers_sent()) {
-            Logger::warning('Headers giÃ  inviati, impossibile aggiungere security headers');
+            $this->log('warning', 'Headers già inviati, impossibile aggiungere security headers');
             return;
         }
         
@@ -83,7 +149,7 @@ class HtaccessSecurity
             header('Strict-Transport-Security: ' . $hsts);
         }
         
-        Logger::debug('Security headers inviati', ['headers' => array_keys($headers)]);
+        $this->log('debug', 'Security headers inviati', ['headers' => array_keys($headers)]);
     }
     
     public function updateHtaccess()
@@ -103,13 +169,13 @@ class HtaccessSecurity
         
         // 1. Verifica esistenza file
         if (!file_exists($htaccess_file)) {
-            Logger::warning('.htaccess non trovato, skip aggiornamento regole sicurezza');
+            $this->log('warning', '.htaccess non trovato, skip aggiornamento regole sicurezza');
             return;
         }
         
         // 2. CRITICO: Verifica permessi di scrittura PRIMA di procedere
         if (!is_writable($htaccess_file)) {
-            Logger::error('.htaccess non scrivibile - permessi insufficienti su shared hosting');
+            $this->log('error', '.htaccess non scrivibile - permessi insufficienti su shared hosting');
             
             // Mostra avviso admin una sola volta
             if (!get_transient('fp_ps_htaccess_warning_shown')) {
@@ -129,13 +195,13 @@ class HtaccessSecurity
         // 3. Leggi contenuto attuale
         $htaccess_content = @file_get_contents($htaccess_file);
         if ($htaccess_content === false) {
-            Logger::error('Impossibile leggere .htaccess - errore I/O');
+            $this->log('error', 'Impossibile leggere .htaccess - errore I/O');
             return;
         }
         
-        // 4. Verifica se regole giÃ  presenti
+        // 4. Verifica se regole già presenti
         if (strpos($htaccess_content, '# FP Performance Security Rules') !== false) {
-            Logger::debug('Regole sicurezza .htaccess giÃ  presenti, skip');
+            $this->log('debug', 'Regole sicurezza .htaccess già presenti, skip');
             return;
         }
         
@@ -144,12 +210,12 @@ class HtaccessSecurity
         $backup_success = @copy($htaccess_file, $backup_file);
         
         if ($backup_success) {
-            Logger::info('Backup .htaccess creato: ' . basename($backup_file));
+            $this->log('info', 'Backup .htaccess creato: ' . basename($backup_file));
             
             // Mantieni solo ultimi 5 backup per risparmiare spazio
             $this->cleanupOldBackups();
         } else {
-            Logger::warning('Impossibile creare backup .htaccess - procedo comunque con cautela');
+            $this->log('warning', 'Impossibile creare backup .htaccess - procedo comunque con cautela');
         }
         
             // 6. Aggiungi regole sicurezza
@@ -160,26 +226,26 @@ class HtaccessSecurity
             $write_result = @file_put_contents($htaccess_file, $updated_content);
             
             if ($write_result === false) {
-                Logger::error('Impossibile scrivere .htaccess - operazione fallita');
+                $this->log('error', 'Impossibile scrivere .htaccess - operazione fallita');
                 
                 // Tenta ripristino backup se disponibile
                 if ($backup_success) {
                     @copy($backup_file, $htaccess_file);
-                    Logger::info('Backup .htaccess ripristinato dopo errore scrittura');
+                    $this->log('info', 'Backup .htaccess ripristinato dopo errore scrittura');
                 }
                 
                 return;
             }
             
-            Logger::info('Regole sicurezza .htaccess applicate con successo');
+            $this->log('info', 'Regole sicurezza .htaccess applicate con successo');
             
         } catch (\Throwable $e) {
-            Logger::error('Errore durante aggiornamento .htaccess: ' . $e->getMessage());
+            $this->log('error', 'Errore durante aggiornamento .htaccess: ' . $e->getMessage(), [], $e);
             
             // Ripristina backup in caso di errore
             if ($backup_success && file_exists($backup_file)) {
                 @copy($backup_file, $htaccess_file);
-                Logger::info('Backup .htaccess ripristinato dopo eccezione');
+                $this->log('info', 'Backup .htaccess ripristinato dopo eccezione');
             }
         } finally {
             // FIX: Ripristina memory limit originale
@@ -210,7 +276,7 @@ class HtaccessSecurity
         $to_remove = array_slice($backups, 0, -5);
         foreach ($to_remove as $old_backup) {
             @unlink($old_backup);
-            Logger::debug('Rimosso vecchio backup: ' . basename($old_backup));
+            $this->log('debug', 'Rimosso vecchio backup: ' . basename($old_backup));
         }
     }
     
@@ -311,7 +377,7 @@ Options -Indexes
             ],
         ];
         
-        $saved = get_option('fp_ps_htaccess_security', []);
+        $saved = $this->getOption('fp_ps_htaccess_security', []);
         
         // Merge ricorsivo per assicurare che tutti i valori di default esistano
         return array_replace_recursive($defaults, $saved);
@@ -350,7 +416,7 @@ Options -Indexes
      */
     public function update(array $settings): bool
     {
-        return update_option('fp_ps_htaccess_security', $settings);
+        return $this->setOption('fp_ps_htaccess_security', $settings);
     }
     
     /**

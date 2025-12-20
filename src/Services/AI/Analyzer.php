@@ -2,20 +2,40 @@
 
 namespace FP\PerfSuite\Services\AI;
 
-use function get_option;
-use function wp_count_posts;
-use function wp_upload_dir;
-use function get_plugins;
-use function is_plugin_active;
-use function size_format;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Services\AI\Analyzer\SiteAnalyzer;
+use FP\PerfSuite\Services\AI\Analyzer\AnalysisCalculator;
+use FP\PerfSuite\Services\AI\Analyzer\ConfigurationSuggester;
+
 use function get_transient;
-use function set_transient;
+use function delete_transient;
+use function get_option;
 
 /**
  * AI Analyzer - Analizza il sito e suggerisce configurazioni ottimali
  */
 class Analyzer
 {
+    private SiteAnalyzer $siteAnalyzer;
+    private AnalysisCalculator $calculator;
+    private ConfigurationSuggester $suggester;
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository (optional for backward compatibility)
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->calculator = new AnalysisCalculator();
+        $this->siteAnalyzer = new SiteAnalyzer($this->calculator, $optionsRepo);
+        $this->suggester = new ConfigurationSuggester();
+    }
+
     /**
      * Registra gli hook del servizio
      */
@@ -30,32 +50,25 @@ class Analyzer
      */
     public function analyze(): array
     {
-        // Check cache
-        $cached = get_transient('fp_ps_ai_analysis');
-        if ($cached !== false) {
-            return $cached;
-        }
-
-        $analysis = [
-            'hosting' => $this->detectHosting(),
-            'resources' => $this->analyzeResources(),
-            'database' => $this->analyzeDatabase(),
-            'traffic' => $this->estimateTraffic(),
-            'content' => $this->analyzeContent(),
-            'plugins' => $this->analyzePlugins(),
-            'server' => $this->analyzeServer(),
-        ];
-
-        // Cache per 1 ora
-        set_transient('fp_ps_ai_analysis', $analysis, HOUR_IN_SECONDS);
-
-        return $analysis;
+        return $this->siteAnalyzer->analyze();
     }
 
     /**
      * Genera suggerimenti basati sull'analisi
      */
     public function suggest(array $analysis): array
+    {
+        $result = $this->suggester->suggest($analysis);
+        
+        // Aggiungi score di ottimizzazione
+        $result['optimization_score'] = $this->calculator->calculateOptimizationScore($analysis);
+        
+        return $result;
+    }
+    
+    // Metodo suggest() originale rimosso - ora gestito da ConfigurationSuggester
+    
+    private function suggest_OLD(array $analysis): array
     {
         $suggestions = [];
         $config = [];
@@ -355,7 +368,7 @@ class Analyzer
     private function estimateTraffic(): array
     {
         // Usa le statistiche di WordPress se disponibili
-        $stats = get_option('fp_ps_traffic_stats', []);
+        $stats = $this->getOption('fp_ps_traffic_stats', []);
         
         if (empty($stats)) {
             // Stima basata sui post e commenti
@@ -653,6 +666,21 @@ class Analyzer
     public function clearCache(): void
     {
         delete_transient('fp_ps_ai_analysis');
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
     }
 }
 

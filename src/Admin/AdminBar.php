@@ -3,8 +3,10 @@
 namespace FP\PerfSuite\Admin;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Kernel\ContainerInterface;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
+use FP\PerfSuite\Utils\ErrorHandler;
 
 /**
  * Admin Bar Integration
@@ -17,9 +19,13 @@ use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
  */
 class AdminBar
 {
-    private ServiceContainer $container;
+    /** @var ServiceContainer|ContainerInterface */
+    private $container;
 
-    public function __construct(ServiceContainer $container)
+    /**
+     * @param ServiceContainer|ContainerInterface $container
+     */
+    public function __construct($container)
     {
         $this->container = $container;
     }
@@ -29,13 +35,29 @@ class AdminBar
      */
     public function boot(): void
     {
+        // Verifica che il container sia disponibile prima di qualsiasi operazione
+        if (!$this->container) {
+            return;
+        }
+
+        // Verifica che la admin bar sia disponibile
         if (!is_admin_bar_showing()) {
             return;
         }
 
-        add_action('admin_bar_menu', [$this, 'addMenuItems'], 100);
-        add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        // Verifica che siamo in un contesto valido (admin o frontend con admin bar)
+        if (!is_admin() && !is_user_logged_in()) {
+            return;
+        }
+
+        try {
+            add_action('admin_bar_menu', [$this, 'addMenuItems'], 100);
+            add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
+            add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        } catch (\Throwable $e) {
+            // Se c'è un errore durante il boot, logga silenziosamente
+            ErrorHandler::handleSilently($e, 'AdminBar boot');
+        }
     }
 
     /**
@@ -47,101 +69,130 @@ class AdminBar
             return;
         }
 
-        // Menu principale
-        $wp_admin_bar->add_node([
-            'id' => 'fp-performance',
-            'title' => '<span class="ab-icon dashicons-performance"></span> FP Performance',
-            'href' => admin_url('admin.php?page=fp-performance-suite'),
-            'meta' => [
-                'class' => 'fp-performance-menu',
-            ],
-        ]);
+        // Verifica che il container sia disponibile
+        if (!$this->container) {
+            return;
+        }
 
-        // Cache
-        $pageCache = $this->container->get(PageCache::class);
-        $cacheStatus = $pageCache->status();
-        $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
-        
-        $wp_admin_bar->add_node([
-            'parent' => 'fp-performance',
-            'id' => 'fp-cache',
-            'title' => sprintf('%s Cache: %s', $cacheIcon, $cacheStatus['enabled'] ? __('Attiva', 'fp-performance-suite') : __('Disattiva', 'fp-performance-suite')),
-            'href' => admin_url('admin.php?page=fp-performance-suite-cache'),
-        ]);
-
-        // Pulisci cache
-        if ($cacheStatus['enabled']) {
+        try {
+            // Menu principale
             $wp_admin_bar->add_node([
-                'parent' => 'fp-cache',
-                'id' => 'fp-clear-cache',
-                'title' => __('🗑️ Pulisci Cache', 'fp-performance-suite'),
-                'href' => wp_nonce_url(admin_url('admin-post.php?action=fp_clear_cache'), 'fp_clear_cache'),
-            ]);
-
-            // Statistiche cache - usa status() invece di getStats()
-            $fileCount = $cacheStatus['files'] ?? 0;
-            
-            $wp_admin_bar->add_node([
-                'parent' => 'fp-cache',
-                'id' => 'fp-cache-stats',
-                'title' => sprintf(
-                    __('📊 File in cache: %d', 'fp-performance-suite'),
-                    $fileCount
-                ),
+                'id' => 'fp-performance',
+                'title' => '<span class="ab-icon dashicons-performance"></span> FP Performance',
+                'href' => admin_url('admin.php?page=fp-performance-suite'),
                 'meta' => [
-                    'class' => 'fp-cache-stats-item',
+                    'class' => 'fp-performance-menu',
                 ],
             ]);
-        }
 
-        // Performance Monitor
-        $perfMonitor = $this->container->get(PerformanceMonitor::class);
-        if ($perfMonitor->isEnabled()) {
-            $stats = $perfMonitor->getStats(1);
-            
+            // Cache - con gestione errori sicura
+            try {
+                // Verifica che il container supporti has() e che il servizio esista
+                $hasMethod = method_exists($this->container, 'has');
+                if ($hasMethod && $this->container->has(PageCache::class)) {
+                    $pageCache = $this->container->get(PageCache::class);
+                    $cacheStatus = $pageCache->status();
+                    $cacheIcon = $cacheStatus['enabled'] ? '✓' : '✗';
+                    
+                    $wp_admin_bar->add_node([
+                        'parent' => 'fp-performance',
+                        'id' => 'fp-cache',
+                        'title' => sprintf('%s Cache: %s', $cacheIcon, $cacheStatus['enabled'] ? __('Attiva', 'fp-performance-suite') : __('Disattiva', 'fp-performance-suite')),
+                        'href' => admin_url('admin.php?page=fp-performance-suite-cache'),
+                    ]);
+
+                    // Pulisci cache
+                    if ($cacheStatus['enabled']) {
+                        $wp_admin_bar->add_node([
+                            'parent' => 'fp-cache',
+                            'id' => 'fp-clear-cache',
+                            'title' => __('🗑️ Pulisci Cache', 'fp-performance-suite'),
+                            'href' => wp_nonce_url(admin_url('admin-post.php?action=fp_clear_cache'), 'fp_clear_cache'),
+                        ]);
+
+                        // Statistiche cache - usa status() invece di getStats()
+                        $fileCount = $cacheStatus['files'] ?? 0;
+                        
+                        $wp_admin_bar->add_node([
+                            'parent' => 'fp-cache',
+                            'id' => 'fp-cache-stats',
+                            'title' => sprintf(
+                                __('📊 File in cache: %d', 'fp-performance-suite'),
+                                $fileCount
+                            ),
+                            'meta' => [
+                                'class' => 'fp-cache-stats-item',
+                            ],
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Se c'è un errore con PageCache, logga silenziosamente e continua
+                ErrorHandler::handleSilently($e, 'AdminBar PageCache');
+            }
+
+            // Performance Monitor - con gestione errori sicura
+            try {
+                // Verifica che il container supporti has() e che il servizio esista
+                $hasMethod = method_exists($this->container, 'has');
+                if ($hasMethod && $this->container->has(PerformanceMonitor::class)) {
+                    $perfMonitor = $this->container->get(PerformanceMonitor::class);
+                    if ($perfMonitor->isEnabled()) {
+                        $stats = $perfMonitor->getStats(1);
+                        
+                        $wp_admin_bar->add_node([
+                            'parent' => 'fp-performance',
+                            'id' => 'fp-perf-monitor',
+                            'title' => sprintf(
+                                __('📈 Caricamento medio: %.2fs | Query: %.1f', 'fp-performance-suite'),
+                                $stats['avg_load_time'],
+                                $stats['avg_queries']
+                            ),
+                            'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics'),
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Se c'è un errore con PerformanceMonitor, logga silenziosamente e continua
+                ErrorHandler::handleSilently($e, 'AdminBar PerformanceMonitor');
+            }
+
+            // Quick Actions
             $wp_admin_bar->add_node([
                 'parent' => 'fp-performance',
-                'id' => 'fp-perf-monitor',
-                'title' => sprintf(
-                    __('📈 Caricamento medio: %.2fs | Query: %.1f', 'fp-performance-suite'),
-                    $stats['avg_load_time'],
-                    $stats['avg_queries']
-                ),
-                'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics'),
+                'id' => 'fp-quick-actions',
+                'title' => __('⚡ Azioni Rapide', 'fp-performance-suite'),
             ]);
+
+            $wp_admin_bar->add_node([
+                'parent' => 'fp-quick-actions',
+                'id' => 'fp-optimize-db',
+                'title' => __('🔧 Ottimizza Database', 'fp-performance-suite'),
+                'href' => wp_nonce_url(admin_url('admin-post.php?action=fp_optimize_db'), 'fp_optimize_db'),
+            ]);
+
+            $wp_admin_bar->add_node([
+                'parent' => 'fp-quick-actions',
+                'id' => 'fp-test-speed',
+                'title' => __('🚀 Test Velocità', 'fp-performance-suite'),
+                'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics&tab=speed-test'),
+            ]);
+
+            // Link documentazione
+            $wp_admin_bar->add_node([
+                'parent' => 'fp-performance',
+                'id' => 'fp-docs',
+                'title' => __('📚 Documentazione', 'fp-performance-suite'),
+                'href' => 'https://francescopasseri.com/fp-performance-suite/docs',
+                'meta' => [
+                    'target' => '_blank',
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            // Se c'è un errore critico, logga silenziosamente e non mostra il menu
+            ErrorHandler::handleSilently($e, 'AdminBar addMenuItems');
+            return;
         }
-
-        // Quick Actions
-        $wp_admin_bar->add_node([
-            'parent' => 'fp-performance',
-            'id' => 'fp-quick-actions',
-            'title' => __('⚡ Azioni Rapide', 'fp-performance-suite'),
-        ]);
-
-        $wp_admin_bar->add_node([
-            'parent' => 'fp-quick-actions',
-            'id' => 'fp-optimize-db',
-            'title' => __('🔧 Ottimizza Database', 'fp-performance-suite'),
-            'href' => wp_nonce_url(admin_url('admin-post.php?action=fp_optimize_db'), 'fp_optimize_db'),
-        ]);
-
-        $wp_admin_bar->add_node([
-            'parent' => 'fp-quick-actions',
-            'id' => 'fp-test-speed',
-            'title' => __('🚀 Test Velocità', 'fp-performance-suite'),
-            'href' => admin_url('admin.php?page=fp-performance-suite-diagnostics&tab=speed-test'),
-        ]);
-
-        // Link documentazione
-        $wp_admin_bar->add_node([
-            'parent' => 'fp-performance',
-            'id' => 'fp-docs',
-            'title' => __('📚 Documentazione', 'fp-performance-suite'),
-            'href' => 'https://francescopasseri.com/fp-performance-suite/docs',
-            'meta' => [
-                'target' => '_blank',
-            ],
-        ]);
     }
 
     /**
@@ -199,8 +250,8 @@ class AdminBar
             
             wp_safe_redirect($redirect);
             exit;
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - Cache clear error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'AdminBar cache clear');
             
             $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite');
             $redirect = add_query_arg('fp_cache_error', '1', $redirect);
@@ -241,8 +292,8 @@ class AdminBar
             
             wp_safe_redirect($redirect);
             exit;
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - Database optimization error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'AdminBar database optimization');
             
             $redirect = wp_get_referer() ?: admin_url('admin.php?page=fp-performance-suite-database');
             $redirect = add_query_arg('fp_db_error', '1', $redirect);

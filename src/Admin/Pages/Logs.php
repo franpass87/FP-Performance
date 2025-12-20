@@ -57,7 +57,7 @@ class Logs extends AbstractPage
         $toggler = $this->container->get(DebugToggler::class);
         $status = $toggler->status();
         $message = '';
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_logs_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_logs_nonce']), 'fp-ps-logs')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_logs_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_logs_nonce']), 'fp-ps-logs')) {
             if (isset($_POST['toggle_debug'])) {
                 $settings = [
                     'WP_DEBUG' => !empty($_POST['wp_debug']),

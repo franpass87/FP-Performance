@@ -2,15 +2,57 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class CodeSplittingManager
 {
     private $chunk_size;
     private $lazy_loading;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct($chunk_size = 100000, $lazy_loading = true)
+    /**
+     * Costruttore
+     * 
+     * @param int $chunk_size Dimensione chunk
+     * @param bool $lazy_loading Lazy loading
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct($chunk_size = 100000, $lazy_loading = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->chunk_size = $chunk_size;
         $this->lazy_loading = $lazy_loading;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -130,7 +172,7 @@ class CodeSplittingManager
      */
     public function settings(): array
     {
-        $savedSettings = get_option('fp_ps_code_splitting_manager', []);
+        $savedSettings = $this->getOption('fp_ps_code_splitting_manager', []);
         return [
             'enabled' => $savedSettings['enabled'] ?? false,
             'chunk_size' => $savedSettings['chunk_size'] ?? $this->chunk_size,
@@ -151,7 +193,7 @@ class CodeSplittingManager
      */
     public function updateSettings(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_code_splitting_manager', []);
+        $currentSettings = $this->getOption('fp_ps_code_splitting_manager', []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -159,7 +201,7 @@ class CodeSplittingManager
         $newSettings['chunk_size'] = max(50000, (int) ($newSettings['chunk_size'] ?? 100000));
         $newSettings['lazy_loading'] = (bool) ($newSettings['lazy_loading'] ?? true);
         
-        $result = update_option('fp_ps_code_splitting_manager', $newSettings, false);
+        $result = $this->setOption('fp_ps_code_splitting_manager', $newSettings, false);
         
         if ($result) {
             $this->chunk_size = $newSettings['chunk_size'];

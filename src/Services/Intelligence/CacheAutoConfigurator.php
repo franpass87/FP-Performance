@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Services\Cache\PageCache;
 use FP\PerfSuite\Utils\Logger;
 
@@ -19,9 +20,20 @@ class CacheAutoConfigurator
     private SmartExclusionDetector $smartDetector;
     private PerformanceBasedExclusionDetector $performanceDetector;
     private PageCache $pageCache;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
 
-    public function __construct()
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
     {
+        $this->optionsRepo = $optionsRepo;
         $this->smartDetector = new SmartExclusionDetector();
         $this->performanceDetector = new PerformanceBasedExclusionDetector();
         $this->pageCache = new PageCache();
@@ -73,7 +85,7 @@ class CacheAutoConfigurator
     private function applySmartExclusions(array $exclusions): int
     {
         $applied = 0;
-        $cacheSettings = get_option('fp_ps_page_cache', []);
+        $cacheSettings = $this->getOption('fp_ps_page_cache', []);
 
         foreach ($exclusions as $category => $items) {
             if (empty($items)) continue;
@@ -94,7 +106,7 @@ class CacheAutoConfigurator
         }
 
         if ($applied > 0) {
-            update_option('fp_ps_page_cache', $cacheSettings);
+            $this->setOption('fp_ps_page_cache', $cacheSettings);
         }
 
         return $applied;
@@ -106,7 +118,7 @@ class CacheAutoConfigurator
     private function optimizeCacheSettings(): int
     {
         $optimizations = 0;
-        $cacheSettings = get_option('fp_ps_page_cache', []);
+        $cacheSettings = $this->getOption('fp_ps_page_cache', []);
 
         // 1. Abilita cache per utenti loggati se non ci sono esclusioni sensibili
         $sensitiveExclusions = $this->countSensitiveExclusions();
@@ -141,7 +153,7 @@ class CacheAutoConfigurator
         }
 
         if ($optimizations > 0) {
-            update_option('fp_ps_page_cache', $cacheSettings);
+            $this->setOption('fp_ps_page_cache', $cacheSettings);
         }
 
         return $optimizations;
@@ -153,7 +165,7 @@ class CacheAutoConfigurator
     private function applyAdvancedCacheRules(): int
     {
         $rulesApplied = 0;
-        $cacheSettings = get_option('fp_ps_page_cache', []);
+        $cacheSettings = $this->getOption('fp_ps_page_cache', []);
 
         // 1. Regole per pagine dinamiche
         $dynamicPages = $this->getDynamicPages();
@@ -194,7 +206,7 @@ class CacheAutoConfigurator
         }
 
         if ($rulesApplied > 0) {
-            update_option('fp_ps_page_cache', $cacheSettings);
+            $this->setOption('fp_ps_page_cache', $cacheSettings);
         }
 
         return $rulesApplied;
@@ -287,7 +299,7 @@ class CacheAutoConfigurator
     {
         $issues = [];
         $suggestions = [];
-        $cacheSettings = get_option('fp_ps_page_cache', []);
+        $cacheSettings = $this->getOption('fp_ps_page_cache', []);
 
         // 1. Controlla esclusioni duplicate
         $exclusions = $cacheSettings['exclude_urls'] ?? '';
@@ -423,5 +435,35 @@ class CacheAutoConfigurator
     {
         // CacheAutoConfigurator non ha hook specifici da registrare
         // È utilizzato principalmente per configurazione on-demand
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

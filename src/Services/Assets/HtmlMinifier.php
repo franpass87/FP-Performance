@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Utils\ErrorHandler;
+
 /**
  * HTML Minification Service
  *
@@ -23,26 +25,21 @@ class HtmlMinifier
             return;
         }
         
-        // LOGGING PER DEBUG
-        error_log("[FP-PerfSuite] HtmlMinifier::startBuffer() called - is_admin(): " . (is_admin() ? 'TRUE' : 'FALSE'));
-        
         // NON attivare nell'admin di WordPress
         if (is_admin()) {
-            error_log("[FP-PerfSuite] HtmlMinifier::startBuffer() SKIPPED - in admin");
             return;
         }
         
         // FIX: Non bloccare se ci sono buffer, lavora con loro
         // WordPress e molti plugin usano output buffering
         if (ob_get_level() > 5) { // Solo se troppi buffer nested
-            error_log('[FP-PerfSuite] HtmlMinifier: Too many output buffers (' . ob_get_level() . '), skipping');
             return;
         }
         
         // Verifica che non ci siano conflitti
         $handlers = ob_list_handlers();
         if (in_array('ob_gzhandler', $handlers, true)) {
-            error_log('[FP-PerfSuite] HtmlMinifier: ob_gzhandler already active, may conflict');
+            // Potenziale conflitto, ma continuiamo
         }
         
         // SICUREZZA: Rimuoviamo error suppression e gestiamo errori correttamente
@@ -50,12 +47,11 @@ class HtmlMinifier
             $started = ob_start([$this, 'minify']);
             if ($started) {
                 $this->bufferStarted = true;
-                error_log('[FP-PerfSuite] HtmlMinifier: Output buffer started successfully');
-            } else {
-                error_log('FP Performance Suite: Failed to start output buffer for HTML minification');
             }
         } catch (\Throwable $e) {
-            error_log('FP Performance Suite: Exception in HTML minification: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'HTML minification start buffer');
+            // Se fallisce, disabilita automaticamente per evitare errori fatali
+            $this->autoDisableOnError('minify_html');
         }
     }
 
@@ -73,11 +69,35 @@ class HtmlMinifier
             try {
                 ob_end_flush();
             } catch (\Exception $e) {
-                error_log('FP Performance Suite: Exception ending output buffer: ' . $e->getMessage());
+                ErrorHandler::handleSilently($e, 'HTML minification end buffer');
+                // Se fallisce, disabilita automaticamente per evitare errori fatali
+                $this->autoDisableOnError('minify_html');
             }
         }
         
         $this->bufferStarted = false;
+    }
+    
+    /**
+     * Disabilita automaticamente l'opzione se causa errori fatali
+     */
+    private function autoDisableOnError(string $optionKey): void
+    {
+        try {
+            $assets = get_option('fp_ps_assets', []);
+            if (is_array($assets) && isset($assets[$optionKey])) {
+                $assets[$optionKey] = false;
+                update_option('fp_ps_assets', $assets, false);
+                if (function_exists('error_log')) {
+                    error_log(sprintf(
+                        '[FP-Performance] Auto-disabled %s due to fatal error',
+                        $optionKey
+                    ));
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently fail - non vogliamo errori nel disabilitare
+        }
     }
 
     /**

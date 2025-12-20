@@ -2,6 +2,24 @@
 
 namespace FP\PerfSuite\Admin;
 
+use FP\PerfSuite\Utils\ErrorHandler;
+
+// Definisci le costanti WordPress per i cookie se non già definite
+if (!defined('LOGGED_IN_COOKIE')) {
+    if (defined('COOKIEHASH')) {
+        define('LOGGED_IN_COOKIE', 'wordpress_logged_in_' . COOKIEHASH);
+    }
+}
+if (!defined('AUTH_COOKIE')) {
+    if (defined('COOKIEHASH')) {
+        define('AUTH_COOKIE', 'wordpress_' . COOKIEHASH);
+    }
+}
+if (!defined('SECURE_AUTH_COOKIE')) {
+    if (defined('COOKIEHASH')) {
+        define('SECURE_AUTH_COOKIE', 'wordpress_sec_' . COOKIEHASH);
+    }
+}
 use FP\PerfSuite\Admin\Pages\AIConfig;
 use FP\PerfSuite\Admin\Pages\Assets;
 use FP\PerfSuite\Admin\Pages\Backend;
@@ -23,7 +41,14 @@ use FP\PerfSuite\Admin\Pages\Security;
 use FP\PerfSuite\Admin\Pages\Settings;
 use FP\PerfSuite\Admin\Pages\Status;
 use FP\PerfSuite\Admin\Pages\ThemeOptimization;
+use FP\PerfSuite\Admin\Menu\NoticeManager;
+use FP\PerfSuite\Admin\Menu\FormHandlers;
+use FP\PerfSuite\Admin\Menu\RecommendationHandler;
+use FP\PerfSuite\Admin\Menu\ThirdPartyNoticeHider;
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\ServiceContainerAdapter;
+use FP\PerfSuite\Kernel\Container as KernelContainer;
+use FP\PerfSuite\Kernel\ContainerInterface;
 use FP\PerfSuite\Utils\Capabilities;
 
 use function add_action;
@@ -44,12 +69,40 @@ use function remove_all_actions;
 
 class Menu
 {
-    private ServiceContainer $container;
+    /** @var ServiceContainer|ContainerInterface */
+    private $container;
     private static bool $menuRegistered = false;
+    private NoticeManager $noticeManager;
+    private ?FormHandlers $formHandlers = null;
+    private ?RecommendationHandler $recommendationHandler = null;
+    private ThirdPartyNoticeHider $noticeHider;
 
-    public function __construct(ServiceContainer $container)
+    /**
+     * @param ServiceContainer|ContainerInterface $container
+     */
+    public function __construct($container)
     {
         $this->container = $container;
+        
+        // Inizializza le dipendenze usando dependency injection
+        // NoticeManager è registrato in AdminServiceProvider
+        if ($container->has(NoticeManager::class)) {
+            $this->noticeManager = $container->get(NoticeManager::class);
+        } else {
+            // Fallback per backward compatibility
+            $this->noticeManager = new NoticeManager();
+        }
+        
+        // ThirdPartyNoticeHider - usa container se disponibile
+        if ($container->has(ThirdPartyNoticeHider::class)) {
+            $this->noticeHider = $container->get(ThirdPartyNoticeHider::class);
+        } else {
+            // Fallback per backward compatibility
+            $this->noticeHider = new ThirdPartyNoticeHider();
+        }
+        
+        // FormHandlers e RecommendationHandler richiedono ServiceContainer,
+        // li inizializziamo lazily solo se necessario
         
         // FEATURE: Nascondi notice di altri plugin sulle pagine FP Performance
         // Usa priorità 999 per eseguire DOPO che gli altri plugin registrano i loro notice
@@ -108,28 +161,36 @@ class Menu
     public function boot(): void
     {
         add_action('admin_menu', [$this, 'register']);
-        add_action('admin_notices', [$this, 'showActivationErrors']);
-        add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this, 'dismissActivationError']);
-        add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this, 'dismissSalientNotice']);
+        add_action('admin_notices', [$this->noticeManager, 'showActivationErrors']);
+        add_action('wp_ajax_fp_ps_dismiss_activation_error', [$this->noticeManager, 'dismissActivationError']);
+        add_action('wp_ajax_fp_ps_dismiss_salient_notice', [$this->noticeManager, 'dismissSalientNotice']);
         
         // Nascondi i notice di altri plugin nelle pagine del plugin
-        add_action('admin_enqueue_scripts', [$this, 'hideThirdPartyNotices']);
+        add_action('admin_enqueue_scripts', [$this->noticeHider, 'hideThirdPartyNotices']);
         
         // NOTA: wp_ajax_fp_ps_apply_recommendation ora gestito da RecommendationsAjax (ripristinato 21 Ott 2025)
         // Mantenuto metodo applyRecommendation() come fallback per compatibilità
         
         // Registra gli hook admin_post per il salvataggio delle impostazioni
         // Questi devono essere registrati presto, non solo quando le pagine vengono istanziate
+        // Usa i metodi wrapper di questa classe per evitare dipendenze dirette su ServiceContainer
         add_action('admin_post_fp_ps_save_compression', [$this, 'handleCompressionSave']);
         add_action('admin_post_fp_ps_save_cdn', [$this, 'handleCdnSave']);
         add_action('admin_post_fp_ps_save_monitoring', [$this, 'handleMonitoringSave']);
         add_action('admin_post_fp_ps_export_csv', [$this, 'handleOverviewExportCsv']);
     }
+    
 
     /**
      * Mostra eventuali errori di attivazione nell'area admin
+     * @deprecated Usa NoticeManager::showActivationErrors()
      */
     public function showActivationErrors(): void
+    {
+        $this->noticeManager->showActivationErrors();
+    }
+    
+    private function showActivationErrors_OLD(): void
     {
         $error = get_option('fp_perfsuite_activation_error');
         
@@ -248,60 +309,25 @@ class Menu
         <?php
     }
 
-    /**
-     * Dismissione dell'errore di attivazione via AJAX
-     */
     public function dismissActivationError(): void
     {
-        // SICUREZZA: Sanitizza il nonce PRIMA di verificarlo
-        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
-        
-        if (empty($nonce) || !wp_verify_nonce($nonce, 'fp_ps_dismiss_error')) {
-            wp_send_json_error(['message' => 'Nonce non valido']);
-            return;
-        }
-
-        // Verifica i permessi
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'Permessi insufficienti']);
-            return;
-        }
-
-        // Rimuovi l'opzione
-        delete_option('fp_perfsuite_activation_error');
-        
-        wp_send_json_success(['message' => 'Errore dismisso con successo']);
+        $this->noticeManager->dismissActivationError();
     }
     
-    /**
-     * Dismissione del notice Salient via AJAX
-     */
     public function dismissSalientNotice(): void
     {
-        // SICUREZZA: Sanitizza il nonce PRIMA di verificarlo
-        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
-        
-        if (empty($nonce) || !wp_verify_nonce($nonce, 'fp_ps_dismiss_salient')) {
-            wp_send_json_error(['message' => 'Nonce non valido']);
-            return;
-        }
-
-        // Verifica i permessi
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'Permessi insufficienti']);
-            return;
-        }
-
-        // Salva la preferenza per l'utente corrente
-        update_user_meta(get_current_user_id(), 'fp_ps_dismiss_salient_notice', true);
-        
-        wp_send_json_success(['message' => 'Notice dismisso con successo']);
+        $this->noticeManager->dismissSalientNotice();
     }
+    
+    // Metodi dismissActivationError() e dismissSalientNotice() rimossi - ora gestiti da NoticeManager
 
     public function register(): void
     {
         // Prevenire doppia registrazione del menu - SOLO se già registrato in questa sessione
         if (self::$menuRegistered) {
+            if (defined('WP_DEBUG') && WP_DEBUG && function_exists('error_log')) {
+                error_log('FP-Performance: Menu già registrato, skip');
+            }
             return;
         }
         self::$menuRegistered = true;
@@ -311,20 +337,39 @@ class Menu
         // Ottieni la capability richiesta con fallback sicuro
         $capability = Capabilities::required();
         
+        // DEBUG: Log capability
+        if (defined('WP_DEBUG') && WP_DEBUG && function_exists('error_log')) {
+            error_log('FP-Performance: Capability richiesta=' . $capability . ', current_user_can=' . (current_user_can($capability) ? 'SI' : 'NO'));
+        }
+        
         // Validazione: assicurati che la capability sia valida
         if (empty($capability) || !is_string($capability)) {
             $capability = 'manage_options';
-            error_log('[FP Performance Suite] ATTENZIONE: Capability non valida, uso manage_options come fallback');
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                ErrorHandler::handleSilently(
+                    new \RuntimeException('Capability non valida, uso manage_options come fallback'),
+                    'Menu registration'
+                );
+            }
         }
         
         // Log per debug
-        error_log('[FP Performance Suite] Registrazione menu con capability: ' . $capability);
-        error_log('[FP Performance Suite] Utente corrente può accedere: ' . (current_user_can($capability) ? 'SI' : 'NO'));
+        if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+            ErrorHandler::handleSilently(
+                new \RuntimeException('Menu registration debug: capability=' . $capability . ', can_access=' . (current_user_can($capability) ? 'SI' : 'NO')),
+                'Menu registration'
+            );
+        }
         
         // Se l'utente corrente è un admin ma non ha accesso, mostra un errore
         // invece di auto-riparare (per evitare privilege escalation)
         if (current_user_can('manage_options') && !current_user_can($capability)) {
-            error_log('[FP Performance Suite] ATTENZIONE: Configurazione permessi non valida rilevata');
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                ErrorHandler::handleSilently(
+                    new \RuntimeException('Configurazione permessi non valida rilevata'),
+                    'Menu registration'
+                );
+            }
             
             // Mostra un warning e blocca l'accesso fino alla risoluzione manuale
             add_action('admin_notices', function() {
@@ -349,24 +394,38 @@ class Menu
         
         // Log per debug
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('[FP Performance Suite] Registrazione menu con capability: ' . $capability);
-            error_log('[FP Performance Suite] Utente corrente può accedere: ' . (current_user_can($capability) ? 'SI' : 'NO'));
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                ErrorHandler::handleSilently(
+                    new \RuntimeException('Menu registration debug: capability=' . $capability . ', can_access=' . (current_user_can($capability) ? 'SI' : 'NO')),
+                    'Menu registration'
+                );
+            }
         }
         
         // Fallback: se la capability è 'do_not_allow', usa 'manage_options' per garantire la visibilità
         if ($capability === 'do_not_allow') {
             $capability = 'manage_options';
-            error_log('[FP Performance Suite] FALLBACK: Uso manage_options per garantire visibilità menu');
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                ErrorHandler::handleSilently(
+                    new \RuntimeException('FALLBACK: Uso manage_options per garantire visibilità menu'),
+                    'Menu registration'
+                );
+            }
         }
         
         // Controllo finale: se l'utente è admin ma non ha accesso, forza manage_options
         if (current_user_can('manage_options') && !current_user_can($capability)) {
             $capability = 'manage_options';
-            error_log('[FP Performance Suite] FORCE: Admin senza accesso, uso manage_options');
+            if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                ErrorHandler::handleSilently(
+                    new \RuntimeException('FORCE: Admin senza accesso, uso manage_options'),
+                    'Menu registration'
+                );
+            }
         }
         
 
-        add_menu_page(
+        $menu_result = add_menu_page(
             __('FP Performance Suite', 'fp-performance-suite'),
             __('FP Performance', 'fp-performance-suite'),
             $capability,
@@ -375,6 +434,11 @@ class Menu
             'dashicons-performance',
             59
         );
+        
+        // DEBUG: Log risultato registrazione
+        if (defined('WP_DEBUG') && WP_DEBUG && function_exists('error_log')) {
+            error_log('FP-Performance: Menu registrato, hook=' . ($menu_result ?: 'NULL'));
+        }
 
         // ═══════════════════════════════════════════════════════════
         // 🏠 DASHBOARD & QUICK START
@@ -436,215 +500,126 @@ class Menu
     }
 
     /**
-     * Handler per il salvataggio delle impostazioni di compressione
+     * Ottiene FormHandlers inizializzandolo lazy se necessario
      */
+    private function getFormHandlers(): ?FormHandlers
+    {
+        if ($this->formHandlers === null && $this->container instanceof ServiceContainer) {
+            $this->formHandlers = new FormHandlers($this->container);
+        }
+        return $this->formHandlers;
+    }
+    
     public function handleCompressionSave(): void
     {
-        $compressionPage = new Compression($this->container);
-        $message = $compressionPage->handleSave();
-        
-        // Redirect with message
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-compression',
-            'message' => urlencode($message)
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        $handlers = $this->getFormHandlers();
+        if ($handlers) {
+            $handlers->handleCompressionSave();
+        }
     }
 
-    /**
-     * Handler per l'esportazione CSV dalla pagina Overview
-     */
     public function handleOverviewExportCsv(): void
     {
-        $overviewPage = new Overview($this->container);
-        $overviewPage->exportCsv();
+        $handlers = $this->getFormHandlers();
+        if ($handlers) {
+            $handlers->handleOverviewExportCsv();
+        }
     }
 
-    /**
-     * Handler per il salvataggio delle impostazioni CDN
-     */
     public function handleCdnSave(): void
     {
-        $cdnPage = new Cdn($this->container);
-        $message = $cdnPage->handleSave();
-        
-        // Redirect with message
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-cdn',
-            'message' => urlencode($message)
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        $handlers = $this->getFormHandlers();
+        if ($handlers) {
+            $handlers->handleCdnSave();
+        }
     }
 
-    /**
-     * Handler per il salvataggio delle impostazioni Monitoring
-     */
     public function handleMonitoringSave(): void
     {
-        $monitoringPage = new MonitoringReports($this->container);
-        $message = $monitoringPage->handleSave();
-        
-        // Redirect with message
-        $redirect_url = add_query_arg([
-            'page' => 'fp-performance-suite-monitoring',
-            'message' => urlencode($message)
-        ], admin_url('admin.php'));
-        
-        wp_safe_redirect($redirect_url);
-        exit;
+        $handlers = $this->getFormHandlers();
+        if ($handlers) {
+            $handlers->handleMonitoringSave();
+        }
     }
+    
+    // Metodi handleCompressionSave(), handleOverviewExportCsv(), handleCdnSave(), handleMonitoringSave() rimossi - ora gestiti da FormHandlers
 
 
+    /**
+     * Ottiene un ServiceContainer compatibile dal container corrente
+     */
+    private function getServiceContainer(): ServiceContainer
+    {
+        // Se è già un ServiceContainer, usalo direttamente
+        if ($this->container instanceof ServiceContainer) {
+            return $this->container;
+        }
+        
+        // Se è un KernelContainer, wrappalo con ServiceContainerAdapter
+        if ($this->container instanceof KernelContainer) {
+            // ServiceContainerAdapter estende effettivamente le funzionalità necessarie
+            // ma le pagine si aspettano ServiceContainer, quindi creiamo un adapter
+            // che sarà accettato dai costruttori delle pagine
+            return new ServiceContainerAdapter($this->container);
+        }
+        
+        // Fallback: crea un ServiceContainer vuoto
+        return new ServiceContainer();
+    }
+    
     /**
      * @return array<string, object>
      */
     private function pages(): array
     {
+        $serviceContainer = $this->getServiceContainer();
+        
         return [
-            'overview' => new Overview($this->container),
-            'cache' => new Cache($this->container),
-            'assets' => new Assets($this->container),
-            'js_optimization' => new JavaScriptOptimization($this->container),
-            'media' => new Media($this->container),
-            'mobile' => new Mobile($this->container),
-            'database' => new Database($this->container),
-            'backend' => new Backend($this->container),
-            'compression' => new Compression($this->container),
-            'cdn' => new Cdn($this->container),
-            'ai_config' => new AIConfig($this->container),
-            'ml' => new ML($this->container),
-            'monitoring' => new MonitoringReports($this->container),
-            'logs' => new Logs($this->container),
-            'settings' => new Settings($this->container),
-            'security' => new Security($this->container),
-            'intelligence' => new IntelligenceDashboard($this->container),
-            'exclusions' => new Exclusions($this->container),
-            'diagnostics' => new Diagnostics($this->container),
-            'status' => new Status($this->container),
-            'theme_optimization' => new ThemeOptimization($this->container),
+            'overview' => new Overview($serviceContainer),
+            'cache' => new Cache($serviceContainer),
+            'assets' => new Assets($serviceContainer),
+            'js_optimization' => new JavaScriptOptimization($serviceContainer),
+            'media' => new Media($serviceContainer),
+            'mobile' => new Mobile($serviceContainer),
+            'database' => new Database($serviceContainer),
+            'backend' => new Backend($serviceContainer),
+            'compression' => new Compression($serviceContainer),
+            'cdn' => new Cdn($serviceContainer),
+            'ai_config' => new AIConfig($serviceContainer),
+            'ml' => new ML($serviceContainer),
+            'monitoring' => new MonitoringReports($serviceContainer),
+            'logs' => new Logs($serviceContainer),
+            'settings' => new Settings($serviceContainer),
+            'security' => new Security($serviceContainer),
+            'intelligence' => new IntelligenceDashboard($serviceContainer),
+            'exclusions' => new Exclusions($serviceContainer),
+            'diagnostics' => new Diagnostics($serviceContainer),
+            'status' => new Status($serviceContainer),
+            'theme_optimization' => new ThemeOptimization($serviceContainer),
         ];
     }
 
     /**
-     * Handler AJAX per applicare le raccomandazioni automaticamente
+     * Ottiene RecommendationHandler inizializzandolo lazy se necessario
      */
+    private function getRecommendationHandler(): ?RecommendationHandler
+    {
+        if ($this->recommendationHandler === null && $this->container instanceof ServiceContainer) {
+            $this->recommendationHandler = new RecommendationHandler($this->container);
+        }
+        return $this->recommendationHandler;
+    }
+    
     public function applyRecommendation(): void
     {
-        // Verifica permessi
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error([
-                'message' => __('Non hai i permessi per eseguire questa azione.', 'fp-performance-suite'),
-            ]);
-            return;
-        }
-
-        // Verifica nonce
-        $nonce = $_POST['nonce'] ?? '';
-        if (!wp_verify_nonce($nonce, 'fp_ps_apply_recommendation')) {
-            wp_send_json_error([
-                'message' => __('Verifica di sicurezza fallita. Ricarica la pagina e riprova.', 'fp-performance-suite'),
-            ]);
-            return;
-        }
-
-        // Ottieni action_id
-        $actionId = sanitize_key($_POST['action_id'] ?? '');
-        if (empty($actionId)) {
-            wp_send_json_error([
-                'message' => __('ID azione non valido.', 'fp-performance-suite'),
-            ]);
-            return;
-        }
-
-        // Applica la raccomandazione
-        try {
-            $applicator = $this->container->get(\FP\PerfSuite\Services\Monitoring\RecommendationApplicator::class);
-            $result = $applicator->apply($actionId);
-
-            if ($result['success']) {
-                wp_send_json_success([
-                    'message' => $result['message'],
-                ]);
-            } else {
-                wp_send_json_error([
-                    'message' => $result['message'],
-                ]);
-            }
-        } catch (\Exception $e) {
-            wp_send_json_error([
-                'message' => sprintf(
-                    __('Errore imprevisto: %s', 'fp-performance-suite'),
-                    $e->getMessage()
-                ),
-            ]);
+        $handler = $this->getRecommendationHandler();
+        if ($handler) {
+            $handler->applyRecommendation();
         }
     }
     
-    /**
-     * Nasconde i notice di altri plugin nelle pagine del plugin FP Performance
-     */
     public function hideThirdPartyNotices(): void
     {
-        // Controlla se siamo su una pagina del plugin
-        $screen = get_current_screen();
-        if (!$screen || strpos($screen->id, 'fp-performance-suite') === false) {
-            return;
-        }
-        
-        // Inietta CSS e JavaScript per nascondere i notice di altri plugin
-        ?>
-        <style type="text/css">
-            /* Stile per i notice del plugin FP Performance */
-            .fp-ps-admin-notice {
-                margin: 15px 0;
-            }
-        </style>
-        <script type="text/javascript">
-            // BUGFIX #28-29: Wrapper waitForjQuery per evitare "jQuery is not defined"
-            (function waitForjQuery() {
-                if (typeof jQuery === 'undefined') {
-                    setTimeout(waitForjQuery, 50);
-                    return;
-                }
-                jQuery(document).ready(function($) {
-                    // Rimuovi i notice di altri plugin nelle pagine FP Performance
-                    var fpNoticeKeywords = [
-                        'fp-performance',
-                        'fp-ps',
-                        'performance suite',
-                        'francesco passeri'
-                    ];
-                    
-                    // Cerca tutti i notice nella pagina
-                    var notices = $('#wpbody-content .notice, #wpbody-content .error, #wpbody-content .updated');
-                    
-                    notices.each(function() {
-                        var noticeText = $(this).text().toLowerCase();
-                        var isFpNotice = false;
-                        
-                        // Controlla se il notice appartiene al plugin FP Performance
-                    for (var i = 0; i < fpNoticeKeywords.length; i++) {
-                        if (noticeText.indexOf(fpNoticeKeywords[i]) !== -1) {
-                            isFpNotice = true;
-                            break;
-                        }
-                    }
-                    
-                    // Rimuovi il notice se non appartiene al plugin
-                    if (!isFpNotice) {
-                        $(this).remove();
-                    } else {
-                        // Aggiungi classe identificativa ai notice del plugin
-                        $(this).addClass('fp-ps-admin-notice');
-                    }
-                });
-            }); // Chiusura jQuery(document).ready
-            })(); // Chiusura e invocazione waitForjQuery
-        </script>
-        <?php
+        $this->noticeHider->hideThirdPartyNotices();
     }
 }

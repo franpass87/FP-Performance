@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\ML;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 use FP\PerfSuite\ServiceContainer;
 
@@ -17,18 +18,26 @@ class AutoTuner
 {
     private const OPTION = 'fp_ps_auto_tuner';
     
-    private ServiceContainer $container;
+    /** @var mixed */
+    private $container;
     private MLPredictor $predictor;
     private PatternLearner $patternLearner;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
 
     public function __construct(
-        ServiceContainer $container,
+        mixed $container,
         MLPredictor $predictor,
-        PatternLearner $patternLearner
+        PatternLearner $patternLearner,
+        ?OptionsRepositoryInterface $optionsRepo = null
     ) {
         $this->container = $container;
         $this->predictor = $predictor;
         $this->patternLearner = $patternLearner;
+        $this->optionsRepo = $optionsRepo;
     }
 
     /**
@@ -271,10 +280,10 @@ class AutoTuner
      */
     private function implementDynamicCaching(array $high_load_times): void
     {
-        $settings = get_option('fp_ps_cache', []);
+        $settings = $this->getOption('fp_ps_cache', []);
         $settings['dynamic_caching'] = true;
         $settings['high_load_times'] = $high_load_times;
-        update_option('fp_ps_cache', $settings);
+        $this->setOption('fp_ps_cache', $settings);
     }
 
     /**
@@ -282,11 +291,11 @@ class AutoTuner
      */
     private function optimizeDatabaseQueries(): void
     {
-        $settings = get_option('fp_ps_db', []);
+        $settings = $this->getOption('fp_ps_db', []);
         $settings['query_optimization'] = 'aggressive';
         $settings['enable_query_cache'] = true;
         $settings['query_cache_size'] = '64MB';
-        update_option('fp_ps_db', $settings);
+        $this->setOption('fp_ps_db', $settings);
     }
 
     /**
@@ -294,11 +303,11 @@ class AutoTuner
      */
     private function optimizeMemoryUsage(): void
     {
-        $settings = get_option('fp_ps_general', []);
+        $settings = $this->getOption('fp_ps_general', []);
         $settings['memory_optimization'] = 'aggressive';
         $settings['enable_garbage_collection'] = true;
         $settings['memory_limit'] = '512M';
-        update_option('fp_ps_general', $settings);
+        $this->setOption('fp_ps_general', $settings);
     }
 
     /**
@@ -306,12 +315,12 @@ class AutoTuner
      */
     private function optimizeAssetSettings(): void
     {
-        $settings = get_option('fp_ps_assets', []);
+        $settings = $this->getOption('fp_ps_assets', []);
         $settings['optimization_level'] = 'aggressive';
         $settings['enable_minification'] = true;
         $settings['enable_compression'] = true;
         $settings['enable_combining'] = true;
-        update_option('fp_ps_assets', $settings);
+        $this->setOption('fp_ps_assets', $settings);
     }
 
     /**
@@ -319,12 +328,12 @@ class AutoTuner
      */
     private function optimizeForMobile(): void
     {
-        $settings = get_option('fp_ps_mobile', []);
+        $settings = $this->getOption('fp_ps_mobile', []);
         $settings['enabled'] = true;
         $settings['optimization_level'] = 'aggressive';
         $settings['enable_lazy_loading'] = true;
         $settings['enable_responsive_images'] = true;
-        update_option('fp_ps_mobile', $settings);
+        $this->setOption('fp_ps_mobile', $settings);
     }
 
     /**
@@ -332,12 +341,12 @@ class AutoTuner
      */
     private function optimizeMobileSettings(): void
     {
-        $settings = get_option('fp_ps_mobile', []);
+        $settings = $this->getOption('fp_ps_mobile', []);
         $settings['optimization_level'] = 'advanced';
         $settings['enable_touch_optimization'] = true;
         $settings['enable_mobile_caching'] = true;
         $settings['disable_animations'] = true;
-        update_option('fp_ps_mobile', $settings);
+        $this->setOption('fp_ps_mobile', $settings);
     }
 
     /**
@@ -382,7 +391,7 @@ class AutoTuner
      */
     private function saveTuningResults(array $results): void
     {
-        $tuning_history = get_option('fp_ps_tuning_history', []);
+        $tuning_history = $this->getOption('fp_ps_tuning_history', []);
         $tuning_history[] = [
             'timestamp' => time(),
             'results' => $results
@@ -393,7 +402,7 @@ class AutoTuner
             $tuning_history = array_slice($tuning_history, -50);
         }
         
-        update_option('fp_ps_tuning_history', $tuning_history);
+        $this->setOption('fp_ps_tuning_history', $tuning_history);
     }
 
     /**
@@ -443,7 +452,7 @@ class AutoTuner
      */
     private function getCurrentCacheDuration(): int
     {
-        $settings = get_option('fp_ps_cache', []);
+        $settings = $this->getOption('fp_ps_cache', []);
         return $settings['duration'] ?? 900;
     }
 
@@ -452,9 +461,9 @@ class AutoTuner
      */
     private function updateCacheDuration(int $duration): void
     {
-        $settings = get_option('fp_ps_cache', []);
+        $settings = $this->getOption('fp_ps_cache', []);
         $settings['duration'] = $duration;
-        update_option('fp_ps_cache', $settings);
+        $this->setOption('fp_ps_cache', $settings);
     }
 
     /**
@@ -462,7 +471,7 @@ class AutoTuner
      */
     private function getAverageDbQueryCount(): float
     {
-        $data = get_option('fp_ps_ml_data', []);
+        $data = $this->getOption('fp_ps_ml_data', []);
         if (empty($data)) {
             return 0;
         }
@@ -477,7 +486,7 @@ class AutoTuner
      */
     private function getAverageMemoryUsage(): float
     {
-        $data = get_option('fp_ps_ml_data', []);
+        $data = $this->getOption('fp_ps_ml_data', []);
         if (empty($data)) {
             return 0;
         }
@@ -492,7 +501,7 @@ class AutoTuner
      */
     private function getAverageLoadTime(): float
     {
-        $data = get_option('fp_ps_ml_data', []);
+        $data = $this->getOption('fp_ps_ml_data', []);
         if (empty($data)) {
             return 0;
         }
@@ -507,7 +516,7 @@ class AutoTuner
      */
     private function getAverageServerLoad(): float
     {
-        $data = get_option('fp_ps_ml_data', []);
+        $data = $this->getOption('fp_ps_ml_data', []);
         if (empty($data)) {
             return 0;
         }
@@ -522,7 +531,7 @@ class AutoTuner
      */
     public function generateTuningReport(): array
     {
-        $tuning_history = get_option('fp_ps_tuning_history', []);
+        $tuning_history = $this->getOption('fp_ps_tuning_history', []);
         $last_tuning = end($tuning_history);
         
         return [
@@ -539,13 +548,16 @@ class AutoTuner
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        $defaults = [
             'enabled' => false,
             'tuning_frequency' => '6hourly',
             'aggressive_mode' => false,
             'auto_apply_changes' => true,
             'tuning_threshold' => 0.1
-        ]);
+        ];
+        
+        $settings = $this->getOption(self::OPTION, []);
+        return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
     /**
@@ -563,5 +575,35 @@ class AutoTuner
     public function settings(): array
     {
         return $this->getSettings();
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

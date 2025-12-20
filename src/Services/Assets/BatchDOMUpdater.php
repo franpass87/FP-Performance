@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 use function add_action;
@@ -22,6 +23,48 @@ use function wp_parse_args;
 class BatchDOMUpdater
 {
     private const OPTION = 'fp_ps_batch_dom_updates';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
 
     public function register(): void
     {
@@ -60,7 +103,7 @@ class BatchDOMUpdater
             'debounce_timeout' => 16,
         ];
 
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        return wp_parse_args($this->getOption(self::OPTION, []), $defaults);
     }
 
     /**
@@ -84,7 +127,7 @@ class BatchDOMUpdater
             'debounce_timeout' => isset($settings['debounce_timeout']) ? max(1, min(100, (int)$settings['debounce_timeout'])) : $current['debounce_timeout'],
         ];
 
-        update_option(self::OPTION, $new);
+        $this->setOption(self::OPTION, $new);
     }
 
     /**

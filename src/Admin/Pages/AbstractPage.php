@@ -4,6 +4,17 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Utils\Capabilities;
+use FP\PerfSuite\Utils\ErrorHandler;
+
+if (!defined('LOGGED_IN_COOKIE')) {
+    define('LOGGED_IN_COOKIE', 'wordpress_logged_in_' . COOKIEHASH);
+}
+if (!defined('AUTH_COOKIE')) {
+    define('AUTH_COOKIE', 'wordpress_' . COOKIEHASH);
+}
+if (!defined('SECURE_AUTH_COOKIE')) {
+    define('SECURE_AUTH_COOKIE', 'wordpress_sec_' . COOKIEHASH);
+}
 
 abstract class AbstractPage
 {
@@ -45,13 +56,8 @@ abstract class AbstractPage
                 echo '<div class="wrap"><div class="notice notice-error"><p><strong>Errore:</strong> File di vista non trovato: ' . esc_html($view) . '</p></div></div>';
             }
         } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'AbstractPage render error');
             echo '<div class="wrap"><div class="notice notice-error"><p><strong>Errore:</strong> ' . esc_html($e->getMessage()) . '</p><p><small>File: ' . esc_html($e->getFile()) . ':' . $e->getLine() . '</small></p></div></div>';
-            
-            // Log dell'errore per debug
-            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-                error_log('FP Performance Suite - Page Render Error: ' . $e->getMessage());
-                error_log('Stack trace: ' . $e->getTraceAsString());
-            }
         }
     }
 

@@ -84,14 +84,28 @@ class Assets
             FP_PERF_SUITE_VERSION
         );
 
+        // Versione con cache busting basata su filemtime
+        $scriptVersion = FP_PERF_SUITE_VERSION;
+        $scriptPath = FP_PERF_SUITE_DIR . '/assets/js/main.js';
+        if (is_readable($scriptPath)) {
+            $scriptVersion .= '-' . filemtime($scriptPath);
+        }
+
         // Enqueue modular JavaScript (ES6 modules)
         // BUGFIX: Aggiunto 'jquery' perché Overview.php usa jQuery inline (riga 670)
         wp_enqueue_script(
             'fp-performance-suite-admin',
             $base_url . '/wp-content/plugins/FP-Performance/assets/js/main.js',
             ['wp-i18n', 'jquery'],
-            FP_PERF_SUITE_VERSION,
+            $scriptVersion,
             true
+        );
+
+        // Listener globale per intercettare errori JS e facilitarne il debug
+        wp_add_inline_script(
+            'fp-performance-suite-admin',
+            'window.addEventListener("error",function(event){if(!event || !event.message){return;}if(window.console&&window.console.warn){console.warn("[FP Performance Suite] JS error:",event.message,"source:",event.filename,"line:",event.lineno);}});',
+            'before'
         );
 
         // Add type="module" attribute for ES6 modules

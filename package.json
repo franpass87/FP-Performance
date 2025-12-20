@@ -1,0 +1,23 @@
+{
+  "name": "fp-performance-suite",
+  "version": "1.8.0",
+  "description": "FP Performance Suite - Testing dependencies",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
+
+
+
+
+
+
+
+
+
+

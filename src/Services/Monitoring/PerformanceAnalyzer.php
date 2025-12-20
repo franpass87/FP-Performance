@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -28,24 +29,49 @@ use function wp_doing_cron;
  */
 class PerformanceAnalyzer
 {
+    private const CRITICAL_CSS_KEY = 'fp_ps_critical_css';
+    private const SETTINGS_KEY = 'fp_ps_settings';
+    
     private PageCache $pageCache;
     private Headers $headers;
     private Optimizer $optimizer;
     private Cleaner $cleaner;
     private PerformanceMonitor $monitor;
+    
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
 
     public function __construct(
         PageCache $pageCache,
         Headers $headers,
         Optimizer $optimizer,
         Cleaner $cleaner,
-        PerformanceMonitor $monitor
+        PerformanceMonitor $monitor,
+        ?OptionsRepositoryInterface $optionsRepo = null
     ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
         $this->cleaner = $cleaner;
         $this->monitor = $monitor;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
     }
 
     /**
@@ -175,8 +201,12 @@ class PerformanceAnalyzer
         }
 
         // Critical CSS - non action_id perché richiede input manuale
-        $criticalCss = get_option('fp_ps_critical_css', '');
-        if (empty(trim($criticalCss))) {
+        $criticalCss = $this->getOption(self::CRITICAL_CSS_KEY, '');
+        $settings = $this->getOption(self::SETTINGS_KEY, []);
+        $requireCriticalCss = !empty($settings['require_critical_css']);
+        $requireCriticalCss = (bool) apply_filters('fp_ps_require_critical_css', $requireCriticalCss);
+
+        if ($requireCriticalCss && empty(trim($criticalCss))) {
             $issues['recommendations'][] = [
                 'issue' => __('Critical CSS non configurato', 'fp-performance-suite'),
                 'impact' => __('Il CSS critico above-the-fold non è inline, causando un flash di contenuto non stilizzato (FOUC) e rallentando il First Contentful Paint.', 'fp-performance-suite'),

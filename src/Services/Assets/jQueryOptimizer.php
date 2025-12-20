@@ -2,12 +2,11 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 use function add_action;
 use function add_filter;
-use function get_option;
-use function update_option;
 use function wp_parse_args;
 
 /**
@@ -22,6 +21,21 @@ use function wp_parse_args;
 class jQueryOptimizer
 {
     private const OPTION = 'fp_ps_jquery_optimization';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     public function register(): void
     {
@@ -63,7 +77,7 @@ class jQueryOptimizer
             'lazy_loading' => true,
         ];
 
-        return wp_parse_args(get_option(self::OPTION, []), $defaults);
+        return wp_parse_args($this->getOption(self::OPTION, []), $defaults);
     }
 
     /**
@@ -87,7 +101,37 @@ class jQueryOptimizer
             'lazy_loading' => !empty($settings['lazy_loading']),
         ];
 
-        update_option(self::OPTION, $new);
+        $this->setOption(self::OPTION, $new);
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 
     /**

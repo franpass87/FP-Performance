@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Intelligence;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 /**
  * Critical Assets Detector
  * 
@@ -16,6 +18,20 @@ namespace FP\PerfSuite\Services\Intelligence;
  */
 class CriticalAssetsDetector
 {
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
     /**
      * Pattern comuni per CSS critici
      */
@@ -617,13 +633,43 @@ class CriticalAssetsDetector
                 ]);
             } else {
                 // Fallback al metodo precedente (deprecato)
-                $settings = get_option('fp_ps_assets', []);
+                $settings = $this->getOption('fp_ps_assets', []);
                 $settings['critical_assets_list'] = $assetsToPreload;
                 $settings['preload_critical_assets'] = true;
-                update_option('fp_ps_assets', $settings);
+                $this->setOption('fp_ps_assets', $settings);
             }
         }
 
         return $results;
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

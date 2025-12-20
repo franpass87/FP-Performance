@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 use function add_filter;
 use function add_action;
@@ -33,12 +35,75 @@ class EmbedFacades
 {
     private const OPTION = 'fp_ps_embed_facades';
     
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /** @var LoggerInterface|null Logger (injected) */
+    private ?LoggerInterface $logger = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
+    }
+    
     /**
      * Impostazioni del servizio
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'youtube' => true,
             'vimeo' => true,
@@ -72,7 +137,7 @@ class EmbedFacades
             $new['play_button_style'] = 'default';
         }
         
-        return update_option(self::OPTION, $new, false);
+        return $this->setOption(self::OPTION, $new);
     }
     
     /**
@@ -98,7 +163,7 @@ class EmbedFacades
         // Enqueue CSS e JS
         add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
         
-        Logger::debug('EmbedFacades registered', $settings);
+        $this->log('debug', 'EmbedFacades registered', $settings);
     }
     
     /**
@@ -137,7 +202,7 @@ class EmbedFacades
     {
         // BUGFIX: Protezione contro contenuto troppo grande
         if (strlen($content) > 5000000) { // 5MB limit
-            Logger::warning('Content too large for YouTube facade replacement', ['size' => strlen($content)]);
+            $this->log('warning', 'Content too large for YouTube facade replacement', ['size' => strlen($content)]);
             return $content;
         }
         
@@ -184,7 +249,7 @@ class EmbedFacades
         
         // BUGFIX: Verifica errori regex
         if (preg_last_error() !== PREG_NO_ERROR) {
-            Logger::error('YouTube facade regex error', ['error_code' => preg_last_error()]);
+            $this->log('error', 'YouTube facade regex error', ['error_code' => preg_last_error()]);
             return $content; // Ritorna contenuto originale se errore
         }
         
@@ -198,7 +263,7 @@ class EmbedFacades
     {
         // BUGFIX: Protezione contro contenuto troppo grande
         if (strlen($content) > 5000000) { // 5MB limit
-            Logger::warning('Content too large for Vimeo facade replacement', ['size' => strlen($content)]);
+            $this->log('warning', 'Content too large for Vimeo facade replacement', ['size' => strlen($content)]);
             return $content;
         }
         
@@ -234,7 +299,7 @@ class EmbedFacades
         
         // BUGFIX: Verifica errori regex
         if (preg_last_error() !== PREG_NO_ERROR) {
-            Logger::error('Vimeo facade regex error', ['error_code' => preg_last_error()]);
+            $this->log('error', 'Vimeo facade regex error', ['error_code' => preg_last_error()]);
             return $content;
         }
         
@@ -248,7 +313,7 @@ class EmbedFacades
     {
         // BUGFIX: Protezione contro contenuto troppo grande
         if (strlen($content) > 5000000) { // 5MB limit
-            Logger::warning('Content too large for Maps facade replacement', ['size' => strlen($content)]);
+            $this->log('warning', 'Content too large for Maps facade replacement', ['size' => strlen($content)]);
             return $content;
         }
         
@@ -282,7 +347,7 @@ class EmbedFacades
         
         // BUGFIX: Verifica errori regex
         if (preg_last_error() !== PREG_NO_ERROR) {
-            Logger::error('Maps facade regex error', ['error_code' => preg_last_error()]);
+            $this->log('error', 'Maps facade regex error', ['error_code' => preg_last_error()]);
             return $content;
         }
         

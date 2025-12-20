@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Critical CSS Automation
@@ -17,6 +19,50 @@ class CriticalCssAutomation
 {
     private const OPTION_KEY = 'fp_ps_critical_css_automation';
     private const CACHE_KEY = 'fp_critical_css_cache';
+    private const CRITICAL_CSS_OPTION = 'fp_ps_critical_css';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+    
+    /**
+     * @var LoggerInterface|null
+     */
+    private ?LoggerInterface $logger = null;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     * @param LoggerInterface|null $logger Logger instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
 
     /**
      * Registra il servizio
@@ -40,7 +86,7 @@ class CriticalCssAutomation
             add_action('wp_head', [$this, 'inlineCriticalCss'], 22);
         }
 
-        Logger::debug('Critical CSS Automation registered');
+        $this->log('debug', 'Critical CSS Automation registered');
     }
 
     /**
@@ -57,7 +103,7 @@ class CriticalCssAutomation
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         ];
 
-        $options = get_option(self::OPTION_KEY, []);
+        $options = $this->getOption(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
     }
 
@@ -69,10 +115,10 @@ class CriticalCssAutomation
         $current = $this->getSettings();
         $updated = wp_parse_args($settings, $current);
 
-        $result = update_option(self::OPTION_KEY, $updated);
+        $result = $this->setOption(self::OPTION_KEY, $updated);
         
         if ($result) {
-            Logger::info('Critical CSS Automation settings updated', $updated);
+            $this->log('info', 'Critical CSS Automation settings updated', $updated);
         }
 
         return $result;
@@ -99,7 +145,7 @@ class CriticalCssAutomation
     {
         // Questa funzionalità richiede la libreria Critical
         // Per ora ritorniamo null, da implementare con la libreria
-        Logger::warning('Critical library not available');
+        $this->log('warning', 'Critical library not available');
         return null;
     }
 
@@ -116,7 +162,7 @@ class CriticalCssAutomation
             ]);
 
             if (is_wp_error($response)) {
-                Logger::error('Failed to fetch URL for Critical CSS', [
+                $this->log('error', 'Failed to fetch URL for Critical CSS', [
                     'url' => $url,
                     'error' => $response->get_error_message(),
                 ]);
@@ -134,10 +180,10 @@ class CriticalCssAutomation
             return $criticalCss;
 
         } catch (\Exception $e) {
-            Logger::error('Critical CSS extraction failed', [
+            $this->log('error', 'Critical CSS extraction failed', [
                 'url' => $url,
                 'error' => $e->getMessage(),
-            ]);
+            ], $e);
             return null;
         }
     }
@@ -313,7 +359,7 @@ class CriticalCssAutomation
             update_post_meta($postId, '_fp_critical_css', $criticalCss);
             update_post_meta($postId, '_fp_critical_css_generated', time());
 
-            Logger::info('Critical CSS generated for post', ['post_id' => $postId]);
+            $this->log('info', 'Critical CSS generated for post', ['post_id' => $postId]);
         }
     }
 
@@ -330,10 +376,10 @@ class CriticalCssAutomation
         $criticalCss = $this->generate($homeUrl);
 
         if ($criticalCss) {
-            update_option('fp_ps_critical_css', $criticalCss);
+            $this->setOption(self::CRITICAL_CSS_OPTION, $criticalCss);
         }
 
-        Logger::info('Critical CSS regenerated after theme switch');
+        $this->log('info', 'Critical CSS regenerated after theme switch');
     }
 
     /**
@@ -355,7 +401,7 @@ class CriticalCssAutomation
 
         // Fallback a Critical CSS globale
         if (empty($criticalCss)) {
-            $criticalCss = get_option('fp_ps_critical_css', '');
+            $criticalCss = $this->getOption(self::CRITICAL_CSS_OPTION, '');
         }
 
         if (empty($criticalCss)) {
@@ -377,7 +423,7 @@ class CriticalCssAutomation
             }
         }
 
-        return get_option('fp_ps_critical_css', null);
+        return $this->getOption(self::CRITICAL_CSS_OPTION, null);
     }
 
     /**
@@ -391,7 +437,7 @@ class CriticalCssAutomation
             return true;
         }
 
-        return update_option('fp_ps_critical_css', $css);
+        return $this->setOption(self::CRITICAL_CSS_OPTION, $css);
     }
 
     /**
@@ -405,7 +451,7 @@ class CriticalCssAutomation
             return true;
         }
 
-        return delete_option('fp_ps_critical_css');
+        return $this->deleteOption(self::CRITICAL_CSS_OPTION);
     }
 
     /**
@@ -423,7 +469,7 @@ class CriticalCssAutomation
             )
         );
 
-        $globalCriticalCss = get_option('fp_ps_critical_css', '');
+        $globalCriticalCss = $this->getOption(self::CRITICAL_CSS_OPTION, '');
 
         return [
             'enabled' => !empty($this->getSettings()['enabled']),
@@ -443,6 +489,50 @@ class CriticalCssAutomation
             'settings' => $this->getSettings(),
             'stats' => $this->getStats(),
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
+    }
+
+    /**
+     * Delete option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @return bool
+     */
+    private function deleteOption(string $key): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->delete($key);
+        }
+        return delete_option($key);
     }
 }
 

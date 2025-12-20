@@ -25,8 +25,6 @@ import { initLogViewer } from './features/log-viewer.js';
 import { initPresets } from './features/presets.js';
 import { initBulkActions } from './features/bulk-actions.js';
 import { initAccessibility } from './utils/accessibility.js';
-// BUGFIX #27: Commentato import di file mancante che causava CORS error su TUTTE le pagine admin
-// import { initWebPBulkConvert } from './features/webp-bulk-convert.js';
 import { confirm, alert, deleteConfirm, initConfirmModals } from './components/modal.js';
 
 /**
@@ -52,10 +50,6 @@ document.addEventListener(
 		// Initialize bulk actions
 		initBulkActions();
 
-		// BUGFIX #27: WebP bulk convert commentato perché file non esiste
-		// TODO: Implementare features/webp-bulk-convert.js
-		// console.log( 'FP Performance Suite: Initializing WebP bulk convert' );
-		// initWebPBulkConvert();
 
 		// Initialize accessibility features (ARIA, keyboard navigation)
 		initAccessibility();
@@ -78,3 +72,4 @@ window.fpPerfSuiteUtils = {
 	confirm,
 	alert,
 	deleteConfirm
+};

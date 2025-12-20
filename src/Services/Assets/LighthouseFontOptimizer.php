@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Lighthouse Font Optimizer
@@ -16,6 +18,67 @@ use FP\PerfSuite\Utils\Logger;
 class LighthouseFontOptimizer
 {
     private const OPTION = 'fp_ps_lighthouse_font_optimization';
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
+    
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
+    }
 
     /**
      * Register hooks
@@ -35,7 +98,7 @@ class LighthouseFontOptimizer
             // Ottimizzazione specifica per i font del sito
             add_filter('style_loader_tag', [$this, 'optimizeSiteFonts'], 27, 4);
             
-            Logger::debug('LighthouseFontOptimizer registered');
+            $this->log('debug', 'LighthouseFontOptimizer registered');
         }
     }
 
@@ -69,7 +132,7 @@ class LighthouseFontOptimizer
                 $fetchpriority
             );
 
-            Logger::debug('Preloaded Lighthouse critical font', [
+            $this->log('debug', 'Preloaded Lighthouse critical font', [
                 'url' => $font['url'],
                 'savings' => $font['savings'] ?? 'unknown'
             ]);
@@ -90,7 +153,7 @@ class LighthouseFontOptimizer
             echo '<style id="fp-lighthouse-font-display-fix">' . $css . '</style>' . "\n";
             echo "<!-- End Lighthouse Font Display Fix -->\n";
             
-            Logger::debug('Injected Lighthouse font-display CSS');
+            $this->log('debug', 'Injected Lighthouse font-display CSS');
         }
     }
 
@@ -116,7 +179,7 @@ class LighthouseFontOptimizer
                 $crossorigin
             );
 
-            Logger::debug('Added Lighthouse font provider preconnect', ['url' => $provider['url']]);
+            $this->log('debug', 'Added Lighthouse font provider preconnect', ['url' => $provider['url']]);
         }
         
         echo "<!-- End Lighthouse Font Provider Preconnect -->\n";
@@ -135,7 +198,7 @@ class LighthouseFontOptimizer
         // Aggiunge attributi per l'ottimizzazione
         $html = str_replace('<link ', '<link data-fp-lighthouse-font="true" ', $html);
         
-        Logger::debug('Marked Lighthouse problematic font for optimization', [
+        $this->log('debug', 'Marked Lighthouse problematic font for optimization', [
             'handle' => $handle,
             'href' => $href
         ]);
@@ -385,7 +448,7 @@ class LighthouseFontOptimizer
             'expected_savings' => '180ms'
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
@@ -406,10 +469,10 @@ class LighthouseFontOptimizer
         $current = $this->getSettings();
         $updated = array_merge($current, $settings);
 
-        $result = update_option(self::OPTION, $updated);
+        $result = $this->setOption(self::OPTION, $updated);
 
         if ($result) {
-            Logger::info('Lighthouse font optimization settings updated', $updated);
+            $this->log('info', 'Lighthouse font optimization settings updated', $updated);
             do_action('fp_ps_lighthouse_font_optimization_updated', $updated);
         }
 

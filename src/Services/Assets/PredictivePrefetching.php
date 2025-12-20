@@ -2,17 +2,60 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class PredictivePrefetching
 {
     private $strategy;
     private $hover_delay;
     private $limit;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct($strategy = 'hover', $hover_delay = 100, $limit = 5)
+    /**
+     * Costruttore
+     * 
+     * @param string $strategy Strategia prefetch
+     * @param int $hover_delay Delay hover
+     * @param int $limit Limite prefetch
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct($strategy = 'hover', $hover_delay = 100, $limit = 5, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->strategy = $strategy;
         $this->hover_delay = $hover_delay;
         $this->limit = $limit;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -31,7 +74,10 @@ class PredictivePrefetching
         if (file_exists($script_path)) {
             wp_enqueue_script('fp-prefetch', plugin_dir_url(__FILE__) . '../../assets/js/predictive-prefetch.js', [], '1.0.0', true);
         } else {
-            error_log('FP Performance Suite: Predictive prefetch script not found');
+            \FP\PerfSuite\Utils\ErrorHandler::handleSilently(
+                new \RuntimeException('Predictive prefetch script not found'),
+                'PredictivePrefetching'
+            );
         }
     }
     
@@ -96,7 +142,7 @@ class PredictivePrefetching
     public function getSettings(): array
     {
         // Recupera le impostazioni salvate nel database
-        $savedSettings = get_option('fp_ps_predictive_prefetch', []);
+        $savedSettings = $this->getOption('fp_ps_predictive_prefetch', []);
         
         return [
             'enabled' => $savedSettings['enabled'] ?? false,
@@ -116,7 +162,7 @@ class PredictivePrefetching
     public function updateSettings(array $settings): bool
     {
         // Recupera le impostazioni esistenti
-        $currentSettings = get_option('fp_ps_predictive_prefetch', []);
+        $currentSettings = $this->getOption('fp_ps_predictive_prefetch', []);
         
         // Merge con le nuove impostazioni
         $newSettings = array_merge($currentSettings, $settings);
@@ -133,7 +179,7 @@ class PredictivePrefetching
             : [];
         
         // Salva nel database
-        $result = update_option('fp_ps_predictive_prefetch', $newSettings, false);
+        $result = $this->setOption('fp_ps_predictive_prefetch', $newSettings, false);
         
         // Aggiorna anche le proprietà della classe
         $this->strategy = $newSettings['strategy'];

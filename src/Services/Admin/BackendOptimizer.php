@@ -2,19 +2,63 @@
 
 namespace FP\PerfSuite\Services\Admin;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class BackendOptimizer
 {
     private $optimize_heartbeat;
     private $limit_revisions;
     private $optimize_dashboard;
     private $admin_bar;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct($optimize_heartbeat = true, $limit_revisions = true, $optimize_dashboard = true, $admin_bar = true)
+    /**
+     * Costruttore
+     * 
+     * @param bool $optimize_heartbeat Abilita ottimizzazione heartbeat
+     * @param bool $limit_revisions Limita revisioni
+     * @param bool $optimize_dashboard Ottimizza dashboard
+     * @param bool $admin_bar Gestione admin bar
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct($optimize_heartbeat = true, $limit_revisions = true, $optimize_dashboard = true, $admin_bar = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->optimize_heartbeat = $optimize_heartbeat;
         $this->limit_revisions = $limit_revisions;
         $this->optimize_dashboard = $optimize_dashboard;
         $this->admin_bar = $admin_bar;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -194,7 +238,7 @@ class BackendOptimizer
     public function getSettings(): array
     {
         // Recupera le impostazioni dal database
-        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $savedSettings = $this->getOption('fp_ps_backend_optimizer', []);
         
         if (empty($savedSettings)) {
             // Fallback alle proprietà della classe
@@ -213,7 +257,7 @@ class BackendOptimizer
     public function updateSettings(array $settings): bool
     {
         // Recupera le impostazioni esistenti
-        $currentSettings = get_option('fp_ps_backend_optimizer', []);
+        $currentSettings = $this->getOption('fp_ps_backend_optimizer', []);
         
         // Merge con le nuove impostazioni
         $newSettings = array_merge($currentSettings, $settings);
@@ -270,7 +314,7 @@ class BackendOptimizer
         }
         
         // Salva nel database
-        $result = update_option('fp_ps_backend_optimizer', $newSettings, false);
+        $result = $this->setOption('fp_ps_backend_optimizer', $newSettings, false);
         
         // Aggiorna le proprietà della classe se necessario
         if (isset($newSettings['optimize_heartbeat'])) {

@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -16,6 +17,21 @@ use FP\PerfSuite\Utils\Logger;
 class CSSOptimizer
 {
     private const OPTION = 'fp_ps_css_optimization';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     /**
      * Register hooks
@@ -316,7 +332,7 @@ class CSSOptimizer
             'critical_css' => '',
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
@@ -328,7 +344,7 @@ class CSSOptimizer
         $current = $this->getSettings();
         $updated = array_merge($current, $settings);
 
-        $result = update_option(self::OPTION, $updated);
+        $result = $this->setOption(self::OPTION, $updated);
 
         if ($result) {
             Logger::info('CSS optimization settings updated', $updated);
@@ -352,5 +368,35 @@ class CSSOptimizer
             'optimize_loading' => !empty($settings['optimize_loading_order']),
             'critical_css_configured' => !empty($settings['critical_css']),
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

@@ -2,8 +2,14 @@
 
 namespace FP\PerfSuite\Services\Cache;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 use FP\PerfSuite\Utils\HostingDetector;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager\BackendDetector;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager\ConnectionTester;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager\DropInGenerator;
+use FP\PerfSuite\Services\Cache\ObjectCacheManager\DropInManager;
 
 /**
  * Object Cache Manager
@@ -17,15 +23,80 @@ use FP\PerfSuite\Utils\HostingDetector;
 class ObjectCacheManager
 {
     private const OPTION_KEY = 'fp_ps_object_cache';
-    private const DROP_IN_FILE = 'object-cache.php';
     
-    private string $dropInPath;
     private ?string $availableBackend = null;
+    private BackendDetector $detector;
+    private ConnectionTester $tester;
+    private DropInGenerator $generator;
+    private DropInManager $dropInManager;
     
-    public function __construct()
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /** @var LoggerInterface|null Logger (injected) */
+    private ?LoggerInterface $logger = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
-        $this->dropInPath = WP_CONTENT_DIR . '/' . self::DROP_IN_FILE;
-        $this->detectAvailableBackend();
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+        $this->detector = new BackendDetector();
+        $this->tester = new ConnectionTester();
+        $this->generator = new DropInGenerator();
+        $this->dropInManager = new DropInManager($this->generator);
+        
+        $this->availableBackend = $this->detector->detectAvailableBackend();
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     /**
@@ -36,10 +107,9 @@ class ObjectCacheManager
         add_action('admin_notices', [$this, 'showAdminNotices']);
     }
     
-    /**
-     * Rileva il backend di caching disponibile
-     */
-    private function detectAvailableBackend(): void
+    // Metodo detectAvailableBackend() rimosso - ora gestito da BackendDetector
+    
+    private function detectAvailableBackend_OLD(): void
     {
         // Controlla Redis
         if (class_exists('Redis') || extension_loaded('redis')) {
@@ -93,41 +163,26 @@ class ObjectCacheManager
     public function getBackendInfo(): array
     {
         $backend = $this->availableBackend;
+        $info = $this->detector->getBackendInfo($backend);
         
         if (!$backend) {
-            return [
-                'available' => false,
-                'enabled' => false,
-                'backend' => null,
-                'status' => 'not_available',
-                'message' => 'Nessun backend di object caching disponibile sul server.',
-            ];
+            return $info;
         }
         
-        $info = [
-            'available' => true,
-            'enabled' => $this->isEnabled(),
-            'backend' => $backend,
-            'status' => $this->isEnabled() ? 'active' : 'available',
-        ];
+        $info['enabled'] = $this->isEnabled();
+        $info['status'] = $this->isEnabled() ? 'active' : 'available';
         
-        // Informazioni specifiche per backend
+        // Aggiungi informazioni di connessione
         switch ($backend) {
             case 'redis':
-                $info['name'] = 'Redis';
-                $info['description'] = 'Redis è il sistema di object caching più performante per WordPress.';
-                $info['connection'] = $this->testRedisConnection();
+                $info['connection'] = $this->tester->testRedisConnection();
                 break;
                 
             case 'memcached':
-                $info['name'] = 'Memcached';
-                $info['description'] = 'Memcached è un sistema di caching ad alte prestazioni.';
-                $info['connection'] = $this->testMemcachedConnection();
+                $info['connection'] = $this->tester->testMemcachedConnection();
                 break;
                 
             case 'apcu':
-                $info['name'] = 'APCu';
-                $info['description'] = 'APCu è un sistema di caching in-memory leggero.';
                 $info['connection'] = ['status' => 'ok'];
                 break;
         }
@@ -135,10 +190,9 @@ class ObjectCacheManager
         return $info;
     }
     
-    /**
-     * Testa la connessione Redis
-     */
-    private function testRedisConnection(): array
+    // Metodo testRedisConnection() rimosso - ora gestito da ConnectionTester
+    
+    private function testRedisConnection_OLD(): array
     {
         try {
             $redis = new \Redis();
@@ -179,10 +233,9 @@ class ObjectCacheManager
         ];
     }
     
-    /**
-     * Testa la connessione Memcached
-     */
-    private function testMemcachedConnection(): array
+    // Metodo testMemcachedConnection() rimosso - ora gestito da ConnectionTester
+    
+    private function testMemcachedConnection_OLD(): array
     {
         try {
             $memcached = new \Memcached();
@@ -244,7 +297,7 @@ class ObjectCacheManager
         $hasPluginImplementation = $this->hasPluginImplementation();
         
         if (!$hasPluginImplementation) {
-            Logger::warning('No dedicated object cache plugin found', [
+            $this->log('warning', 'No dedicated object cache plugin found', [
                 'backend' => $this->availableBackend
             ]);
             
@@ -277,7 +330,7 @@ class ObjectCacheManager
             ];
         }
         
-        Logger::info('Object cache enabled', ['backend' => $this->availableBackend]);
+        $this->log('info', 'Object cache enabled', ['backend' => $this->availableBackend]);
         
         return [
             'success' => true,
@@ -299,14 +352,14 @@ class ObjectCacheManager
         $lock = fopen($lockFile, 'c+');
         
         if (!$lock) {
-            Logger::error('Failed to create object cache lock file', ['file' => $lockFile]);
+            $this->log('error', 'Failed to create object cache lock file', ['file' => $lockFile]);
             return false;
         }
         
         // Acquire exclusive lock (non-blocking)
         if (!flock($lock, LOCK_EX | LOCK_NB)) {
             fclose($lock);
-            Logger::debug('Object cache drop-in locked by another process');
+            $this->log('debug', 'Object cache drop-in locked by another process');
             return false; // Another process is writing
         }
         
@@ -315,11 +368,11 @@ class ObjectCacheManager
             $result = file_put_contents($filePath, $content, LOCK_EX);
             
             if ($result === false) {
-                Logger::error('Failed to write object cache drop-in');
+                $this->log('error', 'Failed to write object cache drop-in');
                 return false;
             }
             
-            Logger::debug('Object cache drop-in written safely');
+            $this->log('debug', 'Object cache drop-in written safely');
             return true;
         } finally {
             // Always release lock
@@ -380,7 +433,7 @@ class ObjectCacheManager
         
         if (unlink($this->dropInPath)) {
             wp_cache_flush();
-            Logger::info('Object cache disabled');
+            $this->log('info', 'Object cache disabled');
             
             return [
                 'success' => true,
@@ -397,123 +450,7 @@ class ObjectCacheManager
     /**
      * Genera il contenuto del drop-in
      */
-    private function generateDropInContent(string $backend): string
-    {
-        $template = <<<'PHP'
-<?php
-/**
- * Object Cache Drop-In
- * Generated by FP Performance Suite
- * 
- * Backend: %s
- * Date: %s
- * 
- * @package FP\PerfSuite
- */
-
-// Don't load directly
-if (!defined('ABSPATH')) {
-    die('-1');
-}
-
-// Load the appropriate object cache implementation
-%s
-PHP;
-        
-        $implementation = $this->getBackendImplementation($backend);
-        
-        return sprintf(
-            $template,
-            strtoupper($backend),
-            date('Y-m-d H:i:s'),
-            $implementation
-        );
-    }
-    
-    /**
-     * Ottiene l'implementazione per il backend specifico
-     */
-    private function getBackendImplementation(string $backend): string
-    {
-        $implementations = [
-            'redis' => $this->getRedisImplementation(),
-            'memcached' => $this->getMemcachedImplementation(),
-            'apcu' => $this->getApcuImplementation(),
-        ];
-        
-        return $implementations[$backend] ?? '';
-    }
-    
-    /**
-     * Implementazione Redis
-     */
-    private function getRedisImplementation(): string
-    {
-        // Usa il plugin Redis Object Cache se disponibile
-        $redisPluginFile = WP_PLUGIN_DIR . '/redis-cache/includes/object-cache.php';
-        
-        if (file_exists($redisPluginFile)) {
-            return "require_once '" . $redisPluginFile . "';";
-        }
-        
-        // CRITICAL: Non possiamo implementare Redis qui perché questo file
-        // viene caricato troppo presto nel ciclo di vita di WordPress.
-        // Raccomandiamo l'installazione di un plugin dedicato.
-        return <<<'PHP'
-/**
- * ATTENZIONE: Per utilizzare Redis Object Cache è necessario installare
- * un plugin dedicato come "Redis Object Cache" di Till Krüss.
- * 
- * Non è possibile implementare Redis direttamente in questo drop-in
- * perché viene caricato troppo presto nel bootstrap di WordPress.
- * 
- * Per ora, WordPress utilizzerà la cache in memoria standard.
- */
-return;
-PHP;
-    }
-    
-    /**
-     * Implementazione Memcached
-     */
-    private function getMemcachedImplementation(): string
-    {
-        $memcachedPluginFile = WP_CONTENT_DIR . '/object-cache-memcached.php';
-        
-        if (file_exists($memcachedPluginFile)) {
-            return "require_once '" . $memcachedPluginFile . "';";
-        }
-        
-        return <<<'PHP'
-/**
- * ATTENZIONE: Per utilizzare Memcached è necessario un drop-in specifico.
- * 
- * Non è possibile implementare Memcached direttamente in questo file
- * perché viene caricato troppo presto nel bootstrap di WordPress.
- * 
- * Per ora, WordPress utilizzerà la cache in memoria standard.
- */
-return;
-PHP;
-    }
-    
-    /**
-     * Implementazione APCu
-     */
-    private function getApcuImplementation(): string
-    {
-        return <<<'PHP'
-/**
- * ATTENZIONE: L'implementazione APCu richiede un drop-in specifico.
- * 
- * Non è possibile implementare APCu direttamente in questo file
- * perché viene caricato troppo presto nel bootstrap di WordPress.
- * 
- * Per ora, WordPress utilizzerà la cache in memoria standard.
- */
-return;
-PHP;
-    }
+    // Metodi generateDropInContent(), getBackendImplementation(), getRedisImplementation(), getMemcachedImplementation(), getApcuImplementation() rimossi - ora gestiti da DropInGenerator
     
     /**
      * Ottiene statistiche sull'object cache
@@ -639,7 +576,7 @@ PHP;
             'auto_enable' => false,
         ];
         
-        $options = get_option(self::OPTION_KEY, []);
+        $options = $this->getOption(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
     }
     
@@ -651,7 +588,7 @@ PHP;
         $current = $this->getSettings();
         $updated = wp_parse_args($settings, $current);
         
-        return update_option(self::OPTION_KEY, $updated);
+        return $this->setOption(self::OPTION_KEY, $updated);
     }
 }
 

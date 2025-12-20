@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -9,7 +10,6 @@ use FP\PerfSuite\Services\DB\Cleaner;
 use FP\PerfSuite\Utils\Logger;
 
 use function __;
-use function update_option;
 
 /**
  * Applicatore automatico di raccomandazioni per la performance
@@ -25,17 +25,33 @@ class RecommendationApplicator
     private Headers $headers;
     private Optimizer $optimizer;
     private Cleaner $cleaner;
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
 
+    /**
+     * Constructor
+     * 
+     * @param PageCache $pageCache Page cache service
+     * @param Headers $headers Headers service
+     * @param Optimizer $optimizer Optimizer service
+     * @param Cleaner $cleaner Cleaner service
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
     public function __construct(
         PageCache $pageCache,
         Headers $headers,
         Optimizer $optimizer,
-        Cleaner $cleaner
+        Cleaner $cleaner,
+        ?OptionsRepositoryInterface $optionsRepo = null
     ) {
         $this->pageCache = $pageCache;
         $this->headers = $headers;
         $this->optimizer = $optimizer;
         $this->cleaner = $cleaner;
+        $this->optionsRepo = $optionsRepo;
     }
 
     /**
@@ -79,7 +95,7 @@ class RecommendationApplicator
     private function enablePageCache(): array
     {
         try {
-            update_option('fp_ps_page_cache', '1');
+            $this->setOption('fp_ps_page_cache', '1');
             $this->pageCache->flush();
             
             return [
@@ -100,7 +116,7 @@ class RecommendationApplicator
     private function enableBrowserCache(): array
     {
         try {
-            update_option('fp_ps_cache_headers', '1');
+            $this->setOption('fp_ps_cache_headers', '1');
             
             return [
                 'success' => true,
@@ -120,7 +136,7 @@ class RecommendationApplicator
     private function enableMinifyHtml(): array
     {
         try {
-            update_option('fp_ps_minify_html', '1');
+            $this->setOption('fp_ps_minify_html', '1');
             
             return [
                 'success' => true,
@@ -140,7 +156,7 @@ class RecommendationApplicator
     private function enableDeferJs(): array
     {
         try {
-            update_option('fp_ps_defer_js', '1');
+            $this->setOption('fp_ps_defer_js', '1');
             
             return [
                 'success' => true,
@@ -160,8 +176,8 @@ class RecommendationApplicator
     private function removeEmojis(): array
     {
         try {
-            update_option('fp_ps_remove_emojis', '1');
-            update_option('fp_ps_remove_embeds', '1');
+            $this->setOption('fp_ps_remove_emojis', '1');
+            $this->setOption('fp_ps_remove_embeds', '1');
             
             return [
                 'success' => true,
@@ -182,9 +198,9 @@ class RecommendationApplicator
     {
         try {
             // Imposta heartbeat a 120 secondi (consigliato per hosting condiviso)
-            update_option('fp_ps_heartbeat_admin', '120');
-            update_option('fp_ps_heartbeat_editor', '120');
-            update_option('fp_ps_heartbeat_frontend', '0'); // Disabilita sul frontend
+            $this->setOption('fp_ps_heartbeat_admin', '120');
+            $this->setOption('fp_ps_heartbeat_editor', '120');
+            $this->setOption('fp_ps_heartbeat_frontend', '0'); // Disabilita sul frontend
             
             return [
                 'success' => true,
@@ -240,6 +256,21 @@ class RecommendationApplicator
         // RecommendationApplicator is a utility class that doesn't need WordPress hooks
         // It's used by other services for applying recommendations
         Logger::debug('Recommendation Applicator registered');
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }
 

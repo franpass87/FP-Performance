@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\ML;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -15,6 +16,21 @@ use FP\PerfSuite\Utils\Logger;
 class AnomalyDetector
 {
     private const OPTION = 'fp_ps_anomaly_detector';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     /**
      * Rileva anomalie confrontando dati attuali con storici
@@ -385,10 +401,25 @@ class AnomalyDetector
      */
     private function getRecentHistoricalData(): array
     {
-        $all_data = get_option('fp_ps_ml_data', []);
+        $all_data = $this->getOption('fp_ps_ml_data', []);
         $cutoff_time = time() - (24 * HOUR_IN_SECONDS); // Ultime 24 ore
         
         return array_filter($all_data, fn($point) => $point['timestamp'] >= $cutoff_time);
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
     }
 
     /**

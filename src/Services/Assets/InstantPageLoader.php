@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 use function add_action;
@@ -28,12 +29,55 @@ class InstantPageLoader
 {
     private const OPTION = 'fp_ps_instant_page';
     
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
+    }
+    
     /**
      * Impostazioni del servizio
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'trigger' => 'hover', // hover, viewport, both
             'intensity' => 'medium', // low, medium, high, aggressive
@@ -74,7 +118,7 @@ class InstantPageLoader
             $new['max_requests'] = max(1, min(50, (int) $new['max_requests']));
         }
         
-        return update_option(self::OPTION, $new, false);
+        return $this->setOption(self::OPTION, $new);
     }
     
     /**

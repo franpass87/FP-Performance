@@ -2,7 +2,8 @@
 
 namespace FP\PerfSuite\Services\Compression;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 /**
  * Compression Manager Service
@@ -18,6 +19,7 @@ class CompressionManager
     private bool $minify_html;
     private bool $minify_css;
     private bool $minify_js;
+    private ?LoggerInterface $logger = null;
     
     /**
      * Costruttore
@@ -27,14 +29,32 @@ class CompressionManager
      * @param bool $minify_html Abilita minify HTML (deprecated)
      * @param bool $minify_css Abilita minify CSS (deprecated)
      * @param bool $minify_js Abilita minify JS (deprecated)
+     * @param LoggerInterface|null $logger Logger opzionale per logging
      */
-    public function __construct(bool $gzip = true, bool $brotli = false, bool $minify_html = true, bool $minify_css = true, bool $minify_js = true)
+    public function __construct(bool $gzip = true, bool $brotli = false, bool $minify_html = true, bool $minify_css = true, bool $minify_js = true, ?LoggerInterface $logger = null)
     {
         $this->gzip = $gzip;
         $this->brotli = $brotli;
         $this->minify_html = $minify_html;
         $this->minify_css = $minify_css;
         $this->minify_js = $minify_js;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
     }
     
     /**
@@ -80,26 +100,26 @@ class CompressionManager
         
         // FIX: Verifica se GZIP giÃ  attivo
         if ($this->isGzipActive()) {
-            Logger::debug('GZIP already active, skipping');
+            $this->log('debug', 'GZIP already active, skipping');
             return;
         }
         
         // Verifica headers e estensione
         if (headers_sent()) {
-            Logger::warning('Headers already sent, cannot enable GZIP');
+            $this->log('warning', 'Headers already sent, cannot enable GZIP');
             return;
         }
         
         if (!extension_loaded('zlib')) {
-            Logger::warning('zlib extension not loaded, cannot enable GZIP');
+            $this->log('warning', 'zlib extension not loaded, cannot enable GZIP');
             return;
         }
         
         // Avvia compressione GZIP
         if (ob_start('ob_gzhandler')) {
-            Logger::debug('GZIP compression enabled');
+            $this->log('debug', 'GZIP compression enabled');
         } else {
-            Logger::error('Failed to start GZIP compression');
+            $this->log('error', 'Failed to start GZIP compression');
         }
     }
     
@@ -117,26 +137,26 @@ class CompressionManager
         
         // FIX: Verifica se Brotli giÃ  attivo
         if ($this->isBrotliActive()) {
-            Logger::debug('Brotli already active, skipping');
+            $this->log('debug', 'Brotli already active, skipping');
             return;
         }
         
         // Verifica headers e estensione
         if (headers_sent()) {
-            Logger::warning('Headers already sent, cannot enable Brotli');
+            $this->log('warning', 'Headers already sent, cannot enable Brotli');
             return;
         }
         
         if (!extension_loaded('brotli') || !function_exists('brotli_compress')) {
-            Logger::warning('Brotli extension not available');
+            $this->log('warning', 'Brotli extension not available');
             return;
         }
         
         // Avvia compressione Brotli
         if (ob_start('brotli_compress')) {
-            Logger::debug('Brotli compression enabled');
+            $this->log('debug', 'Brotli compression enabled');
         } else {
-            Logger::error('Failed to start Brotli compression');
+            $this->log('error', 'Failed to start Brotli compression');
         }
     }
     

@@ -2,25 +2,70 @@
 
 namespace FP\PerfSuite\Services\Monitoring;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class PerformanceMonitor
 {
+    private const OPTION_KEY = 'fp_ps_monitoring_settings';
+    
     private static ?self $instance = null;
     private $core_web_vitals;
     private $real_user_monitoring;
     
-    public function __construct($core_web_vitals = true, $real_user_monitoring = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($core_web_vitals = true, $real_user_monitoring = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->core_web_vitals = $core_web_vitals;
         $this->real_user_monitoring = $real_user_monitoring;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
 
     /**
      * Singleton pattern per ottenere l'istanza
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository (optional)
      */
-    public static function instance(): self
+    public static function instance(?OptionsRepositoryInterface $optionsRepo = null): self
     {
         if (self::$instance === null) {
-            self::$instance = new self();
+            self::$instance = new self(true, true, $optionsRepo);
         }
         return self::$instance;
     }
@@ -164,7 +209,7 @@ class PerformanceMonitor
      */
     public function isEnabled(): bool
     {
-        $settings = get_option('fp_ps_monitoring_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         return isset($settings['enabled']) && $settings['enabled'];
     }
     
@@ -175,7 +220,7 @@ class PerformanceMonitor
      */
     public function settings(): array
     {
-        $settings = get_option('fp_ps_monitoring_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         
         return [
             'enabled' => isset($settings['enabled']) && $settings['enabled'],
@@ -192,7 +237,7 @@ class PerformanceMonitor
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_monitoring_settings', []);
+        $currentSettings = $this->getOption(self::OPTION_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -208,7 +253,7 @@ class PerformanceMonitor
             $newSettings['real_user_monitoring'] = (bool) $newSettings['real_user_monitoring'];
         }
         
-        $result = update_option('fp_ps_monitoring_settings', $newSettings, false);
+        $result = $this->setOption(self::OPTION_KEY, $newSettings);
         
         // Aggiorna proprietà interne
         if (isset($newSettings['core_web_vitals'])) {

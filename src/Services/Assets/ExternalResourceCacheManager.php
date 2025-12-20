@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -20,6 +21,21 @@ class ExternalResourceCacheManager
     private const DEFAULT_TTL = 31536000; // 1 anno
     private const MIN_TTL = 3600; // 1 ora
     private const MAX_TTL = 31536000 * 2; // 2 anni
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     /**
      * Registra il servizio
@@ -73,7 +89,7 @@ class ExternalResourceCacheManager
             'cache_control_headers' => true,
         ];
 
-        $options = get_option(self::OPTION_KEY, []);
+        $options = $this->getOption(self::OPTION_KEY, []);
         return wp_parse_args($options, $defaults);
     }
 
@@ -96,9 +112,39 @@ class ExternalResourceCacheManager
         // Merge con impostazioni esistenti
         $newSettings = wp_parse_args($settings, $current);
         
-        update_option(self::OPTION_KEY, $newSettings);
+        $this->setOption(self::OPTION_KEY, $newSettings);
         
         Logger::info('External cache settings updated', $newSettings);
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 
     /**

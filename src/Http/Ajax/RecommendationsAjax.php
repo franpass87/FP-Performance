@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Http\Ajax;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\ServiceContainerAdapter;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Cache\Headers;
 use FP\PerfSuite\Services\Cache\PageCache;
@@ -13,6 +14,7 @@ use function current_user_can;
 use function update_option;
 use function wp_send_json_error;
 use function wp_send_json_success;
+use function wp_unslash;
 
 /**
  * Recommendations AJAX Handlers
@@ -24,9 +26,12 @@ use function wp_send_json_success;
  */
 class RecommendationsAjax
 {
-    private ServiceContainer $container;
+    private ServiceContainer|ServiceContainerAdapter $container;
     
-    public function __construct(ServiceContainer $container)
+    /**
+     * @param ServiceContainer|ServiceContainerAdapter $container
+     */
+    public function __construct(ServiceContainer|ServiceContainerAdapter $container)
     {
         $this->container = $container;
     }
@@ -48,7 +53,7 @@ class RecommendationsAjax
             return;
         }
         
-        $actionId = sanitize_text_field($_POST['action_id'] ?? '');
+        $actionId = sanitize_text_field(wp_unslash($_POST['action_id'] ?? ''));
         
         if (empty($actionId)) {
             wp_send_json_error(['message' => __('ID azione non specificato', 'fp-performance-suite')], 400);

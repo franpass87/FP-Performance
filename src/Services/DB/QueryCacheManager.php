@@ -2,18 +2,63 @@
 
 namespace FP\PerfSuite\Services\DB;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class QueryCacheManager
 {
+    private const OPTION_KEY = 'fp_ps_query_cache_settings';
+    private const STATS_KEY = 'fp_ps_query_cache_stats';
+    
     private $ttl;
     private $cache_enabled;
     
-    public function __construct($ttl = 3600, $cache_enabled = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($ttl = 3600, $cache_enabled = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
+        $this->optionsRepo = $optionsRepo;
+        
         // Carica le impostazioni salvate
-        $savedSettings = get_option('fp_ps_query_cache_settings', []);
+        $savedSettings = $this->getOption(self::OPTION_KEY, []);
         
         $this->ttl = $savedSettings['ttl'] ?? $ttl;
         $this->cache_enabled = $savedSettings['enabled'] ?? $cache_enabled;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     public function init()
@@ -125,7 +170,7 @@ class QueryCacheManager
      */
     public function getSettings(): array
     {
-        $savedSettings = get_option('fp_ps_query_cache_settings', []);
+        $savedSettings = $this->getOption(self::OPTION_KEY, []);
         
         return [
             'enabled' => $savedSettings['enabled'] ?? $this->cache_enabled,
@@ -140,7 +185,7 @@ class QueryCacheManager
      */
     public function updateSettings(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_query_cache_settings', []);
+        $currentSettings = $this->getOption(self::OPTION_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -152,7 +197,7 @@ class QueryCacheManager
             $newSettings['ttl'] = max(60, (int) $newSettings['ttl']);
         }
         
-        $result = update_option('fp_ps_query_cache_settings', $newSettings, false);
+        $result = $this->setOption(self::OPTION_KEY, $newSettings);
         
         if ($result) {
             $this->cache_enabled = $newSettings['enabled'] ?? $this->cache_enabled;
@@ -172,9 +217,9 @@ class QueryCacheManager
      */
     private function incrementHits(): void
     {
-        $stats = get_option('fp_ps_query_cache_stats', ['hits' => 0, 'misses' => 0]);
+        $stats = $this->getOption(self::STATS_KEY, ['hits' => 0, 'misses' => 0]);
         $stats['hits'] = ($stats['hits'] ?? 0) + 1;
-        update_option('fp_ps_query_cache_stats', $stats, false);
+        $this->setOption(self::STATS_KEY, $stats);
     }
     
     /**
@@ -182,9 +227,9 @@ class QueryCacheManager
      */
     private function incrementMisses(): void
     {
-        $stats = get_option('fp_ps_query_cache_stats', ['hits' => 0, 'misses' => 0]);
+        $stats = $this->getOption(self::STATS_KEY, ['hits' => 0, 'misses' => 0]);
         $stats['misses'] = ($stats['misses'] ?? 0) + 1;
-        update_option('fp_ps_query_cache_stats', $stats, false);
+        $this->setOption(self::STATS_KEY, $stats);
     }
     
     /**
@@ -192,7 +237,7 @@ class QueryCacheManager
      */
     public function getStats(): array
     {
-        $stats = get_option('fp_ps_query_cache_stats', ['hits' => 0, 'misses' => 0]);
+        $stats = $this->getOption(self::STATS_KEY, ['hits' => 0, 'misses' => 0]);
         $hits = (int) ($stats['hits'] ?? 0);
         $misses = (int) ($stats['misses'] ?? 0);
         $total = $hits + $misses;
@@ -212,7 +257,7 @@ class QueryCacheManager
      */
     public function resetStats(): bool
     {
-        return update_option('fp_ps_query_cache_stats', ['hits' => 0, 'misses' => 0], false);
+        return $this->setOption(self::STATS_KEY, ['hits' => 0, 'misses' => 0]);
     }
     
     /**

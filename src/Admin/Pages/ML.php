@@ -11,6 +11,12 @@ use FP\PerfSuite\Services\ML\MLPredictor;
 use FP\PerfSuite\Services\ML\PatternLearner;
 use FP\PerfSuite\Services\ML\AnomalyDetector;
 use FP\PerfSuite\Services\ML\AutoTuner;
+use FP\PerfSuite\Admin\Pages\ML\FormHandler;
+use FP\PerfSuite\Admin\Pages\ML\Tabs\OverviewTab;
+
+use function __;
+use function sanitize_key;
+use function wp_unslash;
 
 /**
  * Machine Learning Admin Page
@@ -52,7 +58,10 @@ class ML extends AbstractPage
 
     protected function content(): string
     {
-        $this->handleFormSubmission();
+        try {
+        $formHandler = new FormHandler($this->container);
+        $formResult = $formHandler->handle();
+        
         $settings = $this->getSettings();
         
         // Get ML services
@@ -67,7 +76,7 @@ class ML extends AbstractPage
         $tuning_report = $auto_tuner->generateTuningReport();
         
         // Get current tab
-        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
+        $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'overview';
         $valid_tabs = ['overview', 'settings', 'predictions', 'anomalies', 'tuning'];
         if (!in_array($current_tab, $valid_tabs, true)) {
             $current_tab = 'overview';
@@ -77,6 +86,11 @@ class ML extends AbstractPage
         ?>
         
         <?php
+        // Mostra risultato form se presente
+        if (!empty($formResult)) {
+            echo $formResult;
+        }
+        
         // Intro Box con PageIntro Component
         echo PageIntro::render(
             '🤖',
@@ -121,7 +135,10 @@ class ML extends AbstractPage
         </div>
 
         <div class="wrap">
-            <?php if ($current_tab === 'overview'): ?>
+            <?php if ($current_tab === 'overview'): 
+                $overviewTab = new OverviewTab($ml_report, $anomaly_report, $tuning_report);
+                $overviewTab->render();
+            ?>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin-top: 30px;">
                     <!-- ML Status Overview -->
                     <div class="fp-ps-admin-card" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -523,119 +540,10 @@ class ML extends AbstractPage
         <?php
         
         return ob_get_clean();
-    }
-
-    private function handleFormSubmission(): void
-    {
-        // Handle ML Settings
-        if (isset($_POST['fp_ps_ml_nonce']) && wp_verify_nonce($_POST['fp_ps_ml_nonce'], 'fp_ps_ml_settings')) {
-            $settings = [
-                'enabled' => !empty($_POST['enabled']),
-                'data_retention_days' => intval($_POST['data_retention_days'] ?? 30),
-                'prediction_threshold' => floatval($_POST['prediction_threshold'] ?? 0.7),
-                'anomaly_threshold' => floatval($_POST['anomaly_threshold'] ?? 0.8),
-                'pattern_confidence_threshold' => floatval($_POST['pattern_confidence_threshold'] ?? 0.8)
-            ];
-            
-            update_option('fp_ps_ml_predictor', $settings);
-            echo '<div class="notice notice-success"><p>' . __('ML settings saved successfully!', 'fp-performance-suite') . '</p></div>';
+        } catch (\Throwable $e) {
+            \FP\PerfSuite\Utils\ErrorHandler::handleSilently($e, 'ML page error');
+            return '<div class="notice notice-error"><p><strong>Errore nella pagina ML:</strong> ' . esc_html($e->getMessage()) . '</p></div>';
         }
-        
-        // Handle Auto-Tuner Settings
-        if (isset($_POST['fp_ps_auto_tuner_nonce']) && wp_verify_nonce($_POST['fp_ps_auto_tuner_nonce'], 'fp_ps_auto_tuner_settings')) {
-            if (isset($_POST['save_auto_tuner_settings'])) {
-                $this->saveAutoTunerSettings();
-            } elseif (isset($_POST['enable_auto_tuning'])) {
-                $this->enableAutoTuning();
-            } elseif (isset($_POST['disable_auto_tuning'])) {
-                $this->disableAutoTuning();
-            } elseif (isset($_POST['run_manual_tuning'])) {
-                $this->runManualTuning();
-            }
-        }
-        
-        // Handle Manual Actions
-        if (isset($_POST['fp_ps_ml_manual_nonce']) && isset($_POST['action'])) {
-            $action = sanitize_text_field($_POST['action']);
-            
-            if ($action === 'manual_analysis' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_analysis')) {
-                $this->executeManualAnalysis();
-            } elseif ($action === 'manual_prediction' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_prediction')) {
-                $this->executeManualPrediction();
-            } elseif ($action === 'manual_anomaly' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_manual_anomaly')) {
-                $this->executeManualAnomalyDetection();
-            } elseif ($action === 'check_cron' && wp_verify_nonce($_POST['fp_ps_ml_manual_nonce'], 'fp_ps_ml_check_cron')) {
-                $this->checkCronJobs();
-            }
-        }
-    }
-    
-    private function executeManualAnalysis(): void
-    {
-        try {
-            $predictor = $this->container->get(MLPredictor::class);
-            $predictor->analyzePatterns();
-            
-            // Aggiorna timestamp ultima analisi
-            update_option('fp_ps_ml_last_analysis', time());
-            
-            echo '<div class="notice notice-success"><p>' . __('Analisi pattern eseguita con successo!', 'fp-performance-suite') . '</p></div>';
-        } catch (Exception $e) {
-            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante l\'analisi: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
-        }
-    }
-    
-    private function executeManualPrediction(): void
-    {
-        try {
-            $predictor = $this->container->get(MLPredictor::class);
-            $predictions = $predictor->predictIssues();
-            
-            echo '<div class="notice notice-success"><p>' . sprintf(__('Predizioni generate con successo! Trovate %d predizioni.', 'fp-performance-suite'), count($predictions)) . '</p></div>';
-        } catch (Exception $e) {
-            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante la generazione predizioni: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
-        }
-    }
-    
-    private function executeManualAnomalyDetection(): void
-    {
-        try {
-            $predictor = $this->container->get(MLPredictor::class);
-            $anomalies = $predictor->detectAnomalies();
-            
-            echo '<div class="notice notice-success"><p>' . sprintf(__('Rilevamento anomalie completato! Trovate %d anomalie.', 'fp-performance-suite'), count($anomalies)) . '</p></div>';
-        } catch (Exception $e) {
-            echo '<div class="notice notice-error"><p>' . sprintf(__('Errore durante il rilevamento anomalie: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
-        }
-    }
-    
-    private function checkCronJobs(): void
-    {
-        $next_analysis = wp_next_scheduled('fp_ps_ml_analyze_patterns');
-        $next_prediction = wp_next_scheduled('fp_ps_ml_predict_issues');
-        
-        $message = '<div class="notice notice-info"><p><strong>' . __('Stato Cron Jobs ML:', 'fp-performance-suite') . '</strong></p>';
-        $message .= '<ul>';
-        $message .= '<li>' . sprintf(__('Prossima analisi pattern: %s', 'fp-performance-suite'), 
-            $next_analysis ? date('Y-m-d H:i:s', $next_analysis) : __('Non programmata', 'fp-performance-suite')) . '</li>';
-        $message .= '<li>' . sprintf(__('Prossima predizione: %s', 'fp-performance-suite'), 
-            $next_prediction ? date('Y-m-d H:i:s', $next_prediction) : __('Non programmata', 'fp-performance-suite')) . '</li>';
-        $message .= '</ul>';
-        
-        if (!$next_analysis || !$next_prediction) {
-            $message .= '<p><strong>' . __('⚠️ Attenzione:', 'fp-performance-suite') . '</strong> ' . 
-                __('Alcuni cron job non sono programmati. Il sistema potrebbe non funzionare correttamente.', 'fp-performance-suite') . '</p>';
-            
-            // Prova a riprogrammare i cron job
-            $predictor = $this->container->get(MLPredictor::class);
-            $predictor->register(); // Questo dovrebbe riprogrammare i cron job
-            
-            $message .= '<p>' . __('Tentativo di riprogrammazione cron job eseguito.', 'fp-performance-suite') . '</p>';
-        }
-        
-        $message .= '</div>';
-        
-        echo $message;
     }
 
     private function getSettings(): array
@@ -649,77 +557,7 @@ class ML extends AbstractPage
         ]);
     }
     
-    /**
-     * Salva le impostazioni Auto-Tuner
-     */
-    private function saveAutoTunerSettings(): void
-    {
-        $settings = [
-            'enabled' => !empty($_POST['auto_tuner_enabled']),
-            'tuning_frequency' => sanitize_text_field($_POST['tuning_frequency'] ?? '6hourly'),
-            'aggressive_mode' => !empty($_POST['aggressive_mode']),
-            'auto_apply_changes' => true,
-            'tuning_threshold' => 0.1
-        ];
-        
-        update_option('fp_ps_auto_tuner', $settings);
-        
-        // Se abilitato, registra il servizio
-        if ($settings['enabled']) {
-            $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
-            $autoTuner->register();
-        }
-        
-        echo '<div class="notice notice-success"><p>' . __('Auto-Tuner settings saved successfully!', 'fp-performance-suite') . '</p></div>';
-    }
-    
-    /**
-     * Abilita Auto-Tuning
-     */
-    private function enableAutoTuning(): void
-    {
-        $settings = get_option('fp_ps_auto_tuner', []);
-        $settings['enabled'] = true;
-        update_option('fp_ps_auto_tuner', $settings);
-        
-        // Registra il servizio
-        $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
-        $autoTuner->register();
-        
-        echo '<div class="notice notice-success"><p>' . __('Auto-Tuning enabled successfully!', 'fp-performance-suite') . '</p></div>';
-    }
-    
-    /**
-     * Disabilita Auto-Tuning
-     */
-    private function disableAutoTuning(): void
-    {
-        $settings = get_option('fp_ps_auto_tuner', []);
-        $settings['enabled'] = false;
-        update_option('fp_ps_auto_tuner', $settings);
-        
-        // Rimuovi cron job
-        wp_clear_scheduled_hook('fp_ps_auto_tune');
-        
-        echo '<div class="notice notice-warning"><p>' . __('Auto-Tuning disabled successfully!', 'fp-performance-suite') . '</p></div>';
-    }
-    
-    /**
-     * Esegue tuning manuale
-     */
-    private function runManualTuning(): void
-    {
-        try {
-            $autoTuner = $this->container->get(\FP\PerfSuite\Services\ML\AutoTuner::class);
-            $results = $autoTuner->performAutoTuning();
-            
-            if (!empty($results)) {
-                echo '<div class="notice notice-success"><p>' . __('Manual tuning completed successfully!', 'fp-performance-suite') . '</p></div>';
-            } else {
-                echo '<div class="notice notice-info"><p>' . __('Manual tuning completed with no changes.', 'fp-performance-suite') . '</p></div>';
-            }
-        } catch (Exception $e) {
-            echo '<div class="notice notice-error"><p>' . sprintf(__('Manual tuning failed: %s', 'fp-performance-suite'), $e->getMessage()) . '</p></div>';
-        }
-    }
+    // Metodi handleFormSubmission(), executeManualAnalysis(), executeManualPrediction(),
+    // executeManualAnomalyDetection(), checkCronJobs(), saveAutoTunerSettings(),
+    // enableAutoTuning(), disableAutoTuning(), runManualTuning() rimossi - ora gestiti da FormHandler
 }

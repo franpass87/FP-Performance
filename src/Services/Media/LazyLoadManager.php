@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Media;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 /**
  * Lazy Load Manager per Media
  * 
@@ -16,14 +18,52 @@ class LazyLoadManager
     private bool $lazy_load_iframes = true;
     private bool $lazy_load_videos = true;
     private int $threshold = 200;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct()
+    /**
+     * Costruttore
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
     {
+        $this->optionsRepo = $optionsRepo;
         $settings = $this->getSettings();
         $this->enabled = $settings['enabled'] ?? false;
         $this->lazy_load_iframes = $settings['lazy_load_iframes'] ?? true;
         $this->lazy_load_videos = $settings['lazy_load_videos'] ?? true;
         $this->threshold = $settings['threshold'] ?? 200;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     /**
@@ -117,7 +157,7 @@ class LazyLoadManager
      */
     public function getSettings(): array
     {
-        $saved = get_option('fp_ps_lazy_load', []);
+        $saved = $this->getOption('fp_ps_lazy_load', []);
         
         return [
             'enabled' => $saved['enabled'] ?? $this->enabled,
@@ -132,7 +172,7 @@ class LazyLoadManager
      */
     public function updateSettings(array $settings): bool
     {
-        $current = get_option('fp_ps_lazy_load', []);
+        $current = $this->getOption('fp_ps_lazy_load', []);
         $new = array_merge($current, $settings);
         
         // Validazione
@@ -141,7 +181,7 @@ class LazyLoadManager
         $new['lazy_load_videos'] = (bool) ($new['lazy_load_videos'] ?? true);
         $new['threshold'] = max(0, (int) ($new['threshold'] ?? 200));
         
-        $result = update_option('fp_ps_lazy_load', $new, false);
+        $result = $this->setOption('fp_ps_lazy_load', $new, false);
         
         if ($result) {
             $this->enabled = $new['enabled'];

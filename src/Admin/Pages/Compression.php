@@ -2,12 +2,21 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Admin\Components\PageIntro;
 use FP\PerfSuite\Admin\Components\InfoBox;
 use FP\PerfSuite\Services\Compression\CompressionManager;
+
+use function __;
+use function wp_verify_nonce;
+use function wp_unslash;
+use function sanitize_key;
+use function sanitize_text_field;
+use function esc_html;
+use function esc_attr;
 
 /**
  * Compression Admin Page
@@ -61,7 +70,7 @@ class Compression extends AbstractPage
         $info = $compression->getInfo();
 
         // Handle form submission
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fp_ps_nonce'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['fp_ps_nonce'])) {
             $message = $this->handleSave();
         } else {
             $message = '';
@@ -69,14 +78,14 @@ class Compression extends AbstractPage
 
         // Check for messages from URL (from admin_post handlers)
         if (isset($_GET['message'])) {
-            $message = urldecode($_GET['message']);
+            $message = sanitize_text_field(wp_unslash($_GET['message']));
         }
         
         // Check for legacy success/error messages from URL
-        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+        if (isset($_GET['updated']) && sanitize_key(wp_unslash($_GET['updated'] ?? '')) === '1') {
             $message = __('Compression settings saved.', 'fp-performance-suite');
         }
-        if (isset($_GET['error']) && $_GET['error'] === '1') {
+        if (isset($_GET['error']) && sanitize_key(wp_unslash($_GET['error'] ?? '')) === '1') {
             $message = __('Error saving compression settings.', 'fp-performance-suite');
         }
 
@@ -113,24 +122,24 @@ class Compression extends AbstractPage
             <p class="description"><?php esc_html_e('Verifica il supporto del server per i diversi algoritmi di compressione.', 'fp-performance-suite'); ?></p>
             
             <div class="fp-ps-grid three" style="margin: 20px 0;">
-                <div class="fp-ps-stat-box" style="<?php echo $status['gzip_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #dc3232;'; ?>">
+                <div class="fp-ps-stat-box" style="<?php echo esc_attr($status['gzip_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #dc3232;'); ?>">
                     <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Supporto Gzip', 'fp-performance-suite'); ?></div>
-                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['gzip_supported'] ? '#46b450' : '#dc3232'; ?>;">
-                        <?php echo $status['gzip_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '❌ ' . __('Non Supportato', 'fp-performance-suite'); ?>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo esc_attr($status['gzip_supported'] ? '#46b450' : '#dc3232'); ?>;">
+                        <?php echo esc_html($status['gzip_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '❌ ' . __('Non Supportato', 'fp-performance-suite')); ?>
                     </div>
                 </div>
 
-                <div class="fp-ps-stat-box" style="<?php echo $status['brotli_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #f0b429;'; ?>">
+                <div class="fp-ps-stat-box" style="<?php echo esc_attr($status['brotli_supported'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #f0b429;'); ?>">
                     <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Supporto Brotli', 'fp-performance-suite'); ?></div>
-                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['brotli_supported'] ? '#46b450' : '#f0b429'; ?>;">
-                        <?php echo $status['brotli_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '⚠️ ' . __('Non Supportato', 'fp-performance-suite'); ?>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo esc_attr($status['brotli_supported'] ? '#46b450' : '#f0b429'); ?>;">
+                        <?php echo esc_html($status['brotli_supported'] ? '✅ ' . __('Supportato', 'fp-performance-suite') : '⚠️ ' . __('Non Supportato', 'fp-performance-suite')); ?>
                     </div>
                 </div>
 
-                <div class="fp-ps-stat-box" style="<?php echo $status['enabled'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #72aee6;'; ?>">
+                <div class="fp-ps-stat-box" style="<?php echo esc_attr($status['enabled'] ? 'border-left: 4px solid #46b450;' : 'border-left: 4px solid #72aee6;'); ?>">
                     <div class="stat-label" style="margin-bottom: 10px;"><?php esc_html_e('Stato Attuale', 'fp-performance-suite'); ?></div>
-                    <div class="stat-value" style="font-size: 24px; color: <?php echo $status['enabled'] ? '#46b450' : '#72aee6'; ?>;">
-                        <?php echo $status['enabled'] ? '✅ ' . __('Attiva', 'fp-performance-suite') : 'ℹ️ ' . __('Disattiva', 'fp-performance-suite'); ?>
+                    <div class="stat-value" style="font-size: 24px; color: <?php echo esc_attr($status['enabled'] ? '#46b450' : '#72aee6'); ?>;">
+                        <?php echo esc_html($status['enabled'] ? '✅ ' . __('Attiva', 'fp-performance-suite') : 'ℹ️ ' . __('Disattiva', 'fp-performance-suite')); ?>
                     </div>
                 </div>
             </div>
@@ -318,7 +327,7 @@ class Compression extends AbstractPage
     public function handleSave(): string
     {
         // Verify nonce
-        if (!isset($_POST['fp_ps_nonce']) || !wp_verify_nonce($_POST['fp_ps_nonce'], 'fp_ps_save_compression')) {
+        if (!isset($_POST['fp_ps_nonce']) || !wp_verify_nonce(wp_unslash($_POST['fp_ps_nonce']), 'fp_ps_save_compression')) {
             return __('Security error: invalid nonce. Please reload the page and try again.', 'fp-performance-suite');
         }
 
@@ -354,8 +363,8 @@ class Compression extends AbstractPage
             
             return __('Compression settings saved successfully!', 'fp-performance-suite');
             
-        } catch (\Exception $e) {
-            error_log('[FP Performance Suite] Compression save error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Compression save error');
             return sprintf(
                 __('Error saving compression settings: %s. Please try again.', 'fp-performance-suite'),
                 $e->getMessage()

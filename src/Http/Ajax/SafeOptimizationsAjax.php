@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Http\Ajax;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\ServiceContainerAdapter;
+use FP\PerfSuite\Kernel\Container as KernelContainer;
 
 use function __;
 use function add_action;
@@ -21,9 +23,12 @@ class SafeOptimizationsAjax
     private const ACTION = 'fp_ps_apply_all_safe_optimizations';
     private const NONCE = 'fp_ps_apply_all_safe';
 
-    private ServiceContainer $container;
-
-    public function __construct(ServiceContainer $container)
+    private ServiceContainer|ServiceContainerAdapter|KernelContainer $container;
+    
+    /**
+     * @param ServiceContainer|ServiceContainerAdapter|KernelContainer $container
+     */
+    public function __construct(ServiceContainer|ServiceContainerAdapter|KernelContainer $container)
     {
         $this->container = $container;
     }
@@ -170,7 +175,6 @@ class SafeOptimizationsAjax
             // Media / Images
             ['key' => 'image_optimizer_enabled', 'option' => 'fp_ps_image_optimizer', 'path' => ['enabled'], 'value' => true],
             ['key' => 'image_lazy_loading', 'option' => 'fp_ps_image_optimizer', 'path' => ['lazy_loading'], 'value' => true],
-            ['key' => 'image_webp', 'option' => 'fp_ps_image_optimizer', 'path' => ['webp_conversion'], 'value' => true],
             ['key' => 'responsive_images', 'option' => 'fp_ps_responsive_images', 'path' => ['enabled'], 'value' => true],
             ['key' => 'responsive_lazy_loading', 'option' => 'fp_ps_responsive_images', 'path' => ['enable_lazy_loading'], 'value' => true],
 

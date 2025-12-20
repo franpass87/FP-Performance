@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\Admin\Pages\AbstractPage;
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\Services\Assets\Optimizer;
 use FP\PerfSuite\Services\Assets\FontOptimizer;
 use FP\PerfSuite\Services\Assets\ThirdPartyScriptManager;
@@ -24,6 +25,7 @@ use FP\PerfSuite\Admin\Pages\Assets\Tabs\JavaScriptTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\CssTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\FontsTab;
 use FP\PerfSuite\Admin\Pages\Assets\Tabs\ThirdPartyTab;
+use FP\PerfSuite\Admin\Pages\Assets\FormHandler;
 
 use function __;
 use function esc_attr;
@@ -89,7 +91,7 @@ class Assets extends AbstractPage
             $thirdPartySettings = $thirdPartyScripts->settings();
             
             // Debug: Log current settings
-            error_log('FP Performance Suite - Current settings loaded: ' . print_r($settings, true));
+            // Settings loaded successfully
             
             // Smart detectors
             $smartDetector = new SmartExclusionDetector();
@@ -104,27 +106,24 @@ class Assets extends AbstractPage
             $criticalAssets = get_transient('fp_ps_critical_assets_detected');
             
             // Handle POST requests
-            if ('POST' === $_SERVER['REQUEST_METHOD']) {
-                $message = $this->handleDirectFormSubmission($settings, $fontSettings, $thirdPartySettings);
+            if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '')) {
+                $formHandler = new FormHandler($this->container);
+                $message = $formHandler->handle($settings, $fontSettings, $thirdPartySettings);
             }
             
             // Debug: Log if we have a message
             if ($message) {
-                error_log('FP Performance Suite - Assets page message: ' . $message);
+                // Message displayed
             }
             
             // Get current tab
-            $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'javascript';
+            $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'javascript';
             $valid_tabs = ['javascript', 'css', 'fonts', 'thirdparty'];
             if (!in_array($current_tab, $valid_tabs, true)) {
                 $current_tab = 'javascript';
             }
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            error_log('FP Performance Suite - Assets page initialization error: ' . $e->getMessage());
-            error_log('FP Performance Suite - Assets page stack trace: ' . $e->getTraceAsString());
-            
-            // Return error message instead of empty page
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Assets page initialization');
             return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore:</strong> ' . esc_html($e->getMessage()) . '</p></div></div>';
         }
 
@@ -281,12 +280,8 @@ class Assets extends AbstractPage
             <?php
             return (string) ob_get_clean();
             
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            error_log('FP Performance Suite - Assets page rendering error: ' . $e->getMessage());
-            error_log('FP Performance Suite - Assets page rendering stack trace: ' . $e->getTraceAsString());
-            
-            // Return error message instead of empty page
+        } catch (\Throwable $e) {
+            ErrorHandler::handleSilently($e, 'Assets page rendering');
             return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore nel rendering:</strong> ' . esc_html($e->getMessage()) . '</p></div></div>';
         }
     }
@@ -301,303 +296,5 @@ class Assets extends AbstractPage
         ];
     }
 
-    /**
-     * Fallback method to handle direct form submissions
-     */
-    private function handleDirectFormSubmission(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
-    {
-        try {
-            // Debug: Log POST data
-            error_log('FP Performance Suite - POST data: ' . print_r($_POST, true));
-            
-            // Check for main toggle form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $optimizer = $this->container->get(Optimizer::class);
-                    $currentSettings = $optimizer->settings();
-                    
-                    // Debug: Log current settings
-                    error_log('FP Performance Suite - Current settings: ' . print_r($currentSettings, true));
-                    
-                    // Corretto: gestisce sia stati checked che unchecked
-                    $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
-                    
-                    // Debug: Log new settings
-                    error_log('FP Performance Suite - New settings: ' . print_r($currentSettings, true));
-                    
-                    $result = $optimizer->update($currentSettings);
-                    
-                    // Debug: Log result
-                    error_log('FP Performance Suite - Update result: ' . ($result ? 'success' : 'failed'));
-                    
-                    $settings = $optimizer->settings();
-                    
-                    // Debug: Log final settings
-                    error_log('FP Performance Suite - Final settings: ' . print_r($settings, true));
-                    
-                    return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    error_log('FP Performance Suite - Nonce verification failed');
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for JavaScript form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'javascript') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $optimizer = $this->container->get(Optimizer::class);
-                    $excludeJs = isset($_POST['exclude_js']) 
-                        ? wp_unslash($_POST['exclude_js']) 
-                        : (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
-                    
-                    $optimizer->update([
-                        'defer_js' => !empty($_POST['defer_js']),
-                        'async_js' => !empty($_POST['async_js']),
-                        'combine_js' => !empty($_POST['combine_js']),
-                        'remove_emojis' => !empty($_POST['remove_emojis']),
-                        'minify_inline_js' => !empty($_POST['minify_inline_js']),
-                        'exclude_js' => $excludeJs,
-                    ]);
-                    
-                    $settings = $optimizer->settings();
-                    return __('JavaScript settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for CSS form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'css') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $optimizer = $this->container->get(Optimizer::class);
-                    $excludeCss = isset($_POST['exclude_css']) 
-                        ? wp_unslash($_POST['exclude_css']) 
-                        : (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
-                    
-                    $optimizer->update([
-                        'combine_css' => !empty($_POST['combine_css']),
-                        'minify_inline_css' => !empty($_POST['minify_inline_css']),
-                        'remove_comments' => !empty($_POST['remove_comments']),
-                        'optimize_google_fonts' => !empty($_POST['optimize_google_fonts_assets']),
-                        'exclude_css' => $excludeCss,
-                    ]);
-                    
-                    $settings = $optimizer->settings();
-                    return __('CSS settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Third Party form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'third_party') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
-                    
-                    // Prepare individual scripts settings
-                    $individualScripts = [];
-                    $scriptKeys = [
-                        'google_analytics', 'facebook_pixel', 'google_ads', 'hotjar', 'intercom', 
-                        'youtube', 'linkedin_insight', 'twitter_pixel', 'tiktok_pixel', 'pinterest_tag',
-                        'hubspot', 'zendesk', 'drift', 'crisp', 'tidio', 'segment', 'mixpanel',
-                        'mailchimp', 'stripe', 'paypal', 'recaptcha', 'google_maps', 'microsoft_clarity',
-                        'vimeo', 'tawk_to', 'optimizely', 'trustpilot', 'klaviyo', 'onetrust',
-                        'calendly', 'fullstory', 'snapchat_pixel', 'soundcloud', 'klarna', 'spotify',
-                        'livechat', 'activecampaign', 'userway', 'typeform', 'brevo', 'wonderpush'
-                    ];
-                    
-                    foreach ($scriptKeys as $key) {
-                        $postKey = 'third_party_' . str_replace('_', '', $key);
-                        $individualScripts[$key] = [
-                            'enabled' => !empty($_POST[$postKey])
-                        ];
-                    }
-                    
-                    $thirdPartyScripts->updateSettings([
-                        'enabled' => !empty($_POST['third_party_enabled']),
-                        'auto_detect' => !empty($_POST['third_party_auto_detect']),
-                        'exclude_critical' => !empty($_POST['third_party_exclude_critical']),
-                        'delay_loading' => !empty($_POST['third_party_delay_loading']),
-                        'load_on' => isset($_POST['third_party_load_on']) ? sanitize_text_field($_POST['third_party_load_on']) : 'interaction',
-                        'custom_scripts' => isset($_POST['third_party_custom_scripts']) ? wp_unslash($_POST['third_party_custom_scripts']) : '',
-                        'exclusions' => isset($_POST['third_party_exclusions']) ? wp_unslash($_POST['third_party_exclusions']) : '',
-                        'scripts' => $individualScripts,
-                    ]);
-                    
-                    $thirdPartySettings = $thirdPartyScripts->settings();
-                    return __('Third Party settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for HTTP2 Push form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'http2_push') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $http2Push = $this->container->get(Http2ServerPush::class);
-                    $http2Push->updateSettings([
-                        'enabled' => !empty($_POST['http2_push_enabled']),
-                        'critical_css' => !empty($_POST['http2_push_critical_css']),
-                        'critical_js' => !empty($_POST['http2_push_critical_js']),
-                        'critical_fonts' => !empty($_POST['http2_push_critical_fonts']),
-                    ]);
-                    
-                    return __('HTTP/2 Server Push settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Smart Delivery form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'smart_delivery') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $smartDelivery = $this->container->get(SmartAssetDelivery::class);
-                    $smartDelivery->updateSettings([
-                        'enabled' => !empty($_POST['smart_delivery_enabled']),
-                        'adapt_images' => !empty($_POST['smart_adaptive_images']),
-                        'adapt_videos' => !empty($_POST['smart_adaptive_videos']),
-                        'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
-                        'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
-                    ]);
-                    
-                    return __('Smart Asset Delivery settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Unused CSS form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'unusedcss') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $unusedCssOptimizer = new UnusedCSSOptimizer();
-                    
-                    // Debug: Log Unused CSS POST data
-                    error_log('FP Performance Suite - Unused CSS POST data: ' . print_r($_POST, true));
-                    
-                    $unusedCssOptimizer->updateSettings([
-                        'enabled' => !empty($_POST['unusedcss_enabled']),
-                        'remove_unused_css' => !empty($_POST['unusedcss_remove_unused_css']),
-                        'defer_non_critical' => !empty($_POST['unusedcss_defer_non_critical']),
-                        'inline_critical' => !empty($_POST['unusedcss_inline_critical']),
-                        'enable_css_purging' => !empty($_POST['unusedcss_enable_css_purging']),
-                        'critical_css' => isset($_POST['unusedcss_critical_css']) ? sanitize_textarea_field(wp_unslash($_POST['unusedcss_critical_css'])) : '',
-                    ]);
-                    
-                    // Debug: Log saved settings
-                    $savedSettings = $unusedCssOptimizer->getSettings();
-                    error_log('FP Performance Suite - Unused CSS settings saved: ' . print_r($savedSettings, true));
-                    
-                    return __('Unused CSS settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    error_log('FP Performance Suite - Unused CSS nonce verification failed');
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Critical CSS form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'criticalcss') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $criticalCssService = new CriticalCss();
-                    if (isset($_POST['critical_css'])) {
-                        $result = $criticalCssService->update(wp_unslash($_POST['critical_css']));
-                        if (!$result['success']) {
-                            return __('Error saving Critical CSS: ' . ($result['error'] ?? 'Unknown error'), 'fp-performance-suite');
-                        }
-                    }
-                    
-                    return __('Critical CSS settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Script Detector form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'script_detector') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
-                    $scriptDetector = new ThirdPartyScriptDetector($thirdPartyScripts);
-                    
-                    if (isset($_POST['action_scan'])) {
-                        $scriptDetector->scanHomepage();
-                        return __('Scan completed! Check suggestions below.', 'fp-performance-suite');
-                    } elseif (isset($_POST['action_add_custom'])) {
-                        $scriptDetector->addCustomScript([
-                            'name' => sanitize_text_field($_POST['script_name'] ?? ''),
-                            'patterns' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['script_patterns'] ?? '')))),
-                            'enabled' => !empty($_POST['script_enabled']),
-                            'delay' => !empty($_POST['script_delay']),
-                        ]);
-                        return __('Custom script added successfully!', 'fp-performance-suite');
-                    }
-                    
-                    return __('Script Detector settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Critical Path Fonts form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'critical_path_fonts') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    $criticalPathOptimizer = new \FP\PerfSuite\Services\Assets\CriticalPathOptimizer();
-                    $criticalPathOptimizer->updateSettings([
-                        'enabled' => !empty($_POST['critical_path_enabled']),
-                        'preload_critical_fonts' => !empty($_POST['preload_critical_fonts']),
-                        'optimize_google_fonts' => !empty($_POST['optimize_google_fonts']),
-                        'preconnect_providers' => !empty($_POST['preconnect_providers']),
-                        'inject_font_display' => !empty($_POST['inject_font_display']),
-                        'add_resource_hints' => !empty($_POST['add_resource_hints']),
-                    ]);
-                    
-                    $fontOptimizer = new \FP\PerfSuite\Services\Assets\FontOptimizer();
-                    $fontOptimizer->updateSettings([
-                        'preload_fonts' => !empty($_POST['preload_fonts']),
-                    ]);
-                    
-                    return __('Font & Critical Path settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            // Check for Advanced JS Optimization form
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'advanced_js_optimization') {
-                if (isset($_POST['fp_ps_assets_nonce']) && wp_verify_nonce($_POST['fp_ps_assets_nonce'], 'fp-ps-assets')) {
-                    // Unused JavaScript Optimizer
-                    if (isset($_POST['unused_optimization'])) {
-                        $unusedJsOptimizer = new UnusedJavaScriptOptimizer();
-                        $unusedJsOptimizer->updateSettings([
-                            'enabled' => !empty($_POST['unused_optimization']['enabled']),
-                        ]);
-                    }
-                    
-                    // Code Splitting Manager
-                    if (isset($_POST['code_splitting'])) {
-                        $codeSplittingManager = new \FP\PerfSuite\Services\Assets\CodeSplittingManager();
-                        $codeSplittingManager->updateSettings([
-                            'enabled' => !empty($_POST['code_splitting']['enabled']),
-                        ]);
-                    }
-                    
-                    // Tree Shaking
-                    if (isset($_POST['tree_shaking'])) {
-                        $treeShaker = new \FP\PerfSuite\Services\Assets\JavaScriptTreeShaker();
-                        $treeShaker->updateSettings([
-                            'enabled' => !empty($_POST['tree_shaking']['enabled']),
-                        ]);
-                    }
-                    
-                    return __('Advanced JS Optimization settings saved successfully!', 'fp-performance-suite');
-                } else {
-                    return __('Error: Nonce verification failed. Please try again.', 'fp-performance-suite');
-                }
-            }
-            
-            return '';
-            
-        } catch (\Exception $e) {
-            error_log('FP Performance Suite - Form submission error: ' . $e->getMessage());
-            return __('Error saving settings: ' . $e->getMessage(), 'fp-performance-suite');
-        }
-    }
+    // Metodo handleDirectFormSubmission() rimosso - ora gestito da FormHandler
 }

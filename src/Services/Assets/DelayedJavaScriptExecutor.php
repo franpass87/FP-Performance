@@ -2,7 +2,9 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 use function add_filter;
 use function add_action;
@@ -31,6 +33,69 @@ class DelayedJavaScriptExecutor
 {
     private const OPTION = 'fp_ps_delay_js';
     
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    /** @var LoggerInterface|null Logger (injected) */
+    private ?LoggerInterface $logger = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     */
+    private function log(string $level, string $message, array $context = []): void
+    {
+        if ($this->logger !== null) {
+            $this->logger->$level($message, $context);
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
+    }
+    
     /**
      * Scripts che non devono mai essere ritardati
      */
@@ -47,7 +112,7 @@ class DelayedJavaScriptExecutor
      */
     public function getSettings(): array
     {
-        return get_option(self::OPTION, [
+        return $this->getOption(self::OPTION, [
             'enabled' => false,
             'timeout' => 5000, // ms - fallback se utente non interagisce
             'excluded_keywords' => [], // Keywords negli URL da NON ritardare
@@ -85,7 +150,7 @@ class DelayedJavaScriptExecutor
             }
         }
         
-        return update_option(self::OPTION, $new, false);
+        return $this->setOption(self::OPTION, $new);
     }
     
     /**
@@ -116,7 +181,7 @@ class DelayedJavaScriptExecutor
         // Enqueue script per gestire delay
         add_action('wp_footer', [$this, 'enqueueDelayHandler'], 999);
         
-        Logger::debug('DelayedJavaScriptExecutor registered', $settings);
+        $this->log('debug', 'DelayedJavaScriptExecutor registered', $settings);
     }
     
     /**
@@ -179,7 +244,7 @@ class DelayedJavaScriptExecutor
         
         // BUGFIX: Protezione contro HTML troppo grande (>10MB)
         if (strlen($html) > 10485760) {
-            Logger::warning('HTML too large for delay JS processing', ['size' => strlen($html)]);
+            $this->log('warning', 'HTML too large for delay JS processing', ['size' => strlen($html)]);
             return $html;
         }
         
@@ -240,7 +305,7 @@ class DelayedJavaScriptExecutor
         
         // BUGFIX: Verifica errori regex
         if (preg_last_error() !== PREG_NO_ERROR) {
-            Logger::error('Delay JS regex error', ['error_code' => preg_last_error()]);
+            $this->log('error', 'Delay JS regex error', ['error_code' => preg_last_error()]);
             return $html; // Ritorna HTML originale se errore
         }
         
@@ -259,7 +324,7 @@ class DelayedJavaScriptExecutor
         // BUGFIX: wp_json_encode con fallback
         $eventsJson = wp_json_encode($events);
         if ($eventsJson === false) {
-            Logger::error('Failed to encode trigger events to JSON');
+            $this->log('error', 'Failed to encode trigger events to JSON');
             $eventsJson = '["scroll","mousedown","touchstart"]'; // Fallback default
         }
         

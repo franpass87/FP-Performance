@@ -74,6 +74,11 @@ final class FPPluginsIntegration
         $exclude_uris[] = '/wp-json/wc/store/';
         $exclude_uris[] = 'wp-json/wc/store/';
         
+        // CRITICAL: Escludi admin-ajax.php dalla cache (causa 503 errors)
+        $exclude_uris[] = '/wp-admin/admin-ajax.php';
+        $exclude_uris[] = 'wp-admin/admin-ajax.php';
+        $exclude_uris[] = 'admin-ajax.php';
+        
         return array_unique($exclude_uris);
     }
     

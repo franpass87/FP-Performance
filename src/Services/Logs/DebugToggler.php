@@ -2,23 +2,90 @@
 
 namespace FP\PerfSuite\Services\Logs;
 
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Fs;
 use FP\PerfSuite\Utils\Env;
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 
 use function get_option;
 use function update_option;
+use function wp_unslash;
 
 class DebugToggler
 {
     private const OPTION_LOG_EXPRESSION = 'fp_ps_debug_log_value';
     private Fs $fs;
     private Env $env;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
 
-    public function __construct(Fs $fs, Env $env)
+    /**
+     * Costruttore
+     * 
+     * @param Fs $fs
+     * @param Env $env
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     * @param LoggerInterface|null $logger Logger opzionale per logging
+     */
+    public function __construct(Fs $fs, Env $env, ?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
         $this->fs = $fs;
         $this->env = $env;
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
 
     public function status(): array
@@ -66,7 +133,7 @@ class DebugToggler
             // Acquire lock to prevent concurrent modifications
             $lock = fopen($lockFile, 'c+');
             if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
-                Logger::error('Failed to acquire lock for wp-config.php modification');
+                $this->log('error', 'Failed to acquire lock for wp-config.php modification');
                 return false;
             }
 
@@ -84,7 +151,7 @@ class DebugToggler
 
             // Save custom log path if disabling
             if (isset($settings['WP_DEBUG_LOG']) && !$settings['WP_DEBUG_LOG'] && $existingRaw !== null && $existingRaw !== '' && strtolower($existingRaw) !== 'false') {
-                update_option(self::OPTION_LOG_EXPRESSION, $existingRaw);
+                $this->setOption(self::OPTION_LOG_EXPRESSION, $existingRaw);
             }
 
             // Build constant map
@@ -126,11 +193,11 @@ class DebugToggler
                 wp_opcache_invalidate($config, true);
             }
 
-            Logger::info('Debug settings updated', $map);
+            $this->log('info', 'Debug settings updated', $map);
 
             return $result;
         } catch (\Throwable $e) {
-            Logger::error('Failed to update debug settings', $e);
+            $this->log('error', 'Failed to update debug settings', [], $e);
             return false;
         } finally {
             // Always release lock
@@ -148,7 +215,7 @@ class DebugToggler
             $backupFile = $config . '.fp-backup-' . gmdate('YmdHis');
             $this->fs->putContents($backupFile, $contents);
         } catch (\Throwable $e) {
-            Logger::error('Failed to back up wp-config.php', $e);
+            $this->log('error', 'Failed to back up wp-config.php', [], $e);
         }
     }
 
@@ -170,7 +237,7 @@ class DebugToggler
             }
             return $result;
         } catch (\Throwable $e) {
-            Logger::error('Failed to restore wp-config.php backup', $e);
+            $this->log('error', 'Failed to restore wp-config.php backup', [], $e);
             return false;
         }
     }
@@ -188,7 +255,7 @@ class DebugToggler
                 if ($parsed['value']) {
                     return 'true';
                 }
-                $stored = get_option(self::OPTION_LOG_EXPRESSION, '');
+                $stored = $this->getOption(self::OPTION_LOG_EXPRESSION, '');
                 if (is_string($stored) && trim($stored) !== '') {
                     return trim($stored);
                 }
@@ -198,7 +265,7 @@ class DebugToggler
         if (defined('WP_DEBUG_LOG') && is_string(WP_DEBUG_LOG) && WP_DEBUG_LOG !== '') {
             return $this->exportValue(WP_DEBUG_LOG);
         }
-        $stored = get_option(self::OPTION_LOG_EXPRESSION, '');
+        $stored = $this->getOption(self::OPTION_LOG_EXPRESSION, '');
         if (is_string($stored) && trim($stored) !== '') {
             return trim($stored);
         }
@@ -233,7 +300,7 @@ class DebugToggler
             return ['type' => 'bool', 'value' => $lower === 'true'];
         }
         if (preg_match("/^['\"](.*)['\"]$/s", $trimmed, $matches)) {
-            return ['type' => 'string', 'value' => stripslashes($matches[1] ?? '')];
+            return ['type' => 'string', 'value' => wp_unslash($matches[1] ?? '')];
         }
         return ['type' => 'raw', 'value' => $trimmed];
     }

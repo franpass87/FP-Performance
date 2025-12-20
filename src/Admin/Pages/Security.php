@@ -118,15 +118,15 @@ class Security extends AbstractPage
         }
         
         // Tab corrente
-        $current_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'security';
+        $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'security';
         $valid_tabs = ['security', 'performance'];
         if (!in_array($current_tab, $valid_tabs, true)) {
             $current_tab = 'security';
         }
         
         // Mantieni il tab dopo il POST
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && !empty($_POST['current_tab'])) {
-            $current_tab = sanitize_key($_POST['current_tab']);
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && !empty($_POST['current_tab'] ?? '')) {
+            $current_tab = sanitize_key(wp_unslash($_POST['current_tab']));
         }
 
         ob_start();

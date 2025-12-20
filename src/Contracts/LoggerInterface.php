@@ -4,6 +4,9 @@ namespace FP\PerfSuite\Contracts;
 
 /**
  * Interface for logging implementations
+ * 
+ * @deprecated Use FP\PerfSuite\Core\Logging\LoggerInterface instead
+ * This interface is kept for backward compatibility
  */
 interface LoggerInterface
 {

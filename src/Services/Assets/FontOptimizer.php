@@ -2,15 +2,57 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class FontOptimizer
 {
     private $preload_critical;
     private $display_swap;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct($preload_critical = true, $display_swap = true)
+    /**
+     * Costruttore
+     * 
+     * @param bool $preload_critical Abilita preload font critici
+     * @param bool $display_swap Abilita display swap
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct($preload_critical = true, $display_swap = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->preload_critical = $preload_critical;
         $this->display_swap = $display_swap;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -108,7 +150,7 @@ class FontOptimizer
      */
     public function getSettings(): array
     {
-        $settings = get_option('fp_ps_font_optimizer', [
+        $settings = $this->getOption('fp_ps_font_optimizer', [
             'enabled' => false,
             'preload_critical' => true,
             'display_swap' => true,
@@ -129,7 +171,7 @@ class FontOptimizer
      */
     public function updateSettings(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_font_optimizer', []);
+        $currentSettings = $this->getOption('fp_ps_font_optimizer', []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -171,7 +213,7 @@ class FontOptimizer
             $newSettings['subset_critical'] = (bool) $newSettings['subset_critical'];
         }
         
-        $result = update_option('fp_ps_font_optimizer', $newSettings, false);
+        $result = $this->setOption('fp_ps_font_optimizer', $newSettings, false);
         
         // Aggiorna proprietà interne se presente
         if (isset($newSettings['preload_critical'])) {

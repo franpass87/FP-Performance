@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\Cache;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 /**
  * Browser Cache Service
  * 
@@ -12,16 +14,57 @@ namespace FP\PerfSuite\Services\Cache;
  */
 class BrowserCache
 {
+    private const OPTION_KEY = 'fp_ps_browser_cache';
+    
     private bool $enabled = false;
     private int $static_assets_ttl = 31536000; // 1 anno
     private int $html_ttl = 3600; // 1 ora
     
-    public function __construct()
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
     {
+        $this->optionsRepo = $optionsRepo;
         $settings = $this->getSettings();
         $this->enabled = $settings['enabled'] ?? false;
         $this->static_assets_ttl = $settings['static_assets_ttl'] ?? 31536000;
         $this->html_ttl = $settings['html_ttl'] ?? 3600;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     /**
@@ -66,7 +109,7 @@ class BrowserCache
      */
     public function getSettings(): array
     {
-        $saved = get_option('fp_ps_browser_cache', []);
+        $saved = $this->getOption(self::OPTION_KEY, []);
         
         return [
             'enabled' => $saved['enabled'] ?? $this->enabled,
@@ -80,7 +123,7 @@ class BrowserCache
      */
     public function updateSettings(array $settings): bool
     {
-        $current = get_option('fp_ps_browser_cache', []);
+        $current = $this->getOption(self::OPTION_KEY, []);
         $new = array_merge($current, $settings);
         
         // Validazione
@@ -88,7 +131,7 @@ class BrowserCache
         $new['static_assets_ttl'] = max(0, (int) ($new['static_assets_ttl'] ?? 31536000));
         $new['html_ttl'] = max(0, (int) ($new['html_ttl'] ?? 3600));
         
-        $result = update_option('fp_ps_browser_cache', $new, false);
+        $result = $this->setOption(self::OPTION_KEY, $new);
         
         if ($result) {
             $this->enabled = $new['enabled'];

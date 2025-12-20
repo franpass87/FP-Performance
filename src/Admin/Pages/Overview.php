@@ -3,10 +3,13 @@
 namespace FP\PerfSuite\Admin\Pages;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 use FP\PerfSuite\Services\Monitoring\PerformanceAnalyzer;
 use FP\PerfSuite\Services\Monitoring\SystemMonitor;
 use FP\PerfSuite\Services\Score\Scorer;
+use FP\PerfSuite\Services\DB\Cleaner;
+use FP\PerfSuite\Admin\Pages\Overview\ExportHandler;
 
 use function __;
 use function add_action;
@@ -18,6 +21,8 @@ use function esc_html;
 use function esc_html__;
 use function esc_html_e;
 use function esc_url;
+use function date_i18n;
+use function get_option;
 use function fputcsv;
 use function header;
 use function nocache_headers;
@@ -77,7 +82,7 @@ class Overview extends AbstractPage
             try {
                 $scorer = $this->container->get(Scorer::class);
                 $score = $scorer->calculate();
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // Fallback se il servizio non è disponibile
                 $score = [
                     'total' => 0,
@@ -108,7 +113,48 @@ class Overview extends AbstractPage
         
         // Raccoglie metriche correnti per aggiornare i dati
         $systemMonitor->collectMetrics();
-        
+
+        // Stato cleaner database
+        try {
+            $cleaner = $this->container->get(Cleaner::class);
+            $cleanerStatus = $cleaner->status();
+        } catch (\Throwable $e) {
+            $cleanerStatus = null;
+        }
+
+        $cleanupScheduleLabel = null;
+        $cleanupNextRunLabel = null;
+        $cleanupLastRunLabel = null;
+
+        if ($cleanerStatus) {
+            $schedule = $cleanerStatus['schedule'] ?? 'manual';
+            switch ($schedule) {
+                case 'weekly':
+                    $cleanupScheduleLabel = __('Weekly', 'fp-performance-suite');
+                    break;
+                case 'monthly':
+                    $cleanupScheduleLabel = __('Monthly', 'fp-performance-suite');
+                    break;
+                case 'daily':
+                    $cleanupScheduleLabel = __('Daily', 'fp-performance-suite');
+                    break;
+                default:
+                    $cleanupScheduleLabel = __('Manual', 'fp-performance-suite');
+            }
+
+            if (!empty($cleanerStatus['next_run'])) {
+                $dateFormat = get_option('date_format');
+                $timeFormat = get_option('time_format');
+                $cleanupNextRunLabel = date_i18n($dateFormat . ' ' . $timeFormat, (int) $cleanerStatus['next_run']);
+            }
+
+            if (!empty($cleanerStatus['last_run'])) {
+                $dateFormat = $dateFormat ?? get_option('date_format');
+                $timeFormat = $timeFormat ?? get_option('time_format');
+                $cleanupLastRunLabel = date_i18n($dateFormat . ' ' . $timeFormat, (int) $cleanerStatus['last_run']);
+            }
+        }
+
         $exportUrl = wp_nonce_url(admin_url('admin-post.php?action=fp_ps_export_csv'), 'fp-ps-export');
 
         ob_start();
@@ -364,6 +410,23 @@ class Overview extends AbstractPage
                         <span class="fp-ps-info-label"><?php esc_html_e('Database Size:', 'fp-performance-suite'); ?></span>
                         <span class="fp-ps-info-value"><?php echo number_format($systemStats['database']['size_mb'], 1); ?> MB (<?php echo esc_html($systemStats['database']['tables']); ?> tables)</span>
                     </div>
+                <?php if ($cleanupScheduleLabel) : ?>
+                <div class="fp-ps-info-row">
+                    <span class="fp-ps-info-label"><?php esc_html_e('Cleanup Schedule:', 'fp-performance-suite'); ?></span>
+                    <span class="fp-ps-info-value">
+                        <?php echo esc_html($cleanupScheduleLabel); ?>
+                        <?php if ($cleanupNextRunLabel) : ?>
+                            — <?php printf(esc_html__('Next run: %s', 'fp-performance-suite'), esc_html($cleanupNextRunLabel)); ?>
+                        <?php endif; ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+                <?php if ($cleanupLastRunLabel) : ?>
+                <div class="fp-ps-info-row">
+                    <span class="fp-ps-info-label"><?php esc_html_e('Last Cleanup:', 'fp-performance-suite'); ?></span>
+                    <span class="fp-ps-info-value"><?php echo esc_html($cleanupLastRunLabel); ?></span>
+                </div>
+                <?php endif; ?>
                 </div>
             </div>
 
@@ -494,7 +557,7 @@ class Overview extends AbstractPage
                         foreach ($activeOptimizations as $opt) : ?>
                             <li>✓ <?php echo esc_html($opt); ?></li>
                         <?php endforeach;
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         echo '<li>' . esc_html__('Nessuna ottimizzazione attiva rilevata', 'fp-performance-suite') . '</li>';
                     }
                     ?>
@@ -675,7 +738,7 @@ class Overview extends AbstractPage
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-media')); ?>">
                     <?php esc_html_e('Media Optimization', 'fp-performance-suite'); ?>
                 </a>
-                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-settings&tab=diagnostics')); ?>">
+                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-monitoring&tab=diagnostics')); ?>">
                     <?php esc_html_e('Run Tests', 'fp-performance-suite'); ?>
                 </a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=fp-performance-suite-logs')); ?>">
@@ -846,111 +909,14 @@ class Overview extends AbstractPage
         return (string) ob_get_clean();
         
         } catch (\Throwable $e) {
-            // Log dell'errore per debug
-            if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
-                error_log('FP Performance Suite - Overview Page Error: ' . $e->getMessage());
-                error_log('Stack trace: ' . $e->getTraceAsString());
-            }
-            
+            ErrorHandler::handleSilently($e, 'Overview page error');
             return '<div class="wrap"><div class="notice notice-error"><p><strong>Errore nella pagina Overview:</strong> ' . esc_html($e->getMessage()) . '</p><p><small>File: ' . esc_html($e->getFile()) . ':' . $e->getLine() . '</small></p></div></div>';
         }
     }
 
     public function exportCsv(): void
     {
-        if (!current_user_can($this->capability())) {
-            wp_die(esc_html__('You do not have permission to export this report.', 'fp-performance-suite'));
-        }
-
-        check_admin_referer('fp-ps-export');
-
-        try {
-            $scorer = $this->container->get(Scorer::class);
-            $score = $scorer->calculate();
-            $active = $scorer->activeOptimizations();
-        } catch (\Exception $e) {
-            $score = ['total' => 0, 'breakdown' => [], 'breakdown_detailed' => [], 'suggestions' => []];
-            $active = [];
-        }
-        
-        $monitor = PerformanceMonitor::instance();
-        $stats7days = $monitor->getStats(7);
-        
-        $analyzer = $this->container->get(PerformanceAnalyzer::class);
-        $analysis = $analyzer->analyze();
-        
-        $systemMonitor = SystemMonitor::instance();
-        $systemStats = $systemMonitor->getStats(7);
-
-        nocache_headers();
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="fp-performance-suite-overview-' . gmdate('Ymd-Hi') . '.csv"');
-
-        $output = fopen('php://output', 'w');
-        
-        // Technical Score
-        fputcsv($output, [__('Technical SEO Score', 'fp-performance-suite'), $score['total']]);
-        fputcsv($output, [__('Health Score', 'fp-performance-suite'), $analysis['score']]);
-        fputcsv($output, []);
-        
-        // Performance Metrics
-        fputcsv($output, [__('Performance Metrics (7 days)', 'fp-performance-suite')]);
-        fputcsv($output, [__('Avg Load Time (ms)', 'fp-performance-suite'), number_format($stats7days['avg_load_time'] * 1000, 0)]);
-        fputcsv($output, [__('Avg DB Queries', 'fp-performance-suite'), number_format($stats7days['avg_queries'], 1)]);
-        fputcsv($output, [__('Avg Memory (MB)', 'fp-performance-suite'), number_format($stats7days['avg_memory'], 1)]);
-        fputcsv($output, [__('Samples', 'fp-performance-suite'), $stats7days['samples']]);
-        fputcsv($output, []);
-        
-        // System Metrics
-        fputcsv($output, [__('System Metrics', 'fp-performance-suite')]);
-        fputcsv($output, [__('Server Memory Usage (%)', 'fp-performance-suite'), number_format($systemStats['memory']['avg_usage_percent'], 1)]);
-        fputcsv($output, [__('Server Memory Peak (MB)', 'fp-performance-suite'), number_format($systemStats['memory']['max_peak_mb'], 1)]);
-        fputcsv($output, [__('Disk Usage (%)', 'fp-performance-suite'), number_format($systemStats['disk']['usage_percent'], 1)]);
-        fputcsv($output, [__('Disk Free (GB)', 'fp-performance-suite'), number_format($systemStats['disk']['free_gb'], 1)]);
-        fputcsv($output, [__('System Load (1min)', 'fp-performance-suite'), number_format($systemStats['load']['avg_1min'], 2)]);
-        fputcsv($output, [__('Database Size (MB)', 'fp-performance-suite'), number_format($systemStats['database']['size_mb'], 1)]);
-        fputcsv($output, [__('PHP Version', 'fp-performance-suite'), $systemStats['system']['php_version']]);
-        fputcsv($output, [__('Server Software', 'fp-performance-suite'), $systemStats['system']['server_software']]);
-        fputcsv($output, []);
-        
-        // Score Breakdown
-        fputcsv($output, [__('Score Breakdown', 'fp-performance-suite')]);
-        fputcsv($output, [__('Category', 'fp-performance-suite'), __('Current', 'fp-performance-suite'), __('Max', 'fp-performance-suite'), __('Status', 'fp-performance-suite'), __('Suggestion', 'fp-performance-suite')]);
-        foreach ($score['breakdown_detailed'] as $label => $details) {
-            fputcsv($output, [
-                $label,
-                $details['current'],
-                $details['max'],
-                $details['status'],
-                $details['suggestion'] ?? __('Optimized', 'fp-performance-suite')
-            ]);
-        }
-        fputcsv($output, []);
-
-        // Active Optimizations
-        fputcsv($output, [__('Active Optimizations', 'fp-performance-suite')]);
-        foreach ($active as $item) {
-            fputcsv($output, [$item]);
-        }
-        fputcsv($output, []);
-        
-        // Issues
-        if (!empty($analysis['critical'])) {
-            fputcsv($output, [__('Critical Issues', 'fp-performance-suite')]);
-            foreach ($analysis['critical'] as $issue) {
-                fputcsv($output, [$issue['issue'], $issue['impact']]);
-            }
-            fputcsv($output, []);
-        }
-        
-        if (!empty($analysis['warnings'])) {
-            fputcsv($output, [__('Warnings', 'fp-performance-suite')]);
-            foreach ($analysis['warnings'] as $issue) {
-                fputcsv($output, [$issue['issue'], $issue['impact']]);
-            }
-            fputcsv($output, []);
-        }
-
-        exit;
+        $exportHandler = new ExportHandler($this->container);
+        $exportHandler->export($this->capability());
     }
 }

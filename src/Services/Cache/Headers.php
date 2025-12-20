@@ -2,13 +2,56 @@
 
 namespace FP\PerfSuite\Services\Cache;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class Headers
 {
+    private const OPTION_KEY = 'fp_ps_cache_headers_settings';
+    
     private $ttl;
     
-    public function __construct($ttl = 3600)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($ttl = 3600, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->ttl = $ttl;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper method per salvare opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to save
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            $this->optionsRepo->set($key, $value);
+            return true;
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return update_option($key, $value, false);
     }
     
     public function setCacheHeaders($ttl = null)
@@ -74,7 +117,7 @@ class Headers
      */
     public function settings(): array
     {
-        $settings = get_option('fp_ps_cache_headers_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         
         return [
             'enabled' => isset($settings['enabled']) && $settings['enabled'],
@@ -94,7 +137,7 @@ class Headers
      */
     public function status(): array
     {
-        $settings = get_option('fp_ps_cache_headers_settings', []);
+        $settings = $this->getOption(self::OPTION_KEY, []);
         $enabled = isset($settings['enabled']) && $settings['enabled'];
         
         return [
@@ -111,7 +154,7 @@ class Headers
      */
     public function update(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_cache_headers_settings', []);
+        $currentSettings = $this->getOption(self::OPTION_KEY, []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
@@ -133,7 +176,7 @@ class Headers
             $newSettings['htaccess'] = wp_kses_post(wp_unslash($newSettings['htaccess']));
         }
         
-        $result = update_option('fp_ps_cache_headers_settings', $newSettings, false);
+        $result = $this->setOption(self::OPTION_KEY, $newSettings);
         
         // Aggiorna TTL interno se presente
         if (isset($newSettings['expires_ttl'])) {

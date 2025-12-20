@@ -2,13 +2,54 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class JavaScriptTreeShaker
 {
     private $aggressive_mode;
+    private ?OptionsRepositoryInterface $optionsRepo = null;
     
-    public function __construct($aggressive_mode = false)
+    /**
+     * Costruttore
+     * 
+     * @param bool $aggressive_mode Modalità aggressiva
+     * @param OptionsRepositoryInterface|null $optionsRepo Repository opzionale per gestione opzioni
+     */
+    public function __construct($aggressive_mode = false, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->aggressive_mode = $aggressive_mode;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
     
     public function init()
@@ -125,7 +166,7 @@ class JavaScriptTreeShaker
      */
     public function settings(): array
     {
-        $savedSettings = get_option('fp_ps_js_tree_shaker', []);
+        $savedSettings = $this->getOption('fp_ps_js_tree_shaker', []);
         return [
             'enabled' => $savedSettings['enabled'] ?? false,
             'aggressive_mode' => $savedSettings['aggressive_mode'] ?? $this->aggressive_mode,
@@ -145,14 +186,14 @@ class JavaScriptTreeShaker
      */
     public function updateSettings(array $settings): bool
     {
-        $currentSettings = get_option('fp_ps_js_tree_shaker', []);
+        $currentSettings = $this->getOption('fp_ps_js_tree_shaker', []);
         $newSettings = array_merge($currentSettings, $settings);
         
         // Validazione
         $newSettings['enabled'] = (bool) ($newSettings['enabled'] ?? false);
         $newSettings['aggressive_mode'] = (bool) ($newSettings['aggressive_mode'] ?? false);
         
-        $result = update_option('fp_ps_js_tree_shaker', $newSettings, false);
+        $result = $this->setOption('fp_ps_js_tree_shaker', $newSettings, false);
         
         if ($result) {
             $this->aggressive_mode = $newSettings['aggressive_mode'];

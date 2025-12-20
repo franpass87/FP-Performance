@@ -5,6 +5,10 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\AI\Analyzer;
 use FP\PerfSuite\Services\Presets\Manager as PresetManager;
+use FP\PerfSuite\Admin\Pages\AIConfig\HistoryManager;
+use FP\PerfSuite\Admin\Pages\AIConfig\Components\PreviewComparison;
+use FP\PerfSuite\Admin\Pages\AIConfig\Components\AnalysisHistory;
+use FP\PerfSuite\Admin\Pages\AIConfig\Components\WPCLICommandsGenerator;
 
 use function __;
 use function esc_attr;
@@ -16,6 +20,8 @@ use function wp_create_nonce;
 use function admin_url;
 use function get_option;
 use function update_option;
+use function wp_unslash;
+use function sanitize_key;
 
 /**
  * Pagina AI Auto-Configuration AVANZATA
@@ -61,20 +67,17 @@ class AIConfig extends AbstractPage
         $analyzer = $this->container->get(Analyzer::class);
         $nonce = wp_create_nonce('wp_rest');
         
-        // Gestione export/import
-        $this->handleExportImport();
-        
         // Carica storia analisi
         $analysisHistory = get_option('fp_ps_ai_analysis_history', []);
         
         // Carica modalità (safe/aggressive/expert)
-        $mode = $_GET['mode'] ?? 'safe';
+        $mode = sanitize_key(wp_unslash($_GET['mode'] ?? 'safe'));
         
         // Check se è stata richiesta l'analisi
         $analysis = null;
         $suggestions = null;
         
-        if (isset($_GET['analyze']) && $_GET['analyze'] === '1') {
+        if (isset($_GET['analyze']) && wp_unslash($_GET['analyze']) === '1') {
             // Analisi già completata (verrà fatta via AJAX per animazioni)
             $analysisData = $analyzer->analyze();
             $result = $analyzer->suggest($analysisData);
@@ -84,7 +87,8 @@ class AIConfig extends AbstractPage
             $score = $result['score'];
             
             // Salva in storia
-            $this->saveToHistory($analysis, $score);
+            $historyManager = new HistoryManager();
+            $historyManager->save($analysis, $score);
         }
         
         ob_start();
@@ -418,7 +422,10 @@ class AIConfig extends AbstractPage
                         <h3 style="margin-bottom: 20px;"><?php esc_html_e('👁️ Preview Modifiche', 'fp-performance-suite'); ?></h3>
                         
                         <div class="fp-ps-preview-comparison">
-                            <?php echo $this->renderPreviewComparison($analysis, $config); ?>
+                            <?php 
+                            $previewComparison = new PreviewComparison();
+                            echo $previewComparison->render($analysis, $config); 
+                            ?>
                         </div>
                         
                         <!-- Stima Miglioramenti -->
@@ -463,7 +470,10 @@ class AIConfig extends AbstractPage
                         <!-- WP-CLI Commands -->
                         <div class="fp-ps-expert-block">
                             <h4><?php esc_html_e('Comandi WP-CLI Equivalenti', 'fp-performance-suite'); ?></h4>
-                            <pre class="fp-ps-code-block"><code><?php echo esc_html($this->generateWPCLICommands($config)); ?></code></pre>
+                            <pre class="fp-ps-code-block"><code><?php 
+                            $cliGenerator = new WPCLICommandsGenerator();
+                            echo esc_html($cliGenerator->generate($config)); 
+                            ?></code></pre>
                             <button class="fp-ps-btn-secondary fp-ps-copy-cli">
                                 <span>📋</span> <?php esc_html_e('Copia Comandi', 'fp-performance-suite'); ?>
                             </button>
@@ -517,7 +527,10 @@ class AIConfig extends AbstractPage
                 <span class="fp-ps-modal-close">&times;</span>
                 <h3><?php esc_html_e('📊 Storia Analisi', 'fp-performance-suite'); ?></h3>
                 <div id="fp-ps-history-content">
-                    <?php echo $this->renderAnalysisHistory($analysisHistory); ?>
+                    <?php 
+                    $analysisHistoryComponent = new AnalysisHistory();
+                    echo $analysisHistoryComponent->render($analysisHistory); 
+                    ?>
                 </div>
             </div>
         </div>
@@ -543,142 +556,12 @@ class AIConfig extends AbstractPage
         return (string) ob_get_clean();
     }
 
-    /**
-     * Render preview comparison table
-     */
-    private function renderPreviewComparison(array $analysis, array $config): string
-    {
-        ob_start();
-        ?>
-        <table class="fp-ps-preview-table">
-            <thead>
-                <tr>
-                    <th><?php esc_html_e('Impostazione', 'fp-performance-suite'); ?></th>
-                    <th><?php esc_html_e('Prima', 'fp-performance-suite'); ?></th>
-                    <th><?php esc_html_e('Dopo', 'fp-performance-suite'); ?></th>
-                    <th><?php esc_html_e('Impatto', 'fp-performance-suite'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                // Page Cache
-                $currentPageCache = get_option('fp_ps_page_cache', []);
-                ?>
-                <tr>
-                    <td><strong><?php esc_html_e('Page Cache TTL', 'fp-performance-suite'); ?></strong></td>
-                    <td><?php echo esc_html(($currentPageCache['ttl'] ?? 0) / 60); ?> min</td>
-                    <td class="fp-ps-highlight-new"><?php echo esc_html(($config['page_cache']['ttl'] ?? 0) / 60); ?> min</td>
-                    <td><span class="fp-ps-badge green"><?php esc_html_e('Alto', 'fp-performance-suite'); ?></span></td>
-                </tr>
-                
-                
-                <!-- Heartbeat -->
-                <?php $currentHeartbeat = get_option('fp_ps_heartbeat_interval', 60); ?>
-                <tr>
-                    <td><strong><?php esc_html_e('Heartbeat Interval', 'fp-performance-suite'); ?></strong></td>
-                    <td><?php echo esc_html($currentHeartbeat); ?>s</td>
-                    <td class="fp-ps-highlight-new"><?php echo esc_html($config['heartbeat'] ?? 60); ?>s</td>
-                    <td><span class="fp-ps-badge amber"><?php esc_html_e('Medio', 'fp-performance-suite'); ?></span></td>
-                </tr>
-                
-                <!-- Altri parametri... -->
-            </tbody>
-        </table>
-        <?php
-        return ob_get_clean();
-    }
-
-    /**
-     * Render analysis history
-     */
-    private function renderAnalysisHistory(array $history): string
-    {
-        if (empty($history)) {
-            return '<p>' . esc_html__('Nessuna analisi precedente trovata.', 'fp-performance-suite') . '</p>';
-        }
-        
-        ob_start();
-        ?>
-        <div class="fp-ps-history-list">
-            <?php foreach (array_reverse($history) as $index => $item) : ?>
-                <div class="fp-ps-history-item">
-                    <div class="fp-ps-history-date"><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $item['timestamp'])); ?></div>
-                    <div class="fp-ps-history-score">
-                        <strong><?php esc_html_e('Score:', 'fp-performance-suite'); ?></strong> 
-                        <span class="fp-ps-score-badge <?php echo $item['score'] >= 75 ? 'green' : ($item['score'] >= 50 ? 'amber' : 'red'); ?>">
-                            <?php echo esc_html($item['score']); ?>
-                        </span>
-                    </div>
-                    <div class="fp-ps-history-details">
-                        <span><?php esc_html_e('Hosting:', 'fp-performance-suite'); ?> <?php echo esc_html($item['hosting']); ?></span>
-                        <span><?php esc_html_e('RAM:', 'fp-performance-suite'); ?> <?php echo esc_html($item['memory']); ?></span>
-                        <span><?php esc_html_e('DB:', 'fp-performance-suite'); ?> <?php echo esc_html($item['db_size']); ?> MB</span>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
-
-    /**
-     * Generate WP-CLI commands
-     */
-    private function generateWPCLICommands(array $config): string
-    {
-        $commands = [];
-        
-        // Page Cache
-        if (isset($config['page_cache'])) {
-            $commands[] = sprintf(
-                'wp option update fp_ps_page_cache \'%s\'',
-                json_encode($config['page_cache'])
-            );
-        }
-        
-        
-        // Heartbeat
-        if (isset($config['heartbeat'])) {
-            $commands[] = sprintf(
-                'wp option update fp_ps_heartbeat_interval %d',
-                $config['heartbeat']
-            );
-        }
-        
-        return implode("\n", $commands);
-    }
-
-    /**
-     * Save analysis to history
-     */
-    private function saveToHistory(array $analysis, int $score): void
-    {
-        $history = get_option('fp_ps_ai_analysis_history', []);
-        
-        $history[] = [
-            'timestamp' => time(),
-            'score' => $score,
-            'hosting' => $analysis['hosting']['name'],
-            'memory' => $analysis['resources']['memory_limit'],
-            'db_size' => $analysis['database']['size_mb'],
-        ];
-        
-        // Keep only last 10 analyses
-        if (count($history) > 10) {
-            $history = array_slice($history, -10);
-        }
-        
-        update_option('fp_ps_ai_analysis_history', $history);
-    }
-
-    /**
-     * Handle export/import
-     */
-    private function handleExportImport(): void
-    {
-        // Export viene gestito via JavaScript
-        // Import viene gestito via AJAX
-    }
+    // Metodi renderPreviewComparison(), renderAnalysisHistory(), generateWPCLICommands(), 
+    // saveToHistory(), handleExportImport() rimossi - ora gestiti da:
+    // - AIConfig/Components/PreviewComparison
+    // - AIConfig/Components/AnalysisHistory
+    // - AIConfig/Components/WPCLICommandsGenerator
+    // - AIConfig/HistoryManager
 
     /**
      * Inline assets (CSS + JS)

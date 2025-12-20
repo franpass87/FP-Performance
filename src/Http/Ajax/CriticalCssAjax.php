@@ -3,7 +3,11 @@
 namespace FP\PerfSuite\Http\Ajax;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\ServiceContainerAdapter;
+use FP\PerfSuite\Kernel\Container as KernelContainer;
 use FP\PerfSuite\Services\Assets\CriticalCss;
+
+use function wp_unslash;
 
 /**
  * Critical CSS AJAX Handlers
@@ -13,9 +17,12 @@ use FP\PerfSuite\Services\Assets\CriticalCss;
  */
 class CriticalCssAjax
 {
-    private ServiceContainer $container;
+    private ServiceContainer|ServiceContainerAdapter|KernelContainer $container;
     
-    public function __construct(ServiceContainer $container)
+    /**
+     * @param ServiceContainer|ServiceContainerAdapter|KernelContainer $container
+     */
+    public function __construct(ServiceContainer|ServiceContainerAdapter|KernelContainer $container)
     {
         $this->container = $container;
     }
@@ -38,7 +45,7 @@ class CriticalCssAjax
         }
         
         try {
-            $url = isset($_POST['url']) ? esc_url_raw($_POST['url']) : home_url('/');
+            $url = isset($_POST['url']) ? esc_url_raw(wp_unslash($_POST['url'])) : home_url('/');
             
             if (empty($url)) {
                 wp_send_json_error(['error' => __('URL non valido', 'fp-performance-suite')]);

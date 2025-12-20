@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Services\PWA;
 
+use FP\PerfSuite\Utils\ErrorHandler;
+
 class ServiceWorkerManager
 {
     private $cache_strategy;
@@ -31,7 +33,10 @@ class ServiceWorkerManager
         if (file_exists($script_path)) {
             wp_enqueue_script('fp-sw', plugin_dir_url(__FILE__) . '../../assets/js/service-worker.js', [], '1.0.0', true);
         } else {
-            error_log('FP Performance Suite: Service worker script not found');
+            ErrorHandler::handleSilently(
+                new \RuntimeException('Service worker script not found: ' . $script_path),
+                'ServiceWorkerManager enqueue'
+            );
         }
     }
     

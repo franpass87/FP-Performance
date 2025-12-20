@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Admin\Pages;
 
+use FP\PerfSuite\Utils\ErrorHandler;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Admin\RiskMatrix;
 use FP\PerfSuite\Admin\Components\PageIntro;
@@ -79,7 +80,7 @@ class Cdn extends AbstractPage
     {
         // Handle form submission
         $message = '';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_wpnonce'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['_wpnonce'])) {
             $message = $this->handleSave();
         }
 
@@ -159,7 +160,7 @@ class Cdn extends AbstractPage
             $cdn = new CdnManager();
             $settings = $cdn->settings();
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Error loading CdnManager: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'Error loading CdnManager');
             return $this->renderErrorSection('CDN Integration', $e->getMessage());
         }
 
@@ -292,7 +293,7 @@ class Cdn extends AbstractPage
         }
 
         // Verifica nonce di sicurezza
-        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'fp_ps_cdn')) {
+        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce(wp_unslash($_POST['_wpnonce']), 'fp_ps_cdn')) {
             return __('Errore di sicurezza: nonce non valido o scaduto. Riprova a ricaricare la pagina.', 'fp-performance-suite');
         }
 
@@ -303,13 +304,7 @@ class Cdn extends AbstractPage
             return __('CDN settings saved successfully!', 'fp-performance-suite');
 
         } catch (\Throwable $e) {
-            // Log dell'errore
-            error_log(sprintf(
-                '[FP Performance Suite] Errore durante il salvataggio CDN: %s in %s:%d',
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine()
-            ));
+            ErrorHandler::handleSilently($e, 'Errore durante il salvataggio CDN');
             
             return sprintf(
                 __('Error saving CDN settings: %s. Please try again.', 'fp-performance-suite'),
@@ -339,7 +334,7 @@ class Cdn extends AbstractPage
             
             $cdn->update($cdnSettings);
         } catch (\Throwable $e) {
-            error_log('[FP Performance Suite] Errore nel salvataggio CDN: ' . $e->getMessage());
+            ErrorHandler::handleSilently($e, 'Errore nel salvataggio CDN');
             throw new \Exception(__('Errore nel salvataggio delle impostazioni CDN.', 'fp-performance-suite'));
         }
     }

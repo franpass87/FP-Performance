@@ -2,8 +2,10 @@
 
 namespace FP\PerfSuite\Services\Compatibility;
 
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\ServiceContainer;
-use FP\PerfSuite\Utils\Logger;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
 use FP\PerfSuite\Utils\HookManager;
 
 /**
@@ -18,10 +20,13 @@ use FP\PerfSuite\Utils\HookManager;
  */
 class SalientWPBakeryOptimizer
 {
-    private ServiceContainer $container;
+    /** @var ServiceContainer|object */
+    private $container;
     private ThemeDetector $detector;
     private static bool $registered = false;
     private array $config = [];
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    private ?LoggerInterface $logger = null;
     
     /**
      * Script critici Salient che NON devono essere ritardati
@@ -56,13 +61,73 @@ class SalientWPBakeryOptimizer
         '.nectar-fancy-box',
     ];
 
-    public function __construct(ServiceContainer $container, ThemeDetector $detector)
+    /**
+     * @param ServiceContainer|object $container Service container (accepts any container type for compatibility)
+     * @param ThemeDetector $detector Theme detector
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository
+     * @param LoggerInterface|null $logger Logger instance
+     */
+    public function __construct($container, ThemeDetector $detector, ?OptionsRepositoryInterface $optionsRepo = null, ?LoggerInterface $logger = null)
     {
         $this->container = $container;
         $this->detector = $detector;
+        $this->optionsRepo = $optionsRepo;
+        $this->logger = $logger;
         
         // Carica configurazione
         $this->loadConfig();
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
+    }
+    
+    /**
+     * Helper per ottenere opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $default Valore di default
+     * @return mixed Valore opzione
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+    
+    /**
+     * Helper per salvare opzioni con fallback
+     * 
+     * @param string $key Chiave opzione
+     * @param mixed $value Valore opzione
+     * @param bool $autoload Se autoload
+     * @return bool True se salvato con successo
+     */
+    private function setOption(string $key, $value, bool $autoload = true): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value, $autoload);
+        }
+        return update_option($key, $value, $autoload);
     }
 
     /**
@@ -84,7 +149,7 @@ class SalientWPBakeryOptimizer
         ];
         
         $this->config = wp_parse_args(
-            get_option('fp_ps_salient_wpbakery_config', []),
+            $this->getOption('fp_ps_salient_wpbakery_config', []),
             $defaults
         );
     }
@@ -101,12 +166,12 @@ class SalientWPBakeryOptimizer
         
         // Verifica che Salient e WPBakery siano attivi
         if (!$this->shouldActivate()) {
-            Logger::debug('Salient/WPBakery optimizer: tema o builder non rilevato');
+            $this->log('debug', 'Salient/WPBakery optimizer: tema o builder non rilevato');
             return;
         }
         
         if (!$this->config['enabled']) {
-            Logger::debug('Salient/WPBakery optimizer: disabilitato dalla configurazione');
+            $this->log('debug', 'Salient/WPBakery optimizer: disabilitato dalla configurazione');
             return;
         }
 
@@ -158,7 +223,7 @@ class SalientWPBakeryOptimizer
 
         self::$registered = true;
         
-        Logger::info('Salient/WPBakery optimizer registered', [
+        $this->log('info', 'Salient/WPBakery optimizer registered', [
             'theme' => $this->detector->getThemeName(),
             'config' => $this->config,
         ]);
@@ -224,7 +289,7 @@ class SalientWPBakeryOptimizer
             }
         }
 
-        Logger::debug('Salient/WPBakery scripts optimized');
+        $this->log('debug', 'Salient/WPBakery scripts optimized');
     }
 
     /**
@@ -262,7 +327,7 @@ class SalientWPBakeryOptimizer
             }
         }
 
-        Logger::debug('Salient/WPBakery styles optimized');
+        $this->log('debug', 'Salient/WPBakery styles optimized');
     }
 
     /**
@@ -347,7 +412,7 @@ class SalientWPBakeryOptimizer
             echo '<link rel="preconnect" href="https://' . esc_attr($domain) . '" crossorigin>' . "\n";
         }
 
-        Logger::debug('Critical assets preloaded for Salient/WPBakery');
+        $this->log('debug', 'Critical assets preloaded for Salient/WPBakery');
     }
 
     /**
@@ -493,14 +558,14 @@ class SalientWPBakeryOptimizer
             
             $edge->purgeUrls($urls);
             
-            Logger::info('Edge cache purged after WPBakery save', [
+            $this->log('info', 'Edge cache purged after WPBakery save', [
                 'post_id' => $post_id,
                 'urls' => $urls,
             ]);
         } catch (\Exception $e) {
-            Logger::warning('Failed to purge edge cache', [
+            $this->log('warning', 'Failed to purge edge cache', [
                 'error' => $e->getMessage(),
-            ]);
+            ], $e);
         }
 
         // Purge Object Cache per questo post
@@ -522,13 +587,13 @@ class SalientWPBakeryOptimizer
             $edge = $this->container->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class);
             $edge->purgeAll();
             
-            Logger::info('Edge cache purged after Salient option update', [
+            $this->log('info', 'Edge cache purged after Salient option update', [
                 'option' => $option_name,
             ]);
         } catch (\Exception $e) {
-            Logger::warning('Failed to purge edge cache on option update', [
+            $this->log('warning', 'Failed to purge edge cache on option update', [
                 'error' => $e->getMessage(),
-            ]);
+            ], $e);
         }
     }
 
@@ -546,9 +611,9 @@ class SalientWPBakeryOptimizer
     public function updateConfig(array $config): void
     {
         $this->config = wp_parse_args($config, $this->config);
-        update_option('fp_ps_salient_wpbakery_config', $this->config);
+        $this->setOption('fp_ps_salient_wpbakery_config', $this->config);
         
-        Logger::info('Salient/WPBakery config updated', $this->config);
+        $this->log('info', 'Salient/WPBakery config updated', $this->config);
     }
 
     /**

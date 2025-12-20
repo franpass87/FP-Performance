@@ -2,18 +2,54 @@
 
 namespace FP\PerfSuite\Services\DB;
 
-use FP\PerfSuite\Utils\Logger;
-use FP\PerfSuite\Utils\HostingDetector;
+use FP\PerfSuite\Core\Logging\LoggerInterface;
+use FP\PerfSuite\Utils\Logger as StaticLogger;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer\TableOptimizer;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer\DatabaseMetrics;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer\DatabaseAnalyzer;
+use FP\PerfSuite\Services\DB\DatabaseOptimizer\QueryCacheManager;
 
 class DatabaseOptimizer
 {
     private $auto_optimize;
     private $query_cache;
+    private TableOptimizer $tableOptimizer;
+    private DatabaseMetrics $metrics;
+    private DatabaseAnalyzer $analyzer;
+    private QueryCacheManager $queryCacheManager;
+    private ?LoggerInterface $logger = null;
     
-    public function __construct($auto_optimize = true, $query_cache = true)
+    public function __construct($auto_optimize = true, $query_cache = true, ?LoggerInterface $logger = null)
     {
         $this->auto_optimize = $auto_optimize;
         $this->query_cache = $query_cache;
+        $this->logger = $logger;
+        
+        $this->metrics = new DatabaseMetrics();
+        $this->analyzer = new DatabaseAnalyzer($this->metrics);
+        $this->tableOptimizer = new TableOptimizer();
+        $this->queryCacheManager = new QueryCacheManager();
+    }
+    
+    /**
+     * Helper per logging con fallback
+     * 
+     * @param string $level Log level
+     * @param string $message Message
+     * @param array $context Context
+     * @param \Throwable|null $exception Optional exception
+     */
+    private function log(string $level, string $message, array $context = [], ?\Throwable $exception = null): void
+    {
+        if ($this->logger !== null) {
+            if ($exception !== null && method_exists($this->logger, $level)) {
+                $this->logger->$level($message, $context, $exception);
+            } else {
+                $this->logger->$level($message, $context);
+            }
+        } else {
+            StaticLogger::$level($message, $context);
+        }
     }
     
     public function init()
@@ -24,7 +60,7 @@ class DatabaseOptimizer
         }
         
         if ($this->query_cache) {
-            add_action('init', [$this, 'enableQueryCache']);
+            add_action('init', [$this->queryCacheManager, 'enableQueryCache']);
         }
     }
     
@@ -45,7 +81,7 @@ class DatabaseOptimizer
             $remaining = $min_interval - (time() - $last_run);
             $remaining_min = ceil($remaining / 60);
             
-            Logger::info(sprintf(
+            $this->log('info', sprintf(
                 'Database optimization skipped: rate limit active. Retry in %d minutes (Hosting: %s)',
                 $remaining_min,
                 $isShared ? 'Shared' : 'VPS'
@@ -57,7 +93,7 @@ class DatabaseOptimizer
         // Marca inizio ottimizzazione
         set_transient($rate_limit_key, time(), $min_interval);
         
-        Logger::info('Starting database optimization (Hosting: ' . ($isShared ? 'Shared' : 'VPS') . ')');
+        $this->log('info', 'Starting database optimization (Hosting: ' . ($isShared ? 'Shared' : 'VPS') . ')');
         
         // SICUREZZA: Query preparate per prevenire SQL injection
         $tables = $wpdb->get_results("SHOW TABLES", ARRAY_N);
@@ -71,7 +107,7 @@ class DatabaseOptimizer
         foreach ($tables as $table) {
             // Rispetta limite batch su shared
             if ($processed >= $max_tables) {
-                Logger::info("Batch limit reached ({$max_tables} tables), scheduling next batch");
+                $this->log('info', "Batch limit reached ({$max_tables} tables), scheduling next batch");
                 
                 // Schedula prossimo batch tra 5 minuti
                 wp_schedule_single_event(time() + (5 * MINUTE_IN_SECONDS), 'fp_optimize_database');
@@ -90,7 +126,7 @@ class DatabaseOptimizer
                     }
                     $processed++;
                 } catch (\Throwable $e) {
-                    Logger::error("Error optimizing table {$table_name}: " . $e->getMessage());
+                    $this->log('error', "Error optimizing table {$table_name}: " . $e->getMessage(), [], $e);
                 }
             }
             
@@ -101,7 +137,7 @@ class DatabaseOptimizer
         }
         
         $duration = round(microtime(true) - $start_time, 2);
-        Logger::info("Database optimization completed: {$optimized} tables optimized in {$duration}s");
+        $this->log('info', "Database optimization completed: {$optimized} tables optimized in {$duration}s");
         
         return $optimized;
     }
@@ -154,20 +190,20 @@ class DatabaseOptimizer
                     
                     if ($result !== false) {
                         $results['optimized'][] = $table_name;
-                        Logger::info("Table {$table_name} ottimizzata con successo");
+                        $this->log('info', "Table {$table_name} ottimizzata con successo");
                     } else {
                         $results['errors'][$table_name] = $wpdb->last_error ?: 'Errore sconosciuto';
-                        Logger::error("Errore ottimizzando {$table_name}: " . $wpdb->last_error);
+                        $this->log('error', "Errore ottimizzando {$table_name}: " . $wpdb->last_error);
                     }
                 } catch (\Throwable $e) {
                     $results['errors'][$table_name] = $e->getMessage();
-                    Logger::error("Eccezione ottimizzando {$table_name}: " . $e->getMessage());
+                    $this->log('error', "Eccezione ottimizzando {$table_name}: " . $e->getMessage(), [], $e);
                 }
             }
             
             $results['duration'] = round(microtime(true) - $start_time, 2);
             
-            Logger::info(sprintf(
+            $this->log('info', sprintf(
                 'optimizeAllTables completato: %d/%d tabelle ottimizzate in %ss',
                 count($results['optimized']),
                 $results['total'],
@@ -177,7 +213,7 @@ class DatabaseOptimizer
         } catch (\Throwable $e) {
             $results['success'] = false;
             $results['errors']['general'] = $e->getMessage();
-            Logger::error('optimizeAllTables fallito: ' . $e->getMessage());
+            $this->log('error', 'optimizeAllTables fallito: ' . $e->getMessage(), [], $e);
         }
         
         return $results;
@@ -354,6 +390,13 @@ class DatabaseOptimizer
      */
     public function analyzeFragmentation(): array
     {
+        return $this->analyzer->analyzeFragmentation();
+    }
+    
+    // Metodo analyzeFragmentation() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function analyzeFragmentation_OLD(): array
+    {
         global $wpdb;
         
         $fragmentation_data = [
@@ -400,6 +443,13 @@ class DatabaseOptimizer
      * @return array Suggerimenti per indici
      */
     public function analyzeMissingIndexes(): array
+    {
+        return $this->analyzer->analyzeMissingIndexes();
+    }
+    
+    // Metodo analyzeMissingIndexes() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function analyzeMissingIndexes_OLD(): array
     {
         global $wpdb;
         
@@ -452,6 +502,13 @@ class DatabaseOptimizer
      */
     public function analyzeStorageEngines(): array
     {
+        return $this->analyzer->analyzeStorageEngines();
+    }
+    
+    // Metodo analyzeStorageEngines() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function analyzeStorageEngines_OLD(): array
+    {
         global $wpdb;
         
         $engine_analysis = [
@@ -503,6 +560,13 @@ class DatabaseOptimizer
      */
     public function analyzeCharset(): array
     {
+        return $this->analyzer->analyzeCharset();
+    }
+    
+    // Metodo analyzeCharset() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function analyzeCharset_OLD(): array
+    {
         global $wpdb;
         
         $charset_analysis = [
@@ -545,6 +609,13 @@ class DatabaseOptimizer
      * @return array Analisi dettagliata delle opzioni autoload
      */
     public function analyzeAutoloadDetailed(): array
+    {
+        return $this->analyzer->analyzeAutoloadDetailed();
+    }
+    
+    // Metodo analyzeAutoloadDetailed() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function analyzeAutoloadDetailed_OLD(): array
     {
         global $wpdb;
         
@@ -596,6 +667,13 @@ class DatabaseOptimizer
      * @return array Analisi completa del database
      */
     public function getCompleteAnalysis(): array
+    {
+        return $this->analyzer->getCompleteAnalysis();
+    }
+    
+    // Metodo getCompleteAnalysis() originale rimosso - ora gestito da DatabaseAnalyzer
+    
+    private function getCompleteAnalysis_OLD(): array
     {
         return [
             'basic_analysis' => $this->analyze(),

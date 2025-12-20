@@ -2,6 +2,7 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
 use FP\PerfSuite\Utils\Logger;
 
 /**
@@ -16,6 +17,21 @@ use FP\PerfSuite\Utils\Logger;
 class CriticalPathOptimizer
 {
     private const OPTION = 'fp_ps_critical_path_optimization';
+    
+    /**
+     * @var OptionsRepositoryInterface|null
+     */
+    private $optionsRepo;
+
+    /**
+     * Constructor
+     * 
+     * @param OptionsRepositoryInterface|null $optionsRepo Options repository instance
+     */
+    public function __construct(?OptionsRepositoryInterface $optionsRepo = null)
+    {
+        $this->optionsRepo = $optionsRepo;
+    }
 
     /**
      * Register hooks
@@ -432,7 +448,7 @@ class CriticalPathOptimizer
         $settings = $this->getSettings();
         
         // BUGFIX #17: Abilita anche se optimize_google_fonts è true in Assets
-        $assetsSettings = get_option('fp_ps_assets', []);
+        $assetsSettings = $this->getOption('fp_ps_assets', []);
         if (!empty($assetsSettings['optimize_google_fonts'])) {
             return true;
         }
@@ -455,7 +471,7 @@ class CriticalPathOptimizer
             'critical_fonts' => [],
         ];
 
-        $settings = get_option(self::OPTION, []);
+        $settings = $this->getOption(self::OPTION, []);
         return is_array($settings) ? array_merge($defaults, $settings) : $defaults;
     }
 
@@ -478,7 +494,7 @@ class CriticalPathOptimizer
         $current = $this->getSettings();
         $updated = array_merge($current, $settings);
 
-        $result = update_option(self::OPTION, $updated);
+        $result = $this->setOption(self::OPTION, $updated);
 
         if ($result) {
             Logger::info('Critical path optimization settings updated', $updated);
@@ -505,5 +521,35 @@ class CriticalPathOptimizer
             'resource_hints_enabled' => !empty($settings['add_resource_hints']),
             'critical_fonts_count' => count($criticalFonts),
         ];
+    }
+
+    /**
+     * Get option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = null)
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        return get_option($key, $default);
+    }
+
+    /**
+     * Set option value (with fallback)
+     * 
+     * @param string $key Option key
+     * @param mixed $value Value to set
+     * @return bool
+     */
+    private function setOption(string $key, $value): bool
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->set($key, $value);
+        }
+        return update_option($key, $value);
     }
 }

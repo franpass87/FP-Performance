@@ -3,6 +3,8 @@
 namespace FP\PerfSuite\Http\Ajax;
 
 use FP\PerfSuite\ServiceContainer;
+use FP\PerfSuite\ServiceContainerAdapter;
+use FP\PerfSuite\Kernel\Container as KernelContainer;
 use FP\PerfSuite\Utils\Logger;
 
 use function check_ajax_referer;
@@ -21,9 +23,12 @@ use function wp_send_json_success;
  */
 class AIConfigAjax
 {
-    private ServiceContainer $container;
+    private ServiceContainer|ServiceContainerAdapter|KernelContainer $container;
     
-    public function __construct(ServiceContainer $container)
+    /**
+     * @param ServiceContainer|ServiceContainerAdapter|KernelContainer $container
+     */
+    public function __construct(ServiceContainer|ServiceContainerAdapter|KernelContainer $container)
     {
         $this->container = $container;
     }

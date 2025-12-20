@@ -4,6 +4,17 @@ namespace FP\PerfSuite;
 
 use RuntimeException;
 
+/**
+ * Legacy Service Container
+ * 
+ * @deprecated Use Kernel\Container or ServiceContainerAdapter instead.
+ * This class is kept for backward compatibility but will be removed in a future version.
+ * 
+ * Migration path:
+ * - New code: Use Kernel\Container directly
+ * - Existing code: Use ServiceContainerAdapter which wraps Kernel\Container
+ * - Plugin::container() returns ServiceContainerAdapter for backward compatibility
+ */
 class ServiceContainer
 {
     /** @var array<string, callable|object> */

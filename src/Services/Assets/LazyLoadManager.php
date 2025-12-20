@@ -2,17 +2,42 @@
 
 namespace FP\PerfSuite\Services\Assets;
 
+use FP\PerfSuite\Core\Options\OptionsRepositoryInterface;
+
 class LazyLoadManager
 {
+    private const OPTION_KEY = 'fp_ps_lazy_load';
+    
     private $images;
     private $videos;
     private $iframes;
     
-    public function __construct($images = true, $videos = true, $iframes = true)
+    /** @var OptionsRepositoryInterface|null Options repository (injected) */
+    private ?OptionsRepositoryInterface $optionsRepo = null;
+    
+    public function __construct($images = true, $videos = true, $iframes = true, ?OptionsRepositoryInterface $optionsRepo = null)
     {
         $this->images = $images;
         $this->videos = $videos;
         $this->iframes = $iframes;
+        $this->optionsRepo = $optionsRepo;
+    }
+    
+    /**
+     * Helper method per ottenere opzioni con fallback
+     * 
+     * @param string $key Option key
+     * @param mixed $default Default value
+     * @return mixed
+     */
+    private function getOption(string $key, $default = [])
+    {
+        if ($this->optionsRepo !== null) {
+            return $this->optionsRepo->get($key, $default);
+        }
+        
+        // Fallback to direct option call for backward compatibility
+        return get_option($key, $default);
     }
     
     public function init()
@@ -222,7 +247,7 @@ class LazyLoadManager
      */
     public function getSettings(): array
     {
-        $settings = get_option('fp_ps_lazy_load', [
+        $settings = $this->getOption(self::OPTION_KEY, [
             'enabled' => false,
             'lazy_load_images' => true,
             'lazy_load_videos' => true,
