@@ -81,9 +81,12 @@ class CacheServiceProvider implements ServiceProviderInterface
         $container->singleton(
             \FP\PerfSuite\Services\Cache\EdgeCache\CloudflareProvider::class,
             function(Container $c) {
-                $settings = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class)->settings()['cloudflare'] ?? [];
+                $edgeManager = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class);
+                $allSettings = $edgeManager->settings();
+                // FIX: Le impostazioni sono ora in formato flat, non nested per provider
+                $settings = $allSettings['provider'] === 'cloudflare' ? $allSettings : [];
                 return new \FP\PerfSuite\Services\Cache\EdgeCache\CloudflareProvider(
-                    $settings['api_token'] ?? '',
+                    $settings['api_key'] ?? '',
                     $settings['zone_id'] ?? '',
                     $settings['email'] ?? ''
                 );
@@ -93,11 +96,14 @@ class CacheServiceProvider implements ServiceProviderInterface
         $container->singleton(
             \FP\PerfSuite\Services\Cache\EdgeCache\CloudFrontProvider::class,
             function(Container $c) {
-                $settings = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class)->settings()['cloudfront'] ?? [];
+                $edgeManager = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class);
+                $allSettings = $edgeManager->settings();
+                // FIX: Le impostazioni sono ora in formato flat, non nested per provider
+                $settings = $allSettings['provider'] === 'cloudfront' ? $allSettings : [];
                 return new \FP\PerfSuite\Services\Cache\EdgeCache\CloudFrontProvider(
                     $settings['access_key_id'] ?? '',
                     $settings['secret_access_key'] ?? '',
-                    $settings['distribution_id'] ?? '',
+                    $settings['zone_id'] ?? '', // Usa zone_id come distribution_id
                     $settings['region'] ?? 'us-east-1'
                 );
             }
@@ -106,10 +112,13 @@ class CacheServiceProvider implements ServiceProviderInterface
         $container->singleton(
             \FP\PerfSuite\Services\Cache\EdgeCache\FastlyProvider::class,
             function(Container $c) {
-                $settings = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class)->settings()['fastly'] ?? [];
+                $edgeManager = $c->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class);
+                $allSettings = $edgeManager->settings();
+                // FIX: Le impostazioni sono ora in formato flat, non nested per provider
+                $settings = $allSettings['provider'] === 'fastly' ? $allSettings : [];
                 return new \FP\PerfSuite\Services\Cache\EdgeCache\FastlyProvider(
                     $settings['api_key'] ?? '',
-                    $settings['service_id'] ?? ''
+                    $settings['zone_id'] ?? '' // Usa zone_id come service_id
                 );
             }
         );

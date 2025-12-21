@@ -5,6 +5,7 @@ namespace FP\PerfSuite\Admin\Pages;
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Logs\DebugToggler;
 use FP\PerfSuite\Admin\Components\PageIntro;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use function __;
 use function checked;
@@ -107,137 +108,42 @@ class Logs extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator red">
-                                <div class="fp-ps-risk-tooltip red">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">🔴</span>
-                                        <?php esc_html_e('Rischio Alto', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Attiva la modalità debug di WordPress, mostrando errori, warning e notice.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Può esporre informazioni sensibili e rallentare significativamente il sito in produzione.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ Pericoloso in produzione: Usa solo in staging/sviluppo. Disattiva immediatamente dopo il debug.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('wp_debug_enabled'); ?>
                             <small><?php esc_html_e('Master switch for WordPress debugging', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="wp_debug" value="1" <?php checked($status['WP_DEBUG']); ?> data-risk="red" />
+                        <input type="checkbox" name="wp_debug" value="1" <?php checked($status['WP_DEBUG']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('wp_debug_enabled')); ?>" />
                     </label>
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG_LOG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Salva tutti gli errori nel file debug.log senza mostrarli agli utenti.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Il file di log può crescere rapidamente e occupare spazio disco. Leggero impatto sulle performance.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ Accettabile in produzione: Meglio di WP_DEBUG_DISPLAY. Monitora la dimensione del log e puliscilo regolarmente.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('wp_debug_log_enabled'); ?>
                             <small><?php esc_html_e('Save errors to debug.log file', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="wp_debug_log" value="1" <?php checked($status['WP_DEBUG_LOG']); ?> data-risk="amber" />
+                        <input type="checkbox" name="wp_debug_log" value="1" <?php checked($status['WP_DEBUG_LOG']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('wp_debug_log_enabled')); ?>" />
                     </label>
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable WP_DEBUG_DISPLAY', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Mostra gli errori direttamente nel browser agli utenti.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Espone informazioni sensibili del server agli utenti. Rovina l\'esperienza utente.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('❌ Sconsigliato in produzione: Mai in produzione! Usa solo in sviluppo locale. Usa WP_DEBUG_LOG invece.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('wp_debug_display_enabled'); ?>
                             <small><?php esc_html_e('Display errors in browser (not recommended for production)', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="wp_debug_display" value="1" <?php checked($status['WP_DEBUG_DISPLAY']); ?> data-risk="amber" />
+                        <input type="checkbox" name="wp_debug_display" value="1" <?php checked($status['WP_DEBUG_DISPLAY']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('wp_debug_display_enabled')); ?>" />
                     </label>
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable SCRIPT_DEBUG', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Carica le versioni non-minified di CSS e JS di WordPress per facilitare il debug.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Leggero rallentamento del caricamento per file più grandi. Nessun rischio di sicurezza.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚡ OK per debug temporaneo: Utile per debugging di problemi JS/CSS. Disattiva quando non serve.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('script_debug_enabled'); ?>
                             <small><?php esc_html_e('Use non-minified versions of core CSS and JS', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="script_debug" value="1" <?php checked($status['SCRIPT_DEBUG']); ?> data-risk="green" />
+                        <input type="checkbox" name="script_debug" value="1" <?php checked($status['SCRIPT_DEBUG']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('script_debug_enabled')); ?>" />
                     </label>
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Enable SAVEQUERIES', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Salva tutte le query SQL per analisi delle performance del database.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Impatto significativo sulla memoria e performance. Può causare out-of-memory su siti grandi.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ Solo per debug specifico: Attiva solo per brevi periodi quando devi ottimizzare query. Mai lasciare attivo permanentemente.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('savequeries_enabled'); ?>
                             <small><?php esc_html_e('Save database queries for analysis (impacts performance)', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="savequeries" value="1" <?php checked($status['SAVEQUERIES']); ?> data-risk="amber" />
+                        <input type="checkbox" name="savequeries" value="1" <?php checked($status['SAVEQUERIES']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('savequeries_enabled')); ?>" />
                     </label>
                     <p>
                         <button type="submit" class="button button-primary" data-risk="red"><?php esc_html_e('Save Debug Settings', 'fp-performance-suite'); ?></button>

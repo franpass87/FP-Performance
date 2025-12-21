@@ -122,13 +122,21 @@ class RestServiceProvider implements ServiceProviderInterface
         // Boot REST routes
         $container->get(\FP\PerfSuite\Http\Routes::class)->boot();
         
-        // Register AJAX handlers during AJAX requests
-        if (defined('DOING_AJAX') && DOING_AJAX) {
-            add_action('init', function() use ($container) {
-                $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
-                $container->get(\FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax::class)->register();
+        // FIX: Register AJAX handlers in admin (not just during AJAX requests)
+        // WordPress requires AJAX handlers to be registered before the AJAX request is made
+        if (is_admin()) {
+            add_action('admin_init', function() use ($container) {
+                try {
+                    $container->get(\FP\PerfSuite\Http\Ajax\RecommendationsAjax::class)->register();
+                    $container->get(\FP\PerfSuite\Http\Ajax\CriticalCssAjax::class)->register();
+                    $container->get(\FP\PerfSuite\Http\Ajax\AIConfigAjax::class)->register();
+                    $container->get(\FP\PerfSuite\Http\Ajax\SafeOptimizationsAjax::class)->register();
+                } catch (\Throwable $e) {
+                    // Log error but don't break the admin
+                    if (function_exists('error_log')) {
+                        error_log('[FP-Performance] Error registering AJAX handlers: ' . $e->getMessage());
+                    }
+                }
             }, 5);
         }
     }

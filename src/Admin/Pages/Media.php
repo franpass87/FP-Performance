@@ -18,6 +18,8 @@ use function esc_html_e;
 use function wp_nonce_field;
 use function wp_unslash;
 use function wp_verify_nonce;
+use function wp_safe_redirect;
+use function absint;
 use function number_format_i18n;
 use function printf;
 use function current_user_can;
@@ -84,14 +86,14 @@ class Media extends AbstractPage
             'enabled' => !empty($_POST['responsive_enabled']),
             'enable_lazy_loading' => !empty($_POST['responsive_lazy_loading']),
             'optimize_srcset' => !empty($_POST['responsive_srcset']),
-            'max_mobile_width' => (int)($_POST['responsive_mobile_width'] ?? 768),
+            'max_mobile_width' => absint($_POST['responsive_mobile_width'] ?? 768),
             'max_content_image_width' => sanitize_text_field($_POST['responsive_content_width'] ?? '100%'),
         ];
 
         update_option('fp_ps_responsive_images', $responsiveSettings);
 
         // Redirect per evitare resubmission
-        wp_redirect(add_query_arg(['updated' => '1'], admin_url('admin.php?page=' . $this->slug())));
+        wp_safe_redirect(add_query_arg(['updated' => '1'], admin_url('admin.php?page=' . $this->slug())));
         exit;
     }
 

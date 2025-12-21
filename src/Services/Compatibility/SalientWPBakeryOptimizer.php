@@ -578,19 +578,31 @@ class SalientWPBakeryOptimizer
      */
     public function purgeOnSalientUpdate(string $option_name): void
     {
-        // Rileva update opzioni Salient
+        // FIX CRITICO: Escludi SEMPRE opzioni FP Performance per evitare errori durante il salvataggio
+        // Questo deve essere il primo controllo per evitare qualsiasi elaborazione
+        if (strpos($option_name, 'fp_ps_') === 0 || strpos($option_name, 'fp-performance') !== false) {
+            return;
+        }
+        
+        // Rileva update opzioni Salient - ESCLUDI opzioni FP Performance per evitare loop
         if (strpos($option_name, 'salient') === false && strpos($option_name, 'nectar') === false) {
             return;
         }
 
         try {
+            // Verifica che il container sia disponibile prima di usarlo
+            if ($this->container === null || !$this->container->has(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class)) {
+                return;
+            }
+            
             $edge = $this->container->get(\FP\PerfSuite\Services\Cache\EdgeCacheManager::class);
             $edge->purgeAll();
             
             $this->log('info', 'Edge cache purged after Salient option update', [
                 'option' => $option_name,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Gestisce qualsiasi tipo di errore (Exception, Error, etc.)
             $this->log('warning', 'Failed to purge edge cache on option update', [
                 'error' => $e->getMessage(),
             ], $e);

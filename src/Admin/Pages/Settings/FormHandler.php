@@ -35,8 +35,8 @@ class FormHandler extends AbstractFormHandler
         try {
             $pluginOptions = get_option('fp_ps_settings', []);
             $pluginOptions['allowed_role'] = $this->sanitizeInput('allowed_role', 'text') ?? 'administrator';
-            $pluginOptions['safety_mode'] = $this->sanitizeInput('safety_mode', 'bool') ?? false;
-            $pluginOptions['require_critical_css'] = $this->sanitizeInput('require_critical_css', 'bool') ?? false;
+            $pluginOptions['safety_mode'] = isset($_POST['safety_mode']) ? ($this->sanitizeInput('safety_mode', 'bool') ?? false) : false;
+            $pluginOptions['require_critical_css'] = isset($_POST['require_critical_css']) ? ($this->sanitizeInput('require_critical_css', 'bool') ?? false) : false;
             update_option('fp_ps_settings', $pluginOptions);
             
             $criticalCss = $this->sanitizeInput('critical_css', 'textarea') ?? '';

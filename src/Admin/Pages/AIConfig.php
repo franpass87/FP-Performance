@@ -77,7 +77,7 @@ class AIConfig extends AbstractPage
         $analysis = null;
         $suggestions = null;
         
-        if (isset($_GET['analyze']) && wp_unslash($_GET['analyze']) === '1') {
+        if (isset($_GET['analyze']) && sanitize_key(wp_unslash($_GET['analyze'] ?? '')) === '1') {
             // Analisi già completata (verrà fatta via AJAX per animazioni)
             $analysisData = $analyzer->analyze();
             $result = $analyzer->suggest($analysisData);

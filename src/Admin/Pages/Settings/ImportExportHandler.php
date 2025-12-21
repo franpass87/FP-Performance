@@ -55,8 +55,12 @@ class ImportExportHandler
         $json = wp_unslash($_POST['settings_json'] ?? '');
         $data = json_decode($json, true);
 
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return __('❌ Payload JSON non valido: ' . json_last_error_msg(), 'fp-performance-suite');
+        }
+
         if (!is_array($data)) {
-            return __('❌ Payload JSON non valido.', 'fp-performance-suite');
+            return __('❌ Payload JSON non valido: deve essere un oggetto.', 'fp-performance-suite');
         }
 
         $prepared = [];

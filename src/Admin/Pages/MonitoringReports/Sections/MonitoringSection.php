@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages\MonitoringReports\Sections;
 
 use FP\PerfSuite\Utils\ErrorHandler;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use FP\PerfSuite\Services\Monitoring\PerformanceMonitor;
 
@@ -41,11 +42,14 @@ class MonitoringSection
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="monitoring_enabled"><?php esc_html_e('Abilita Monitoring', 'fp-performance-suite'); ?></label>
+                        <label for="monitoring_enabled">
+                            <?php esc_html_e('Abilita Monitoring', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('performance_monitoring'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="monitoring[enabled]" id="monitoring_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <input type="checkbox" name="monitoring[enabled]" id="monitoring_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('performance_monitoring')); ?>">
                             <?php esc_html_e('Traccia le metriche di performance', 'fp-performance-suite'); ?>
                         </label>
                         <p class="description">

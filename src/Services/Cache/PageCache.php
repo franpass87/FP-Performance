@@ -166,7 +166,7 @@ class PageCache
         $file = $this->fileManager->getCacheFile($key);
         
         // SECURITY FIX: Verifica che il file sia nella directory cache autorizzata
-        if (!$this->isValidCacheFile($file)) {
+        if (!$this->fileManager->isValidCacheFile($file)) {
             error_log('FP Performance Suite: Tentativo di eliminare file fuori dalla cache directory: ' . $file);
             return false;
         }
@@ -415,7 +415,9 @@ class PageCache
     
     /**
      * BUGFIX #8: Metodo per servire cache esistente o generarne una nuova
-     * Questo Ã¨ il cuore del sistema di page caching
+     * Questo è il cuore del sistema di page caching
+     * 
+     * FIX: Normalizza URL e controlla esclusioni per permettere caching di tutte le pagine
      */
     public function serveOrCachePage(): void
     {
@@ -434,8 +436,20 @@ class PageCache
             return;
         }
         
-        // Chiave cache basata su URL completo
-        $cache_key = $_SERVER['REQUEST_URI'] ?? '/';
+        // Ottieni URL corrente e normalizzalo
+        $request_uri = $_SERVER['REQUEST_URI'] ?? '/';
+        
+        // FIX: Normalizza l'URL usando UrlNormalizer per coerenza
+        $normalized_url = $this->urlNormalizer->normalizeUrl($request_uri);
+        
+        // FIX: Controlla esclusioni configurate
+        $settings = $this->settings();
+        if ($this->shouldExcludeUrl($normalized_url, $settings)) {
+            return;
+        }
+        
+        // FIX: Usa URL normalizzato come chiave cache
+        $cache_key = $normalized_url;
         
         // Prova a servire da cache
         $cached_content = $this->get($cache_key);
@@ -455,6 +469,60 @@ class PageCache
             }
             return $buffer;
         });
+    }
+    
+    /**
+     * Verifica se un URL dovrebbe essere escluso dalla cache
+     * 
+     * @param string $url URL normalizzato da verificare
+     * @param array $settings Impostazioni cache
+     * @return bool True se l'URL dovrebbe essere escluso
+     */
+    private function shouldExcludeUrl(string $url, array $settings): bool
+    {
+        // Controlla esclusioni URL
+        if (!empty($settings['exclude_urls']) && is_array($settings['exclude_urls'])) {
+            foreach ($settings['exclude_urls'] as $pattern) {
+                if (empty($pattern)) {
+                    continue;
+                }
+                
+                // Usa pattern matching
+                $regex = $this->urlNormalizer->patternToRegex($pattern);
+                if (preg_match($regex, $url)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Controlla esclusioni query string
+        if (!empty($settings['exclude_query_strings']) && is_array($settings['exclude_query_strings'])) {
+            $query_string = $_SERVER['QUERY_STRING'] ?? '';
+            if (!empty($query_string)) {
+                foreach ($settings['exclude_query_strings'] as $pattern) {
+                    if (empty($pattern)) {
+                        continue;
+                    }
+                    if (strpos($query_string, $pattern) !== false) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Controlla esclusioni cookie
+        if (!empty($settings['exclude_cookies']) && is_array($settings['exclude_cookies'])) {
+            foreach ($settings['exclude_cookies'] as $cookie_name) {
+                if (empty($cookie_name)) {
+                    continue;
+                }
+                if (isset($_COOKIE[$cookie_name])) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
     
     /**

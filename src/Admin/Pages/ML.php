@@ -64,16 +64,66 @@ class ML extends AbstractPage
         
         $settings = $this->getSettings();
         
-        // Get ML services
-        $predictor = $this->container->get(MLPredictor::class);
-        $pattern_learner = $this->container->get(PatternLearner::class);
-        $anomaly_detector = $this->container->get(AnomalyDetector::class);
-        $auto_tuner = $this->container->get(AutoTuner::class);
+        // Get ML services with error handling
+        $predictor = null;
+        $pattern_learner = null;
+        $anomaly_detector = null;
+        $auto_tuner = null;
         
-        // Get reports
-        $ml_report = $predictor->generateMLReport();
-        $anomaly_report = $anomaly_detector->generateAnomalyReport();
-        $tuning_report = $auto_tuner->generateTuningReport();
+        try {
+            if ($this->container->has(MLPredictor::class)) {
+                $predictor = $this->container->get(MLPredictor::class);
+            }
+            if ($this->container->has(PatternLearner::class)) {
+                $pattern_learner = $this->container->get(PatternLearner::class);
+            }
+            if ($this->container->has(AnomalyDetector::class)) {
+                $anomaly_detector = $this->container->get(AnomalyDetector::class);
+            }
+            if ($this->container->has(AutoTuner::class)) {
+                $auto_tuner = $this->container->get(AutoTuner::class);
+            }
+        } catch (\Throwable $e) {
+            // Log error but continue with default values
+            ErrorHandler::handleSilently($e, 'ML services initialization');
+        }
+        
+        // Get reports with fallback defaults
+        $ml_report = [
+            'enabled' => false,
+            'data_points' => 0,
+            'model_accuracy' => 0.0,
+            'last_analysis' => null,
+            'predictions' => [],
+        ];
+        $anomaly_report = [
+            'anomalies_count' => 0,
+            'critical_anomalies' => 0,
+            'high_anomalies' => 0,
+            'anomalies' => [],
+        ];
+        $tuning_report = [
+            'enabled' => false,
+            'tuning_count' => 0,
+            'last_tuning' => null,
+            'next_tuning' => null,
+            'recent_changes' => [],
+        ];
+        
+        try {
+            if ($predictor && method_exists($predictor, 'generateMLReport')) {
+                $ml_report = $predictor->generateMLReport();
+            }
+            if ($anomaly_detector && method_exists($anomaly_detector, 'generateAnomalyReport')) {
+                $anomaly_report = $anomaly_detector->generateAnomalyReport();
+            }
+            if ($auto_tuner && method_exists($auto_tuner, 'generateTuningReport')) {
+                $tuning_report = $auto_tuner->generateTuningReport();
+            }
+        } catch (\Throwable $e) {
+            // Log error but continue with default values
+            ErrorHandler::handleSilently($e, 'ML reports generation');
+        }
         
         // Get current tab
         $current_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'overview';
@@ -443,12 +493,14 @@ class ML extends AbstractPage
                                 
                                 <div class="fp-ps-form-group">
                                     <label for="auto_tuner_enabled" class="fp-ps-checkbox-label">
+                                        <?php echo RiskMatrix::renderIndicator('auto_tuner_enabled'); ?>
                                         <input type="checkbox" 
                                                id="auto_tuner_enabled" 
                                                name="auto_tuner_enabled" 
                                                value="1" 
                                                <?php checked($tuning_report['enabled'], true); ?>
-                                               class="fp-ps-checkbox" />
+                                               class="fp-ps-checkbox"
+                                               data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('auto_tuner_enabled')); ?>" />
                                         <?php _e('Enable Auto-Tuning', 'fp-performance-suite'); ?>
                                     </label>
                                     <p class="description">
@@ -479,12 +531,14 @@ class ML extends AbstractPage
                                 
                                 <div class="fp-ps-form-group">
                                     <label for="aggressive_mode" class="fp-ps-checkbox-label">
+                                        <?php echo RiskMatrix::renderIndicator('auto_tuner_aggressive_mode'); ?>
                                         <input type="checkbox" 
                                                id="aggressive_mode" 
                                                name="aggressive_mode" 
                                                value="1" 
                                                <?php checked(get_option('fp_ps_auto_tuner')['aggressive_mode'] ?? false, true); ?>
-                                               class="fp-ps-checkbox" />
+                                               class="fp-ps-checkbox"
+                                               data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('auto_tuner_aggressive_mode')); ?>" />
                                         <?php _e('Aggressive Mode', 'fp-performance-suite'); ?>
                                     </label>
                                     <p class="description">

@@ -209,33 +209,14 @@ class JavaScriptTab
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Abilita Ottimizzazione', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Attiva la rimozione automatica del codice JavaScript non utilizzato dalle pagine.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce il peso JavaScript del 30-50%, migliora FCP e Time to Interactive (TTI).', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ Testa accuratamente: può rompere funzionalità dinamiche. Usa le esclusioni per proteggere script critici.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('unused_js_enabled'); ?>
                             <small><?php esc_html_e('Attiva la rimozione automatica del codice JavaScript non utilizzato', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" 
                                name="unused_optimization[enabled]" 
                                value="1"
                                <?php checked($unusedSettings['enabled']); ?>
-                               data-risk="amber" />
+                               data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('unused_js_enabled')); ?>" />
                     </label>
                 </div>
                 
@@ -249,33 +230,14 @@ class JavaScriptTab
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Abilita Code Splitting', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Divide il codice JavaScript in chunks separati caricati solo quando necessario.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce il bundle iniziale, migliora FCP e LCP caricando solo il codice necessario.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('⚠️ Utile per siti complessi. Potrebbe aumentare leggermente le richieste HTTP.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('code_splitting_enabled'); ?>
                             <small><?php esc_html_e('Divide il codice JavaScript in chunks più piccoli per un caricamento più efficiente', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" 
                                name="code_splitting[enabled]" 
                                value="1"
                                <?php checked($codeSplittingSettings['enabled']); ?>
-                               data-risk="amber" />
+                               data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('code_splitting_enabled')); ?>" />
                     </label>
                 </div>
                 
@@ -289,33 +251,14 @@ class JavaScriptTab
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Abilita Tree Shaking', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove automaticamente il codice morto e le funzioni non utilizzate dai bundle JavaScript.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Riduce il peso dei bundle del 10-30% eliminando codice non raggiungibile.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Consigliato: sicuro e efficace, rimuove solo codice oggettivamente non utilizzato.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('tree_shaking_enabled'); ?>
                             <small><?php esc_html_e('Rimuove il codice morto e le funzioni non utilizzate dai bundle JavaScript', 'fp-performance-suite'); ?></small>
                         </span>
                         <input type="checkbox" 
                                name="tree_shaking[enabled]" 
                                value="1"
                                <?php checked($treeShakingSettings['enabled']); ?>
-                               data-risk="green" />
+                               data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('tree_shaking_enabled')); ?>" />
                     </label>
                 </div>
                 

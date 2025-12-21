@@ -78,19 +78,31 @@ abstract class AbstractFormHandler
 
         $value = wp_unslash($source[$key]);
 
-        return match($type) {
-            'text' => sanitize_text_field($value),
-            'textarea' => sanitize_textarea_field($value),
-            'email' => sanitize_email($value),
-            'url' => esc_url_raw($value),
-            'int' => absint($value),
-            'float' => (float) $value,
-            'bool' => !empty($value),
-            'array' => array_map('sanitize_text_field', (array) $value),
-            'html' => wp_kses_post($value),
-            'raw' => $value, // Solo per casi speciali, usare con cautela
-            default => sanitize_text_field($value)
-        };
+        // FIX: Usa switch invece di match() per compatibilità PHP 7.4+
+        switch ($type) {
+            case 'text':
+                return sanitize_text_field($value);
+            case 'textarea':
+                return sanitize_textarea_field($value);
+            case 'email':
+                return sanitize_email($value);
+            case 'url':
+                return esc_url_raw($value);
+            case 'int':
+                return absint($value);
+            case 'float':
+                return (float) $value;
+            case 'bool':
+                return !empty($value);
+            case 'array':
+                return array_map('sanitize_text_field', (array) $value);
+            case 'html':
+                return wp_kses_post($value);
+            case 'raw':
+                return $value; // Solo per casi speciali, usare con cautela
+            default:
+                return sanitize_text_field($value);
+        }
     }
 
     /**
@@ -121,35 +133,49 @@ abstract class AbstractFormHandler
     protected function handleError(\Throwable $e, string $context): string
     {
         ErrorHandler::handle($e, "Form handler error in {$context}");
-        return ErrorHandler::getAdminErrorMessage($e);
+        
+        // Usa handleWithMessage se disponibile, altrimenti messaggio generico
+        if (method_exists(ErrorHandler::class, 'handleWithMessage')) {
+            return ErrorHandler::handleWithMessage($e, $context);
+        }
+        
+        // Fallback a messaggio generico
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            return sprintf(
+                __('Errore in %s: %s', 'fp-performance-suite'),
+                $context,
+                esc_html($e->getMessage())
+            );
+        }
+        
+        return sprintf(
+            __('Si è verificato un errore in %s. Controlla i log per dettagli.', 'fp-performance-suite'),
+            $context
+        );
     }
 
     /**
      * Restituisce messaggio di successo
      * 
      * @param string $message Messaggio
-     * @return string Messaggio formattato
+     * @return string Messaggio semplice (senza HTML, viene wrappato dal template)
      */
     protected function successMessage(string $message): string
     {
-        return sprintf(
-            '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-            esc_html($message)
-        );
+        // Restituisce solo il testo, il template si occupa del wrapping HTML
+        return $message;
     }
 
     /**
      * Restituisce messaggio di errore
      * 
      * @param string $message Messaggio
-     * @return string Messaggio formattato
+     * @return string Messaggio semplice (senza HTML, viene wrappato dal template)
      */
     protected function errorMessage(string $message): string
     {
-        return sprintf(
-            '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
-            esc_html($message)
-        );
+        // Restituisce solo il testo, il template si occupa del wrapping HTML
+        return $message;
     }
 
     /**
@@ -165,8 +191,9 @@ abstract class AbstractFormHandler
     /**
      * Template method - da implementare nelle sottoclassi
      * 
-     * @return string Messaggio di risultato (vuoto se nessun form processato)
+     * @note Questo metodo è stato rimosso dalla classe base per permettere alle sottoclassi
+     * di implementare handle() con qualsiasi firma necessaria (parametri, riferimenti, ecc.)
+     * Ogni sottoclasse deve implementare il proprio metodo handle() in base alle sue esigenze.
      */
-    abstract public function handle(): string;
 }
 

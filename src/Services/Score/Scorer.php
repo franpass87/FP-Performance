@@ -189,10 +189,12 @@ class Scorer
         if (!empty($assetStatus['minify_html'])) {
             $active[] = __('HTML minification active', 'fp-performance-suite');
         }
-        if (!empty($assetStatus['defer_js'])) {
+        // FIX: Verifica esplicitamente che il valore sia true, non solo "not empty"
+        // Questo gestisce correttamente i valori false espliciti
+        if (isset($assetStatus['defer_js']) && $assetStatus['defer_js'] === true) {
             $active[] = __('Defer JS active', 'fp-performance-suite');
         }
-        if (!empty($assetStatus['async_js'])) {
+        if (isset($assetStatus['async_js']) && $assetStatus['async_js'] === true) {
             $active[] = __('Async JS active', 'fp-performance-suite');
         }
         if (!empty($assetStatus['combine_css'])) {

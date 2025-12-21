@@ -73,7 +73,7 @@ class FormHandler extends AbstractFormHandler
     {
         try {
             $settings = [
-                'enabled' => $this->sanitizeInput('enabled', 'bool') ?? false,
+                'enabled' => isset($_POST['enabled']) ? ($this->sanitizeInput('enabled', 'bool') ?? false) : false,
                 'data_retention_days' => $this->sanitizeInput('data_retention_days', 'int') ?? 30,
                 'prediction_threshold' => (float)($this->sanitizeInput('prediction_threshold', 'text') ?? 0.7),
                 'anomaly_threshold' => (float)($this->sanitizeInput('anomaly_threshold', 'text') ?? 0.8),
@@ -91,9 +91,9 @@ class FormHandler extends AbstractFormHandler
     {
         try {
             $settings = [
-                'enabled' => $this->sanitizeInput('auto_tuner_enabled', 'bool') ?? false,
+                'enabled' => isset($_POST['auto_tuner_enabled']) ? ($this->sanitizeInput('auto_tuner_enabled', 'bool') ?? false) : false,
                 'tuning_frequency' => $this->sanitizeInput('tuning_frequency', 'text') ?? '6hourly',
-                'aggressive_mode' => $this->sanitizeInput('aggressive_mode', 'bool') ?? false,
+                'aggressive_mode' => isset($_POST['aggressive_mode']) ? ($this->sanitizeInput('aggressive_mode', 'bool') ?? false) : false,
                 'auto_apply_changes' => true,
                 'tuning_threshold' => 0.1
             ];

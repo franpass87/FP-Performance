@@ -341,11 +341,12 @@ class Compression extends AbstractPage
             $compression = $this->container->get(CompressionManager::class);
             
             // Save compression settings
-            $enabled = !empty($_POST['compression']['enabled']);
-            $deflate_enabled = !empty($_POST['compression']['deflate_enabled']);
-            $brotli_enabled = !empty($_POST['compression']['brotli_enabled']);
-            $brotli_quality = isset($_POST['compression']['brotli_quality']) 
-                ? max(1, min(11, (int)$_POST['compression']['brotli_quality'])) 
+            $compressionPost = $_POST['compression'] ?? [];
+            $enabled = !empty($compressionPost['enabled']);
+            $deflate_enabled = !empty($compressionPost['deflate_enabled']);
+            $brotli_enabled = !empty($compressionPost['brotli_enabled']);
+            $brotli_quality = isset($compressionPost['brotli_quality']) 
+                ? max(1, min(11, (int)$compressionPost['brotli_quality'])) 
                 : 5;
             
             // Update settings

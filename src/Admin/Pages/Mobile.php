@@ -13,6 +13,7 @@ use FP\PerfSuite\Admin\Components\RiskLegend;
 use FP\PerfSuite\Admin\Components\PageIntro;
 
 use function __;
+use function absint;
 use function wp_verify_nonce;
 use function wp_unslash;
 
@@ -424,7 +425,7 @@ class Mobile extends AbstractPage
                 'enabled' => !empty($_POST['responsive_enabled']),
                 'enable_lazy_loading' => !empty($_POST['enable_lazy_loading']),
                 'optimize_srcset' => !empty($_POST['optimize_srcset']),
-                'max_mobile_width' => intval($_POST['max_mobile_width'] ?? 768),
+                'max_mobile_width' => absint($_POST['max_mobile_width'] ?? 768),
                 'max_content_image_width' => sanitize_text_field($_POST['max_content_image_width'] ?? '100%')
             ];
             

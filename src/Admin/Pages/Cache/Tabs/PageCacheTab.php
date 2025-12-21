@@ -106,7 +106,7 @@ class PageCacheTab
                         </strong>
                         <span class="description"><?php esc_html_e('Recommended for shared hosting with limited CPU.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="page_cache_enabled" value="1" <?php checked($pageSettings['enabled']); ?> data-risk="amber" />
+                    <input type="checkbox" name="page_cache_enabled" value="1" <?php checked($pageSettings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('page_cache')); ?>" />
                 </label>
                 <p>
                     <label for="page_cache_ttl">
@@ -189,7 +189,7 @@ class PageCacheTab
                         </strong>
                         <span class="description"><?php esc_html_e('Precarica le pagine prima del click per navigazione istantanea.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled'] ?? false); ?> data-risk="green" />
+                    <input type="checkbox" name="prefetch_enabled" value="1" <?php checked($prefetchSettings['enabled'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('predictive_prefetch')); ?>" />
                 </label>
 
                 <table class="form-table" style="margin-top: 20px;">
@@ -288,13 +288,13 @@ class PageCacheTab
                         </strong>
                         <span class="description"><?php esc_html_e('Applica regole .htaccess ottimizzate per il caching dei file statici.', 'fp-performance-suite'); ?></span>
                     </span>
-                    <input type="checkbox" name="cache_rules_enabled" value="1" <?php checked($headerSettings['cache_rules']['enabled'] ?? false); ?> data-risk="green" />
+                    <input type="checkbox" name="cache_rules_enabled" value="1" <?php checked($headerSettings['cache_rules']['enabled'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('cache_rules')); ?>" />
                 </label>
                 
                 <div style="margin-left: 20px; margin-top: 15px;">
                     <p>
                         <label>
-                            <input type="checkbox" name="html_cache" value="1" <?php checked($headerSettings['cache_rules']['html_cache'] ?? false); ?> />
+                            <input type="checkbox" name="html_cache" value="1" <?php checked($headerSettings['cache_rules']['html_cache'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('html_cache')); ?>" />
                             <?php esc_html_e('Cache HTML', 'fp-performance-suite'); ?>
                             <?php echo RiskMatrix::renderIndicator('html_cache'); ?>
                         </label>
@@ -303,7 +303,7 @@ class PageCacheTab
                     
                     <p>
                         <label>
-                            <input type="checkbox" name="fonts_cache" value="1" <?php checked($headerSettings['cache_rules']['fonts_cache'] ?? true); ?> />
+                            <input type="checkbox" name="fonts_cache" value="1" <?php checked($headerSettings['cache_rules']['fonts_cache'] ?? true); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('fonts_cache')); ?>" />
                             <?php esc_html_e('Cache Font (woff2, woff, ttf, otf)', 'fp-performance-suite'); ?>
                             <?php echo RiskMatrix::renderIndicator('fonts_cache'); ?>
                         </label>

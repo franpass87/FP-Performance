@@ -12,8 +12,8 @@ use FP\PerfSuite\Admin\Pages\MonitoringReports\Tabs\DiagnosticsTab;
 use function __;
 use function esc_html_e;
 use function sanitize_key;
+use function sanitize_text_field;
 use function in_array;
-use function urldecode;
 use function wp_unslash;
 
 /**
@@ -84,18 +84,18 @@ class MonitoringReports extends AbstractPage
 
         // Check for messages from URL (from admin_post handlers)
         if (isset($_GET['message'])) {
-            $message = urldecode($_GET['message']);
+            $message = sanitize_text_field(wp_unslash($_GET['message']));
         }
         
         // Check for legacy success message from URL
-        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+        if (isset($_GET['updated']) && sanitize_key(wp_unslash($_GET['updated'] ?? '')) === '1') {
             $message = __('Impostazioni monitoraggio salvate con successo!', 'fp-performance-suite');
         }
 
         // Check for legacy error message from URL
-        if (isset($_GET['error']) && $_GET['error'] === '1') {
+        if (isset($_GET['error']) && sanitize_key(wp_unslash($_GET['error'] ?? '')) === '1') {
             $message = isset($_GET['message']) 
-                ? urldecode($_GET['message']) 
+                ? sanitize_text_field(wp_unslash($_GET['message'] ?? '')) 
                 : __('Si è verificato un errore durante il salvataggio.', 'fp-performance-suite');
         }
 

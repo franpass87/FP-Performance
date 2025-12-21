@@ -101,12 +101,52 @@ class EdgeCacheManager
      */
     public function getSettings(): array
     {
+        // Carica impostazioni da opzione WordPress
+        $option = get_option('fp_ps_edge_cache_settings', []);
+        
         return [
-            'enabled' => !empty($this->provider) && !empty($this->api_key),
-            'provider' => $this->provider,
-            'zone_id' => $this->zone_id,
-            'api_key_configured' => !empty($this->api_key),
+            'enabled' => !empty($option['enabled'] ?? false),
+            'provider' => $option['provider'] ?? $this->provider ?? 'cloudflare',
+            'zone_id' => $option['zone_id'] ?? $this->zone_id ?? '',
+            'api_key' => $option['api_key'] ?? $this->api_key ?? '',
+            'api_key_configured' => !empty($option['api_key'] ?? $this->api_key ?? ''),
         ];
+    }
+    
+    /**
+     * Alias per getSettings() per compatibilità
+     * 
+     * @return array
+     */
+    public function settings(): array
+    {
+        return $this->getSettings();
+    }
+    
+    /**
+     * Aggiorna le impostazioni
+     * 
+     * @param array $settings Nuove impostazioni
+     * @return bool True se salvato con successo
+     */
+    public function updateSettings(array $settings): bool
+    {
+        // Salva in opzione WordPress
+        $current = get_option('fp_ps_edge_cache_settings', []);
+        $updated = array_merge($current, $settings);
+        
+        // Aggiorna anche le proprietà dell'istanza
+        if (isset($settings['provider'])) {
+            $this->provider = $settings['provider'];
+        }
+        if (isset($settings['api_key'])) {
+            $this->api_key = $settings['api_key'];
+        }
+        if (isset($settings['zone_id'])) {
+            $this->zone_id = $settings['zone_id'];
+        }
+        
+        return update_option('fp_ps_edge_cache_settings', $updated, false);
     }
     
     /**

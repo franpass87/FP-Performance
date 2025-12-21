@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Admin\Pages\MonitoringReports\Sections;
 
+use FP\PerfSuite\Admin\RiskMatrix;
+
 use function esc_attr;
 use function esc_html_e;
 use function checked;
@@ -40,11 +42,14 @@ class PerformanceBudgetSection
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="perf_budget_enabled"><?php esc_html_e('Abilita Performance Budget', 'fp-performance-suite'); ?></label>
+                        <label for="perf_budget_enabled">
+                            <?php esc_html_e('Abilita Performance Budget', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('performance_budget_enabled'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="perf_budget[enabled]" id="perf_budget_enabled" value="1" <?php checked($budget['enabled']); ?>>
+                            <input type="checkbox" name="perf_budget[enabled]" id="perf_budget_enabled" value="1" <?php checked($budget['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('performance_budget_enabled')); ?>">
                             <?php esc_html_e('Monitora e avvisa quando le soglie vengono superate', 'fp-performance-suite'); ?>
                         </label>
                     </td>
@@ -110,11 +115,14 @@ class PerformanceBudgetSection
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="alert_on_exceed"><?php esc_html_e('Invia avvisi via email', 'fp-performance-suite'); ?></label>
+                        <label for="alert_on_exceed">
+                            <?php esc_html_e('Invia avvisi via email', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('performance_budget_alert_on_exceed'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="perf_budget[alert_on_exceed]" id="alert_on_exceed" value="1" <?php checked($budget['alert_on_exceed']); ?>>
+                            <input type="checkbox" name="perf_budget[alert_on_exceed]" id="alert_on_exceed" value="1" <?php checked($budget['alert_on_exceed']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('performance_budget_alert_on_exceed')); ?>">
                             <?php esc_html_e('Invia email quando le soglie vengono superate', 'fp-performance-suite'); ?>
                         </label>
                     </td>

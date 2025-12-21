@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages\MonitoringReports\Sections;
 
 use FP\PerfSuite\Utils\ErrorHandler;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use FP\PerfSuite\Services\Reports\ScheduledReports;
 
@@ -42,11 +43,14 @@ class ReportsSection
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="reports_enabled"><?php esc_html_e('Abilita Report', 'fp-performance-suite'); ?></label>
+                        <label for="reports_enabled">
+                            <?php esc_html_e('Abilita Report', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('scheduled_reports'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="reports[enabled]" id="reports_enabled" value="1" <?php checked($settings['enabled']); ?>>
+                            <input type="checkbox" name="reports[enabled]" id="reports_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('scheduled_reports')); ?>">
                             <?php esc_html_e('Invia report di performance schedulati', 'fp-performance-suite'); ?>
                         </label>
                     </td>

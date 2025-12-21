@@ -18,12 +18,17 @@ use FP\PerfSuite\Services\Assets\JavaScriptTreeShaker;
 use FP\PerfSuite\Services\Intelligence\SmartExclusionDetector;
 use FP\PerfSuite\Services\Intelligence\CriticalAssetsDetector;
 
+use function wp_safe_redirect;
+
 use function __;
+use function absint;
+use function current_user_can;
 use function sanitize_key;
 use function sanitize_text_field;
 use function sprintf;
 use function wp_unslash;
 use function wp_verify_nonce;
+use FP\PerfSuite\Utils\Capabilities;
 
 class PostHandler
 {
@@ -36,6 +41,11 @@ class PostHandler
 
     public function handlePost(array &$settings, array &$fontSettings, array &$thirdPartySettings): string
     {
+        // Verifica capability utente
+        if (!current_user_can(Capabilities::required())) {
+            return __('Error: You do not have permission to perform this action.', 'fp-performance-suite');
+        }
+        
         // Verifica che sia una richiesta POST
         if (!isset($_POST['fp_ps_assets_nonce']) || !wp_verify_nonce(wp_unslash($_POST['fp_ps_assets_nonce']), 'fp-ps-assets')) {
             return '';
@@ -55,7 +65,7 @@ class PostHandler
                         $message = __('CSS exclusions applied successfully!', 'fp-performance-suite');
                         break;
                     case 'assets_applied':
-                        $count = (int) ($_GET['count'] ?? 0);
+                        $count = absint($_GET['count'] ?? 0);
                         $message = sprintf(__('%d critical assets applied successfully!', 'fp-performance-suite'), $count);
                         break;
                     case 'third_party_saved':
@@ -82,7 +92,7 @@ class PostHandler
             // Handle intelligence integration redirects
             if (isset($_POST['use_intelligence_detection'])) {
                 $redirect_url = admin_url('admin.php?page=fp-performance-suite-intelligence');
-                wp_redirect($redirect_url);
+                wp_safe_redirect($redirect_url);
                 exit;
             }
 
@@ -242,7 +252,7 @@ class PostHandler
             $thirdPartyScripts->updateSettings([
                 'enabled' => !empty($_POST['third_party_enabled']),
                 'delay_all' => !empty($_POST['third_party_delay_all']),
-                'delay_timeout' => (int) ($_POST['third_party_timeout'] ?? 5000),
+                'delay_timeout' => absint($_POST['third_party_timeout'] ?? 5000),
                 'load_on' => sanitize_text_field($_POST['third_party_load_on'] ?? 'interaction'),
                 'scripts' => [
                     'google_analytics' => ['enabled' => !empty($_POST['third_party_ga']), 'delay' => true],
@@ -310,7 +320,7 @@ class PostHandler
                 'push_critical_css' => !empty($_POST['http2_push_css']),
                 'push_critical_js' => !empty($_POST['http2_push_js']),
                 'push_fonts' => !empty($_POST['http2_push_fonts']),
-                'max_push_assets' => (int) ($_POST['http2_max_resources'] ?? 10),
+                'max_push_assets' => absint($_POST['http2_max_resources'] ?? 10),
             ]);
             
             return __('HTTP/2 Server Push settings saved successfully!', 'fp-performance-suite');
@@ -332,8 +342,8 @@ class PostHandler
                 'enabled' => !empty($_POST['smart_delivery_enabled']),
                 'adapt_images' => !empty($_POST['smart_adaptive_images']),
                 'adapt_videos' => !empty($_POST['smart_adaptive_videos']),
-                'slow_quality' => (int) ($_POST['smart_quality_slow'] ?? 60),
-                'fast_quality' => (int) ($_POST['smart_quality_fast'] ?? 85),
+                'slow_quality' => absint($_POST['smart_quality_slow'] ?? 60),
+                'fast_quality' => absint($_POST['smart_quality_fast'] ?? 85),
             ]);
             
             return __('Smart Asset Delivery settings saved successfully!', 'fp-performance-suite');
@@ -452,7 +462,9 @@ class PostHandler
         } elseif (isset($_POST['action_add_custom'])) {
             $scriptDetector->addCustomScript([
                 'name' => sanitize_text_field($_POST['script_name'] ?? ''),
-                'patterns' => array_filter(array_map('trim', explode("\n", wp_unslash($_POST['script_patterns'] ?? '')))),
+                'patterns' => array_filter(array_map(function($pattern) {
+                    return sanitize_text_field(trim($pattern));
+                }, explode("\n", wp_unslash($_POST['script_patterns'] ?? '')))),
                 'enabled' => !empty($_POST['script_enabled']),
                 'delay' => !empty($_POST['script_delay']),
             ]);
@@ -519,7 +531,7 @@ class PostHandler
             $currentSettings = $optimizer->settings();
             
             // Update the main enabled flag - ensure we handle both checked and unchecked states
-            $currentSettings['enabled'] = isset($_POST['assets_enabled']) && $_POST['assets_enabled'] === '1';
+            $currentSettings['enabled'] = isset($_POST['assets_enabled']) && sanitize_key(wp_unslash($_POST['assets_enabled'] ?? '')) === '1';
             
             // Save the updated settings
             $result = $optimizer->update($currentSettings);

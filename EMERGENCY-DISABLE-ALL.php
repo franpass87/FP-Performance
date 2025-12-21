@@ -37,10 +37,20 @@ $options_to_disable = [
         'minify_css' => false,
         'minify_js' => false,
         'minify_inline_css' => false,
+        'minify_inline_js' => false,
         'remove_comments' => false,
         'optimize_google_fonts' => false,
         'remove_emojis' => false,
+        'defer_js' => false,
+        'async_js' => false,
+        'combine_js' => false,
+        'combine_css' => false,
+        'unused_optimization' => false,
+        'code_splitting' => false,
     ],
+    
+    // Third Party Scripts - DISABILITA TUTTO (molto probabile causa errore)
+    'fp_ps_third_party_settings' => [],
     
     // Media/Images
     'fp_ps_image_optimizer' => ['enabled' => false, 'lazy_loading' => false],

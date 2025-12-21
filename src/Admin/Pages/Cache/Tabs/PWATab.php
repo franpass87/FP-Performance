@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages\Cache\Tabs;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\PWA\ServiceWorkerManager;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use function __;
 use function checked;
@@ -59,11 +60,16 @@ class PWATab
                 
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php esc_html_e('Abilita PWA', 'fp-performance-suite'); ?></th>
+                        <th scope="row">
+                            <label for="pwa_enabled">
+                                <?php esc_html_e('Abilita PWA', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('pwa_enabled'); ?>
+                            </label>
+                        </th>
                         <td>
                             <label>
-                                <input type="checkbox" name="enabled" value="1" 
-                                       <?php checked(!empty($pwaSettings['enabled'])); ?>>
+                                <input type="checkbox" name="enabled" id="pwa_enabled" value="1" 
+                                       <?php checked(!empty($pwaSettings['enabled'])); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('pwa_enabled')); ?>">
                                 <?php esc_html_e('Abilita Progressive Web App', 'fp-performance-suite'); ?>
                             </label>
                             <p class="description">

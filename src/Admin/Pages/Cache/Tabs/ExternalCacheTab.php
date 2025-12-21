@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages\Cache\Tabs;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Assets\ExternalResourceCacheManager;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use function __;
 use function admin_url;
@@ -151,10 +152,13 @@ class ExternalCacheTab
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="enabled"><?php esc_html_e('Abilita Cache Esterna', 'fp-performance-suite'); ?></label>
+                            <label for="enabled">
+                                <?php esc_html_e('Abilita Cache Esterna', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('external_cache_enabled'); ?>
+                            </label>
                         </th>
                         <td>
-                            <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> />
+                            <input type="checkbox" id="enabled" name="enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('external_cache_enabled')); ?>" />
                             <p class="description">
                                 <?php esc_html_e('Abilita la gestione automatica degli header di cache per risorse esterne.', 'fp-performance-suite'); ?>
                             </p>
@@ -202,10 +206,13 @@ class ExternalCacheTab
                     
                     <tr>
                         <th scope="row">
-                            <label for="aggressive_mode"><?php esc_html_e('Modalità Aggressiva', 'fp-performance-suite'); ?></label>
+                            <label for="aggressive_mode">
+                                <?php esc_html_e('Modalità Aggressiva', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('external_cache_aggressive_mode'); ?>
+                            </label>
                         </th>
                         <td>
-                            <input type="checkbox" id="aggressive_mode" name="aggressive_mode" value="1" <?php checked($settings['aggressive_mode']); ?> />
+                            <input type="checkbox" id="aggressive_mode" name="aggressive_mode" value="1" <?php checked($settings['aggressive_mode']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('external_cache_aggressive_mode')); ?>" />
                             <p class="description">
                                 <?php esc_html_e('Abilita preload automatico per risorse critiche e header di cache più aggressivi.', 'fp-performance-suite'); ?>
                             </p>
@@ -214,10 +221,13 @@ class ExternalCacheTab
                     
                     <tr>
                         <th scope="row">
-                            <label for="preload_critical"><?php esc_html_e('Preload Risorse Critiche', 'fp-performance-suite'); ?></label>
+                            <label for="preload_critical">
+                                <?php esc_html_e('Preload Risorse Critiche', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('external_cache_preload_critical'); ?>
+                            </label>
                         </th>
                         <td>
-                            <input type="checkbox" id="preload_critical" name="preload_critical" value="1" <?php checked($settings['preload_critical']); ?> />
+                            <input type="checkbox" id="preload_critical" name="preload_critical" value="1" <?php checked($settings['preload_critical']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('external_cache_preload_critical')); ?>" />
                             <p class="description">
                                 <?php esc_html_e('Aggiunge header Link preload per risorse critiche identificate automaticamente.', 'fp-performance-suite'); ?>
                             </p>
@@ -226,10 +236,13 @@ class ExternalCacheTab
                     
                     <tr>
                         <th scope="row">
-                            <label for="cache_control_headers"><?php esc_html_e('Header Cache-Control', 'fp-performance-suite'); ?></label>
+                            <label for="cache_control_headers">
+                                <?php esc_html_e('Header Cache-Control', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('external_cache_control_headers'); ?>
+                            </label>
                         </th>
                         <td>
-                            <input type="checkbox" id="cache_control_headers" name="cache_control_headers" value="1" <?php checked($settings['cache_control_headers']); ?> />
+                            <input type="checkbox" id="cache_control_headers" name="cache_control_headers" value="1" <?php checked($settings['cache_control_headers']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('external_cache_control_headers')); ?>" />
                             <p class="description">
                                 <?php esc_html_e('Aggiunge header Cache-Control personalizzati per migliorare la compatibilità con i browser.', 'fp-performance-suite'); ?>
                             </p>

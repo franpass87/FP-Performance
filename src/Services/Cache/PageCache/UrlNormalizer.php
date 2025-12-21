@@ -30,8 +30,18 @@ class UrlNormalizer
         // Rimuovi schema per evitare duplicati http/https
         $url = preg_replace('#^https?://#i', '', $url);
         
-        // Rimuovi trailing slash
-        $url = rtrim($url, '/');
+        // Rimuovi hostname se presente (solo il path)
+        $url = parse_url($url, PHP_URL_PATH) ?? $url;
+        
+        // Rimuovi trailing slash (ma mantieni / per homepage)
+        if ($url !== '/') {
+            $url = rtrim($url, '/');
+        }
+        
+        // Se vuoto dopo normalizzazione, usa / per homepage
+        if (empty($url)) {
+            $url = '/';
+        }
         
         // Converti in lowercase per case-insensitive matching
         $url = strtolower($url);

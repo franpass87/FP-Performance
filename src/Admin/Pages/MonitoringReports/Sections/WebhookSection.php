@@ -2,6 +2,8 @@
 
 namespace FP\PerfSuite\Admin\Pages\MonitoringReports\Sections;
 
+use FP\PerfSuite\Admin\RiskMatrix;
+
 use function esc_attr;
 use function esc_html;
 use function esc_html_e;
@@ -51,11 +53,14 @@ class WebhookSection
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="webhook_enabled"><?php esc_html_e('Abilita Webhooks', 'fp-performance-suite'); ?></label>
+                        <label for="webhook_enabled">
+                            <?php esc_html_e('Abilita Webhooks', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('webhooks_enabled'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="webhooks[enabled]" id="webhook_enabled" value="1" <?php checked($webhooks['enabled']); ?>>
+                            <input type="checkbox" name="webhooks[enabled]" id="webhook_enabled" value="1" <?php checked($webhooks['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('webhooks_enabled')); ?>">
                             <?php esc_html_e('Invia notifiche webhook per gli eventi selezionati', 'fp-performance-suite'); ?>
                         </label>
                     </td>
@@ -94,11 +99,14 @@ class WebhookSection
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="retry_failed"><?php esc_html_e('Riprova Richieste Fallite', 'fp-performance-suite'); ?></label>
+                        <label for="retry_failed">
+                            <?php esc_html_e('Riprova Richieste Fallite', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('webhooks_retry_failed'); ?>
+                        </label>
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="webhooks[retry_failed]" id="retry_failed" value="1" <?php checked($webhooks['retry_failed']); ?>>
+                            <input type="checkbox" name="webhooks[retry_failed]" id="retry_failed" value="1" <?php checked($webhooks['retry_failed']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('webhooks_retry_failed')); ?>">
                             <?php esc_html_e('Riprova automaticamente le richieste webhook fallite', 'fp-performance-suite'); ?>
                         </label>
                         <br>

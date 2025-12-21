@@ -80,8 +80,9 @@ class FormHandler extends AbstractFormHandler
             $currentMonitoring = $monitor->settings();
             
             // Merge con i valori correnti
+            $monitoringArray = $this->sanitizeInput('monitoring', 'array') ?? [];
             $monitoringSettings = array_merge($currentMonitoring, [
-                'enabled' => $this->sanitizeInput('monitoring', 'array')['enabled'] ?? false,
+                'enabled' => isset($monitoringArray['enabled']) ? ($monitoringArray['enabled'] ?? false) : $currentMonitoring['enabled'] ?? false,
                 'sample_rate' => $this->sanitizeInput('monitoring', 'array')['sample_rate'] 
                     ? (int)$this->sanitizeInput('monitoring', 'array')['sample_rate'] 
                     : ($currentMonitoring['sample_rate'] ?? 10),

@@ -307,14 +307,16 @@ class Optimizer
     public function status(): array
     {
         $settings = $this->settings();
+        // FIX: Restituisce valori booleani espliciti invece di usare !empty()
+        // Questo permette di distinguere tra false esplicito e valore mancante
         return [
-            'minify_html' => !empty($settings['minify_html']),
-            'defer_js' => !empty($settings['defer_js']),
-            'async_js' => !empty($settings['async_js']),
-            'remove_emojis' => !empty($settings['remove_emojis']),
-            'heartbeat_admin' => (int) $settings['heartbeat_admin'],
-            'combine_css' => !empty($settings['combine_css']),
-            'combine_js' => !empty($settings['combine_js']),
+            'minify_html' => isset($settings['minify_html']) ? (bool) $settings['minify_html'] : false,
+            'defer_js' => isset($settings['defer_js']) ? (bool) $settings['defer_js'] : false,
+            'async_js' => isset($settings['async_js']) ? (bool) $settings['async_js'] : false,
+            'remove_emojis' => isset($settings['remove_emojis']) ? (bool) $settings['remove_emojis'] : false,
+            'heartbeat_admin' => (int) ($settings['heartbeat_admin'] ?? 60),
+            'combine_css' => isset($settings['combine_css']) ? (bool) $settings['combine_css'] : false,
+            'combine_js' => isset($settings['combine_js']) ? (bool) $settings['combine_js'] : false,
         ];
     }
 

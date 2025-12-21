@@ -17,6 +17,7 @@ use function esc_url;
 use function esc_textarea;
 use function get_option;
 use function sanitize_text_field;
+use function absint;
 use function selected;
 use function checked;
 use function update_option;
@@ -70,7 +71,7 @@ class Security extends AbstractPage
         
         $message = '';
         
-        if ('POST' === $_SERVER['REQUEST_METHOD'] && isset($_POST['fp_ps_security_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_security_nonce']), 'fp-ps-security')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_security_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_security_nonce']), 'fp-ps-security')) {
             
             $newSettings = [
                 'enabled' => !empty($_POST['enabled']),
@@ -83,7 +84,7 @@ class Security extends AbstractPage
                 'security_headers' => [
                     'enabled' => !empty($_POST['security_headers_enabled']),
                     'hsts' => !empty($_POST['hsts']),
-                    'hsts_max_age' => max(0, (int)($_POST['hsts_max_age'] ?? 31536000)),
+                    'hsts_max_age' => max(0, absint($_POST['hsts_max_age'] ?? 31536000)),
                     'hsts_subdomains' => !empty($_POST['hsts_subdomains']),
                     'hsts_preload' => !empty($_POST['hsts_preload']),
                     'x_content_type_options' => !empty($_POST['x_content_type_options']),
@@ -125,7 +126,7 @@ class Security extends AbstractPage
         }
         
         // Mantieni il tab dopo il POST
-        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && !empty($_POST['current_tab'] ?? '')) {
+        if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['current_tab']) && !empty($_POST['current_tab'])) {
             $current_tab = sanitize_key(wp_unslash($_POST['current_tab']));
         }
 

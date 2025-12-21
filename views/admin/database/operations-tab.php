@@ -103,32 +103,53 @@ $formatSize = function($bytes) {
             
             <div class="fp-ps-checkbox-grid" style="margin: 16px 0;">
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="revisions" checked>
-                    <span><?php esc_html_e('Post Revisions', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="revisions" checked data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_revisions')); ?>">
+                    <span>
+                        <?php esc_html_e('Post Revisions', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_revisions'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="auto_drafts" checked>
-                    <span><?php esc_html_e('Auto Drafts', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="auto_drafts" checked data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_autodrafts')); ?>">
+                    <span>
+                        <?php esc_html_e('Auto Drafts', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_autodrafts'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="trashed_posts" checked>
-                    <span><?php esc_html_e('Trashed Posts', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="trashed_posts" checked data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_trashed')); ?>">
+                    <span>
+                        <?php esc_html_e('Trashed Posts', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_trashed'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="spam_comments" checked>
-                    <span><?php esc_html_e('Spam Comments', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="spam_comments" checked data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_spam')); ?>">
+                    <span>
+                        <?php esc_html_e('Spam Comments', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_spam'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="trashed_comments" checked>
-                    <span><?php esc_html_e('Trashed Comments', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="trashed_comments" checked data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('cleanup_comments')); ?>">
+                    <span>
+                        <?php esc_html_e('Trashed Comments', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('cleanup_comments'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="transients">
-                    <span><?php esc_html_e('Expired Transients', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="transients" data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_transients')); ?>">
+                    <span>
+                        <?php esc_html_e('Expired Transients', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_transients'); ?>
+                    </span>
                 </label>
                 <label class="fp-ps-checkbox-item">
-                    <input type="checkbox" name="cleanup[]" value="orphan_meta">
-                    <span><?php esc_html_e('Orphaned Meta', 'fp-performance-suite'); ?></span>
+                    <input type="checkbox" name="cleanup[]" value="orphan_meta" data-risk="<?php echo esc_attr(\FP\PerfSuite\Admin\RiskMatrix::getRiskLevel('db_cleanup_orphaned_meta')); ?>">
+                    <span>
+                        <?php esc_html_e('Orphaned Meta', 'fp-performance-suite'); ?>
+                        <?php echo \FP\PerfSuite\Admin\RiskMatrix::renderIndicator('db_cleanup_orphaned_meta'); ?>
+                    </span>
                 </label>
             </div>
             
@@ -175,6 +196,7 @@ $formatSize = function($bytes) {
         
         <form method="post" action="">
             <?php wp_nonce_field('fp_ps_schedule_cleanup', 'fp_ps_nonce'); ?>
+            <input type="hidden" name="active_tab" value="operations" />
             
             <table class="form-table">
                 <tr>

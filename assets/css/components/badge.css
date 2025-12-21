@@ -151,6 +151,49 @@
 /* BUGFIX #21: Rimosse varianti statiche - ora tutto è gestito dinamicamente via JavaScript */
 /* Il posizionamento avviene tramite style.top e style.left via JS */
 
+/* FIX: Classi per posizionamento dinamico quando tooltip esce dalla viewport */
+.fp-ps-risk-tooltip.align-left {
+	left: 0 !important;
+	transform: translateX(0) translateY(-8px) !important;
+}
+
+.fp-ps-risk-tooltip.align-left::after {
+	left: 20px !important;
+}
+
+.fp-ps-risk-tooltip.align-right {
+	left: auto !important;
+	right: 0 !important;
+	transform: translateX(0) translateY(-8px) !important;
+}
+
+.fp-ps-risk-tooltip.align-right::after {
+	left: auto !important;
+	right: 20px !important;
+	transform: translateX(0) !important;
+}
+
+.fp-ps-risk-tooltip.bottom {
+	bottom: auto !important;
+	top: 100% !important;
+	transform: translateX(-50%) translateY(8px) !important;
+}
+
+.fp-ps-risk-tooltip.bottom.align-left {
+	transform: translateX(0) translateY(8px) !important;
+}
+
+.fp-ps-risk-tooltip.bottom.align-right {
+	transform: translateX(0) translateY(8px) !important;
+}
+
+.fp-ps-risk-tooltip.bottom::after {
+	top: auto !important;
+	bottom: 100% !important;
+	border-top-color: transparent !important;
+	border-bottom-color: #1e293b !important;
+}
+
 .fp-ps-risk-tooltip-title {
 	font-weight: 600;
 	margin-bottom: 8px;

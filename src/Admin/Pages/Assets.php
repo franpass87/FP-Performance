@@ -106,14 +106,18 @@ class Assets extends AbstractPage
             $criticalAssets = get_transient('fp_ps_critical_assets_detected');
             
             // Handle POST requests
+            $message = '';
             if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '')) {
-                $formHandler = new FormHandler($this->container);
-                $message = $formHandler->handle($settings, $fontSettings, $thirdPartySettings);
-            }
-            
-            // Debug: Log if we have a message
-            if ($message) {
-                // Message displayed
+                try {
+                    $formHandler = new FormHandler($this->container);
+                    $message = $formHandler->handle($settings, $fontSettings, $thirdPartySettings);
+                } catch (\Throwable $e) {
+                    ErrorHandler::handle($e, 'Assets form submission');
+                    $message = sprintf(
+                        __('Errore durante il salvataggio: %s', 'fp-performance-suite'),
+                        $e->getMessage()
+                    );
+                }
             }
             
             // Get current tab
@@ -140,10 +144,18 @@ class Assets extends AbstractPage
                 );
                 ?>
                 
-                <?php if ($message) : ?>
-                    <div class="notice notice-success is-dismissible" style="margin: 20px 0; padding: 15px; background: #d1e7dd; border: 1px solid #a3cfbb; border-radius: 6px;">
-                        <p style="margin: 0; color: #0f5132; font-weight: 500;">
-                            <strong>✅ <?php echo esc_html($message); ?></strong>
+                <?php if (!empty($message)) : ?>
+                    <?php
+                    // Determina se è un messaggio di errore o successo
+                    $isError = strpos($message, 'Error') !== false || strpos($message, 'Errore') !== false;
+                    $noticeClass = $isError ? 'notice-error' : 'notice-success';
+                    $bgColor = $isError ? '#fee2e2' : '#d1e7dd';
+                    $borderColor = $isError ? '#fca5a5' : '#a3cfbb';
+                    $textColor = $isError ? '#991b1b' : '#0f5132';
+                    ?>
+                    <div class="notice <?php echo esc_attr($noticeClass); ?> is-dismissible" style="margin: 20px 0; padding: 15px; background: <?php echo esc_attr($bgColor); ?>; border: 1px solid <?php echo esc_attr($borderColor); ?>; border-radius: 6px;">
+                        <p style="margin: 0; color: <?php echo esc_attr($textColor); ?>; font-weight: 500;">
+                            <strong><?php echo $isError ? '❌' : '✅'; ?> <?php echo esc_html($message); ?></strong>
                         </p>
                     </div>
                 <?php endif; ?>

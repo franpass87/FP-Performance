@@ -14,6 +14,9 @@ use FP\PerfSuite\Services\Cache\ObjectCacheManager;
 use FP\PerfSuite\Admin\NoticeManager;
 use FP\PerfSuite\Utils\ErrorHandler;
 
+use function sanitize_key;
+use function wp_unslash;
+
 /**
  * Gestisce le submission dei form per Database page
  * 
@@ -85,15 +88,43 @@ class FormHandler extends AbstractFormHandler
                 : null;
 
             // Main Toggle
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+            if (isset($_POST['form_type']) && sanitize_key(wp_unslash($_POST['form_type'] ?? '')) === 'main_toggle') {
                 $dbSettings = get_option('fp_ps_db', []);
-                $dbSettings['enabled'] = $this->sanitizeInput('database_enabled', 'bool') ?? false;
+                $dbSettings['enabled'] = isset($_POST['database_enabled']) ? ($this->sanitizeInput('database_enabled', 'bool') ?? false) : false;
                 update_option('fp_ps_db', $dbSettings);
                 NoticeManager::success(__('Database optimization settings saved successfully!', 'fp-performance-suite'));
                 return $this->successMessage(__('Database optimization settings saved successfully!', 'fp-performance-suite'));
             }
 
-            // Save settings
+            // Save schedule cleanup (FIX: il form usa fp_ps_save_schedule, non save_db_settings)
+            if (isset($_POST['fp_ps_save_schedule'])) {
+                // Verifica nonce specifico per schedule
+                if (!$this->verifyNonce('fp_ps_nonce', 'fp_ps_schedule_cleanup')) {
+                    return $this->errorMessage(__('Security check failed. Please refresh and try again.', 'fp-performance-suite'));
+                }
+                
+                $schedule = $this->sanitizeInput('cleanup_schedule', 'text') ?? 'manual';
+                
+                // Validazione schedule
+                $allowedSchedules = ['manual', 'daily', 'weekly', 'monthly'];
+                if (!in_array($schedule, $allowedSchedules, true)) {
+                    $schedule = 'manual';
+                }
+                
+                // Salva lo schedule nelle impostazioni del cleaner
+                $result = $cleaner->update([
+                    'schedule' => $schedule,
+                ]);
+                
+                if ($result) {
+                    NoticeManager::success(__('Scheduled cleanup settings saved successfully!', 'fp-performance-suite'));
+                    return __('Scheduled cleanup settings saved successfully!', 'fp-performance-suite');
+                } else {
+                    return $this->errorMessage(__('Failed to save schedule settings. Please try again.', 'fp-performance-suite'));
+                }
+            }
+            
+            // Save settings (legacy - per altri form)
             if (isset($_POST['save_db_settings'])) {
                 $cleaner->update([
                     'schedule' => $this->sanitizeInput('schedule', 'text') ?? 'manual',
@@ -106,7 +137,7 @@ class FormHandler extends AbstractFormHandler
             // Run cleanup
             if (isset($_POST['run_cleanup'])) {
                 $scope = $this->sanitizeInput('cleanup_scope', 'array') ?? [];
-                $dry = $this->sanitizeInput('dry_run', 'bool') ?? false;
+                $dry = isset($_POST['dry_run']) ? ($this->sanitizeInput('dry_run', 'bool') ?? false) : false;
                 $batch = $this->sanitizeInput('batch', 'int') ?? 200;
                 $cleaner->cleanup($scope, $dry, $batch);
                 $message = $dry ? __('Dry run completed.', 'fp-performance-suite') : __('Cleanup completed.', 'fp-performance-suite');
@@ -117,7 +148,7 @@ class FormHandler extends AbstractFormHandler
             // Query Monitor
             if (isset($_POST['enable_query_monitor']) && $queryMonitor) {
                 $queryMonitor->updateSettings([
-                    'enabled' => $this->sanitizeInput('query_monitor_enabled', 'bool') ?? false
+                    'enabled' => isset($_POST['query_monitor_enabled']) ? ($this->sanitizeInput('query_monitor_enabled', 'bool') ?? false) : false
                 ]);
                 NoticeManager::success(__('Query Monitor settings updated.', 'fp-performance-suite'));
                 return $this->successMessage(__('Query Monitor settings updated.', 'fp-performance-suite'));
@@ -198,22 +229,43 @@ class FormHandler extends AbstractFormHandler
      */
     private function handleMonitorForm(): string
     {
-        if (!$this->verifyNonce('fp_ps_query_monitor_nonce', 'fp_ps_query_monitor')) {
+        // FIX: Gestisce sia fp_ps_query_monitor_nonce che fp_ps_nonce
+        $nonceValid = $this->verifyNonce('fp_ps_query_monitor_nonce', 'fp_ps_query_monitor') 
+                   || $this->verifyNonce('fp_ps_nonce', 'fp_ps_query_monitor_settings');
+        
+        if (!$nonceValid) {
             return '';
         }
 
         try {
+            // Verifica che il servizio sia disponibile
+            if (!$this->container->has(DatabaseQueryMonitor::class)) {
+                return $this->errorMessage(__('Query Monitor service not available. Please ensure the service is properly configured.', 'fp-performance-suite'));
+            }
+            
             $queryMonitor = $this->container->get(DatabaseQueryMonitor::class);
             
-            $settings = [
-                'enabled' => $this->sanitizeInput('enabled', 'bool') ?? false,
-                'slow_query_threshold' => (float) ($this->sanitizeInput('slow_query_threshold', 'text') ?? 0.005),
-                'log_duplicates' => $this->sanitizeInput('log_duplicates', 'bool') ?? false,
-            ];
+            // FIX: Gestisce sia il form standard che il form con fp_ps_save_monitor_settings
+            if (isset($_POST['fp_ps_save_monitor_settings'])) {
+                $settings = [
+                    'enabled' => isset($_POST['monitor_enabled']) ? ($this->sanitizeInput('monitor_enabled', 'bool') ?? false) : false,
+                    'slow_threshold' => (float) ($this->sanitizeInput('slow_query_threshold', 'text') ?? 0.5),
+                    'log_queries' => isset($_POST['log_queries']) ? ($this->sanitizeInput('log_queries', 'bool') ?? false) : false,
+                ];
+            } else {
+                $settings = [
+                    'enabled' => isset($_POST['enabled']) ? ($this->sanitizeInput('enabled', 'bool') ?? false) : false,
+                    'slow_query_threshold' => (float) ($this->sanitizeInput('slow_query_threshold', 'text') ?? 0.005),
+                    'log_duplicates' => isset($_POST['log_duplicates']) ? ($this->sanitizeInput('log_duplicates', 'bool') ?? false) : false,
+                ];
+            }
             
-            $queryMonitor->updateSettings($settings);
+            if (method_exists($queryMonitor, 'updateSettings')) {
+                $queryMonitor->updateSettings($settings);
+            }
+            
             NoticeManager::success(__('Configurazione Query Monitor salvata con successo!', 'fp-performance-suite'));
-            return $this->successMessage(__('Configurazione Query Monitor salvata con successo!', 'fp-performance-suite'));
+            return __('Configurazione Query Monitor salvata con successo!', 'fp-performance-suite');
         } catch (\Throwable $e) {
             return $this->handleError($e, 'Query Monitor form');
         }
@@ -232,9 +284,9 @@ class FormHandler extends AbstractFormHandler
             $queryCache = $this->container->get(QueryCacheManager::class);
             
             $settings = [
-                'enabled' => $this->sanitizeInput('enabled', 'bool') ?? false,
+                'enabled' => isset($_POST['enabled']) ? ($this->sanitizeInput('enabled', 'bool') ?? false) : false,
                 'ttl' => $this->sanitizeInput('ttl', 'int') ?? 3600,
-                'cache_select_only' => $this->sanitizeInput('cache_select_only', 'bool') ?? false,
+                'cache_select_only' => isset($_POST['cache_select_only']) ? ($this->sanitizeInput('cache_select_only', 'bool') ?? false) : false,
                 'max_cache_size' => $this->sanitizeInput('max_cache_size', 'int') ?? 1000,
             ];
             

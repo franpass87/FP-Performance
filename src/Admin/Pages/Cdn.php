@@ -17,6 +17,7 @@ use function esc_url_raw;
 use function get_option;
 use function update_option;
 use function sanitize_text_field;
+use function sanitize_key;
 use function sanitize_email;
 use function checked;
 use function selected;
@@ -86,18 +87,18 @@ class Cdn extends AbstractPage
 
         // Check for messages from URL (from admin_post handlers)
         if (isset($_GET['message'])) {
-            $message = urldecode($_GET['message']);
+            $message = sanitize_text_field(wp_unslash($_GET['message']));
         }
         
         // Check for legacy success message from URL
-        if (isset($_GET['updated']) && $_GET['updated'] === '1') {
+        if (isset($_GET['updated']) && sanitize_key(wp_unslash($_GET['updated'] ?? '')) === '1') {
             $message = __('Impostazioni CDN salvate con successo!', 'fp-performance-suite');
         }
 
         // Check for legacy error message from URL
-        if (isset($_GET['error']) && $_GET['error'] === '1') {
+        if (isset($_GET['error']) && sanitize_key(wp_unslash($_GET['error'] ?? '')) === '1') {
             $message = isset($_GET['message']) 
-                ? urldecode($_GET['message']) 
+                ? sanitize_text_field(wp_unslash($_GET['message'] ?? '')) 
                 : __('Si è verificato un errore durante il salvataggio.', 'fp-performance-suite');
         }
 
@@ -324,12 +325,13 @@ class Cdn extends AbstractPage
             $currentCdn = $cdn->settings();
             
             // Merge con i valori correnti per preservare campi non presenti nel form
+            $cdnPost = $_POST['cdn'] ?? [];
             $cdnSettings = array_merge($currentCdn, [
-                'enabled' => isset($_POST['cdn']['enabled']),
-                'url' => sanitize_text_field($_POST['cdn']['url'] ?? ''),
-                'provider' => sanitize_text_field($_POST['cdn']['provider'] ?? 'custom'),
-                'included_extensions' => sanitize_text_field($_POST['cdn']['included_extensions'] ?? 'jpg,jpeg,png,gif,css,js,svg,woff,woff2,ttf,eot'),
-                'excluded_paths' => sanitize_textarea_field($_POST['cdn']['excluded_paths'] ?? ''),
+                'enabled' => isset($cdnPost['enabled']) && !empty($cdnPost['enabled']),
+                'url' => sanitize_text_field($cdnPost['url'] ?? ''),
+                'provider' => sanitize_text_field($cdnPost['provider'] ?? 'custom'),
+                'included_extensions' => sanitize_text_field($cdnPost['included_extensions'] ?? 'jpg,jpeg,png,gif,css,js,svg,woff,woff2,ttf,eot'),
+                'excluded_paths' => sanitize_textarea_field($cdnPost['excluded_paths'] ?? ''),
             ]);
             
             $cdn->update($cdnSettings);

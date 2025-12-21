@@ -15,10 +15,13 @@ if (!defined('ABSPATH')) {
 <div class="fp-ps-query-monitor-tab">
     
     <?php if ($queryMonitor === null): ?>
-        <div class="notice notice-warning">
-            <p><?php esc_html_e('Query Monitor service is not available. Please ensure the service is properly configured.', 'fp-performance-suite'); ?></p>
+        <div class="fp-ps-card fp-ps-mb-lg">
+            <div class="notice notice-warning">
+                <p><strong><?php esc_html_e('⚠️ Query Monitor Service Non Disponibile', 'fp-performance-suite'); ?></strong></p>
+                <p><?php esc_html_e('Il servizio Query Monitor non è disponibile. Le impostazioni di base sono comunque mostrate di seguito.', 'fp-performance-suite'); ?></p>
+            </div>
         </div>
-    <?php else: ?>
+    <?php endif; ?>
     
     <!-- Query Monitor Overview -->
     <div class="fp-ps-card fp-ps-mb-lg">
@@ -50,6 +53,7 @@ if (!defined('ABSPATH')) {
         
         <form method="post" action="">
             <?php wp_nonce_field('fp_ps_query_monitor_settings', 'fp_ps_nonce'); ?>
+            <input type="hidden" name="active_tab" value="monitor" />
             
             <table class="form-table">
                 <tr>
@@ -128,8 +132,6 @@ if (!defined('ABSPATH')) {
     <div class="fp-ps-card">
         <p class="description"><?php esc_html_e('No slow queries recorded. This is good!', 'fp-performance-suite'); ?></p>
     </div>
-    <?php endif; ?>
-    
     <?php endif; ?>
     
 </div>

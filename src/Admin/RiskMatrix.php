@@ -484,6 +484,42 @@ class RiskMatrix
             'advice' => '✅ OK: Velocizza dashboard senza problemi.'
         ],
         
+        'disable_embeds_backend' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Disabilita oEmbed (YouTube, Twitter, ecc.) nel backend.',
+            'risks' => '✅ Sicuro - Risparmia 1 HTTP request e ~4KB JavaScript',
+            'why_fails' => 'I contenuti embeddati manualmente funzioneranno comunque.',
+            'advice' => '✅ CONSIGLIATO: Migliora performance backend senza rischi.'
+        ],
+        
+        'disable_site_health' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Disabilita il widget Site Health Status dalla dashboard.',
+            'risks' => '⚠️ Site Health fornisce informazioni utili sulla salute del sito',
+            'why_fails' => 'Disabilitare solo se usi strumenti di monitoraggio alternativi.',
+            'advice' => '⚠️ OK: Ma assicurati di avere un sistema alternativo per monitorare la salute del sito.'
+        ],
+        
+        'safety_mode_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Previene operazioni potenzialmente pericolose e aggiunge ulteriori controlli di sicurezza.',
+            'risks' => '✅ Nessun rischio - Solo aggiunge controlli di sicurezza',
+            'why_fails' => 'Non ha impatti negativi sulle performance.',
+            'advice' => '✅ CONSIGLIATO: Mantieni sempre attivo per maggiore sicurezza.'
+        ],
+        
+        'require_critical_css_setting' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Quando attivo, il sistema segnala l\'assenza di CSS critico come ottimizzazione mancante.',
+            'risks' => '✅ Sicuro - Solo monitoraggio e segnalazione',
+            'why_fails' => 'Disattiva solo se il tema gestisce già il CSS critico o non è necessario monitorarlo.',
+            'advice' => '✅ CONSIGLIATO: Utile per assicurarsi che il CSS critico sia configurato correttamente.'
+        ],
+        
         'disable_update_checks' => [
             'risk' => self::RISK_RED,
             'title' => 'Rischio Alto',
@@ -677,6 +713,15 @@ class RiskMatrix
             'advice' => '❌ SCONSIGLIATO: Meglio applicare manualmente i suggerimenti.'
         ],
         
+        'auto_tuner_aggressive_mode' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Abilita ottimizzazioni aggressive automatiche che potrebbero rompere funzionalità del sito.',
+            'risks' => '❌ RISCHIO MOLTO ALTO - Ottimizzazioni estreme\n❌ Potrebbe disabilitare funzionalità necessarie\n❌ Potrebbe causare problemi di compatibilità\n❌ Difficile revert automatico',
+            'why_fails' => 'Le ottimizzazioni aggressive possono compromettere funzionalità del sito.',
+            'advice' => '❌ PERICOLOSO: Usa solo se sai esattamente cosa stai facendo. Testa sempre in staging prima.'
+        ],
+        
         // ═══════════════════════════════════════════════════════════
         // 🔐 SECURITY - OPZIONI AVANZATE
         // ═══════════════════════════════════════════════════════════
@@ -743,6 +788,64 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Utile per identificare problemi.'
         ],
         
+        'core_web_vitals_monitoring' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Monitora in tempo reale LCP, FID, CLS e altre metriche degli utenti reali (RUM).',
+            'risks' => '✅ Dati reali sulle performance percepite\n✅ Identificazione problemi specifici\n✅ Ottimizzazione basata su dati reali',
+            'why_fails' => 'Impact minimo sulle performance.',
+            'advice' => '✅ ALTAMENTE CONSIGLIATO: Essenziale per monitorare le performance reali e il ranking Google.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🐛 DEBUG OPTIONS
+        // ═══════════════════════════════════════════════════════════
+        
+        'wp_debug_enabled' => [
+            'risk' => self::RISK_RED,
+            'title' => 'Rischio Alto',
+            'description' => 'Attiva la modalità debug di WordPress, mostrando errori, warning e notice.',
+            'risks' => '❌ Può esporre informazioni sensibili\n❌ Rallenta significativamente il sito in produzione\n❌ Espone dettagli tecnici agli utenti',
+            'why_fails' => 'Pericoloso in produzione: Usa solo in staging/sviluppo.',
+            'advice' => '⚠️ PERICOLOSO IN PRODUZIONE: Usa solo in staging/sviluppo. Disattiva immediatamente dopo il debug.'
+        ],
+        
+        'wp_debug_log_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Salva tutti gli errori nel file debug.log senza mostrarli agli utenti.',
+            'risks' => '⚠️ Il file di log può crescere rapidamente e occupare spazio disco\n⚠️ Leggero impatto sulle performance',
+            'why_fails' => 'Meglio di WP_DEBUG_DISPLAY ma richiede monitoraggio.',
+            'advice' => '⚡ ACCETTABILE IN PRODUZIONE: Meglio di WP_DEBUG_DISPLAY. Monitora la dimensione del log e puliscilo regolarmente.'
+        ],
+        
+        'wp_debug_display_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Mostra gli errori direttamente nel browser agli utenti.',
+            'risks' => '⚠️ Espone informazioni sensibili del server agli utenti\n⚠️ Rovina l\'esperienza utente\n⚠️ Mostra dettagli tecnici',
+            'why_fails' => 'Mai in produzione! Usa solo in sviluppo locale.',
+            'advice' => '❌ SCONSIGLIATO IN PRODUZIONE: Mai in produzione! Usa solo in sviluppo locale. Usa WP_DEBUG_LOG invece.'
+        ],
+        
+        'script_debug_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Carica le versioni non-minified di CSS e JS di WordPress per facilitare il debug.',
+            'risks' => '⚠️ Leggero rallentamento del caricamento per file più grandi\n✅ Nessun rischio di sicurezza',
+            'why_fails' => 'Utile per debugging di problemi JS/CSS.',
+            'advice' => '⚡ OK PER DEBUG TEMPORANEO: Utile per debugging di problemi JS/CSS. Disattiva quando non serve.'
+        ],
+        
+        'savequeries_enabled' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Salva tutte le query SQL per analisi delle performance del database.',
+            'risks' => '⚠️ Impatto significativo sulla memoria e performance\n⚠️ Può causare out-of-memory su siti grandi\n⚠️ Rallenta tutte le richieste',
+            'why_fails' => 'Mai lasciare attivo permanentemente.',
+            'advice' => '⚠️ SOLO PER DEBUG SPECIFICO: Attiva solo per brevi periodi quando devi ottimizzare query. Mai lasciare attivo permanentemente.'
+        ],
+        
         'scheduled_reports' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
@@ -750,6 +853,42 @@ class RiskMatrix
             'risks' => '✅ Sicuro',
             'why_fails' => 'Solo notifiche, non modifica il sito.',
             'advice' => '✅ OK: Utile per monitoraggio proattivo.'
+        ],
+        
+        'webhooks_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita invio notifiche webhook a servizi esterni.',
+            'risks' => '✅ Sicuro - Solo invia notifiche\n⚠️ Verifica che l\'URL webhook sia sicuro e valido',
+            'why_fails' => 'Richiede URL webhook valido e sicuro.',
+            'advice' => '✅ CONSIGLIATO: Utile per integrazioni con Slack, Discord, dashboard custom.'
+        ],
+        
+        'webhooks_retry_failed' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Riprova automaticamente le richieste webhook fallite.',
+            'risks' => '✅ Sicuro - Solo riprova richieste fallite\n⚠️ Potrebbe generare più traffico se webhook è instabile',
+            'why_fails' => 'Migliora affidabilità delle notifiche.',
+            'advice' => '✅ CONSIGLIATO: Migliora affidabilità delle notifiche webhook.'
+        ],
+        
+        'performance_budget_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita monitoraggio Performance Budget e avvisi quando le soglie vengono superate.',
+            'risks' => '✅ Sicuro - Solo monitoraggio e notifiche',
+            'why_fails' => 'Non modifica il sito, solo monitora e avvisa.',
+            'advice' => '✅ CONSIGLIATO: Essenziale per prevenire regressioni di performance.'
+        ],
+        
+        'performance_budget_alert_on_exceed' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Invia email quando le soglie di performance vengono superate.',
+            'risks' => '✅ Sicuro - Solo notifiche email',
+            'why_fails' => 'Richiede email valida configurata.',
+            'advice' => '✅ CONSIGLIATO: Ti avvisa proattivamente quando le performance peggiorano.'
         ],
         
         // ═══════════════════════════════════════════════════════════
@@ -913,6 +1052,46 @@ class RiskMatrix
             'risks' => '✅ Sicuro',
             'why_fails' => 'Risolve DNS in anticipo, nessun rischio.',
             'advice' => '✅ CONSIGLIATO: Velocizza risorse di terze parti.'
+        ],
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🌐 EXTERNAL CACHE
+        // ═══════════════════════════════════════════════════════════
+        
+        'external_cache_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita la gestione automatica degli header di cache per risorse esterne.',
+            'risks' => '✅ Sicuro - Solo aggiunge header di cache',
+            'why_fails' => 'Migliora performance senza rischi.',
+            'advice' => '✅ CONSIGLIATO: Ottimizza caricamento risorse esterne (CDN, font, ecc.).'
+        ],
+        
+        'external_cache_aggressive_mode' => [
+            'risk' => self::RISK_AMBER,
+            'title' => 'Rischio Medio',
+            'description' => 'Abilita preload automatico per risorse critiche e header di cache più aggressivi.',
+            'risks' => '⚠️ Preload può caricare risorse non necessarie\n⚠️ Header aggressivi potrebbero causare problemi con alcuni CDN',
+            'why_fails' => 'Modalità aggressiva richiede test approfondito.',
+            'advice' => '⚠️ TESTA PRIMA: Verifica che tutte le risorse critiche siano identificate correttamente.'
+        ],
+        
+        'external_cache_preload_critical' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Aggiunge header Link preload per risorse critiche identificate automaticamente.',
+            'risks' => '✅ Sicuro - Solo preload risorse critiche',
+            'why_fails' => 'Migliora performance caricando risorse critiche in anticipo.',
+            'advice' => '✅ CONSIGLIATO: Velocizza caricamento risorse critiche.'
+        ],
+        
+        'external_cache_control_headers' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Aggiunge header Cache-Control personalizzati per migliorare la compatibilità con i browser.',
+            'risks' => '✅ Sicuro - Solo header standard',
+            'why_fails' => 'Header Cache-Control sono standard e sicuri.',
+            'advice' => '✅ CONSIGLIATO: Migliora compatibilità e performance cache browser.'
         ],
         
         // ═══════════════════════════════════════════════════════════

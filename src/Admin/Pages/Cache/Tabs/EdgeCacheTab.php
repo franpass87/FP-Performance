@@ -4,6 +4,7 @@ namespace FP\PerfSuite\Admin\Pages\Cache\Tabs;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Cache\EdgeCacheManager;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use function __;
 use function checked;
@@ -35,12 +36,66 @@ class EdgeCacheTab
     {
         ob_start();
         
+        $edgeManager = null;
+        $edgeSettings = [
+            'enabled' => false,
+            'provider' => 'cloudflare',
+            'api_key' => '',
+            'zone_id' => '',
+        ];
+        
         try {
-            $edgeManager = $this->container->get(EdgeCacheManager::class);
-            $edgeSettings = $edgeManager->settings();
+            // Verifica che il servizio sia disponibile nel container
+            if (!$this->container->has(EdgeCacheManager::class)) {
+                // Se il servizio non è registrato, usa defaults e mostra warning
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('[FP-Performance] EdgeCacheManager service not registered in container');
+                }
+            } else {
+                $edgeManager = $this->container->get(EdgeCacheManager::class);
+                
+                // Carica impostazioni - usa settings() che ora è disponibile
+                if (method_exists($edgeManager, 'settings')) {
+                    $edgeSettings = $edgeManager->settings();
+                } elseif (method_exists($edgeManager, 'getSettings')) {
+                    $edgeSettings = $edgeManager->getSettings();
+                }
+                
+                // Assicurati che edgeSettings sia un array valido
+                if (!is_array($edgeSettings)) {
+                    $edgeSettings = [];
+                }
+                
+                // Merge con defaults per sicurezza
+                $edgeSettings = array_merge([
+                    'enabled' => false,
+                    'provider' => 'cloudflare',
+                    'api_key' => '',
+                    'zone_id' => '',
+                ], $edgeSettings);
+            }
+            
         } catch (\Throwable $e) {
-            $edgeManager = null;
-            $edgeSettings = [];
+            // Log errore per debug
+            if (function_exists('error_log')) {
+                error_log(sprintf(
+                    '[FP-Performance] EdgeCacheTab error: %s in %s:%d',
+                    $e->getMessage(),
+                    basename($e->getFile()),
+                    $e->getLine()
+                ));
+            }
+            
+            // Mostra messaggio di errore dettagliato in debug mode
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                ?>
+                <div class="notice notice-error">
+                    <p><strong><?php esc_html_e('Errore Edge Cache:', 'fp-performance-suite'); ?></strong></p>
+                    <p><?php echo esc_html($e->getMessage()); ?></p>
+                    <p><small><?php echo esc_html(sprintf('%s:%d', basename($e->getFile()), $e->getLine())); ?></small></p>
+                </div>
+                <?php
+            }
         }
         
         ?>
@@ -52,18 +107,29 @@ class EdgeCacheTab
                 <?php esc_html_e('Configura il caching su CDN edge per performance globali ottimali.', 'fp-performance-suite'); ?>
             </p>
             
-            <?php if ($edgeManager): ?>
+            <?php if (!$edgeManager): ?>
+            <div class="notice notice-warning" style="margin: 20px 0;">
+                <p><strong><?php esc_html_e('⚠️ Attenzione:', 'fp-performance-suite'); ?></strong> <?php esc_html_e('EdgeCacheManager non disponibile. Il form è comunque disponibile ma le impostazioni potrebbero non essere salvate correttamente.', 'fp-performance-suite'); ?></p>
+            </div>
+            <?php endif; ?>
             
             <form method="post" action="">
                 <?php wp_nonce_field('fp_ps_edge_cache', 'fp_ps_edge_cache_nonce'); ?>
+                <input type="hidden" name="fp_ps_edge_cache" value="1" />
+                <input type="hidden" name="active_tab" value="edge" />
                 
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php esc_html_e('Abilita Edge Cache', 'fp-performance-suite'); ?></th>
+                        <th scope="row">
+                            <label for="edge_cache_enabled">
+                                <?php esc_html_e('Abilita Edge Cache', 'fp-performance-suite'); ?>
+                                <?php echo RiskMatrix::renderIndicator('edge_cache_enabled'); ?>
+                            </label>
+                        </th>
                         <td>
                             <label>
-                                <input type="checkbox" name="enabled" value="1" 
-                                       <?php checked(!empty($edgeSettings['enabled'])); ?>>
+                                <input type="checkbox" name="enabled" id="edge_cache_enabled" value="1" 
+                                       <?php checked(!empty($edgeSettings['enabled'])); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('edge_cache_enabled')); ?>">
                                 <?php esc_html_e('Abilita edge caching', 'fp-performance-suite'); ?>
                             </label>
                             <p class="description">
@@ -117,14 +183,6 @@ class EdgeCacheTab
                 
                 <?php submit_button(__('Salva Configurazione Edge Cache', 'fp-performance-suite')); ?>
             </form>
-            
-            <?php else: ?>
-            
-            <div class="notice notice-warning">
-                <p><?php esc_html_e('EdgeCacheManager non disponibile. Verifica che il servizio sia registrato correttamente.', 'fp-performance-suite'); ?></p>
-            </div>
-            
-            <?php endif; ?>
         </section>
 
         <!-- Edge Cache Benefits -->

@@ -15,6 +15,8 @@ use function esc_attr;
 use function esc_html;
 use function esc_html_e;
 use function sanitize_text_field;
+use function sanitize_key;
+use function absint;
 use function selected;
 use function wp_nonce_field;
 use function wp_unslash;
@@ -82,7 +84,7 @@ class Backend extends AbstractPage
         if ('POST' === ($_SERVER['REQUEST_METHOD'] ?? '') && isset($_POST['fp_ps_backend_nonce']) && wp_verify_nonce(wp_unslash($_POST['fp_ps_backend_nonce']), 'fp-ps-backend')) {
             
             // Main Toggle for Backend Optimization
-            if (isset($_POST['form_type']) && $_POST['form_type'] === 'main_toggle') {
+            if (isset($_POST['form_type']) && sanitize_key(wp_unslash($_POST['form_type'] ?? '')) === 'main_toggle') {
                 $allSettings['enabled'] = !empty($_POST['backend_enabled']);
                 $backendOptimizer->updateSettings($allSettings);
                 
@@ -132,7 +134,7 @@ class Backend extends AbstractPage
                     'editor' => sanitize_text_field($_POST['heartbeat_editor'] ?? 'default'),
                     'frontend' => sanitize_text_field($_POST['heartbeat_frontend'] ?? 'default'),
                 ];
-                $allSettings['heartbeat_interval'] = (int) ($_POST['heartbeat_interval'] ?? 60);
+                $allSettings['heartbeat_interval'] = absint($_POST['heartbeat_interval'] ?? 60);
                 $allSettings['optimize_heartbeat'] = true;
                 $backendOptimizer->updateSettings($allSettings);
                 $message = __('Heartbeat API settings saved.', 'fp-performance-suite');
@@ -144,7 +146,7 @@ class Backend extends AbstractPage
                     'disable_emojis' => !empty($_POST['disable_emojis']),
                     'disable_embeds' => !empty($_POST['disable_embeds']),
                 ];
-                $allSettings['revisions_limit'] = (int) ($_POST['limit_revisions'] ?? 5);
+                $allSettings['revisions_limit'] = absint($_POST['limit_revisions'] ?? 5);
                 $allSettings['limit_revisions'] = true;
                 $allSettings['autosave_interval'] = (int) ($_POST['autosave_interval'] ?? 60);
                 $allSettings['optimize_admin_ajax'] = true;
@@ -308,69 +310,64 @@ class Backend extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita pannello di benvenuto', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il widget "Benvenuto in WordPress"', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_welcome_panel" value="1" <?php checked($dashboardSettings['disable_welcome'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_welcome_panel" value="1" <?php checked($dashboardSettings['disable_welcome'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Quick Press', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il widget per la creazione rapida di bozze', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_quick_press" value="1" <?php checked($dashboardSettings['disable_quick_press'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_quick_press" value="1" <?php checked($dashboardSettings['disable_quick_press'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Attività', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il widget che mostra attività recenti', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_activity_widget" value="1" <?php checked($dashboardSettings['disable_activity'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_activity_widget" value="1" <?php checked($dashboardSettings['disable_activity'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita WordPress News', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il feed delle notizie WordPress', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_primary_widget" value="1" <?php checked($dashboardSettings['disable_primary'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_primary_widget" value="1" <?php checked($dashboardSettings['disable_primary'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Eventi e Notizie', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il widget eventi WordPress', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_secondary_widget" value="1" <?php checked($dashboardSettings['disable_secondary'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_secondary_widget" value="1" <?php checked($dashboardSettings['disable_secondary'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Site Health', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator amber">
-                                <div class="fp-ps-risk-tooltip amber">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">⚠</span>
-                                        <?php esc_html_e('Rischio Medio', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Attenzione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Site Health fornisce informazioni utili sulla salute del sito. Disabilitare solo se usi strumenti di monitoraggio alternativi.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('disable_site_health'); ?>
                             <small><?php esc_html_e('Rimuove il widget Site Health Status', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_site_health" value="1" <?php checked($dashboardSettings['disable_site_health'] ?? false); ?> data-risk="amber" />
+                        <input type="checkbox" name="disable_site_health" value="1" <?php checked($dashboardSettings['disable_site_health'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_site_health')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita avviso aggiornamento PHP', 'fp-performance-suite'); ?></strong>
+                            <?php echo RiskMatrix::renderIndicator('disable_dashboard_widgets'); ?>
                             <small><?php esc_html_e('Rimuove il widget di notifica aggiornamento PHP', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_php_update_nag" value="1" <?php checked($dashboardSettings['disable_php_update'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_php_update_nag" value="1" <?php checked($dashboardSettings['disable_php_update'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_dashboard_widgets')); ?>" />
                     </label>
                 </div>
 
@@ -479,49 +476,19 @@ class Backend extends AbstractPage
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Emoji', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Rimuove il polyfill emoji di WordPress. I browser moderni supportano emoji nativamente.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Risparmia 1 HTTP request e ~10KB JavaScript. ✅ Altamente consigliato.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('remove_emojis'); ?>
                             <small><?php esc_html_e('Rimuove lo script emoji detection di WordPress', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_emojis" value="1" <?php checked($adminAjaxSettings['disable_emojis'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_emojis" value="1" <?php checked($adminAjaxSettings['disable_emojis'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('remove_emojis')); ?>" />
                     </label>
 
                     <label class="fp-ps-toggle">
                         <span class="info">
                             <strong><?php esc_html_e('Disabilita Embeds', 'fp-performance-suite'); ?></strong>
-                            <span class="fp-ps-risk-indicator green">
-                                <div class="fp-ps-risk-tooltip green">
-                                    <div class="fp-ps-risk-tooltip-title">
-                                        <span class="icon">✓</span>
-                                        <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Disabilita oEmbed (YouTube, Twitter, ecc.). I contenuti embeddati manualmente funzioneranno comunque.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                    <div class="fp-ps-risk-tooltip-section">
-                                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                        <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Risparmia 1 HTTP request e ~4KB JavaScript.', 'fp-performance-suite'); ?></div>
-                                    </div>
-                                </div>
-                            </span>
+                            <?php echo RiskMatrix::renderIndicator('disable_embeds_backend'); ?>
                             <small><?php esc_html_e('Rimuove funzionalità oEmbed e REST endpoint', 'fp-performance-suite'); ?></small>
                         </span>
-                        <input type="checkbox" name="disable_embeds" value="1" <?php checked($adminAjaxSettings['disable_embeds'] ?? false); ?> data-risk="green" />
+                        <input type="checkbox" name="disable_embeds" value="1" <?php checked($adminAjaxSettings['disable_embeds'] ?? false); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('disable_embeds_backend')); ?>" />
                     </label>
                 </div>
 

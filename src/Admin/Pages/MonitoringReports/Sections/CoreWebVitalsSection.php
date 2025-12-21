@@ -3,6 +3,7 @@
 namespace FP\PerfSuite\Admin\Pages\MonitoringReports\Sections;
 
 use FP\PerfSuite\Utils\ErrorHandler;
+use FP\PerfSuite\Admin\RiskMatrix;
 
 use FP\PerfSuite\ServiceContainer;
 use FP\PerfSuite\Services\Monitoring\CoreWebVitalsMonitor;
@@ -112,29 +113,10 @@ class CoreWebVitalsSection
             <label class="fp-ps-toggle">
                 <span class="info">
                     <strong><?php esc_html_e('Abilita Core Web Vitals Monitoring', 'fp-performance-suite'); ?></strong>
-                    <span class="fp-ps-risk-indicator green">
-                        <div class="fp-ps-risk-tooltip green">
-                            <div class="fp-ps-risk-tooltip-title">
-                                <span class="icon">✓</span>
-                                <?php esc_html_e('Rischio Basso', 'fp-performance-suite'); ?>
-                            </div>
-                            <div class="fp-ps-risk-tooltip-section">
-                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Monitora in tempo reale LCP, FID, CLS e altre metriche degli utenti reali (RUM).', 'fp-performance-suite'); ?></div>
-                            </div>
-                            <div class="fp-ps-risk-tooltip-section">
-                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Benefici', 'fp-performance-suite'); ?></div>
-                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('Dati reali sulle performance percepite, identificazione problemi specifici, ottimizzazione basata su dati reali.', 'fp-performance-suite'); ?></div>
-                            </div>
-                            <div class="fp-ps-risk-tooltip-section">
-                                <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                                <div class="fp-ps-risk-tooltip-text"><?php esc_html_e('✅ Altamente consigliato: Essenziale per monitorare le performance reali e il ranking Google. Impact minimo sulle performance.', 'fp-performance-suite'); ?></div>
-                            </div>
-                        </div>
-                    </span>
+                    <?php echo RiskMatrix::renderIndicator('core_web_vitals_monitoring'); ?>
                     <small><?php esc_html_e('Raccoglie metriche reali dai browser degli utenti per avere dati accurati sulle performance percepite.', 'fp-performance-suite'); ?></small>
                 </span>
-                <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?> />
+                <input type="checkbox" name="cwv[enabled]" id="cwv_enabled" value="1" <?php checked($settings['enabled']); ?> data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('core_web_vitals_monitoring')); ?>" />
             </label>
             
             <table class="form-table" style="margin-top: 20px;">
