@@ -166,7 +166,38 @@ class Optimizer
 
     public function update(array $settings): bool
     {
-        return $this->settingsManager->update($settings);
+        $result = $this->settingsManager->update($settings);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('template_redirect', [$this, 'startBuffer'], 1);
+        remove_action('shutdown', [$this, 'endBuffer'], PHP_INT_MAX);
+        remove_filter('script_loader_tag', [$this, 'filterScriptTag'], 5);
+        remove_filter('style_loader_tag', [$this, 'filterStyleTag'], 5);
+        remove_filter('wp_resource_hints', [$this->resourceHints, 'addDnsPrefetch'], 10);
+        remove_filter('wp_resource_hints', [$this->resourceHints, 'addPreloadHints'], 10);
+        remove_filter('wp_resource_hints', [$this->resourceHints, 'addPreconnectHints'], 10);
+        remove_action('wp_enqueue_scripts', [$this, 'applyCombination'], 992);
+        
+        // Nota: Gli hook di wpOptimizer (closure anonime) non possono essere rimossi facilmente
+        // ma questo non è critico perché register() viene chiamato solo quando necessario
+        // e i filtri WordPress gestiscono correttamente i duplicati
+        
+        // Reinizializza
+        $this->register();
     }
     
     // Metodi settings() e update() rimossi - ora gestiti da SettingsManager

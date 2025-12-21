@@ -119,9 +119,27 @@ class CriticalCssAutomation
         
         if ($result) {
             $this->log('info', 'Critical CSS Automation settings updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('save_post', [$this, 'generateOnSave'], 10);
+        remove_action('switch_theme', [$this, 'regenerateAll']);
+        remove_action('wp_head', [$this, 'inlineCriticalCss'], 22);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

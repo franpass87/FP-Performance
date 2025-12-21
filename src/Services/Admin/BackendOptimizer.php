@@ -556,6 +556,11 @@ class BackendOptimizer
         
         // Nota: Le modifiche all'Admin Bar saranno attive dalla prossima pagina caricata
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
     }
     

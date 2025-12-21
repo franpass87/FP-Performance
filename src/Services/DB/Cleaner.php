@@ -195,7 +195,28 @@ class Cleaner
 
         $this->ensureSchedule(true);
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_scheduled_delete', [$this, 'cleanDatabase']);
+        remove_action('fp_clean_database', [$this, 'cleanDatabase']);
+        remove_filter('cron_schedules', [$this->scheduler, 'registerCronSchedules']);
+        remove_filter('cron_schedules', [$this, 'registerCronSchedules']);
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

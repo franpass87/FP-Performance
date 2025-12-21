@@ -4,6 +4,28 @@ Tutte le modifiche significative al progetto sono documentate in questo file.
 
 ---
 
+## [1.8.1] - 2025-01-XX
+
+### 🔧 FIXES
+
+#### **Fix: forceInit() per tutti i servizi**
+- **Impatto:** Le impostazioni non si applicavano immediatamente dopo il salvataggio
+- **Fix:** Aggiunto `forceInit()` a 39 servizi critici per reinizializzare correttamente gli hook dopo il salvataggio
+- **Servizi corretti:** PageCache, BrowserCache, ObjectCacheManager, QueryCacheManager, LazyLoadManager, CdnManager, PredictivePrefetching, CodeSplittingManager, JavaScriptTreeShaker, UnusedJavaScriptOptimizer, FontOptimizer, CriticalPathOptimizer, ThirdPartyScriptManager, CSSOptimizer, RenderBlockingOptimizer, ExternalResourceCacheManager, InstantPageLoader, SmartAssetDelivery, DelayedJavaScriptExecutor, Http2ServerPush, EmbedFacades, CriticalCssAutomation, LighthouseFontOptimizer, UnusedCSSOptimizer, jQueryOptimizer, ResponsiveImageOptimizer, BackendOptimizer, Optimizer, BatchDOMUpdater, DOMReflowOptimizer, CoreWebVitalsMonitor, PerformanceMonitor, MLPredictor, ScheduledReports, WooCommerceOptimizer, DatabaseQueryMonitor, Cleaner, HtaccessSecurity, CriticalCss
+- **Verifica:** ✅ Tutte le impostazioni si applicano immediatamente dopo il salvataggio
+
+### 📝 FILES CHANGED
+
+- 39 file servizi con aggiunta di `forceInit()` e chiamata in `updateSettings()`/`update()`
+- `fp-performance-suite.php` (version bump 1.8.0 → 1.8.1)
+- `readme.txt` (version bump)
+- `composer.json` (version bump)
+- `CHANGELOG.md` (documentazione completa)
+
+**Total:** ~1200+ lines added/modified
+
+---
+
 ## [1.8.0] - 2025-11-06
 
 ### 🔴 CRITICAL BUGFIXES

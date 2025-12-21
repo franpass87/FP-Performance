@@ -150,7 +150,30 @@ class DelayedJavaScriptExecutor
             }
         }
         
-        return $this->setOption(self::OPTION, $new);
+        $result = $this->setOption(self::OPTION, $new);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('script_loader_tag', [$this, 'delayScriptTag'], 10);
+        remove_action('template_redirect', [$this, 'startBuffer'], 1);
+        remove_action('shutdown', [$this, 'endBuffer'], PHP_INT_MAX);
+        remove_action('wp_footer', [$this, 'enqueueDelayHandler'], 999);
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

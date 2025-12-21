@@ -113,7 +113,32 @@ class WooCommerceOptimizer
         $current = $this->getSettings();
         $new = array_merge($current, $settings);
         
-        return $this->setOption(self::OPTION, $new, false);
+        $result = $this->setOption(self::OPTION, $new, false);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'disableCartFragments'], 999);
+        remove_filter('woocommerce_add_to_cart_fragments', [$this, 'lazyLoadCartFragments'], 10);
+        remove_action('template_redirect', [$this, 'excludeFromCache'], 1);
+        remove_action('wp_enqueue_scripts', [$this, 'disablePasswordStrength'], 999);
+        remove_action('wp_enqueue_scripts', [$this, 'conditionalScriptLoading'], 999);
+        remove_filter('woocommerce_cart_widget_fragment_name', [$this, 'optimizeWidgetFragment']);
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

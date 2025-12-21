@@ -157,6 +157,23 @@ class ScheduledReports
         $this->maybeSchedule(true);
 
         $this->log('info', 'Scheduled reports settings updated', $new);
+        
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action(self::CRON_HOOK, [$this, 'sendReport']);
+        remove_filter('cron_schedules', [$this, 'addSchedules']);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

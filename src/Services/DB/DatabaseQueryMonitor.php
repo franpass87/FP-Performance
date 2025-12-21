@@ -365,7 +365,34 @@ class DatabaseQueryMonitor
         
         $this->isEnabled = !empty($updated['enabled']);
         
-        return $this->setOption(self::OPTION_KEY, $updated);
+        $result = $this->setOption(self::OPTION_KEY, $updated);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('log_query_custom_data', [$this, 'interceptQueryData'], 10);
+        remove_action('wpdb_query', [$this, 'trackQueryExecution'], 10);
+        remove_action('shutdown', [$this, 'logStatistics'], PHP_INT_MAX);
+        remove_action('wp_footer', [$this, 'displayAdminBar'], 52);
+        remove_action('init', [$this, 'startQueryMonitoring'], 1);
+        remove_action('wp_loaded', [$this, 'analyzeWordPressQueries'], 999);
+        remove_action('wp_loaded', [$this, 'forceQueryLogging'], 1);
+        remove_action('wp_loaded', [$this, 'trackAllQueries'], 1);
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

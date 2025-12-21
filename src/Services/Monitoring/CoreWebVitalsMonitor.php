@@ -237,7 +237,27 @@ class CoreWebVitalsMonitor
             $this->cls = $newSettings['cls_enabled'];
         }
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_footer', [$this, 'addCoreWebVitalsScript'], 48);
+        remove_action('wp_ajax_fp_save_vitals', [$this, 'saveVitals']);
+        remove_action('wp_ajax_nopriv_fp_save_vitals', [$this, 'saveVitals']);
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

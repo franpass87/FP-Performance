@@ -4,7 +4,7 @@ Tags: performance, cache, optimization, speed, lazy-load
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -170,6 +170,9 @@ Sì! La maggior parte delle ottimizzazioni funzionano. Le regole .htaccess (cach
 * Initial stable release
 
 == Upgrade Notice ==
+
+= 1.8.1 =
+IMPORTANT UPDATE: Fix per applicazione immediata delle impostazioni. Tutti i servizi ora reinizializzano correttamente gli hook dopo il salvataggio. Aggiornamento raccomandato!
 
 = 1.8.0 =
 CRITICAL UPDATE: Fix CORS errors + AJAX rotto + Console pulita. Feature One-Click implementata. Aggiornamento IMMEDIATO raccomandato!

@@ -152,6 +152,9 @@ class CriticalCss
             ];
         }
 
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+
         $this->log('info', 'Critical CSS updated', [
             'size' => strlen($css),
             'enabled' => !empty($css),
@@ -167,11 +170,28 @@ class CriticalCss
     }
 
     /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_head', [$this, 'inlineCriticalCss'], 19);
+        
+        // Reinizializza
+        $this->register();
+    }
+
+    /**
      * Clear critical CSS
      */
     public function clear(): void
     {
         delete_option(self::OPTION);
+        
+        // FIX: Reinizializza il servizio dopo la pulizia
+        $this->forceInit();
+        
         $this->log('info', 'Critical CSS cleared');
         do_action('fp_ps_critical_css_cleared');
     }

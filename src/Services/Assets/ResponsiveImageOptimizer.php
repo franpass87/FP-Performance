@@ -693,9 +693,28 @@ class ResponsiveImageOptimizer
         if ($result) {
             Logger::info('Responsive images settings updated', $updated);
             do_action('fp_ps_responsive_images_updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('wp_get_attachment_image_src', [$this, 'optimizeImageSrc'], 10);
+        remove_filter('wp_calculate_image_srcset', [$this, 'optimizeImageSrcset'], 10);
+        remove_filter('the_content', [$this, 'optimizeContentImages'], 20);
+        remove_action('wp_footer', [$this, 'addDimensionDetectionScript'], 12);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

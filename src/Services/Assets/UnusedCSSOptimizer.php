@@ -1323,9 +1323,28 @@ class UnusedCSSOptimizer implements UnusedCSSOptimizerInterface
         if ($result) {
             Logger::info('Unused CSS optimization settings updated', $updated);
             do_action('fp_ps_unused_css_optimization_updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'removeUnusedCSS'], 995);
+        remove_filter('style_loader_tag', [$this, 'optimizeCSSLoading'], 20);
+        remove_action('wp_head', [$this, 'inlineCriticalCSS'], 14);
+        remove_action('wp_footer', [$this, 'addCSSPurgingScript'], 20);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

@@ -118,7 +118,27 @@ class InstantPageLoader
             $new['max_requests'] = max(1, min(50, (int) $new['max_requests']));
         }
         
-        return $this->setOption(self::OPTION, $new);
+        $result = $this->setOption(self::OPTION, $new);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'enqueueScripts'], 999);
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

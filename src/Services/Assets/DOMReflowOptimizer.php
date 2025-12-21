@@ -134,6 +134,24 @@ class DOMReflowOptimizer
         ];
 
         $this->setOption(self::OPTION, $new);
+        
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_footer', [$this, 'injectOptimizationScript'], 10);
+        remove_action('wp_head', [$this, 'injectPreventiveCSS'], 15);
+        remove_filter('script_loader_tag', [$this, 'optimizeScriptLoading'], 20);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

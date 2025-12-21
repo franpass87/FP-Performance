@@ -93,7 +93,28 @@ class SmartAssetDelivery
         $current = $this->getSettings();
         $updated = wp_parse_args($settings, $current);
 
-        return $this->setOption(self::OPTION_KEY, $updated);
+        $result = $this->setOption(self::OPTION_KEY, $updated);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('wp_get_attachment_image_src', [$this, 'adaptImageQuality'], 10);
+        remove_action('wp_footer', [$this, 'detectConnectionType'], 35);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

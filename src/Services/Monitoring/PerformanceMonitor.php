@@ -263,7 +263,26 @@ class PerformanceMonitor
             $this->real_user_monitoring = $newSettings['real_user_monitoring'];
         }
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_footer', [$this, 'addCoreWebVitalsScript'], 46);
+        remove_action('wp_footer', [$this, 'addRealUserMonitoringScript'], 47);
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

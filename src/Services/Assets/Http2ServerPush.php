@@ -138,9 +138,25 @@ class Http2ServerPush
         
         if ($result) {
             $this->log('info', 'HTTP/2 Server Push settings updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('template_redirect', [$this, 'sendPushHeaders'], 1);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

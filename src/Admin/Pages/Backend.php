@@ -96,8 +96,8 @@ class Backend extends AbstractPage
                 $allSettings['enabled'] = !empty($_POST['backend_enabled']);
                 $backendOptimizer->updateSettings($allSettings);
                 
-                // FIX: Forza sempre reinizializzazione del servizio (sia quando si attiva che si disattiva)
-                $backendOptimizer->forceInit();
+                // FIX: forceInit() è ora chiamato automaticamente da updateSettings()
+                // Manteniamo questa chiamata per compatibilità, ma è ridondante
                 
                 $message = __('Backend optimization settings saved successfully!', 'fp-performance-suite');
             }
@@ -122,8 +122,7 @@ class Backend extends AbstractPage
                 // FIX: Ricarica le impostazioni dopo il salvataggio
                 $allSettings = $backendOptimizer->getSettings();
                 
-                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
-                $backendOptimizer->forceInit();
+                // FIX: forceInit() è ora chiamato automaticamente da updateSettings()
                 
                 $message = __('✅ Admin Bar settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
@@ -151,8 +150,7 @@ class Backend extends AbstractPage
                 // FIX: Ricarica le impostazioni dopo il salvataggio
                 $allSettings = $backendOptimizer->getSettings();
                 
-                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
-                $backendOptimizer->forceInit();
+                // FIX: forceInit() è ora chiamato automaticamente da updateSettings()
                 
                 $message = __('✅ Dashboard settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
@@ -176,8 +174,7 @@ class Backend extends AbstractPage
                 // FIX: Ricarica le impostazioni dopo il salvataggio
                 $allSettings = $backendOptimizer->getSettings();
                 
-                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
-                $backendOptimizer->forceInit();
+                // FIX: forceInit() è ora chiamato automaticamente da updateSettings()
                 
                 $message = __('✅ Heartbeat API settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
@@ -202,8 +199,7 @@ class Backend extends AbstractPage
                 // FIX: Ricarica le impostazioni dopo il salvataggio
                 $allSettings = $backendOptimizer->getSettings();
                 
-                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
-                $backendOptimizer->forceInit();
+                // FIX: forceInit() è ora chiamato automaticamente da updateSettings()
                 
                 $message = __('✅ Admin AJAX settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }

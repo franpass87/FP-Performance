@@ -112,6 +112,24 @@ class MLPredictor
     public function updateSettings(array $settings): void
     {
         $this->setOption(self::OPTION, $settings);
+        
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('shutdown', [$this, 'collectPerformanceData'], PHP_INT_MAX);
+        remove_action('fp_ps_ml_analyze_patterns', [$this, 'analyzePatterns']);
+        remove_action('fp_ps_ml_predict_issues', [$this, 'predictIssues']);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

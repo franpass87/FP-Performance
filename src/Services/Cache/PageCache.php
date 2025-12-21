@@ -291,7 +291,37 @@ class PageCache
             $this->ttl = $newSettings['ttl'];
         }
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('template_redirect', [$this, 'serveOrCachePage'], 1);
+        remove_action('save_post', [$this, 'autoPurgePost'], 10);
+        remove_action('deleted_post', [$this, 'autoPurgePost'], 10);
+        remove_action('trashed_post', [$this, 'autoPurgePost'], 10);
+        remove_action('comment_post', [$this, 'autoPurgePostOnComment'], 10);
+        remove_action('edit_comment', [$this, 'autoPurgeCommentPost'], 10);
+        remove_action('fp_ps_cache_cleanup', [$this, 'cleanupExpiredCache']);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->settings();
+        if (isset($settings['ttl'])) {
+            $this->ttl = $settings['ttl'];
+        }
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

@@ -2,7 +2,7 @@
 
 **WordPress Performance Plugin per Shared Hosting**
 
-![Version](https://img.shields.io/badge/version-1.8.0-blue)
+![Version](https://img.shields.io/badge/version-1.8.1-blue)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue)
 ![License](https://img.shields.io/badge/license-GPL--2.0-green)

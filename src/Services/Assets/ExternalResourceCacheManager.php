@@ -115,6 +115,25 @@ class ExternalResourceCacheManager
         $this->setOption(self::OPTION_KEY, $newSettings);
         
         Logger::info('External cache settings updated', $newSettings);
+        
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_head', [$this, 'addExternalCacheHeaders'], 18);
+        remove_action('wp_footer', [$this, 'addExternalCacheHeaders'], 30);
+        remove_action('wp_enqueue_scripts', [$this, 'handleEnqueuedScripts'], 994);
+        remove_action('wp_enqueue_scripts', [$this, 'handleEnqueuedStyles'], 993);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

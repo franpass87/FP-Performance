@@ -455,9 +455,29 @@ class RenderBlockingOptimizer
         if ($result) {
             Logger::info('Render blocking optimization settings updated', $updated);
             do_action('fp_ps_render_blocking_optimization_updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_head', [$this, 'injectCriticalCSS'], 3);
+        remove_action('wp_head', [$this, 'optimizeFontLoading'], 4);
+        remove_filter('style_loader_tag', [$this, 'deferNonCriticalCSS'], 9);
+        remove_action('wp_head', [$this, 'preloadCriticalResources'], 6);
+        remove_action('wp_head', [$this, 'addResourceHints'], 7);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

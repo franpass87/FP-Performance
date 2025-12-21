@@ -416,7 +416,30 @@ Options -Indexes
      */
     public function update(array $settings): bool
     {
-        return $this->setOption('fp_ps_htaccess_security', $settings);
+        $result = $this->setOption('fp_ps_htaccess_security', $settings);
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('send_headers', [$this, 'addSecurityHeaders'], 1);
+        remove_action('wp_loaded', [$this, 'updateHtaccess']);
+        remove_filter('xmlrpc_enabled', '__return_false', 999);
+        remove_filter('wp_xmlrpc_server_class', '__return_false', 999);
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**
