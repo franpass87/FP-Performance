@@ -47,33 +47,30 @@ class EdgeCacheTab
         try {
             // Verifica che il servizio sia disponibile nel container
             if (!$this->container->has(EdgeCacheManager::class)) {
-                // Se il servizio non è registrato, usa defaults e mostra warning
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('[FP-Performance] EdgeCacheManager service not registered in container');
-                }
-            } else {
-                $edgeManager = $this->container->get(EdgeCacheManager::class);
-                
-                // Carica impostazioni - usa settings() che ora è disponibile
-                if (method_exists($edgeManager, 'settings')) {
-                    $edgeSettings = $edgeManager->settings();
-                } elseif (method_exists($edgeManager, 'getSettings')) {
-                    $edgeSettings = $edgeManager->getSettings();
-                }
-                
-                // Assicurati che edgeSettings sia un array valido
-                if (!is_array($edgeSettings)) {
-                    $edgeSettings = [];
-                }
-                
-                // Merge con defaults per sicurezza
-                $edgeSettings = array_merge([
-                    'enabled' => false,
-                    'provider' => 'cloudflare',
-                    'api_key' => '',
-                    'zone_id' => '',
-                ], $edgeSettings);
+                throw new \RuntimeException('EdgeCacheManager service not registered in container');
             }
+            
+            $edgeManager = $this->container->get(EdgeCacheManager::class);
+            
+            // Carica impostazioni - usa settings() che ora è disponibile
+            if (method_exists($edgeManager, 'settings')) {
+                $edgeSettings = $edgeManager->settings();
+            } elseif (method_exists($edgeManager, 'getSettings')) {
+                $edgeSettings = $edgeManager->getSettings();
+            }
+            
+            // Assicurati che edgeSettings sia un array valido
+            if (!is_array($edgeSettings)) {
+                $edgeSettings = [];
+            }
+            
+            // Merge con defaults per sicurezza
+            $edgeSettings = array_merge([
+                'enabled' => false,
+                'provider' => 'cloudflare',
+                'api_key' => '',
+                'zone_id' => '',
+            ], $edgeSettings);
             
         } catch (\Throwable $e) {
             // Log errore per debug
