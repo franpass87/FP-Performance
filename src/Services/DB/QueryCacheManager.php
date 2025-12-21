@@ -202,9 +202,31 @@ class QueryCacheManager
         if ($result) {
             $this->cache_enabled = $newSettings['enabled'] ?? $this->cache_enabled;
             $this->ttl = $newSettings['ttl'] ?? $this->ttl;
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
         
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('posts_pre_query', [$this, 'cacheQuery'], 10);
+        remove_action('wp_footer', [$this, 'addQueryCacheScript'], 50);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->getSettings();
+        $this->cache_enabled = $settings['enabled'] ?? false;
+        $this->ttl = $settings['ttl'] ?? 3600;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

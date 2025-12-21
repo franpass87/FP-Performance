@@ -72,7 +72,15 @@ class Backend extends AbstractPage
     protected function content(): string
     {
         $backendOptimizer = $this->container->get(BackendOptimizer::class);
+        
+        // FIX: Carica sempre le impostazioni più recenti dal database
         $allSettings = $backendOptimizer->getSettings();
+        
+        // FIX: Assicura che enabled sia presente nelle impostazioni
+        if (!isset($allSettings['enabled'])) {
+            $allSettings['enabled'] = false;
+        }
+        
         $message = '';
         
         // Debug: Log delle impostazioni correnti
@@ -88,16 +96,19 @@ class Backend extends AbstractPage
                 $allSettings['enabled'] = !empty($_POST['backend_enabled']);
                 $backendOptimizer->updateSettings($allSettings);
                 
-                // Forza reinizializzazione del servizio
-                if (!empty($_POST['backend_enabled'])) {
-                    $backendOptimizer->forceInit();
-                }
+                // FIX: Forza sempre reinizializzazione del servizio (sia quando si attiva che si disattiva)
+                $backendOptimizer->forceInit();
                 
                 $message = __('Backend optimization settings saved successfully!', 'fp-performance-suite');
             }
             
             // Admin Bar Settings
             if (isset($_POST['save_admin_bar'])) {
+                // FIX: Assicura che enabled sia true quando si salvano impostazioni specifiche
+                if (empty($allSettings['enabled'])) {
+                    $allSettings['enabled'] = true;
+                }
+                
                 $allSettings['admin_bar'] = [
                     'disable_frontend' => !empty($_POST['disable_admin_bar_frontend']),
                     'disable_wordpress_logo' => !empty($_POST['disable_wp_logo']),
@@ -107,11 +118,23 @@ class Backend extends AbstractPage
                     'disable_customize' => !empty($_POST['disable_customize']),
                 ];
                 $backendOptimizer->updateSettings($allSettings);
-                $message = __('✅ Admin Bar settings saved! Ricarica la pagina o naviga su un\'altra sezione per vedere le modifiche applicate.', 'fp-performance-suite');
+                
+                // FIX: Ricarica le impostazioni dopo il salvataggio
+                $allSettings = $backendOptimizer->getSettings();
+                
+                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
+                $backendOptimizer->forceInit();
+                
+                $message = __('✅ Admin Bar settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
 
             // Dashboard Widgets Settings
             if (isset($_POST['save_dashboard'])) {
+                // FIX: Assicura che enabled sia true quando si salvano impostazioni specifiche
+                if (empty($allSettings['enabled'])) {
+                    $allSettings['enabled'] = true;
+                }
+                
                 $allSettings['dashboard'] = [
                     'disable_welcome' => !empty($_POST['disable_welcome_panel']),
                     'disable_quick_press' => !empty($_POST['disable_quick_press']),
@@ -124,11 +147,23 @@ class Backend extends AbstractPage
                 $allSettings['optimize_dashboard'] = true;
                 $allSettings['remove_dashboard_widgets'] = true;
                 $backendOptimizer->updateSettings($allSettings);
-                $message = __('Dashboard settings saved.', 'fp-performance-suite');
+                
+                // FIX: Ricarica le impostazioni dopo il salvataggio
+                $allSettings = $backendOptimizer->getSettings();
+                
+                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
+                $backendOptimizer->forceInit();
+                
+                $message = __('✅ Dashboard settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
 
             // Heartbeat API Settings
             if (isset($_POST['save_heartbeat'])) {
+                // FIX: Assicura che enabled sia true quando si salvano impostazioni specifiche
+                if (empty($allSettings['enabled'])) {
+                    $allSettings['enabled'] = true;
+                }
+                
                 $allSettings['heartbeat'] = [
                     'dashboard' => sanitize_text_field($_POST['heartbeat_dashboard'] ?? 'default'),
                     'editor' => sanitize_text_field($_POST['heartbeat_editor'] ?? 'default'),
@@ -137,11 +172,23 @@ class Backend extends AbstractPage
                 $allSettings['heartbeat_interval'] = absint($_POST['heartbeat_interval'] ?? 60);
                 $allSettings['optimize_heartbeat'] = true;
                 $backendOptimizer->updateSettings($allSettings);
-                $message = __('Heartbeat API settings saved.', 'fp-performance-suite');
+                
+                // FIX: Ricarica le impostazioni dopo il salvataggio
+                $allSettings = $backendOptimizer->getSettings();
+                
+                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
+                $backendOptimizer->forceInit();
+                
+                $message = __('✅ Heartbeat API settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
 
             // Admin AJAX Settings
             if (isset($_POST['save_admin_ajax'])) {
+                // FIX: Assicura che enabled sia true quando si salvano impostazioni specifiche
+                if (empty($allSettings['enabled'])) {
+                    $allSettings['enabled'] = true;
+                }
+                
                 $allSettings['admin_ajax'] = [
                     'disable_emojis' => !empty($_POST['disable_emojis']),
                     'disable_embeds' => !empty($_POST['disable_embeds']),
@@ -151,7 +198,14 @@ class Backend extends AbstractPage
                 $allSettings['autosave_interval'] = (int) ($_POST['autosave_interval'] ?? 60);
                 $allSettings['optimize_admin_ajax'] = true;
                 $backendOptimizer->updateSettings($allSettings);
-                $message = __('Admin AJAX settings saved.', 'fp-performance-suite');
+                
+                // FIX: Ricarica le impostazioni dopo il salvataggio
+                $allSettings = $backendOptimizer->getSettings();
+                
+                // FIX: Forza reinizializzazione per applicare immediatamente le modifiche
+                $backendOptimizer->forceInit();
+                
+                $message = __('✅ Admin AJAX settings saved! Le modifiche sono state applicate immediatamente.', 'fp-performance-suite');
             }
         }
 

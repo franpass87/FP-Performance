@@ -137,9 +137,31 @@ class BrowserCache
             $this->enabled = $new['enabled'];
             $this->static_assets_ttl = $new['static_assets_ttl'];
             $this->html_ttl = $new['html_ttl'];
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
         
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('send_headers', [$this, 'addCacheHeaders']);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->getSettings();
+        $this->enabled = $settings['enabled'] ?? false;
+        $this->static_assets_ttl = $settings['static_assets_ttl'] ?? 31536000;
+        $this->html_ttl = $settings['html_ttl'] ?? 3600;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

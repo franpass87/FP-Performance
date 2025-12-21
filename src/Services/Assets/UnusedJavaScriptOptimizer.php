@@ -285,9 +285,30 @@ class UnusedJavaScriptOptimizer implements UnusedJavaScriptOptimizerInterface
         
         if ($result) {
             $this->aggressive_mode = $newSettings['aggressive_mode'];
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
         
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 996);
+        remove_action('wp_footer', [$this, 'addUnusedJSScript'], 44);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->settings();
+        $this->aggressive_mode = $settings['aggressive_mode'] ?? false;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

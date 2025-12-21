@@ -12,6 +12,9 @@ class BackendOptimizer
     private $admin_bar;
     private ?OptionsRepositoryInterface $optionsRepo = null;
     
+    // FIX: Traccia gli hook registrati per poterli rimuovere
+    private static array $registeredHooks = [];
+    
     /**
      * Costruttore
      * 
@@ -63,45 +66,99 @@ class BackendOptimizer
     
     public function init()
     {
-        // Carica le impostazioni salvate
+        // FIX: Carica le impostazioni salvate e verifica se il servizio è abilitato
         $settings = $this->getSettings();
         
-        if ($this->optimize_heartbeat) {
-            add_action('init', [$this, 'optimizeHeartbeat']);
+        // FIX CRITICO: Se il servizio non è abilitato, non registrare nessun hook
+        if (empty($settings['enabled'])) {
+            return;
         }
         
-        if ($this->limit_revisions) {
-            add_action('init', [$this, 'limitRevisions']);
+        // Heartbeat optimization
+        if (!empty($settings['optimize_heartbeat'])) {
+            if (!has_action('init', [$this, 'optimizeHeartbeat'])) {
+                add_action('init', [$this, 'optimizeHeartbeat']);
+                self::$registeredHooks['init_heartbeat'] = true;
+            }
         }
         
-        if ($this->optimize_dashboard) {
-            add_action('wp_dashboard_setup', [$this, 'optimizeDashboard']);
+        // Limit revisions
+        if (!empty($settings['limit_revisions'])) {
+            if (!has_action('init', [$this, 'limitRevisions'])) {
+                add_action('init', [$this, 'limitRevisions']);
+                self::$registeredHooks['init_revisions'] = true;
+            }
+        }
+        
+        // Dashboard optimization
+        if (!empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets'])) {
+            if (!has_action('wp_dashboard_setup', [$this, 'optimizeDashboard'])) {
+                add_action('wp_dashboard_setup', [$this, 'optimizeDashboard']);
+                self::$registeredHooks['wp_dashboard_setup'] = true;
+            }
         }
         
         // Admin Bar: gestione granulare
         if (!empty($settings['admin_bar'])) {
             // Disabilita completamente sul frontend se richiesto
             if (!empty($settings['admin_bar']['disable_frontend'])) {
-                add_filter('show_admin_bar', '__return_false');
+                if (!has_filter('show_admin_bar', '__return_false')) {
+                    add_filter('show_admin_bar', '__return_false');
+                    self::$registeredHooks['show_admin_bar'] = true;
+                }
             }
             
             // Rimuovi elementi specifici dalla admin bar
-            add_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar']);
+            if (!has_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar'])) {
+                add_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar']);
+                self::$registeredHooks['wp_before_admin_bar_render'] = true;
+            }
         }
         
         // Dashboard Widgets: gestione granulare
-        if (!empty($settings['dashboard_widgets'])) {
-            add_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
+        if (!empty($settings['dashboard'])) {
+            if (!has_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'])) {
+                add_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
+                self::$registeredHooks['wp_dashboard_setup'] = true;
+            }
+        }
+        
+        // Heartbeat API settings
+        if (!empty($settings['optimize_heartbeat']) || !empty($settings['heartbeat'])) {
+            if (!has_action('init', [$this, 'applyHeartbeatSettings'])) {
+                add_action('init', [$this, 'applyHeartbeatSettings']);
+                self::$registeredHooks['init_heartbeat'] = true;
+            }
+        }
+        
+        // Admin AJAX optimizations
+        if (!empty($settings['optimize_admin_ajax']) || !empty($settings['admin_ajax'])) {
+            if (!has_action('init', [$this, 'applyAdminAjaxSettings'])) {
+                add_action('init', [$this, 'applyAdminAjaxSettings']);
+                self::$registeredHooks['init_admin_ajax'] = true;
+            }
         }
     }
     
     public function optimizeHeartbeat()
     {
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
         // Reduce heartbeat frequency
-        add_filter('heartbeat_settings', function($settings) {
-            $settings['interval'] = 60; // 60 seconds instead of 15
-            return $settings;
-        });
+        // FIX: Usa tracciamento statico per evitare duplicati con closure
+        static $heartbeatFilterRegistered = false;
+        if (!$heartbeatFilterRegistered) {
+            add_filter('heartbeat_settings', function($settings) {
+                $settings['interval'] = 60; // 60 seconds instead of 15
+                return $settings;
+            });
+            $heartbeatFilterRegistered = true;
+            self::$registeredHooks['heartbeat_settings'] = true;
+        }
         
         // Disable heartbeat on frontend
         if (!is_admin()) {
@@ -109,25 +166,172 @@ class BackendOptimizer
         }
     }
     
+    /**
+     * Applica le impostazioni Heartbeat API
+     */
+    public function applyHeartbeatSettings(): void
+    {
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
+        $heartbeatSettings = $settings['heartbeat'] ?? [];
+        $heartbeatInterval = $settings['heartbeat_interval'] ?? 60;
+        
+        // Gestisci heartbeat per dashboard
+        if (!empty($heartbeatSettings['dashboard'])) {
+            if ($heartbeatSettings['dashboard'] === 'disable') {
+                add_action('admin_enqueue_scripts', function() {
+                    if (is_admin()) {
+                        wp_deregister_script('heartbeat');
+                    }
+                }, 1);
+            } elseif ($heartbeatSettings['dashboard'] === 'slow') {
+                add_filter('heartbeat_settings', function($settings) use ($heartbeatInterval) {
+                    if (is_admin()) {
+                        $settings['interval'] = max(120, $heartbeatInterval);
+                    }
+                    return $settings;
+                });
+            }
+        }
+        
+        // Gestisci heartbeat per editor
+        if (!empty($heartbeatSettings['editor'])) {
+            if ($heartbeatSettings['editor'] === 'disable') {
+                add_action('admin_enqueue_scripts', function() {
+                    $screen = get_current_screen();
+                    if ($screen && ($screen->is_block_editor() || $screen->post_type)) {
+                        wp_deregister_script('heartbeat');
+                    }
+                }, 1);
+            } elseif ($heartbeatSettings['editor'] === 'slow') {
+                add_filter('heartbeat_settings', function($settings) use ($heartbeatInterval) {
+                    $screen = get_current_screen();
+                    if ($screen && ($screen->is_block_editor() || $screen->post_type)) {
+                        $settings['interval'] = max(30, $heartbeatInterval);
+                    }
+                    return $settings;
+                });
+            }
+        }
+        
+        // Gestisci heartbeat per frontend
+        if (!empty($heartbeatSettings['frontend'])) {
+            if ($heartbeatSettings['frontend'] === 'disable') {
+                add_action('wp_enqueue_scripts', function() {
+                    wp_deregister_script('heartbeat');
+                }, 1);
+            } elseif ($heartbeatSettings['frontend'] === 'slow') {
+                add_filter('heartbeat_settings', function($settings) use ($heartbeatInterval) {
+                    if (!is_admin()) {
+                        $settings['interval'] = max(120, $heartbeatInterval);
+                    }
+                    return $settings;
+                });
+            }
+        }
+        
+        // Applica intervallo personalizzato se specificato
+        if (!empty($heartbeatInterval) && $heartbeatInterval !== 60) {
+            add_filter('heartbeat_settings', function($settings) use ($heartbeatInterval) {
+                $settings['interval'] = max(15, min(300, $heartbeatInterval));
+                return $settings;
+            });
+        }
+    }
+    
+    /**
+     * Applica le ottimizzazioni Admin AJAX
+     */
+    public function applyAdminAjaxSettings(): void
+    {
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
+        $adminAjaxSettings = $settings['admin_ajax'] ?? [];
+        
+        // Limita revisioni
+        if (!empty($settings['limit_revisions'])) {
+            $revisionsLimit = $settings['revisions_limit'] ?? 5;
+            if (!defined('WP_POST_REVISIONS')) {
+                define('WP_POST_REVISIONS', max(0, min(50, (int) $revisionsLimit)));
+            }
+        }
+        
+        // Intervallo autosave
+        if (!empty($settings['autosave_interval'])) {
+            $autosaveInterval = max(30, min(300, (int) $settings['autosave_interval']));
+            add_filter('autosave_interval', function() use ($autosaveInterval) {
+                return $autosaveInterval;
+            });
+        }
+        
+        // Disabilita emoji
+        if (!empty($adminAjaxSettings['disable_emojis'])) {
+            remove_action('wp_head', 'print_emoji_detection_script', 7);
+            remove_action('admin_print_scripts', 'print_emoji_detection_script');
+            remove_action('wp_print_styles', 'print_emoji_styles');
+            remove_action('admin_print_styles', 'print_emoji_styles');
+            remove_filter('the_content_feed', 'wp_staticize_emoji');
+            remove_filter('comment_text_rss', 'wp_staticize_emoji');
+            remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+            add_filter('tiny_mce_plugins', function($plugins) {
+                return is_array($plugins) ? array_diff($plugins, ['wpemoji']) : $plugins;
+            });
+        }
+        
+        // Disabilita embeds
+        if (!empty($adminAjaxSettings['disable_embeds'])) {
+            remove_action('wp_head', 'wp_oembed_add_discovery_links');
+            remove_action('wp_head', 'wp_oembed_add_host_js');
+            remove_action('rest_api_init', 'wp_oembed_register_route');
+            remove_filter('oembed_dataparse', 'wp_filter_oembed_result', 10);
+            add_filter('embed_oembed_discover', '__return_false');
+            remove_filter('wp_head', 'wp_oembed_add_discovery_links');
+            remove_filter('wp_head', 'wp_oembed_add_host_js');
+        }
+    }
+    
     public function limitRevisions()
     {
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled']) || empty($settings['limit_revisions'])) {
+            return;
+        }
+        
         // Limit post revisions
+        $revisionsLimit = $settings['revisions_limit'] ?? 5;
         if (!defined('WP_POST_REVISIONS')) {
-            define('WP_POST_REVISIONS', 3);
+            define('WP_POST_REVISIONS', max(0, min(50, (int) $revisionsLimit)));
         }
     }
     
     public function optimizeDashboard()
     {
-        // Remove unnecessary dashboard widgets
-        remove_meta_box('dashboard_quick_press', 'dashboard', 'side');
-        remove_meta_box('dashboard_recent_drafts', 'dashboard', 'side');
-        remove_meta_box('dashboard_primary', 'dashboard', 'side');
-        remove_meta_box('dashboard_secondary', 'dashboard', 'side');
-        remove_meta_box('dashboard_incoming_links', 'dashboard', 'normal');
-        remove_meta_box('dashboard_plugins', 'dashboard', 'normal');
-        remove_meta_box('dashboard_right_now', 'dashboard', 'normal');
-        remove_meta_box('dashboard_activity', 'dashboard', 'normal');
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
+        // Remove unnecessary dashboard widgets (solo se optimize_dashboard è attivo)
+        if (!empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets'])) {
+            remove_meta_box('dashboard_quick_press', 'dashboard', 'side');
+            remove_meta_box('dashboard_recent_drafts', 'dashboard', 'side');
+            remove_meta_box('dashboard_primary', 'dashboard', 'side');
+            remove_meta_box('dashboard_secondary', 'dashboard', 'side');
+            remove_meta_box('dashboard_incoming_links', 'dashboard', 'normal');
+            remove_meta_box('dashboard_plugins', 'dashboard', 'normal');
+            remove_meta_box('dashboard_right_now', 'dashboard', 'normal');
+            remove_meta_box('dashboard_activity', 'dashboard', 'normal');
+        }
     }
     
     public function removeAdminBar()
@@ -140,13 +344,18 @@ class BackendOptimizer
      */
     public function customizeAdminBar(): void
     {
+        // FIX: Verifica che il servizio sia abilitato
+        $settings = $this->getSettings();
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
         global $wp_admin_bar;
         
         if (!$wp_admin_bar) {
             return;
         }
         
-        $settings = $this->getSettings();
         $adminBarSettings = $settings['admin_bar'] ?? [];
         
         // Rimuovi menu aggiornamenti
@@ -180,8 +389,13 @@ class BackendOptimizer
      */
     public function customizeDashboardWidgets(): void
     {
+        // FIX: Verifica che il servizio sia abilitato
         $settings = $this->getSettings();
-        $dashboardSettings = $settings['dashboard_widgets'] ?? [];
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
+        $dashboardSettings = $settings['dashboard'] ?? [];
         
         // Disabilita pannello di benvenuto
         if (!empty($dashboardSettings['disable_welcome'])) {
@@ -193,19 +407,29 @@ class BackendOptimizer
             remove_meta_box('dashboard_quick_press', 'dashboard', 'side');
         }
         
-        // Disabilita Eventi e Notizie WordPress
-        if (!empty($dashboardSettings['disable_events_news'])) {
-            remove_meta_box('dashboard_primary', 'dashboard', 'side');
-        }
-        
         // Disabilita Widget Attività
         if (!empty($dashboardSettings['disable_activity'])) {
             remove_meta_box('dashboard_activity', 'dashboard', 'normal');
         }
         
-        // Disabilita Bozze Recenti
-        if (!empty($dashboardSettings['disable_recent_drafts'])) {
-            remove_meta_box('dashboard_recent_drafts', 'dashboard', 'side');
+        // Disabilita WordPress News (Primary)
+        if (!empty($dashboardSettings['disable_primary'])) {
+            remove_meta_box('dashboard_primary', 'dashboard', 'side');
+        }
+        
+        // Disabilita Eventi e Notizie (Secondary)
+        if (!empty($dashboardSettings['disable_secondary'])) {
+            remove_meta_box('dashboard_secondary', 'dashboard', 'side');
+        }
+        
+        // Disabilita Site Health
+        if (!empty($dashboardSettings['disable_site_health'])) {
+            remove_meta_box('dashboard_site_health', 'dashboard', 'normal');
+        }
+        
+        // Disabilita avviso aggiornamento PHP
+        if (!empty($dashboardSettings['disable_php_update'])) {
+            remove_action('admin_notices', 'wp_php_update_notice');
         }
     }
     
@@ -336,17 +560,91 @@ class BackendOptimizer
     }
     
     /**
+     * Rimuove tutti gli hook registrati
+     * FIX: Rimuove gli hook esistenti prima di ri-registrarli
+     */
+    private function removeRegisteredHooks(): void
+    {
+        // FIX: Rimuovi hook init per heartbeat (metodi specifici)
+        remove_action('init', [$this, 'optimizeHeartbeat']);
+        remove_action('init', [$this, 'applyHeartbeatSettings']);
+        
+        // FIX: Rimuovi hook init per revisions
+        remove_action('init', [$this, 'limitRevisions']);
+        
+        // FIX: Rimuovi hook dashboard
+        remove_action('wp_dashboard_setup', [$this, 'optimizeDashboard']);
+        remove_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
+        
+        // FIX: Rimuovi hook admin bar
+        remove_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar']);
+        
+        // FIX: Rimuovi hook init per admin ajax
+        remove_action('init', [$this, 'applyAdminAjaxSettings']);
+        
+        // FIX: Rimuovi filtri heartbeat_settings (potrebbero essere closure, quindi rimuovi tutti)
+        // Nota: Questo rimuove anche filtri di altri plugin, ma è necessario per evitare conflitti
+        remove_all_filters('heartbeat_settings');
+        
+        // FIX: Rimuovi filtri show_admin_bar
+        remove_all_filters('show_admin_bar');
+        
+        // FIX: Rimuovi filtri autosave_interval
+        remove_all_filters('autosave_interval');
+        
+        // FIX: Rimuovi hook admin_enqueue_scripts con priority 1 (usati per heartbeat)
+        remove_all_actions('admin_enqueue_scripts', 1);
+        
+        // FIX: Rimuovi hook wp_enqueue_scripts con priority 1 (usati per heartbeat frontend)
+        remove_all_actions('wp_enqueue_scripts', 1);
+        
+        // FIX: Rimuovi hook welcome_panel
+        remove_action('welcome_panel', 'wp_welcome_panel');
+        
+        // FIX: Rimuovi hook admin_notices per PHP update
+        remove_action('admin_notices', 'wp_php_update_notice');
+        
+        // FIX: Rimuovi hook emoji (se registrati)
+        remove_action('wp_head', 'print_emoji_detection_script', 7);
+        remove_action('admin_print_scripts', 'print_emoji_detection_script');
+        remove_action('wp_print_styles', 'print_emoji_styles');
+        remove_action('admin_print_styles', 'print_emoji_styles');
+        remove_filter('the_content_feed', 'wp_staticize_emoji');
+        remove_filter('comment_text_rss', 'wp_staticize_emoji');
+        remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+        
+        // FIX: Rimuovi hook embeds (se registrati)
+        remove_action('wp_head', 'wp_oembed_add_discovery_links');
+        remove_action('wp_head', 'wp_oembed_add_host_js');
+        remove_action('rest_api_init', 'wp_oembed_register_route');
+        remove_filter('oembed_dataparse', 'wp_filter_oembed_result', 10);
+        remove_filter('embed_oembed_discover', '__return_false');
+        
+        // Reset array tracciamento
+        self::$registeredHooks = [];
+    }
+    
+    /**
      * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
      */
     public function forceInit(): void
     {
+        // FIX: Rimuovi tutti gli hook esistenti prima di ri-registrarli
+        $this->removeRegisteredHooks();
+        
         // Ricarica le impostazioni dal database
         $settings = $this->getSettings();
         
+        // FIX: Aggiorna le proprietà della classe con le nuove impostazioni
+        $this->optimize_heartbeat = !empty($settings['optimize_heartbeat']);
+        $this->limit_revisions = !empty($settings['limit_revisions']);
+        $this->optimize_dashboard = !empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets']);
+        $this->admin_bar = !empty($settings['admin_bar']);
+        
         // Applica le impostazioni se il servizio è abilitato
-        if (!empty($settings['enabled'])) {
-            $this->init();
-        }
+        // Nota: init() ora controlla internamente se enabled è true
+        $this->init();
     }
     
     /**

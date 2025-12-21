@@ -382,7 +382,37 @@ class CdnManager
             $this->zone_id = $newSettings['zone_id'];
         }
         
+        if (isset($newSettings['cdn_url'])) {
+            $this->cdn_url = $newSettings['cdn_url'];
+        }
+        
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('wp_get_attachment_url', [$this, 'cdnUrl'], 10);
+        remove_filter('wp_get_attachment_image_src', [$this, 'cdnImageSrc'], 10);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->settings();
+        $this->cdn_url = $settings['url'] ?? '';
+        $this->provider = $settings['provider'] ?? 'custom';
+        $this->api_key = $settings['api_key'] ?? '';
+        $this->zone_id = $settings['zone_id'] ?? '';
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

@@ -44,6 +44,9 @@ class EdgeCacheTab
             'zone_id' => '',
         ];
         
+        $hasError = false;
+        $errorMessage = '';
+        
         try {
             // Verifica che il servizio sia disponibile nel container
             if (!$this->container->has(EdgeCacheManager::class)) {
@@ -57,6 +60,15 @@ class EdgeCacheTab
                 $edgeSettings = $edgeManager->settings();
             } elseif (method_exists($edgeManager, 'getSettings')) {
                 $edgeSettings = $edgeManager->getSettings();
+            } else {
+                // Se non ha metodi per le impostazioni, carica direttamente dall'opzione
+                $option = get_option('fp_ps_edge_cache_settings', []);
+                $edgeSettings = [
+                    'enabled' => !empty($option['enabled'] ?? false),
+                    'provider' => $option['provider'] ?? 'cloudflare',
+                    'api_key' => $option['api_key'] ?? '',
+                    'zone_id' => $option['zone_id'] ?? '',
+                ];
             }
             
             // Assicurati che edgeSettings sia un array valido
@@ -73,6 +85,9 @@ class EdgeCacheTab
             ], $edgeSettings);
             
         } catch (\Throwable $e) {
+            $hasError = true;
+            $errorMessage = $e->getMessage();
+            
             // Log errore per debug
             if (function_exists('error_log')) {
                 error_log(sprintf(
@@ -81,17 +96,6 @@ class EdgeCacheTab
                     basename($e->getFile()),
                     $e->getLine()
                 ));
-            }
-            
-            // Mostra messaggio di errore dettagliato in debug mode
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                ?>
-                <div class="notice notice-error">
-                    <p><strong><?php esc_html_e('Errore Edge Cache:', 'fp-performance-suite'); ?></strong></p>
-                    <p><?php echo esc_html($e->getMessage()); ?></p>
-                    <p><small><?php echo esc_html(sprintf('%s:%d', basename($e->getFile()), $e->getLine())); ?></small></p>
-                </div>
-                <?php
             }
         }
         
@@ -104,7 +108,16 @@ class EdgeCacheTab
                 <?php esc_html_e('Configura il caching su CDN edge per performance globali ottimali.', 'fp-performance-suite'); ?>
             </p>
             
-            <?php if (!$edgeManager): ?>
+            <?php if ($hasError): ?>
+            <div class="notice notice-error" style="margin: 20px 0;">
+                <p><strong><?php esc_html_e('⚠️ Errore:', 'fp-performance-suite'); ?></strong> 
+                <?php echo esc_html($errorMessage); ?>
+                <?php if (defined('WP_DEBUG') && WP_DEBUG): ?>
+                    <br><small><?php esc_html_e('Debug mode attivo - verifica i log per dettagli.', 'fp-performance-suite'); ?></small>
+                <?php endif; ?>
+                </p>
+            </div>
+            <?php elseif (!$edgeManager): ?>
             <div class="notice notice-warning" style="margin: 20px 0;">
                 <p><strong><?php esc_html_e('⚠️ Attenzione:', 'fp-performance-suite'); ?></strong> <?php esc_html_e('EdgeCacheManager non disponibile. Il form è comunque disponibile ma le impostazioni potrebbero non essere salvate correttamente.', 'fp-performance-suite'); ?></p>
             </div>
@@ -214,7 +227,14 @@ class EdgeCacheTab
         </section>
         
         <?php
-        return ob_get_clean();
+        $output = ob_get_clean();
+        
+        // FIX: Assicurati che ci sia sempre output, anche in caso di errore
+        if (empty($output) && $hasError) {
+            $output = '<div class="notice notice-error"><p><strong>' . esc_html__('Errore:', 'fp-performance-suite') . '</strong> ' . esc_html($errorMessage) . '</p></div>';
+        }
+        
+        return $output ?: '';
     }
 }
 

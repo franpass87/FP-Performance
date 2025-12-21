@@ -221,6 +221,15 @@ class RiskMatrix
             'advice' => '✅ CONSIGLIATO: Utile per ottimizzare performance database.'
         ],
         
+        'query_cache_enabled' => [
+            'risk' => self::RISK_GREEN,
+            'title' => 'Rischio Basso',
+            'description' => 'Abilita la cache delle query database per ridurre il carico sul database.',
+            'risks' => '✅ Sicuro - Cache automatica con invalidazione intelligente\n✅ Migliora performance senza rischi',
+            'why_fails' => 'Cache basata su transient WordPress, invalidazione automatica quando i dati cambiano.',
+            'advice' => '✅ CONSIGLIATO: Riduce drasticamente il carico database, specialmente per siti con alto traffico.'
+        ],
+        
         'db_cleanup_revisions' => [
             'risk' => self::RISK_GREEN,
             'title' => 'Rischio Basso',
@@ -1457,34 +1466,36 @@ class RiskMatrix
         ?>
         <span class="fp-ps-risk-indicator <?php echo esc_attr($level); ?>">
             <div class="fp-ps-risk-tooltip <?php echo esc_attr($level); ?>">
-                <div class="fp-ps-risk-tooltip-title">
-                    <span class="icon"><?php echo $icon; ?></span>
-                    <?php echo esc_html($risk['title']); ?>
+                <div class="fp-ps-risk-tooltip-content">
+                    <div class="fp-ps-risk-tooltip-title">
+                        <span class="icon"><?php echo $icon; ?></span>
+                        <?php echo esc_html($risk['title']); ?>
+                    </div>
+                    <?php if (!empty($risk['description'])) : ?>
+                    <div class="fp-ps-risk-tooltip-section">
+                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['description']); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($risk['risks'])) : ?>
+                    <div class="fp-ps-risk-tooltip-section">
+                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['risks']); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($risk['why_fails'])) : ?>
+                    <div class="fp-ps-risk-tooltip-section">
+                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['why_fails']); ?></div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($risk['advice'])) : ?>
+                    <div class="fp-ps-risk-tooltip-section">
+                        <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['advice']); ?></div>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <?php if (!empty($risk['description'])) : ?>
-                <div class="fp-ps-risk-tooltip-section">
-                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                    <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['description']); ?></div>
-                </div>
-                <?php endif; ?>
-                <?php if (!empty($risk['risks'])) : ?>
-                <div class="fp-ps-risk-tooltip-section">
-                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
-                    <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['risks']); ?></div>
-                </div>
-                <?php endif; ?>
-                <?php if (!empty($risk['why_fails'])) : ?>
-                <div class="fp-ps-risk-tooltip-section">
-                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
-                    <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['why_fails']); ?></div>
-                </div>
-                <?php endif; ?>
-                <?php if (!empty($risk['advice'])) : ?>
-                <div class="fp-ps-risk-tooltip-section">
-                    <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                    <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['advice']); ?></div>
-                </div>
-                <?php endif; ?>
             </div>
         </span>
         <?php

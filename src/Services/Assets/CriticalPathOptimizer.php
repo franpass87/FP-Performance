@@ -499,9 +499,29 @@ class CriticalPathOptimizer
         if ($result) {
             Logger::info('Critical path optimization settings updated', $updated);
             do_action('fp_ps_critical_path_optimization_updated', $updated);
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
 
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_head', [$this, 'preloadCriticalFonts'], 1);
+        remove_action('wp_head', [$this, 'addFontProviderPreconnect'], 2);
+        remove_filter('style_loader_tag', [$this, 'optimizeGoogleFontsLoading'], 8);
+        remove_action('wp_head', [$this, 'injectFontDisplayCSS'], 8);
+        remove_action('wp_head', [$this, 'addResourceHints'], 9);
+        
+        // Reinizializza
+        $this->register();
     }
 
     /**

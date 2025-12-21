@@ -188,9 +188,34 @@ class LazyLoadManager
             $this->lazy_load_iframes = $new['lazy_load_iframes'];
             $this->lazy_load_videos = $new['lazy_load_videos'];
             $this->threshold = $new['threshold'];
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
         
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('wp_get_attachment_image_attributes', [$this, 'addLazyLoadAttribute'], 10);
+        remove_filter('the_content', [$this, 'addLazyLoadToContent'], 999);
+        remove_action('wp_footer', [$this, 'addLazyLoadScript'], 99);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->getSettings();
+        $this->enabled = $settings['enabled'] ?? false;
+        $this->lazy_load_iframes = $settings['lazy_load_iframes'] ?? true;
+        $this->lazy_load_videos = $settings['lazy_load_videos'] ?? true;
+        $this->threshold = $settings['threshold'] ?? 200;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

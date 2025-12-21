@@ -128,10 +128,23 @@ class FormHandler extends AbstractFormHandler
             }
             
             $optimizer = $this->container->get(Optimizer::class);
-            $currentSettings = $optimizer->settings();
             
-            // Corretto: gestisce sia stati checked che unchecked
-            $currentSettings['enabled'] = isset($_POST['assets_enabled']) && sanitize_key(wp_unslash($_POST['assets_enabled'] ?? '')) === '1';
+            // FIX: Assicurati che currentSettings sia sempre un array valido
+            $currentSettings = $optimizer->settings();
+            if (!is_array($currentSettings)) {
+                $currentSettings = [];
+            }
+            
+            // FIX: Gestisce correttamente la checkbox - se presente e uguale a '1' è true, altrimenti false
+            $enabledValue = isset($_POST['assets_enabled']) && !empty($_POST['assets_enabled']);
+            if ($enabledValue) {
+                // Verifica che il valore sia effettivamente '1' o true
+                $postValue = sanitize_key(wp_unslash($_POST['assets_enabled'] ?? ''));
+                $currentSettings['enabled'] = ($postValue === '1' || $postValue === 'true' || $postValue === 'on');
+            } else {
+                // Se la checkbox non è presente nel POST, è disattivata
+                $currentSettings['enabled'] = false;
+            }
             
             $result = $optimizer->update($currentSettings);
             
@@ -139,7 +152,11 @@ class FormHandler extends AbstractFormHandler
                 return $this->errorMessage(__('Failed to save settings. Please try again.', 'fp-performance-suite'));
             }
             
+            // FIX: Aggiorna $settings dopo il salvataggio per riflettere i nuovi valori
             $settings = $optimizer->settings();
+            if (!is_array($settings)) {
+                $settings = [];
+            }
             
             return __('Asset optimization settings saved successfully!', 'fp-performance-suite');
         } catch (\Throwable $e) {
@@ -158,6 +175,12 @@ class FormHandler extends AbstractFormHandler
             }
             
             $optimizer = $this->container->get(Optimizer::class);
+            
+            // FIX: Assicurati che $settings sia sempre un array valido
+            if (!is_array($settings)) {
+                $settings = [];
+            }
+            
             $excludeJs = $this->sanitizeInput('exclude_js', 'textarea') 
                 ?? (!empty($settings['exclude_js']) ? $settings['exclude_js'] : '');
             
@@ -211,8 +234,12 @@ class FormHandler extends AbstractFormHandler
             wp_cache_delete('fp_ps_assets', 'options');
             wp_cache_delete('alloptions', 'options');
             
-            // Aggiorna $settings senza chiamare settings() che potrebbe causare problemi
-            // I valori sono già stati salvati correttamente da update()
+            // FIX: Aggiorna $settings dopo il salvataggio
+            $settings = $optimizer->settings();
+            if (!is_array($settings)) {
+                $settings = [];
+            }
+            
             return __('JavaScript settings saved successfully!', 'fp-performance-suite');
         } catch (\Throwable $e) {
             ErrorHandler::handle($e, 'JavaScript form save');
@@ -230,6 +257,12 @@ class FormHandler extends AbstractFormHandler
             }
             
             $optimizer = $this->container->get(Optimizer::class);
+            
+            // FIX: Assicurati che $settings sia sempre un array valido
+            if (!is_array($settings)) {
+                $settings = [];
+            }
+            
             $excludeCss = $this->sanitizeInput('exclude_css', 'textarea') 
                 ?? (!empty($settings['exclude_css']) ? $settings['exclude_css'] : '');
             
@@ -245,7 +278,12 @@ class FormHandler extends AbstractFormHandler
                 return $this->errorMessage(__('Failed to save CSS settings. Please try again.', 'fp-performance-suite'));
             }
             
+            // FIX: Aggiorna $settings dopo il salvataggio
             $settings = $optimizer->settings();
+            if (!is_array($settings)) {
+                $settings = [];
+            }
+            
             return __('CSS settings saved successfully!', 'fp-performance-suite');
         } catch (\Throwable $e) {
             ErrorHandler::handle($e, 'CSS form save');
@@ -264,37 +302,42 @@ class FormHandler extends AbstractFormHandler
             
             $thirdPartyScripts = $this->container->get(ThirdPartyScriptManager::class);
         
-        // Prepare individual scripts settings
-        $individualScripts = [];
-        $scriptKeys = [
-            'google_analytics', 'facebook_pixel', 'google_ads', 'hotjar', 'intercom', 
-            'youtube', 'linkedin_insight', 'twitter_pixel', 'tiktok_pixel', 'pinterest_tag',
-            'hubspot', 'zendesk', 'drift', 'crisp', 'tidio', 'segment', 'mixpanel',
-            'mailchimp', 'stripe', 'paypal', 'recaptcha', 'google_maps', 'microsoft_clarity',
-            'vimeo', 'tawk_to', 'optimizely', 'trustpilot', 'klaviyo', 'onetrust',
-            'calendly', 'fullstory', 'snapchat_pixel', 'soundcloud', 'klarna', 'spotify',
-            'livechat', 'activecampaign', 'userway', 'typeform', 'brevo', 'wonderpush'
-        ];
-        
-        foreach ($scriptKeys as $key) {
-            $postKey = 'third_party_' . str_replace('_', '', $key);
-            $individualScripts[$key] = [
-                'enabled' => isset($_POST[$postKey]) ? ($this->sanitizeInput($postKey, 'bool') ?? false) : false
+            // Prepare individual scripts settings
+            $individualScripts = [];
+            $scriptKeys = [
+                'google_analytics', 'facebook_pixel', 'google_ads', 'hotjar', 'intercom', 
+                'youtube', 'linkedin_insight', 'twitter_pixel', 'tiktok_pixel', 'pinterest_tag',
+                'hubspot', 'zendesk', 'drift', 'crisp', 'tidio', 'segment', 'mixpanel',
+                'mailchimp', 'stripe', 'paypal', 'recaptcha', 'google_maps', 'microsoft_clarity',
+                'vimeo', 'tawk_to', 'optimizely', 'trustpilot', 'klaviyo', 'onetrust',
+                'calendly', 'fullstory', 'snapchat_pixel', 'soundcloud', 'klarna', 'spotify',
+                'livechat', 'activecampaign', 'userway', 'typeform', 'brevo', 'wonderpush'
             ];
-        }
-        
-        $thirdPartyScripts->updateSettings([
-            'enabled' => isset($_POST['third_party_enabled']) ? ($this->sanitizeInput('third_party_enabled', 'bool') ?? false) : false,
-            'auto_detect' => isset($_POST['third_party_auto_detect']) ? ($this->sanitizeInput('third_party_auto_detect', 'bool') ?? false) : false,
-            'exclude_critical' => isset($_POST['third_party_exclude_critical']) ? ($this->sanitizeInput('third_party_exclude_critical', 'bool') ?? false) : false,
-            'delay_loading' => isset($_POST['third_party_delay_loading']) ? ($this->sanitizeInput('third_party_delay_loading', 'bool') ?? false) : false,
-            'load_on' => $this->sanitizeInput('third_party_load_on', 'text') ?? 'interaction',
-            'custom_scripts' => $this->sanitizeInput('third_party_custom_scripts', 'textarea') ?? '',
-            'exclusions' => $this->sanitizeInput('third_party_exclusions', 'textarea') ?? '',
-            'scripts' => $individualScripts,
-        ]);
-        
+            
+            foreach ($scriptKeys as $key) {
+                $postKey = 'third_party_' . str_replace('_', '', $key);
+                $individualScripts[$key] = [
+                    'enabled' => isset($_POST[$postKey]) ? ($this->sanitizeInput($postKey, 'bool') ?? false) : false
+                ];
+            }
+            
+            $thirdPartyScripts->updateSettings([
+                'enabled' => isset($_POST['third_party_enabled']) ? ($this->sanitizeInput('third_party_enabled', 'bool') ?? false) : false,
+                'auto_detect' => isset($_POST['third_party_auto_detect']) ? ($this->sanitizeInput('third_party_auto_detect', 'bool') ?? false) : false,
+                'exclude_critical' => isset($_POST['third_party_exclude_critical']) ? ($this->sanitizeInput('third_party_exclude_critical', 'bool') ?? false) : false,
+                'delay_loading' => isset($_POST['third_party_delay_loading']) ? ($this->sanitizeInput('third_party_delay_loading', 'bool') ?? false) : false,
+                'load_on' => $this->sanitizeInput('third_party_load_on', 'text') ?? 'interaction',
+                'custom_scripts' => $this->sanitizeInput('third_party_custom_scripts', 'textarea') ?? '',
+                'exclusions' => $this->sanitizeInput('third_party_exclusions', 'textarea') ?? '',
+                'scripts' => $individualScripts,
+            ]);
+            
+            // FIX: Assicurati che $thirdPartySettings sia sempre un array valido
             $thirdPartySettings = $thirdPartyScripts->settings();
+            if (!is_array($thirdPartySettings)) {
+                $thirdPartySettings = [];
+            }
+            
             return __('Third Party settings saved successfully!', 'fp-performance-suite');
         } catch (\Throwable $e) {
             ErrorHandler::handle($e, 'Third Party form save');
@@ -468,7 +511,12 @@ class FormHandler extends AbstractFormHandler
                 'preload_fonts' => isset($_POST['preload_fonts']) ? ($this->sanitizeInput('preload_fonts', 'bool') ?? false) : false,
             ]);
             
+            // FIX: Assicurati che $fontSettings sia sempre un array valido
             $fontSettings = $fontOptimizer->getSettings();
+            if (!is_array($fontSettings)) {
+                $fontSettings = [];
+            }
+            
             return __('Font & Critical Path settings saved successfully!', 'fp-performance-suite');
         } catch (\Throwable $e) {
             ErrorHandler::handle($e, 'Critical Path Fonts form save');
@@ -485,8 +533,12 @@ class FormHandler extends AbstractFormHandler
             if (isset($_POST['unused_optimization'])) {
                 if ($this->container->has(UnusedJavaScriptOptimizer::class)) {
                     $unusedJsOptimizer = $this->container->get(UnusedJavaScriptOptimizer::class);
+                    // FIX: Gestisci correttamente il caso in cui sanitizeInput restituisce null
+                    $unusedOptimizationData = $this->sanitizeInput('unused_optimization', 'array');
                     $unusedJsOptimizer->updateSettings([
-                        'enabled' => $this->sanitizeInput('unused_optimization', 'array')['enabled'] ?? false,
+                        'enabled' => (is_array($unusedOptimizationData) && isset($unusedOptimizationData['enabled'])) 
+                            ? (bool) $unusedOptimizationData['enabled'] 
+                            : false,
                     ]);
                 }
             }
@@ -495,8 +547,12 @@ class FormHandler extends AbstractFormHandler
             if (isset($_POST['code_splitting'])) {
                 if ($this->container->has(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class)) {
                     $codeSplittingManager = $this->container->get(\FP\PerfSuite\Services\Assets\CodeSplittingManager::class);
+                    // FIX: Gestisci correttamente il caso in cui sanitizeInput restituisce null
+                    $codeSplittingData = $this->sanitizeInput('code_splitting', 'array');
                     $codeSplittingManager->updateSettings([
-                        'enabled' => $this->sanitizeInput('code_splitting', 'array')['enabled'] ?? false,
+                        'enabled' => (is_array($codeSplittingData) && isset($codeSplittingData['enabled'])) 
+                            ? (bool) $codeSplittingData['enabled'] 
+                            : false,
                     ]);
                 }
             }
@@ -505,8 +561,12 @@ class FormHandler extends AbstractFormHandler
             if (isset($_POST['tree_shaking'])) {
                 if ($this->container->has(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class)) {
                     $treeShaker = $this->container->get(\FP\PerfSuite\Services\Assets\JavaScriptTreeShaker::class);
+                    // FIX: Gestisci correttamente il caso in cui sanitizeInput restituisce null
+                    $treeShakingData = $this->sanitizeInput('tree_shaking', 'array');
                     $treeShaker->updateSettings([
-                        'enabled' => $this->sanitizeInput('tree_shaking', 'array')['enabled'] ?? false,
+                        'enabled' => (is_array($treeShakingData) && isset($treeShakingData['enabled'])) 
+                            ? (bool) $treeShakingData['enabled'] 
+                            : false,
                     ]);
                 }
             }

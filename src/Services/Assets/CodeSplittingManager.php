@@ -206,9 +206,31 @@ class CodeSplittingManager
         if ($result) {
             $this->chunk_size = $newSettings['chunk_size'];
             $this->lazy_loading = $newSettings['lazy_loading'];
+            
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
         }
         
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'splitScripts'], 997);
+        remove_action('wp_footer', [$this, 'addCodeSplittingScript'], 42);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->settings();
+        $this->chunk_size = $settings['chunk_size'] ?? 100000;
+        $this->lazy_loading = $settings['lazy_loading'] ?? true;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

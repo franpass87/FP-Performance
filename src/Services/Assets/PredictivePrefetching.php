@@ -186,7 +186,32 @@ class PredictivePrefetching
         $this->hover_delay = $newSettings['hover_delay'];
         $this->limit = $newSettings['prefetch_limit'];
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_enqueue_scripts', [$this, 'enqueueScripts'], 989);
+        remove_action('wp_footer', [$this, 'addPrefetchScript'], 41);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->getSettings();
+        $this->strategy = $settings['strategy'] ?? 'hover';
+        $this->hover_delay = $settings['hover_delay'] ?? 100;
+        $this->limit = $settings['prefetch_limit'] ?? 5;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**

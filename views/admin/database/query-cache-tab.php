@@ -10,6 +10,8 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+use FP\PerfSuite\Admin\RiskMatrix;
 ?>
 
 <div class="fp-ps-query-cache-tab">
@@ -54,12 +56,16 @@ if (!defined('ABSPATH')) {
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="cache_enabled"><?php esc_html_e('Enable Query Cache', 'fp-performance-suite'); ?></label>
+                        <label for="cache_enabled">
+                            <?php esc_html_e('Enable Query Cache', 'fp-performance-suite'); ?>
+                            <?php echo RiskMatrix::renderIndicator('query_cache_enabled'); ?>
+                        </label>
                     </th>
                     <td>
                         <label class="fp-ps-toggle">
                             <input type="checkbox" name="cache_enabled" id="cache_enabled" value="1" 
-                                <?php checked($cacheSettings['enabled'] ?? false); ?>>
+                                <?php checked($cacheSettings['enabled'] ?? false); ?> 
+                                data-risk="<?php echo esc_attr(RiskMatrix::getRiskLevel('query_cache_enabled')); ?>">
                             <span class="fp-ps-toggle-slider"></span>
                         </label>
                         <p class="description"><?php esc_html_e('Enable caching of frequent database queries.', 'fp-performance-suite'); ?></p>

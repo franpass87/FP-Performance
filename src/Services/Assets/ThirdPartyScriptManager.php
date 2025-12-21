@@ -332,6 +332,23 @@ class ThirdPartyScriptManager
         ];
 
         $this->setOption(self::OPTION, $new);
+        
+        // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+        $this->forceInit();
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_filter('script_loader_tag', [$this, 'filterScriptTag'], 15);
+        remove_action('wp_footer', [$this, 'injectDelayedLoader'], 5);
+        
+        // Reinizializza
+        $this->register();
     }
     
     /**

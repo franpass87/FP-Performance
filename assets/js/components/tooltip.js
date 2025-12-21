@@ -13,12 +13,33 @@
  * @param {HTMLElement} tooltip - The tooltip element to position
  */
 function positionTooltip(trigger, tooltip) {
+    // FIX: Assicura che il tooltip sia visibile per le misurazioni
+    const originalDisplay = tooltip.style.display;
+    const originalVisibility = tooltip.style.visibility;
+    const originalOpacity = tooltip.style.opacity;
+    const originalHeight = tooltip.style.height;
+    const originalMaxHeight = tooltip.style.maxHeight;
+    
+    // FIX: Rendi temporaneamente visibile per misurazioni accurate
+    tooltip.style.display = 'block';
+    tooltip.style.visibility = 'visible';
+    tooltip.style.opacity = '0';
+    tooltip.style.position = 'fixed';
+    tooltip.style.height = 'auto';
+    tooltip.style.maxHeight = 'none';
+    tooltip.style.top = '-9999px';
+    tooltip.style.left = '-9999px';
+    
+    // Force reflow per ottenere dimensioni corrette
+    void tooltip.offsetHeight;
+    
     const triggerRect = trigger.getBoundingClientRect();
     const tooltipRect = tooltip.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const spacing = 10; // Space between trigger and tooltip
-    const arrowSize = 6; // Size of the arrow
+    const spacing = 12; // FIX: Aumentato spacing per più spazio
+    const arrowSize = 8; // FIX: Aumentato arrow size
+    const padding = 15; // Padding dal bordo viewport
 
     // Calculate available space in each direction
     const spaceAbove = triggerRect.top;
@@ -29,10 +50,14 @@ function positionTooltip(trigger, tooltip) {
     let tooltipTop, tooltipLeft;
     let arrowPosition = 'bottom'; // Default arrow position (tooltip above element)
 
+    // FIX: Usa dimensioni minime se tooltip non è ancora renderizzato
+    const tooltipHeight = tooltipRect.height || 200;
+    const tooltipWidth = tooltipRect.width || 380;
+
     // Determine vertical position (prefer above, fallback to below)
-    if (spaceAbove >= tooltipRect.height + spacing || spaceAbove > spaceBelow) {
+    if (spaceAbove >= tooltipHeight + spacing + padding || spaceAbove > spaceBelow) {
         // Position above
-        tooltipTop = triggerRect.top - tooltipRect.height - spacing;
+        tooltipTop = triggerRect.top - tooltipHeight - spacing;
         arrowPosition = 'bottom';
     } else {
         // Position below
@@ -41,30 +66,82 @@ function positionTooltip(trigger, tooltip) {
     }
 
     // Determine horizontal position (center aligned, but adjust if overflow)
-    tooltipLeft = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+    tooltipLeft = triggerRect.left + (triggerRect.width / 2) - (tooltipWidth / 2);
 
     // Adjust if tooltip overflows left
-    if (tooltipLeft < spacing) {
-        tooltipLeft = spacing;
+    if (tooltipLeft < padding) {
+        tooltipLeft = padding;
     }
 
     // Adjust if tooltip overflows right
-    if (tooltipLeft + tooltipRect.width > viewportWidth - spacing) {
-        tooltipLeft = viewportWidth - tooltipRect.width - spacing;
+    if (tooltipLeft + tooltipWidth > viewportWidth - padding) {
+        tooltipLeft = viewportWidth - tooltipWidth - padding;
+        // Se ancora troppo largo, usa larghezza viewport con padding
+        if (tooltipLeft < padding) {
+            tooltip.style.maxWidth = (viewportWidth - padding * 2) + 'px';
+            tooltipLeft = padding;
+        }
     }
 
     // Ensure tooltip stays within viewport vertically
-    if (tooltipTop < spacing) {
-        tooltipTop = spacing;
+    if (tooltipTop < padding) {
+        tooltipTop = padding;
     }
-    if (tooltipTop + tooltipRect.height > viewportHeight - spacing) {
-        tooltipTop = viewportHeight - tooltipRect.height - spacing;
+    if (tooltipTop + tooltipHeight > viewportHeight - padding) {
+        tooltipTop = viewportHeight - tooltipHeight - padding;
+        // Se ancora troppo alto, posiziona in alto
+        if (tooltipTop < padding) {
+            tooltipTop = padding;
+        }
     }
 
-    // Apply position
+    // FIX: Usa position: fixed per evitare tagli quando tooltip è in basso
+    tooltip.style.position = 'fixed';
     tooltip.style.top = `${tooltipTop}px`;
     tooltip.style.left = `${tooltipLeft}px`;
+    tooltip.style.bottom = 'auto';
+    tooltip.style.right = 'auto';
     tooltip.style.transform = 'none';
+    tooltip.style.zIndex = '999999999';
+
+    // FIX: Restore visibility e assicura background sempre visibile
+    tooltip.style.visibility = 'visible';
+    tooltip.style.opacity = '1';
+    tooltip.style.display = 'block';
+    tooltip.style.height = 'auto';
+    tooltip.style.maxHeight = '85vh';
+    
+    // FIX: Background sempre solido e visibile
+    tooltip.style.background = '#1e293b';
+    tooltip.style.backgroundColor = '#1e293b';
+    tooltip.style.backgroundImage = 'none';
+    
+    // FIX: Assicura che il wrapper content sia visibile
+    const content = tooltip.querySelector('.fp-ps-risk-tooltip-content');
+    if (content) {
+        content.style.visibility = 'visible';
+        content.style.display = 'flex';
+        content.style.opacity = '1';
+        content.style.background = 'transparent';
+    }
+    
+    // FIX: Assicura che tutte le sezioni siano visibili
+    const sections = tooltip.querySelectorAll('.fp-ps-risk-tooltip-section');
+    sections.forEach(section => {
+        section.style.visibility = 'visible';
+        section.style.display = 'block';
+        section.style.opacity = '1';
+        section.style.background = 'transparent';
+    });
+    
+    // FIX: Assicura che tutti i testi siano visibili
+    const texts = tooltip.querySelectorAll('.fp-ps-risk-tooltip-text, .fp-ps-risk-tooltip-label, .fp-ps-risk-tooltip-title');
+    texts.forEach(text => {
+        text.style.visibility = 'visible';
+        text.style.display = 'block';
+        text.style.opacity = '1';
+        text.style.background = 'transparent';
+    });
 
     // Position arrow
     positionArrow(tooltip, triggerRect, arrowPosition, arrowSize);
@@ -102,9 +179,11 @@ export function initTooltips() {
 
         // Position on hover
         indicator.addEventListener('mouseenter', function() {
-            // Small delay to allow tooltip to render
+            // FIX: Doppio requestAnimationFrame per assicurare che il tooltip sia renderizzato
             requestAnimationFrame(() => {
-                positionTooltip(indicator, tooltip);
+                requestAnimationFrame(() => {
+                    positionTooltip(indicator, tooltip);
+                });
             });
         });
 

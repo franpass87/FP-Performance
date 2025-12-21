@@ -185,7 +185,7 @@ abstract class AbstractFormHandler
      */
     protected function isPost(): bool
     {
-        return $_SERVER['REQUEST_METHOD'] === 'POST';
+        return ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
     }
 
     /**

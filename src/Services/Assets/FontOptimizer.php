@@ -223,7 +223,31 @@ class FontOptimizer
             $this->display_swap = $newSettings['display_swap'];
         }
         
+        if ($result) {
+            // FIX: Reinizializza il servizio per applicare immediatamente le modifiche
+            $this->forceInit();
+        }
+        
         return $result;
+    }
+    
+    /**
+     * Forza l'inizializzazione del servizio
+     * FIX: Ricarica le impostazioni e reinizializza il servizio
+     */
+    public function forceInit(): void
+    {
+        // Rimuovi hook esistenti
+        remove_action('wp_head', [$this, 'addFontOptimizations'], 25);
+        remove_filter('style_loader_tag', [$this, 'optimizeFontLoading'], 12);
+        
+        // Ricarica le impostazioni dal database
+        $settings = $this->getSettings();
+        $this->preload_critical = $settings['preload_critical'] ?? true;
+        $this->display_swap = $settings['display_swap'] ?? true;
+        
+        // Reinizializza
+        $this->init();
     }
     
     /**
