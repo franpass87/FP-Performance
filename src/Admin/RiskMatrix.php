@@ -1474,25 +1474,25 @@ class RiskMatrix
                     <?php if (!empty($risk['description'])) : ?>
                     <div class="fp-ps-risk-tooltip-section">
                         <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Descrizione', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['description']); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo nl2br(esc_html(str_replace('\\n', "\n", $risk['description']))); ?></div>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($risk['risks'])) : ?>
                     <div class="fp-ps-risk-tooltip-section">
                         <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Rischi Concreti', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['risks']); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo nl2br(esc_html(str_replace('\\n', "\n", $risk['risks']))); ?></div>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($risk['why_fails'])) : ?>
                     <div class="fp-ps-risk-tooltip-section">
                         <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Perché Fallisce', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['why_fails']); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo nl2br(esc_html(str_replace('\\n', "\n", $risk['why_fails']))); ?></div>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($risk['advice'])) : ?>
                     <div class="fp-ps-risk-tooltip-section">
                         <div class="fp-ps-risk-tooltip-label"><?php esc_html_e('Consiglio', 'fp-performance-suite'); ?></div>
-                        <div class="fp-ps-risk-tooltip-text"><?php echo esc_html($risk['advice']); ?></div>
+                        <div class="fp-ps-risk-tooltip-text"><?php echo nl2br(esc_html(str_replace('\\n', "\n", $risk['advice']))); ?></div>
                     </div>
                     <?php endif; ?>
                 </div>

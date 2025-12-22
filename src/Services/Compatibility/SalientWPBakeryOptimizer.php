@@ -159,20 +159,33 @@ class SalientWPBakeryOptimizer
      */
     public function register(): void
     {
-        // Evita registrazioni multiple
-        if (self::$registered) {
-            return;
-        }
+        // FIX: Ricarica sempre la configurazione fresca per rispondere ai cambiamenti
+        $this->loadConfig();
         
         // Verifica che Salient e WPBakery siano attivi
         if (!$this->shouldActivate()) {
             $this->log('debug', 'Salient/WPBakery optimizer: tema o builder non rilevato');
+            // Reset registered se non dovrebbe essere attivo
+            if (self::$registered) {
+                self::$registered = false;
+            }
             return;
         }
         
+        // FIX: Se disabilitato, rimuovi gli hook registrati e resetta il flag
         if (!$this->config['enabled']) {
             $this->log('debug', 'Salient/WPBakery optimizer: disabilitato dalla configurazione');
+            if (self::$registered) {
+                $this->removeRegisteredHooks();
+                self::$registered = false;
+            }
             return;
+        }
+        
+        // FIX: Se già registrato ma la configurazione è cambiata, rimuovi e re-registra
+        if (self::$registered) {
+            $this->removeRegisteredHooks();
+            self::$registered = false;
         }
 
         // Ottimizzazioni script
@@ -227,6 +240,44 @@ class SalientWPBakeryOptimizer
             'theme' => $this->detector->getThemeName(),
             'config' => $this->config,
         ]);
+    }
+
+    /**
+     * Rimuove gli hook registrati
+     */
+    private function removeRegisteredHooks(): void
+    {
+        // Rimuovi hook di ottimizzazione script
+        remove_action('wp_enqueue_scripts', [$this, 'optimizeScripts'], 999);
+        remove_filter('fp_ps_defer_js_exclusions', [$this, 'addScriptExclusions'], 10);
+        remove_filter('fp_ps_third_party_script_delay', [$this, 'shouldDelayScript'], 10);
+
+        // Rimuovi hook di ottimizzazione stili
+        remove_action('wp_enqueue_scripts', [$this, 'optimizeStyles'], 999);
+        remove_filter('fp_ps_critical_css', [$this, 'addCriticalCSS'], 10);
+
+        // Rimuovi hook di preload asset critici
+        remove_action('wp_head', [$this, 'preloadCriticalAssets'], 5);
+
+        // Rimuovi hook di fix CLS
+        remove_action('wp_head', [$this, 'addCLSFixes'], 20);
+        remove_filter('wp_get_attachment_image_attributes', [$this, 'addImageDimensions'], 10);
+
+        // Rimuovi hook di ottimizzazione animazioni
+        remove_action('wp_footer', [$this, 'optimizeAnimations'], 100);
+
+        // Rimuovi hook di ottimizzazione parallax
+        remove_action('wp_footer', [$this, 'disableParallaxOnSlow'], 100);
+
+        // Rimuovi hook di cache builder
+        remove_filter('fp_ps_cache_exclusions', [$this, 'addCacheExclusions'], 10);
+        remove_action('vc_after_save', [$this, 'purgeBuilderCache'], 10);
+
+        // Rimuovi hook di purge automatico
+        remove_action('updated_option', [$this, 'purgeOnSalientUpdate'], 10);
+
+        // Rimuovi hook di disabilitazione ottimizzazioni
+        remove_filter('fp_ps_should_optimize', [$this, 'shouldOptimize'], 10);
     }
 
     /**
@@ -624,6 +675,10 @@ class SalientWPBakeryOptimizer
     {
         $this->config = wp_parse_args($config, $this->config);
         $this->setOption('fp_ps_salient_wpbakery_config', $this->config);
+        
+        // FIX: Re-registra gli hook dopo l'aggiornamento della configurazione
+        // Questo garantisce che le modifiche vengano applicate immediatamente
+        $this->register();
         
         $this->log('info', 'Salient/WPBakery config updated', $this->config);
     }

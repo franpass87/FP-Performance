@@ -108,7 +108,20 @@ class Plugin
     {
         $container = PluginKernel::container();
         
+        // FIX: Se il servizio è già nel container (singleton), chiama comunque register()
+        // Questo è importante per BackendOptimizer che deve registrare gli hook anche se già istanziato
         if ($container->has($serviceClass)) {
+            try {
+                $service = $container->get($serviceClass);
+                // Se il servizio ha il metodo register, chiamalo comunque
+                if (method_exists($service, 'register')) {
+                    $service->register();
+                }
+            } catch (\Throwable $e) {
+                if (defined('FP_PERF_DEBUG') && FP_PERF_DEBUG) {
+                    \FP\PerfSuite\Utils\ErrorHandler::handleSilently($e, "Service re-registration: {$serviceClass}");
+                }
+            }
             return false;
         }
         

@@ -7,49 +7,6 @@ class Assets
     public function boot(): void
     {
         add_action('admin_enqueue_scripts', [$this, 'enqueue']);
-        // BUGFIX #21: Inline CSS override per tooltip fix (garantisce applicazione immediata)
-        add_action('admin_head', [$this, 'inlineTooltipFix'], 999);
-    }
-    
-    /**
-     * BUGFIX #21: CSS inline per fix immediato tooltip
-     * Garantisce che i tooltip siano sempre visibili, anche con browser cache aggressiva
-     */
-    public function inlineTooltipFix(): void
-    {
-        // Solo sulle pagine FP Performance
-        $screen = get_current_screen();
-        if (!$screen || strpos($screen->id, 'fp-performance-suite') === false) {
-            return;
-        }
-        
-        echo '<style id="fp-ps-tooltip-fix">
-            /* BUGFIX #21: Fix tooltip overflow e visibility */
-            .fp-ps-card {
-                overflow: visible !important;
-            }
-            
-            .fp-ps-risk-tooltip {
-                position: absolute !important;
-                max-width: 450px !important;
-                min-width: 320px !important;
-                padding: 16px 20px !important;
-                z-index: 999999999 !important;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(255, 255, 255, 0.15) !important;
-                border-radius: 10px !important;
-            }
-            
-            .fp-ps-risk-tooltip::after {
-                left: var(--arrow-left, 50%) !important;
-            }
-            
-            .fp-ps-risk-tooltip[data-arrow-position="top"]::after {
-                top: auto !important;
-                bottom: 100% !important;
-                border-top-color: transparent !important;
-                border-bottom-color: #1e293b !important;
-            }
-        </style>';
     }
 
     /**
@@ -87,8 +44,13 @@ class Assets
         // Versione con cache busting basata su filemtime
         $scriptVersion = FP_PERF_SUITE_VERSION;
         $scriptPath = FP_PERF_SUITE_DIR . '/assets/js/main.js';
+        $tooltipPath = FP_PERF_SUITE_DIR . '/assets/js/components/tooltip.js';
         if (is_readable($scriptPath)) {
             $scriptVersion .= '-' . filemtime($scriptPath);
+        }
+        // Aggiungi anche timestamp di tooltip.js per forzare reload
+        if (is_readable($tooltipPath)) {
+            $scriptVersion .= '-' . filemtime($tooltipPath);
         }
 
         // Enqueue modular JavaScript (ES6 modules)
@@ -111,20 +73,19 @@ class Assets
         // Add type="module" attribute for ES6 modules
         add_filter('script_loader_tag', [$this, 'addModuleType'], 10, 3);
         
-        // Enqueue risk tooltip positioner
-        wp_enqueue_script(
-            'fp-performance-suite-risk-tooltip',
-            $base_url . '/wp-content/plugins/FP-Performance/assets/js/risk-tooltip-positioner.js',
-            [],
-            FP_PERF_SUITE_VERSION,
-            true
-        );
+        // NOTE: risk-tooltip-positioner.js è stato sostituito da tooltip.js (modulo ES6)
+        // che viene caricato tramite main.js per evitare conflitti
 
         // Localize script data for JavaScript modules
+        $tooltipVersion = '';
+        if (is_readable($tooltipPath)) {
+            $tooltipVersion = filemtime($tooltipPath);
+        }
         wp_localize_script('fp-performance-suite-admin', 'fpPerfSuite', [
             'restUrl' => esc_url_raw(get_rest_url(null, 'fp-ps/v1/')),
             // BUGFIX #29: Usa $base_url per includere porta corretta ed evitare CORS
             'ajaxUrl' => $base_url . '/wp-admin/admin-ajax.php',
+            'tooltipVersion' => $tooltipVersion, // Timestamp per cache busting moduli ES6
             'confirmLabel' => __('Type PROCEDI to confirm high-risk actions', 'fp-performance-suite'),
             'cancelledLabel' => __('Action cancelled', 'fp-performance-suite'),
             'messages' => [

@@ -319,10 +319,9 @@ class ServiceLoader
      */
     private function loadAdvancedServices(): void
     {
-        // Backend Optimizer
-        if (OptionHelper::isEnabled('fp_ps_backend_optimizer')) {
-            $this->loadService(\FP\PerfSuite\Services\Admin\BackendOptimizer::class);
-        }
+        // Backend Optimizer - SEMPRE caricato (controlla internamente se abilitato)
+        // Questo permette al servizio di rispondere ai cambiamenti delle impostazioni
+        $this->loadService(\FP\PerfSuite\Services\Admin\BackendOptimizer::class);
 
         // Compression
         if (get_option('fp_ps_compression_enabled', false) || 
@@ -435,7 +434,11 @@ class ServiceLoader
     private function loadService(string $serviceClass): void
     {
         Plugin::registerServiceOnce($serviceClass, function() use ($serviceClass) {
-            $this->container->get($serviceClass)->register();
+            $service = $this->container->get($serviceClass);
+            // Se il servizio ha il metodo register, chiamalo
+            if (method_exists($service, 'register')) {
+                $service->register();
+            }
         });
     }
 }

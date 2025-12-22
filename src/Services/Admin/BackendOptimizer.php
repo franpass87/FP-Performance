@@ -31,6 +31,30 @@ class BackendOptimizer
         $this->optimize_dashboard = $optimize_dashboard;
         $this->admin_bar = $admin_bar;
         $this->optionsRepo = $optionsRepo;
+        
+        // Registra gli hook CSS immediatamente nel costruttore
+        // Usa una variabile per catturare $this nella closure
+        $self = $this;
+        
+        // FIX: Registra gli hook CSS su hooks più precoci per essere sicuri che vengano registrati in tempo
+        // admin_init viene eseguito prima di admin_head, quindi registra qui
+        add_action('admin_init', function() use ($self) {
+            if (!has_action('admin_head', [$self, 'addAdminBarHideCSS'])) {
+                add_action('admin_head', [$self, 'addAdminBarHideCSS'], 999);
+            }
+            if (!has_action('admin_footer', [$self, 'addAdminBarHideCSSJS'])) {
+                add_action('admin_footer', [$self, 'addAdminBarHideCSSJS'], 999);
+            }
+        }, 1); // Priorità 1 per essere sicuri che venga eseguito molto presto
+        
+        // Frontend hooks
+        add_action('wp_head', [$self, 'addAdminBarHideCSS'], 999);
+        add_action('wp_footer', [$self, 'addAdminBarHideCSSJS'], 999);
+        
+        // Se admin_head è già stato eseguito, inietta direttamente nel footer come fallback
+        if (is_admin() && did_action('admin_head')) {
+            add_action('admin_footer', [$self, 'addAdminBarHideCSS'], 99999);
+        }
     }
     
     /**
@@ -66,77 +90,215 @@ class BackendOptimizer
     
     public function init()
     {
-        // FIX: Carica le impostazioni salvate e verifica se il servizio è abilitato
-        $settings = $this->getSettings();
+        // FIX: Registra sempre gli hook (controllo abilitazione fatto nei metodi stessi)
+        // Questo permette agli hook di rispondere ai cambiamenti delle impostazioni
         
-        // FIX CRITICO: Se il servizio non è abilitato, non registrare nessun hook
-        if (empty($settings['enabled'])) {
-            return;
+        // Verifica se gli hook sono già stati eseguiti
+        $initDone = did_action('init');
+        
+        // Heartbeat optimization - registra sempre (controllo abilitazione nel metodo)
+        if (!$initDone && !has_action('init', [$this, 'optimizeHeartbeat'])) {
+            add_action('init', [$this, 'optimizeHeartbeat'], 999);
+            self::$registeredHooks['init_heartbeat'] = true;
         }
         
-        // Heartbeat optimization
-        if (!empty($settings['optimize_heartbeat'])) {
-            if (!has_action('init', [$this, 'optimizeHeartbeat'])) {
-                add_action('init', [$this, 'optimizeHeartbeat']);
-                self::$registeredHooks['init_heartbeat'] = true;
-            }
+        // Limit revisions - registra sempre (controllo abilitazione nel metodo)
+        if (!$initDone && !has_action('init', [$this, 'limitRevisions'])) {
+            add_action('init', [$this, 'limitRevisions'], 999);
+            self::$registeredHooks['init_revisions'] = true;
         }
         
-        // Limit revisions
-        if (!empty($settings['limit_revisions'])) {
-            if (!has_action('init', [$this, 'limitRevisions'])) {
-                add_action('init', [$this, 'limitRevisions']);
-                self::$registeredHooks['init_revisions'] = true;
-            }
+        // Dashboard optimization - registra sempre (controllo abilitazione nel metodo)
+        if (!has_action('wp_dashboard_setup', [$this, 'optimizeDashboard'])) {
+            add_action('wp_dashboard_setup', [$this, 'optimizeDashboard'], 999);
+            self::$registeredHooks['wp_dashboard_setup'] = true;
         }
         
-        // Dashboard optimization
-        if (!empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets'])) {
-            if (!has_action('wp_dashboard_setup', [$this, 'optimizeDashboard'])) {
-                add_action('wp_dashboard_setup', [$this, 'optimizeDashboard']);
-                self::$registeredHooks['wp_dashboard_setup'] = true;
-            }
+        // Admin Bar: registra sempre gli hook (controllo abilitazione nel metodo)
+        // Disabilita completamente sul frontend
+        if (!has_filter('show_admin_bar', [$this, 'filterShowAdminBar'])) {
+            add_filter('show_admin_bar', [$this, 'filterShowAdminBar'], 999);
+            self::$registeredHooks['show_admin_bar'] = true;
         }
         
-        // Admin Bar: gestione granulare
-        if (!empty($settings['admin_bar'])) {
-            // Disabilita completamente sul frontend se richiesto
-            if (!empty($settings['admin_bar']['disable_frontend'])) {
-                if (!has_filter('show_admin_bar', '__return_false')) {
-                    add_filter('show_admin_bar', '__return_false');
-                    self::$registeredHooks['show_admin_bar'] = true;
-                }
+        // Rimuovi hook di WordPress che aggiungono nodi all'admin bar
+        // WordPress registra gli hook durante add_menus() che viene chiamato dentro _wp_admin_bar_init
+        // add_admin_bar_menus viene eseguito DOPO che WordPress ha registrato gli hook ma PRIMA che admin_bar_menu venga eseguito
+        // Quindi possiamo rimuovere gli hook durante add_admin_bar_menus
+        // FIX: Registra sempre senza controllo has_action per garantire che sia sempre registrato
+        if (!has_action('add_admin_bar_menus', [$this, 'removeAdminBarHooks'])) {
+            add_action('add_admin_bar_menus', [$this, 'removeAdminBarHooks'], 999);
+            self::$registeredHooks['add_admin_bar_menus'] = true;
+        }
+        
+        // Rimuovi nodi dell'admin bar durante admin_bar_menu con priorità molto alta (9999)
+        // WordPress registra i suoi hook con priorità 10-70, quindi priorità 9999 viene eseguita dopo tutti
+        // Questo permette di rimuovere i nodi dopo che WordPress li ha aggiunti
+        // FIX: Registra sempre senza controllo has_action per garantire che sia sempre registrato
+        if (!has_action('admin_bar_menu', [$this, 'removeAdminBarNodesAfterAdd'])) {
+            add_action('admin_bar_menu', [$this, 'removeAdminBarNodesAfterAdd'], 9999);
+            self::$registeredHooks['admin_bar_menu_remove_nodes'] = true;
+        }
+        
+        // Rimuovi anche con wp_before_admin_bar_render come ulteriore fallback
+        // Questo viene eseguito dopo admin_bar_menu ma prima che l'admin bar venga renderizzato
+        // FIX: Registra sempre senza controllo has_action per garantire che sia sempre registrato
+        if (!has_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar'])) {
+            add_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar'], 999);
+            self::$registeredHooks['wp_before_admin_bar_render'] = true;
+        }
+        
+        // NOTA: Gli hook CSS sono già registrati nel costruttore per essere sicuri che vengano eseguiti
+        // Non è necessario registrarli qui di nuovo
+        self::$registeredHooks['admin_head_admin_bar_css'] = true;
+        self::$registeredHooks['wp_head_admin_bar_css'] = true;
+        self::$registeredHooks['wp_footer_admin_bar_css'] = true;
+        self::$registeredHooks['admin_footer_admin_bar_css'] = true;
+        
+        // Dashboard Widgets: registra sempre (controllo abilitazione nel metodo)
+        if (!has_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'])) {
+            add_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
+            self::$registeredHooks['wp_dashboard_setup'] = true;
+        }
+        
+        // Heartbeat API settings - registra sempre (controllo abilitazione nel metodo)
+        if (!$initDone && !has_action('init', [$this, 'applyHeartbeatSettings'])) {
+            add_action('init', [$this, 'applyHeartbeatSettings'], 999);
+            self::$registeredHooks['init_heartbeat'] = true;
+        }
+        
+        // Admin AJAX optimizations - registra sempre (controllo abilitazione nel metodo)
+        if (!$initDone && !has_action('init', [$this, 'applyAdminAjaxSettings'])) {
+            add_action('init', [$this, 'applyAdminAjaxSettings'], 999);
+            self::$registeredHooks['init_admin_ajax'] = true;
+        }
+        
+        // Se init è già stato eseguito ma ci sono impostazioni heartbeat/admin ajax,
+        // registrale per hook futuri (admin_enqueue_scripts, wp_enqueue_scripts)
+        if ($initDone) {
+            // Heartbeat settings per hook futuri
+            if (!empty($settings['heartbeat']) || !empty($settings['optimize_heartbeat'])) {
+                $this->registerHeartbeatHooksForFuture($settings);
             }
             
-            // Rimuovi elementi specifici dalla admin bar
-            if (!has_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar'])) {
-                add_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar']);
-                self::$registeredHooks['wp_before_admin_bar_render'] = true;
+            // Admin AJAX settings per hook futuri
+            if (!empty($settings['optimize_admin_ajax']) || !empty($settings['admin_ajax'])) {
+                $this->registerAdminAjaxHooksForFuture($settings);
+            }
+        }
+    }
+    
+    /**
+     * Registra hook heartbeat per richieste future
+     * Usato quando init è già stato eseguito
+     */
+    private function registerHeartbeatHooksForFuture(array $settings): void
+    {
+        $heartbeatSettings = $settings['heartbeat'] ?? [];
+        $heartbeatInterval = $settings['heartbeat_interval'] ?? 60;
+        
+        // Dashboard heartbeat
+        if (!empty($heartbeatSettings['dashboard'])) {
+            if ($heartbeatSettings['dashboard'] === 'disable') {
+                add_action('admin_enqueue_scripts', function() {
+                    if (is_admin()) {
+                        wp_deregister_script('heartbeat');
+                    }
+                }, 1);
+            } elseif ($heartbeatSettings['dashboard'] === 'slow') {
+                add_filter('heartbeat_settings', function($hbSettings) use ($heartbeatInterval) {
+                    if (is_admin()) {
+                        $hbSettings['interval'] = max(120, $heartbeatInterval);
+                    }
+                    return $hbSettings;
+                }, 999);
             }
         }
         
-        // Dashboard Widgets: gestione granulare
-        if (!empty($settings['dashboard'])) {
-            if (!has_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'])) {
-                add_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
-                self::$registeredHooks['wp_dashboard_setup'] = true;
+        // Editor heartbeat
+        if (!empty($heartbeatSettings['editor'])) {
+            if ($heartbeatSettings['editor'] === 'disable') {
+                add_action('admin_enqueue_scripts', function() {
+                    $screen = get_current_screen();
+                    if ($screen && ($screen->is_block_editor() || $screen->post_type)) {
+                        wp_deregister_script('heartbeat');
+                    }
+                }, 1);
+            } elseif ($heartbeatSettings['editor'] === 'slow') {
+                add_filter('heartbeat_settings', function($hbSettings) use ($heartbeatInterval) {
+                    $screen = get_current_screen();
+                    if ($screen && ($screen->is_block_editor() || $screen->post_type)) {
+                        $hbSettings['interval'] = max(30, $heartbeatInterval);
+                    }
+                    return $hbSettings;
+                }, 999);
             }
         }
         
-        // Heartbeat API settings
-        if (!empty($settings['optimize_heartbeat']) || !empty($settings['heartbeat'])) {
-            if (!has_action('init', [$this, 'applyHeartbeatSettings'])) {
-                add_action('init', [$this, 'applyHeartbeatSettings']);
-                self::$registeredHooks['init_heartbeat'] = true;
+        // Frontend heartbeat
+        if (!empty($heartbeatSettings['frontend'])) {
+            if ($heartbeatSettings['frontend'] === 'disable') {
+                add_action('wp_enqueue_scripts', function() {
+                    wp_deregister_script('heartbeat');
+                }, 1);
+            } elseif ($heartbeatSettings['frontend'] === 'slow') {
+                add_filter('heartbeat_settings', function($hbSettings) use ($heartbeatInterval) {
+                    if (!is_admin()) {
+                        $hbSettings['interval'] = max(120, $heartbeatInterval);
+                    }
+                    return $hbSettings;
+                }, 999);
             }
         }
         
-        // Admin AJAX optimizations
-        if (!empty($settings['optimize_admin_ajax']) || !empty($settings['admin_ajax'])) {
-            if (!has_action('init', [$this, 'applyAdminAjaxSettings'])) {
-                add_action('init', [$this, 'applyAdminAjaxSettings']);
-                self::$registeredHooks['init_admin_ajax'] = true;
-            }
+        // Applica intervallo personalizzato se specificato
+        if (!empty($heartbeatInterval) && $heartbeatInterval !== 60) {
+            add_filter('heartbeat_settings', function($hbSettings) use ($heartbeatInterval) {
+                $hbSettings['interval'] = max(15, min(300, $heartbeatInterval));
+                return $hbSettings;
+            }, 999);
+        }
+    }
+    
+    /**
+     * Registra hook admin ajax per richieste future
+     * Usato quando init è già stato eseguito
+     */
+    private function registerAdminAjaxHooksForFuture(array $settings): void
+    {
+        $adminAjaxSettings = $settings['admin_ajax'] ?? [];
+        
+        // Intervallo autosave - può essere applicato per richieste future
+        if (!empty($settings['autosave_interval'])) {
+            $autosaveInterval = max(30, min(300, (int) $settings['autosave_interval']));
+            add_filter('autosave_interval', function() use ($autosaveInterval) {
+                return $autosaveInterval;
+            }, 999);
+        }
+        
+        // Emoji e embeds sono già stati applicati immediatamente in applyAdminAjaxSettingsImmediate
+        // ma li registriamo anche per le richieste future
+        if (!empty($adminAjaxSettings['disable_emojis'])) {
+            remove_action('wp_head', 'print_emoji_detection_script', 7);
+            remove_action('admin_print_scripts', 'print_emoji_detection_script');
+            remove_action('wp_print_styles', 'print_emoji_styles');
+            remove_action('admin_print_styles', 'print_emoji_styles');
+            remove_filter('the_content_feed', 'wp_staticize_emoji');
+            remove_filter('comment_text_rss', 'wp_staticize_emoji');
+            remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+            add_filter('tiny_mce_plugins', function($plugins) {
+                return is_array($plugins) ? array_diff($plugins, ['wpemoji']) : $plugins;
+            }, 999);
+        }
+        
+        if (!empty($adminAjaxSettings['disable_embeds'])) {
+            remove_action('wp_head', 'wp_oembed_add_discovery_links');
+            remove_action('wp_head', 'wp_oembed_add_host_js');
+            remove_action('rest_api_init', 'wp_oembed_register_route');
+            remove_filter('oembed_dataparse', 'wp_filter_oembed_result', 10);
+            add_filter('embed_oembed_discover', '__return_false', 999);
+            remove_filter('wp_head', 'wp_oembed_add_discovery_links');
+            remove_filter('wp_head', 'wp_oembed_add_host_js');
         }
     }
     
@@ -340,47 +502,303 @@ class BackendOptimizer
     }
     
     /**
+     * Filtra show_admin_bar per disabilitare admin bar sul frontend
+     * 
+     * @param bool $show Se mostrare admin bar
+     * @return bool
+     */
+    public function filterShowAdminBar($show): bool
+    {
+        $settings = $this->getSettings();
+        if (empty($settings['enabled']) || empty($settings['admin_bar']['disable_frontend'])) {
+            return $show;
+        }
+        return false;
+    }
+    
+    /**
+     * Rimuove gli hook di WordPress che aggiungono nodi all'admin bar
+     * Chiamato su add_admin_bar_menus con priorità 999 per rimuovere gli hook dopo che sono stati registrati ma prima che vengano eseguiti
+     */
+    public function removeAdminBarHooks(): void
+    {
+        // Carica le impostazioni direttamente dal database senza cache usando get_option() direttamente
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
+        
+        // Rimuovi hook che aggiungono logo WordPress (priorità 10)
+        if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
+            remove_action('admin_bar_menu', 'wp_admin_bar_wp_menu', 10);
+        }
+        
+        // Rimuovi hook che aggiungono menu aggiornamenti (priorità 50)
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            remove_action('admin_bar_menu', 'wp_admin_bar_updates_menu', 50);
+        }
+        
+        // Rimuovi hook che aggiungono menu commenti (priorità 60)
+        if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
+            remove_action('admin_bar_menu', 'wp_admin_bar_comments_menu', 60);
+        }
+        
+        // Rimuovi hook che aggiungono menu "+ Nuovo" (priorità 70)
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            remove_action('admin_bar_menu', 'wp_admin_bar_new_content_menu', 70);
+        }
+        
+        // Rimuovi hook che aggiungono link Personalizza (priorità 40)
+        if (!empty($adminBarSettings['disable_customize'])) {
+            remove_action('admin_bar_menu', 'wp_admin_bar_customize_menu', 40);
+        }
+    }
+    
+    /**
+     * Rimuove i nodi dall'admin bar dopo che sono stati aggiunti
+     * Chiamato su admin_bar_menu con priorità 9999 per rimuovere i nodi dopo che tutti gli hook sono stati eseguiti
+     * WordPress registra i suoi hook con priorità 10-70, quindi priorità 9999 viene eseguita dopo tutti
+     */
+    public function removeAdminBarNodesAfterAdd($wp_admin_bar): void
+    {
+        if (!$wp_admin_bar || !is_a($wp_admin_bar, 'WP_Admin_Bar')) {
+            return;
+        }
+        
+        // Carica le impostazioni direttamente dal database senza cache
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
+        
+        $cssRules = [];
+        
+        // FORCE REMOVAL - rimuovi sempre se le impostazioni lo richiedono
+        // Rimuovi logo WordPress - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
+            $wp_admin_bar->remove_node('wp-logo');
+            $wp_admin_bar->remove_node('about');
+            $wp_admin_bar->remove_node('wporg');
+            // Forza anche la rimozione degli hook
+            remove_action('admin_bar_menu', 'wp_admin_bar_wp_menu', 10);
+            $cssRules[] = '#wp-admin-bar-wp-logo { display: none !important; }';
+        }
+        
+        // Rimuovi menu aggiornamenti - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            $wp_admin_bar->remove_node('updates');
+            // Forza anche la rimozione degli hook
+            remove_action('admin_bar_menu', 'wp_admin_bar_updates_menu', 50);
+            $cssRules[] = '#wp-admin-bar-updates { display: none !important; }';
+        }
+        
+        // Rimuovi menu commenti - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
+            $wp_admin_bar->remove_node('comments');
+            $cssRules[] = '#wp-admin-bar-comments { display: none !important; }';
+        }
+        
+        // Rimuovi menu "+ Nuovo" - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            $wp_admin_bar->remove_node('new-content');
+            $cssRules[] = '#wp-admin-bar-new-content { display: none !important; }';
+        }
+        
+        // Rimuovi link Personalizza
+        if (!empty($adminBarSettings['disable_customize'])) {
+            $wp_admin_bar->remove_node('customize');
+            $cssRules[] = '#wp-admin-bar-customize { display: none !important; }';
+        }
+        
+        // Inietta CSS direttamente qui come fallback immediato
+        // Usa output buffering per iniettare CSS nell'head anche se admin_head è già stato eseguito
+        if (!empty($cssRules)) {
+            $cssContent = implode("\n", $cssRules);
+            // Inietta CSS direttamente nell'output corrente se possibile
+            if (!did_action('admin_head')) {
+                add_action('admin_head', function() use ($cssContent) {
+                    echo '<style id="fp-ps-hide-admin-bar-items">' . esc_html($cssContent) . '</style>' . "\n";
+                }, 99999);
+            }
+            // Fallback JavaScript nel footer (sempre disponibile)
+            add_action('admin_footer', function() use ($cssContent) {
+                echo '<script>!function(){var e=document.getElementById("fp-ps-hide-admin-bar-items");if(!e){e=document.createElement("style");e.id="fp-ps-hide-admin-bar-items";document.head.appendChild(e)}e.textContent=' . json_encode($cssContent) . '}();</script>' . "\n";
+            }, 99999);
+        }
+    }
+    
+    /**
      * Personalizza l'Admin Bar rimuovendo elementi specifici
      */
     public function customizeAdminBar(): void
     {
-        // FIX: Verifica che il servizio sia abilitato
-        $settings = $this->getSettings();
-        if (empty($settings['enabled'])) {
-            return;
-        }
-        
         global $wp_admin_bar;
         
         if (!$wp_admin_bar) {
             return;
         }
         
-        $adminBarSettings = $settings['admin_bar'] ?? [];
+        // Carica le impostazioni direttamente dal database senza cache
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
         
-        // Rimuovi menu aggiornamenti
-        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
-            $wp_admin_bar->remove_node('updates');
-        }
-        
-        // Rimuovi menu "+ Nuovo"
-        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
-            $wp_admin_bar->remove_node('new-content');
-        }
-        
-        // Rimuovi logo WordPress
+        // Rimuovi logo WordPress - controlla entrambe le chiavi possibili
         if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
             $wp_admin_bar->remove_node('wp-logo');
+            $wp_admin_bar->remove_node('about');
+            $wp_admin_bar->remove_node('wporg');
+            // Forza anche la rimozione degli hook
+            remove_action('admin_bar_menu', 'wp_admin_bar_wp_menu', 10);
         }
         
-        // Rimuovi menu commenti
+        // Rimuovi menu aggiornamenti - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            $wp_admin_bar->remove_node('updates');
+            // Forza anche la rimozione degli hook
+            remove_action('admin_bar_menu', 'wp_admin_bar_updates_menu', 50);
+        }
+        
+        // Rimuovi menu commenti - controlla entrambe le chiavi possibili
         if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
             $wp_admin_bar->remove_node('comments');
+        }
+        
+        // Rimuovi menu "+ Nuovo" - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            $wp_admin_bar->remove_node('new-content');
         }
         
         // Rimuovi link Personalizza
         if (!empty($adminBarSettings['disable_customize'])) {
             $wp_admin_bar->remove_node('customize');
+        }
+    }
+    
+    /**
+     * Aggiunge CSS per nascondere elementi dell'admin bar come fallback finale
+     */
+    public function addAdminBarHideCSS(): void
+    {
+        // Carica le impostazioni direttamente dal database
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
+        
+        $cssRules = [];
+        
+        // Nascondi logo WordPress - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
+            $cssRules[] = '#wp-admin-bar-wp-logo { display: none !important; }';
+        }
+        
+        // Nascondi menu aggiornamenti - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            $cssRules[] = '#wp-admin-bar-updates { display: none !important; }';
+        }
+        
+        // Nascondi menu commenti
+        if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
+            $cssRules[] = '#wp-admin-bar-comments { display: none !important; }';
+        }
+        
+        // Nascondi menu "+ Nuovo"
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            $cssRules[] = '#wp-admin-bar-new-content { display: none !important; }';
+        }
+        
+        // Nascondi link Personalizza
+        if (!empty($adminBarSettings['disable_customize'])) {
+            $cssRules[] = '#wp-admin-bar-customize { display: none !important; }';
+        }
+        
+        if (!empty($cssRules)) {
+            $cssContent = implode("\n", $cssRules);
+            // Inietta CSS con id specifico per identificarlo
+            echo '<style id="fp-ps-hide-admin-bar-items">' . esc_html($cssContent) . '</style>' . "\n";
+        }
+    }
+    
+    /**
+     * Aggiunge CSS via JavaScript nel footer come fallback finale
+     * Questo metodo viene SEMPRE chiamato per assicurarsi che il CSS venga iniettato
+     */
+    public function addAdminBarHideCSSJS(): void
+    {
+        // Carica le impostazioni direttamente dal database
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
+        
+        $cssRules = [];
+        
+        // Nascondi logo WordPress - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
+            $cssRules[] = '#wp-admin-bar-wp-logo { display: none !important; }';
+        }
+        
+        // Nascondi menu aggiornamenti - controlla entrambe le chiavi possibili
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            $cssRules[] = '#wp-admin-bar-updates { display: none !important; }';
+        }
+        
+        // Nascondi menu commenti
+        if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
+            $cssRules[] = '#wp-admin-bar-comments { display: none !important; }';
+        }
+        
+        // Nascondi menu "+ Nuovo"
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            $cssRules[] = '#wp-admin-bar-new-content { display: none !important; }';
+        }
+        
+        // Nascondi link Personalizza
+        if (!empty($adminBarSettings['disable_customize'])) {
+            $cssRules[] = '#wp-admin-bar-customize { display: none !important; }';
+        }
+        
+        // Inietta CSS via JavaScript nel footer
+        if (!empty($cssRules)) {
+            $cssContent = implode(' ', $cssRules);
+            // Usa IIFE per evitare conflitti con altri script
+            echo '<script>!function(){var e=document.getElementById("fp-ps-hide-admin-bar-items");if(!e){e=document.createElement("style");e.id="fp-ps-hide-admin-bar-items";document.head.appendChild(e)}e.textContent=' . json_encode($cssContent) . '}();</script>' . "\n";
+        }
+    }
+    
+    /**
+     * Enqueue CSS per nascondere elementi dell'admin bar
+     */
+    public function enqueueAdminBarHideCSS(): void
+    {
+        // Carica le impostazioni direttamente dal database
+        $savedSettings = get_option('fp_ps_backend_optimizer', []);
+        $adminBarSettings = $savedSettings['admin_bar'] ?? [];
+        
+        $cssRules = [];
+        
+        // Nascondi logo WordPress
+        if (!empty($adminBarSettings['disable_wordpress_logo']) || !empty($adminBarSettings['disable_wp_logo'])) {
+            $cssRules[] = '#wp-admin-bar-wp-logo { display: none !important; }';
+        }
+        
+        // Nascondi menu aggiornamenti
+        if (!empty($adminBarSettings['disable_updates']) || !empty($adminBarSettings['disable_updates_menu'])) {
+            $cssRules[] = '#wp-admin-bar-updates { display: none !important; }';
+        }
+        
+        // Nascondi menu commenti
+        if (!empty($adminBarSettings['disable_comments']) || !empty($adminBarSettings['disable_comments_menu'])) {
+            $cssRules[] = '#wp-admin-bar-comments { display: none !important; }';
+        }
+        
+        // Nascondi menu "+ Nuovo"
+        if (!empty($adminBarSettings['disable_new']) || !empty($adminBarSettings['disable_new_menu'])) {
+            $cssRules[] = '#wp-admin-bar-new-content { display: none !important; }';
+        }
+        
+        // Nascondi link Personalizza
+        if (!empty($adminBarSettings['disable_customize'])) {
+            $cssRules[] = '#wp-admin-bar-customize { display: none !important; }';
+        }
+        
+        if (!empty($cssRules)) {
+            $cssContent = implode("\n", $cssRules);
+            // Assicura che admin-bar sia caricato
+            wp_enqueue_style('admin-bar');
+            wp_add_inline_style('admin-bar', $cssContent);
         }
     }
     
@@ -483,22 +901,24 @@ class BackendOptimizer
         // Recupera le impostazioni esistenti
         $currentSettings = $this->getOption('fp_ps_backend_optimizer', []);
         
-        // Merge con le nuove impostazioni
-        $newSettings = array_merge($currentSettings, $settings);
+        // Merge con le nuove impostazioni (merge profondo per array annidati)
+        $newSettings = $this->arrayMergeDeep($currentSettings, $settings);
         
         // Validazione e sanitizzazione
         $newSettings['enabled'] = !empty($newSettings['enabled']);
         
-        // Valida admin_bar se presente
+        // Valida admin_bar se presente - NON sovrascrivere i valori esistenti, solo assicurarsi che le chiavi esistano
         if (isset($newSettings['admin_bar']) && is_array($newSettings['admin_bar'])) {
-            $newSettings['admin_bar'] = array_merge([
+            $defaults = [
                 'disable_frontend' => false,
                 'disable_wordpress_logo' => false,
                 'disable_updates' => false,
                 'disable_comments' => false,
                 'disable_new' => false,
                 'disable_customize' => false,
-            ], $newSettings['admin_bar']);
+            ];
+            // Merge mantenendo i valori esistenti (i valori in $newSettings['admin_bar'] hanno priorità)
+            $newSettings['admin_bar'] = array_merge($defaults, $newSettings['admin_bar']);
         }
         
         // Valida dashboard se presente
@@ -582,7 +1002,14 @@ class BackendOptimizer
         remove_action('wp_dashboard_setup', [$this, 'customizeDashboardWidgets'], 999);
         
         // FIX: Rimuovi hook admin bar
-        remove_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar']);
+        remove_action('add_admin_bar_menus', [$this, 'removeAdminBarHooks'], 999);
+        remove_action('admin_bar_menu', [$this, 'removeAdminBarNodesAfterAdd'], 9999);
+        remove_action('wp_before_admin_bar_render', [$this, 'customizeAdminBar'], 999);
+        remove_action('admin_head', [$this, 'addAdminBarHideCSS'], 999);
+        remove_action('wp_head', [$this, 'addAdminBarHideCSS'], 999);
+        remove_action('wp_footer', [$this, 'addAdminBarHideCSSJS'], 999);
+        remove_action('admin_footer', [$this, 'addAdminBarHideCSSJS'], 999);
+        remove_filter('show_admin_bar', [$this, 'filterShowAdminBar'], 999);
         
         // FIX: Rimuovi hook init per admin ajax
         remove_action('init', [$this, 'applyAdminAjaxSettings']);
@@ -632,6 +1059,7 @@ class BackendOptimizer
     /**
      * Forza l'inizializzazione del servizio
      * FIX: Ricarica le impostazioni e reinizializza il servizio
+     * Applica immediatamente le modifiche quando possibile (hook già eseguiti)
      */
     public function forceInit(): void
     {
@@ -647,9 +1075,87 @@ class BackendOptimizer
         $this->optimize_dashboard = !empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets']);
         $this->admin_bar = !empty($settings['admin_bar']);
         
-        // Applica le impostazioni se il servizio è abilitato
-        // Nota: init() ora controlla internamente se enabled è true
+        // Se il servizio non è abilitato, non fare nulla
+        if (empty($settings['enabled'])) {
+            return;
+        }
+        
+        // Verifica se gli hook sono già stati eseguiti
+        $initDone = did_action('init');
+        $dashboardSetupDone = did_action('wp_dashboard_setup');
+        $adminBarRenderDone = did_action('wp_before_admin_bar_render');
+        
+        // Applica immediatamente le modifiche se gli hook sono già stati eseguiti
+        if ($initDone) {
+            // Hook init già eseguiti - applica direttamente le modifiche quando possibile
+            
+            // Admin AJAX optimizations - possono essere applicate immediatamente
+            if (!empty($settings['optimize_admin_ajax']) || !empty($settings['admin_ajax'])) {
+                $this->applyAdminAjaxSettingsImmediate($settings);
+            }
+        }
+        
+        // Dashboard widgets - applica immediatamente se wp_dashboard_setup è già stato eseguito
+        if ($dashboardSetupDone && is_admin()) {
+            if (!empty($settings['optimize_dashboard']) || !empty($settings['remove_dashboard_widgets'])) {
+                $this->optimizeDashboard();
+            }
+            if (!empty($settings['dashboard'])) {
+                $this->customizeDashboardWidgets();
+            }
+        }
+        
+        // Admin Bar - applica immediatamente se wp_before_admin_bar_render è già stato eseguito
+        if ($adminBarRenderDone) {
+            if (!empty($settings['admin_bar'])) {
+                $this->customizeAdminBar();
+            }
+        }
+        
+        // Registra gli hook per la prossima richiesta (se non già eseguiti) e per hook futuri
         $this->init();
+    }
+    
+    /**
+     * Applica immediatamente le ottimizzazioni Admin AJAX
+     * Usato quando forceInit() viene chiamato dopo che init è già stato eseguito
+     */
+    private function applyAdminAjaxSettingsImmediate(array $settings): void
+    {
+        $adminAjaxSettings = $settings['admin_ajax'] ?? [];
+        
+        // Disabilita emoji immediatamente
+        if (!empty($adminAjaxSettings['disable_emojis'])) {
+            remove_action('wp_head', 'print_emoji_detection_script', 7);
+            remove_action('admin_print_scripts', 'print_emoji_detection_script');
+            remove_action('wp_print_styles', 'print_emoji_styles');
+            remove_action('admin_print_styles', 'print_emoji_styles');
+            remove_filter('the_content_feed', 'wp_staticize_emoji');
+            remove_filter('comment_text_rss', 'wp_staticize_emoji');
+            remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+            add_filter('tiny_mce_plugins', function($plugins) {
+                return is_array($plugins) ? array_diff($plugins, ['wpemoji']) : $plugins;
+            });
+        }
+        
+        // Disabilita embeds immediatamente
+        if (!empty($adminAjaxSettings['disable_embeds'])) {
+            remove_action('wp_head', 'wp_oembed_add_discovery_links');
+            remove_action('wp_head', 'wp_oembed_add_host_js');
+            remove_action('rest_api_init', 'wp_oembed_register_route');
+            remove_filter('oembed_dataparse', 'wp_filter_oembed_result', 10);
+            add_filter('embed_oembed_discover', '__return_false');
+            remove_filter('wp_head', 'wp_oembed_add_discovery_links');
+            remove_filter('wp_head', 'wp_oembed_add_host_js');
+        }
+        
+        // Intervallo autosave - può essere applicato immediatamente
+        if (!empty($settings['autosave_interval'])) {
+            $autosaveInterval = max(30, min(300, (int) $settings['autosave_interval']));
+            add_filter('autosave_interval', function() use ($autosaveInterval) {
+                return $autosaveInterval;
+            });
+        }
     }
     
     /**
@@ -658,5 +1164,39 @@ class BackendOptimizer
     public function register(): void
     {
         $this->init();
+        
+        // FIX: Assicurati che gli hook CSS siano sempre registrati
+        // Gli hook sono già registrati nel costruttore, ma verifica che siano attivi
+        // Se admin_head è già stato eseguito, registra per admin_footer
+        if (is_admin() && did_action('admin_head')) {
+            // admin_head è già stato eseguito, quindi inietta nel footer
+            if (!has_action('admin_footer', [$this, 'addAdminBarHideCSS'])) {
+                add_action('admin_footer', [$this, 'addAdminBarHideCSS'], 99999);
+            }
+        }
+    }
+    
+    /**
+     * Merge profondo di array (merge ricorsivo per array annidati)
+     * 
+     * @param array $array1 Array base
+     * @param array $array2 Array da mergere
+     * @return array Array mergiato
+     */
+    private function arrayMergeDeep(array $array1, array $array2): array
+    {
+        $merged = $array1;
+        
+        foreach ($array2 as $key => $value) {
+            if (isset($merged[$key]) && is_array($merged[$key]) && is_array($value)) {
+                // Se entrambi sono array, fai merge ricorsivo
+                $merged[$key] = $this->arrayMergeDeep($merged[$key], $value);
+            } else {
+                // Altrimenti sovrascrivi
+                $merged[$key] = $value;
+            }
+        }
+        
+        return $merged;
     }
 }

@@ -66,7 +66,11 @@ class AdminServiceProvider implements ServiceProviderInterface
                 $optionsRepo = $c->has(OptionsRepositoryInterface::class)
                     ? $c->get(OptionsRepositoryInterface::class)
                     : null;
-                return new \FP\PerfSuite\Services\Admin\BackendOptimizer(true, true, true, true, $optionsRepo);
+                $backendOptimizer = new \FP\PerfSuite\Services\Admin\BackendOptimizer(true, true, true, true, $optionsRepo);
+                // FIX: Registra immediatamente gli hook invece di aspettare init
+                // Questo garantisce che gli hook CSS vengano registrati prima di admin_head
+                $backendOptimizer->register();
+                return $backendOptimizer;
             }
         );
     }
@@ -81,6 +85,23 @@ class AdminServiceProvider implements ServiceProviderInterface
         if (!is_admin()) {
             return;
         }
+        
+        // FIX: Forza l'istanziazione e la registrazione di BackendOptimizer su plugins_loaded
+        // Questo garantisce che gli hook CSS vengano registrati prima di admin_head
+        add_action('plugins_loaded', function() use ($container) {
+            try {
+                if ($container->has(\FP\PerfSuite\Services\Admin\BackendOptimizer::class)) {
+                    $backendOptimizer = $container->get(\FP\PerfSuite\Services\Admin\BackendOptimizer::class);
+                    if (method_exists($backendOptimizer, 'register')) {
+                        $backendOptimizer->register();
+                    }
+                }
+            } catch (\Throwable $e) {
+                if (function_exists('error_log')) {
+                    error_log('FP-Performance: Errore boot BackendOptimizer - ' . $e->getMessage());
+                }
+            }
+        }, 1); // Priorità 1 per essere eseguito molto presto
         
         // Boot admin menu - con gestione errori sicura
         try {

@@ -15,7 +15,23 @@ console.log( 'FP Performance Suite: Main script loaded' );
 import { showNotice } from './components/notice.js';
 import { showProgress, removeProgress, updateProgress } from './components/progress.js';
 import { initRiskyToggles } from './components/confirmation.js';
-import { initTooltips } from './components/tooltip.js';
+// Import dinamico con cache busting stabile basato su timestamp file
+// Il timestamp viene passato da PHP via fpPerfSuite.tooltipVersion
+let initTooltips;
+(function() {
+	const tooltipVersion = (typeof fpPerfSuite !== 'undefined' && fpPerfSuite.tooltipVersion) 
+		? fpPerfSuite.tooltipVersion 
+		: Date.now();
+	import('./components/tooltip.js?v=' + tooltipVersion).then(module => {
+		initTooltips = module.initTooltips;
+		// Inizializza immediatamente se DOM è già pronto
+		if (document.readyState !== 'loading') {
+			initTooltips();
+		}
+	}).catch(err => {
+		console.error('[FP Performance] Errore caricamento tooltip.js:', err);
+	});
+})();
 
 // Utilities
 import { BulkProcessor } from './utils/bulk-processor.js';
@@ -36,7 +52,19 @@ document.addEventListener(
 		console.log( 'FP Performance Suite: DOM ready, initializing features' );
 
 		// Initialize tooltips (early to prevent positioning issues)
-		initTooltips();
+		if (typeof initTooltips === 'function') {
+			initTooltips();
+		} else {
+			// Se import dinamico non è ancora completato, aspetta e riprova
+			const tooltipVersion = (typeof fpPerfSuite !== 'undefined' && fpPerfSuite.tooltipVersion) 
+				? fpPerfSuite.tooltipVersion 
+				: Date.now();
+			import('./components/tooltip.js?v=' + tooltipVersion).then(module => {
+				module.initTooltips();
+			}).catch(err => {
+				console.error('[FP Performance] Errore caricamento tooltip.js:', err);
+			});
+		}
 
 		// Initialize risky action confirmations
 		initRiskyToggles();
@@ -71,5 +99,22 @@ window.fpPerfSuiteUtils = {
 	BulkProcessor,
 	confirm,
 	alert,
-	deleteConfirm
+	deleteConfirm,
+	// Export initTooltips - gestisce import dinamico se necessario
+	get initTooltips() {
+		if (typeof initTooltips === 'function') {
+			return initTooltips;
+		}
+		// Fallback: carica modulo dinamicamente
+		return function() {
+			const tooltipVersion = (typeof fpPerfSuite !== 'undefined' && fpPerfSuite.tooltipVersion) 
+				? fpPerfSuite.tooltipVersion 
+				: Date.now();
+			import('./components/tooltip.js?v=' + tooltipVersion).then(module => {
+				module.initTooltips();
+			}).catch(err => {
+				console.error('[FP Performance] Errore caricamento tooltip.js:', err);
+			});
+		};
+	}
 };

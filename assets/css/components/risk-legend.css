@@ -155,10 +155,5 @@
 	margin: 4px 0;
 }
 
-/* Enhanced tooltip styling for better readability */
-.fp-ps-risk-tooltip-text {
-	white-space: pre-line;
-	font-size: 13px;
-	line-height: 1.6;
-}
+/* Tooltip styles moved to tooltip.css */
 
